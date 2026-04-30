@@ -66,31 +66,32 @@ class MalhistorikController {
     }
 
     /**
-     * Beräkna snitt IBC/h och måluppfyllnad för ett datumintervall.
-     * Returnerar ibc_per_timme och malprocent.
+     * Snitt IBC/h och måluppfyllnad för ett datumintervall, LAG-korrigerad.
      */
     private function calcIbcPerTimme(string $fromDate, string $toDate, int $mal): array {
-        // Summera max IBC/skift per dag (samma mönster som DagligSammanfattningController)
-        $stmt = $this->pdo->prepare(
-            "SELECT
-                DATE(datum) AS dag,
-                SUM(max_ibc) AS dag_ibc,
-                SUM(runtime_min) AS dag_runtime
-             FROM (
-                SELECT
-                    DATE(datum) AS datum_dag,
-                    skiftraknare,
-                    MAX(ibc_ok) AS max_ibc,
-                    MAX(runtime_plc) AS runtime_min
+        $f = $this->pdo->quote($fromDate);
+        $t = $this->pdo->quote($toDate);
+        $stmt = $this->pdo->query(
+            "WITH lag_base AS (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                       MAX(COALESCE(runtime_plc, 0))  AS runtime_end
                 FROM rebotling_ibc
-                WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
+                WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
                 GROUP BY DATE(datum), skiftraknare
                 HAVING COUNT(*) > 1
-             ) skiften
-             GROUP BY dag
-             HAVING dag_runtime > 0"
+            ),
+            lag_shifts AS (
+                SELECT dag, skiftraknare,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc,
+                       runtime_end AS shift_runtime
+                FROM lag_base
+            )
+            SELECT dag, SUM(shift_ibc) AS dag_ibc, SUM(shift_runtime) AS dag_runtime
+            FROM lag_shifts
+            GROUP BY dag
+            HAVING dag_runtime > 0"
         );
-        $stmt->execute([':from' => $fromDate, ':to' => $toDate]);
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         if (empty($rows)) {

@@ -107,32 +107,31 @@ class MinDagController {
     }
 
     /**
-     * Hämta snittcykeltid för hela teamet de senaste 30 dagarna (sekunder).
-     * Används för jämförelse i KPI-korten.
+     * Snittcykeltid för hela teamet de senaste 30 dagarna (sekunder), LAG-korrigerad.
      */
     private function getTeamAvgCycleSek(): float {
         try {
-            $since = date('Y-m-d', strtotime('-30 days'));
-            $stmt  = $this->pdo->prepare("
-                SELECT AVG(cykel_sek) AS snitt
-                FROM (
-                    SELECT skiftraknare,
-                           SUM(shift_runtime_sek) / NULLIF(SUM(shift_ibc_ok), 0) AS cykel_sek
-                    FROM (
-                        SELECT skiftraknare,
-                               MAX(runtime_plc) * 60  AS shift_runtime_sek,
-                               MAX(ibc_ok)             AS shift_ibc_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= :since
-
-                          AND runtime_plc IS NOT NULL
-                        GROUP BY skiftraknare
-                    ) AS ps
-                    GROUP BY skiftraknare
-                ) AS per_shift
-            ");
-            $stmt->execute(['since' => $since]);
-            $val = $stmt->fetchColumn();
+            $since = $this->pdo->quote(date('Y-m-d', strtotime('-30 days')));
+            $sql = "
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                           MAX(COALESCE(runtime_plc, 0))  AS runtime_end
+                    FROM rebotling_ibc
+                    WHERE datum >= {$since} AND runtime_plc IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc,
+                           runtime_end AS shift_runtime_min
+                    FROM lag_base
+                )
+                SELECT AVG(shift_runtime_min * 60 / NULLIF(shift_ibc, 0)) AS snitt
+                FROM lag_shifts
+                WHERE shift_ibc > 0
+            ";
+            $val = $this->pdo->query($sql)->fetchColumn();
             return $val !== null && $val > 0 ? (float)$val : 0.0;
         } catch (\PDOException $e) {
             error_log('MinDagController::getTeamAvgCycleSek: ' . $e->getMessage());
@@ -177,28 +176,37 @@ class MinDagController {
         }
 
         $today    = date('Y-m-d');
-        // Unika paramnamn per kolumn (ATTR_EMULATE_PREPARES=false kräver unika named params)
-        $opFilter = "(op1 = :op_id_a OR op2 = :op_id_b OR op3 = :op_id_c)";
+        $qToday   = $this->pdo->quote($today);
         $opInfo   = $this->getOperatorInfo($opId);
 
         try {
-            // Steg 1: per skift — kumulativa fält med MAX()
-            $stmt = $this->pdo->prepare("
-                SELECT
-                    skiftraknare,
-                    MAX(ibc_ok)      AS shift_ibc_ok,
-                    MAX(ibc_ej_ok)   AS shift_ibc_ej_ok,
-                    MAX(runtime_plc) AS shift_runtime_min,
-                    SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang   ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus,
-                    SUBSTRING_INDEX(GROUP_CONCAT(kvalitet      ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet
-                FROM rebotling_ibc
-                WHERE $opFilter
-                  AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
-
-                GROUP BY skiftraknare
-            ");
-            $stmt->execute(['op_id_a' => $opId, 'op_id_b' => $opId, 'op_id_c' => $opId, 'today' => $today, 'todayb' => $today]);
-            $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            // LAG-korrigerad per-skift-query: operator-filter på yttre nivå så LAG ser alla skift
+            $shifts = $this->pdo->query("
+                WITH lag_base AS (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))     AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0))  AS ibc_ej_end,
+                           MAX(COALESCE(runtime_plc, 0)) AS runtime_end,
+                           SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus,
+                           SUBSTRING_INDEX(GROUP_CONCAT(kvalitet    ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet,
+                           MIN(COALESCE(op1, 0)) AS op1,
+                           MIN(COALESCE(op2, 0)) AS op2,
+                           MIN(COALESCE(op3, 0)) AS op3
+                    FROM rebotling_ibc
+                    WHERE datum >= {$qToday} AND datum < DATE_ADD({$qToday}, INTERVAL 1 DAY)
+                    GROUP BY skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT skiftraknare, op1, op2, op3, last_bonus, last_kvalitet,
+                           GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
+                           GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok,
+                           runtime_end AS shift_runtime_min
+                    FROM lag_base
+                )
+                SELECT skiftraknare, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min, last_bonus, last_kvalitet
+                FROM lag_shifts
+                WHERE op1 = {$opId} OR op2 = {$opId} OR op3 = {$opId}
+            ")->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($shifts)) {
                 // Inga data idag — returnera noll-sammanfattning
@@ -248,26 +256,32 @@ class MinDagController {
                 ? round($snittCykelSek - $teamSnittSek, 1)
                 : 0;
 
-            // 30-dagarssnitt för operatören (IBC per dag med produktion)
-            $since30 = date('Y-m-d', strtotime('-30 days'));
-            $stmtSnitt = $this->pdo->prepare("
+            // 30-dagarssnitt för operatören (IBC per dag, LAG-korrigerat)
+            $since30  = $this->pdo->quote(date('Y-m-d', strtotime('-30 days')));
+            $snittIbc30d = (float)($this->pdo->query("
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS ibc_end,
+                           MIN(COALESCE(op1, 0)) AS op1,
+                           MIN(COALESCE(op2, 0)) AS op2,
+                           MIN(COALESCE(op3, 0)) AS op3
+                    FROM rebotling_ibc
+                    WHERE datum >= {$since30} AND datum < {$qToday}
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, op1, op2, op3,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc
+                    FROM lag_base
+                )
                 SELECT AVG(dag_ibc) AS snitt_ibc
                 FROM (
-                    SELECT DATE(datum) AS dag, SUM(shift_ibc_ok) AS dag_ibc
-                    FROM (
-                        SELECT DATE(datum) AS datum, skiftraknare, MAX(ibc_ok) AS shift_ibc_ok
-                        FROM rebotling_ibc
-                        WHERE $opFilter
-                          AND datum >= :since30
-                          AND datum < :today
-
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS ps
+                    SELECT dag, SUM(shift_ibc) AS dag_ibc
+                    FROM lag_shifts
+                    WHERE op1 = {$opId} OR op2 = {$opId} OR op3 = {$opId}
                     GROUP BY dag
                 ) AS per_day
-            ");
-            $stmtSnitt->execute(['op_id_a' => $opId, 'op_id_b' => $opId, 'op_id_c' => $opId, 'since30' => $since30, 'today' => $today]);
-            $snittIbc30d = (float)($stmtSnitt->fetchColumn() ?? 0);
+            ")->fetchColumn() ?? 0);
 
             $this->sendSuccess([
                 'operator_id'    => $opId,
@@ -375,32 +389,37 @@ class MinDagController {
             return;
         }
 
-        $today    = date('Y-m-d');
-        // Unika paramnamn per kolumn (ATTR_EMULATE_PREPARES=false kräver unika named params)
-        $opFilter = "(op1 = :op_id_a OR op2 = :op_id_b OR op3 = :op_id_c)";
+        $today  = date('Y-m-d');
+        $qToday = $this->pdo->quote($today);
 
         try {
-            // Hämta dagens produktion
-            $stmt = $this->pdo->prepare("
+            // LAG-korrigerad per-skift-aggregering; operator-filter på yttre nivå
+            $row = $this->pdo->query("
+                WITH lag_base AS (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end,
+                           SUBSTRING_INDEX(GROUP_CONCAT(kvalitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet,
+                           MIN(COALESCE(op1, 0)) AS op1,
+                           MIN(COALESCE(op2, 0)) AS op2,
+                           MIN(COALESCE(op3, 0)) AS op3
+                    FROM rebotling_ibc
+                    WHERE datum >= {$qToday} AND datum < DATE_ADD({$qToday}, INTERVAL 1 DAY)
+                    GROUP BY skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT skiftraknare, op1, op2, op3, last_kvalitet,
+                           GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
+                           GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok
+                    FROM lag_base
+                )
                 SELECT
                     SUM(shift_ibc_ok)    AS total_ibc_ok,
                     SUM(shift_ibc_ej_ok) AS total_ibc_ej_ok,
                     AVG(last_kvalitet)   AS snitt_kvalitet
-                FROM (
-                    SELECT
-                        skiftraknare,
-                        MAX(ibc_ok)    AS shift_ibc_ok,
-                        MAX(ibc_ej_ok) AS shift_ibc_ej_ok,
-                        SUBSTRING_INDEX(GROUP_CONCAT(kvalitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet
-                    FROM rebotling_ibc
-                    WHERE $opFilter
-                      AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
-
-                    GROUP BY skiftraknare
-                ) AS ps
-            ");
-            $stmt->execute(['op_id_a' => $opId, 'op_id_b' => $opId, 'op_id_c' => $opId, 'today' => $today, 'todayb' => $today]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                FROM lag_shifts
+                WHERE op1 = {$opId} OR op2 = {$opId} OR op3 = {$opId}
+            ")->fetch(PDO::FETCH_ASSOC);
 
             $ibcOk    = (int)($row['total_ibc_ok']    ?? 0);
             $ibcEjOk  = (int)($row['total_ibc_ej_ok'] ?? 0);

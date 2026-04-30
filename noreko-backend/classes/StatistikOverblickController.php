@@ -75,6 +75,35 @@ class StatistikOverblickController {
     }
 
     // ================================================================
+    // PRIVATE SQL HELPER
+    // ================================================================
+
+    /**
+     * LAG-CTE för korrekta per-skift-deltor (ibc_ok är daglig kumulativ räknare).
+     * Datum injiceras via quote() (PHP-genererade, ej användarinput).
+     */
+    private function buildLagCte(string $fromDate, string $toDate): string {
+        $f = $this->pdo->quote($fromDate);
+        $t = $this->pdo->quote($toDate);
+        return "
+            WITH lag_base AS (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok, 0))     AS ibc_end,
+                       MAX(COALESCE(ibc_ej_ok, 0))  AS ibc_ej_end
+                FROM rebotling_ibc
+                WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
+                GROUP BY DATE(datum), skiftraknare
+            ),
+            lag_shifts AS (
+                SELECT dag, skiftraknare,
+                       GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
+                       GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok
+                FROM lag_base
+            )
+        ";
+    }
+
+    // ================================================================
     // run=kpi — 4 KPI-kort
     // ================================================================
 
@@ -90,21 +119,12 @@ class StatistikOverblickController {
             $okIbc = 0;
             $kasserade = 0;
             try {
-                $stmt = $this->pdo->prepare("
-                    SELECT
-                        COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
-                        COALESCE(SUM(max_ibc_ej_ok), 0) AS kasserade
-                    FROM (
-                        SELECT skiftraknare, DATE(datum) AS dag,
-                               MAX(COALESCE(ibc_ok, 0)) AS max_ibc_ok, MAX(COALESCE(ibc_ej_ok, 0)) AS max_ibc_ej_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS per_skift
-                ");
-                $stmt->execute([':from_date' => $from30, ':to_date' => $today]);
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $lagCte = $this->buildLagCte($from30, $today);
+                $row = $this->pdo->query("
+                    {$lagCte}
+                    SELECT COALESCE(SUM(shift_ibc_ok), 0) AS ok_ibc, COALESCE(SUM(shift_ibc_ej_ok), 0) AS kasserade
+                    FROM lag_shifts
+                ")->fetch(\PDO::FETCH_ASSOC);
                 $okIbc = (int)($row['ok_ibc'] ?? 0);
                 $kasserade = (int)($row['kasserade'] ?? 0);
                 $totalIbc = $okIbc + $kasserade;
@@ -128,21 +148,12 @@ class StatistikOverblickController {
             $prevTotalIbc = 0;
             $prevKasserade = 0;
             try {
-                $stmt = $this->pdo->prepare("
-                    SELECT
-                        COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
-                        COALESCE(SUM(max_ibc_ej_ok), 0) AS kasserade
-                    FROM (
-                        SELECT skiftraknare, DATE(datum) AS dag,
-                               MAX(COALESCE(ibc_ok, 0)) AS max_ibc_ok, MAX(COALESCE(ibc_ej_ok, 0)) AS max_ibc_ej_ok
-                        FROM rebotling_ibc
-                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                        GROUP BY DATE(datum), skiftraknare
-                    ) AS per_skift
-                ");
-                $stmt->execute([':from_date' => $prevFrom, ':to_date' => $prevTo]);
-                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $lagCtePrev = $this->buildLagCte($prevFrom, $prevTo);
+                $row = $this->pdo->query("
+                    {$lagCtePrev}
+                    SELECT COALESCE(SUM(shift_ibc_ok), 0) AS ok_ibc, COALESCE(SUM(shift_ibc_ej_ok), 0) AS kasserade
+                    FROM lag_shifts
+                ")->fetch(\PDO::FETCH_ASSOC);
                 $prevKasserade = (int)($row['kasserade'] ?? 0);
                 $prevTotalIbc = (int)($row['ok_ibc'] ?? 0) + $prevKasserade;
             } catch (\Throwable $e) {
@@ -197,28 +208,16 @@ class StatistikOverblickController {
         $toDate = date('Y-m-d');
 
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT
-                    yearweek,
-                    MIN(dag) AS week_start,
-                    COALESCE(SUM(max_ibc_ok + max_ibc_ej_ok), 0) AS total_ibc
-                FROM (
-                    SELECT
-                        YEARWEEK(datum, 1) AS yearweek,
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0)) AS max_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY YEARWEEK(datum, 1), DATE(datum), skiftraknare
-                ) AS per_skift
+            $lagCte = $this->buildLagCte($fromDate, $toDate);
+            $rows = $this->pdo->query("
+                {$lagCte}
+                SELECT YEARWEEK(dag, 1) AS yearweek,
+                       MIN(dag) AS week_start,
+                       COALESCE(SUM(shift_ibc_ok + shift_ibc_ej_ok), 0) AS total_ibc
+                FROM lag_shifts
                 GROUP BY yearweek
                 ORDER BY yearweek ASC
-            ");
-            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            ")->fetchAll(\PDO::FETCH_ASSOC);
 
             $labels = [];
             $values = [];
@@ -310,28 +309,16 @@ class StatistikOverblickController {
         $toDate = date('Y-m-d');
 
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT
-                    yearweek,
-                    SUM(max_ibc_ok) AS ok_total,
-                    SUM(max_ibc_ej_ok) AS kasserade
-                FROM (
-                    SELECT
-                        YEARWEEK(datum, 1) AS yearweek,
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0)) AS max_ibc_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY YEARWEEK(datum, 1), DATE(datum), skiftraknare
-                ) AS per_skift
+            $lagCte = $this->buildLagCte($fromDate, $toDate);
+            $rows = $this->pdo->query("
+                {$lagCte}
+                SELECT YEARWEEK(dag, 1) AS yearweek,
+                       SUM(shift_ibc_ok) AS ok_total,
+                       SUM(shift_ibc_ej_ok) AS kasserade
+                FROM lag_shifts
                 GROUP BY yearweek
                 ORDER BY yearweek ASC
-            ");
-            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            ")->fetchAll(\PDO::FETCH_ASSOC);
 
             $labels = [];
             $values = [];
@@ -417,26 +404,17 @@ class StatistikOverblickController {
             error_log('StatistikOverblickController::calcOeeBatch onoff: ' . $e->getMessage());
         }
 
-        // 2) Hamta IBC per dag i en enda query
+        // 2) Hamta IBC per dag (LAG-korrigerad)
         $ibcPerDag = [];
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT dag,
-                    COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_ibc
-                FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS max_ibc_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+            $lagCte = $this->buildLagCte($fromDate, $toDate);
+            $sql = "
+                {$lagCte}
+                SELECT dag, SUM(shift_ibc_ok) AS ok_ibc, SUM(shift_ibc_ej_ok) AS ej_ok_ibc
+                FROM lag_shifts
                 GROUP BY dag
-            ");
-            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            ";
+            foreach ($this->pdo->query($sql)->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $ibcPerDag[$row['dag']] = [
                     'ok_ibc'    => (int)$row['ok_ibc'],
                     'ej_ok_ibc' => (int)$row['ej_ok_ibc'],
