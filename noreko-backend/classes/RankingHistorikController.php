@@ -8,7 +8,7 @@
  *   run=ranking-changes  → placeringsändring senaste vecka vs veckan innan
  *   run=streak-data      → operatörer med pågående positiva/negativa trender
  *
- * Tabeller: rebotling_ibc (datum, op1, op2, op3, ibc_ok, ibc_ej_ok, skiftraknare), operators (number, name)
+ * Tabeller: rebotling_skiftrapport (skiftraknare, datum, op1, op2, op3, ibc_ok, …), operators (number, name)
  */
 class RankingHistorikController {
     private $pdo;
@@ -86,33 +86,40 @@ class RankingHistorikController {
      * Batch-hamta produktion per operator per vecka for ett helt datumintervall.
      * Returnerar [ "year-week" => [ operator_nummer => antal_ok_ibc ] ]
      * EN enda query istallet for N separata (drastisk prestandavinst).
+     * ibc_ok ar en daglig PLC-lopraknare — LAG() ger korrekt per-skift-delta.
      */
     private function calcBatchWeekProduction(string $fromDate, string $toDate): array {
         $sql = "
-            SELECT YEAR(datum) AS yr, WEEK(datum, 1) AS wk, op, SUM(shift_ibc) AS total_ok
-            FROM (
-                SELECT datum, op1 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                FROM rebotling_ibc
-                WHERE datum >= :from1 AND datum <= :to1
-                  AND op1 IS NOT NULL AND op1 > 0
-                GROUP BY YEAR(datum), WEEK(datum, 1), op1, skiftraknare
-
+            WITH shifts AS (
+                SELECT
+                    skiftraknare,
+                    DATE(MAX(datum)) AS dag,
+                    MAX(op1)         AS op1,
+                    MAX(op2)         AS op2,
+                    MAX(op3)         AS op3,
+                    MAX(ibc_ok)      AS ibc_end
+                FROM rebotling_skiftrapport
+                WHERE datum >= :from AND datum <= :to
+                  AND ibc_ok IS NOT NULL
+                GROUP BY skiftraknare
+            ),
+            lag_data AS (
+                SELECT
+                    dag, op1, op2, op3,
+                    GREATEST(0,
+                        ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                    ) AS shift_ibc
+                FROM shifts
+            ),
+            combined AS (
+                SELECT dag, op1 AS op, shift_ibc FROM lag_data WHERE op1 IS NOT NULL AND op1 > 0
                 UNION ALL
-
-                SELECT datum, op2 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                FROM rebotling_ibc
-                WHERE datum >= :from2 AND datum <= :to2
-                  AND op2 IS NOT NULL AND op2 > 0
-                GROUP BY YEAR(datum), WEEK(datum, 1), op2, skiftraknare
-
+                SELECT dag, op2 AS op, shift_ibc FROM lag_data WHERE op2 IS NOT NULL AND op2 > 0
                 UNION ALL
-
-                SELECT datum, op3 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                FROM rebotling_ibc
-                WHERE datum >= :from3 AND datum <= :to3
-                  AND op3 IS NOT NULL AND op3 > 0
-                GROUP BY YEAR(datum), WEEK(datum, 1), op3, skiftraknare
-            ) AS combined
+                SELECT dag, op3 AS op, shift_ibc FROM lag_data WHERE op3 IS NOT NULL AND op3 > 0
+            )
+            SELECT YEAR(dag) AS yr, WEEK(dag, 1) AS wk, op, SUM(shift_ibc) AS total_ok
+            FROM combined
             GROUP BY yr, wk, op
             HAVING total_ok > 0
             ORDER BY yr, wk, total_ok DESC
@@ -120,9 +127,8 @@ class RankingHistorikController {
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
-            ':from1' => $fromDate . ' 00:00:00', ':to1' => $toDate . ' 23:59:59',
-            ':from2' => $fromDate . ' 00:00:00', ':to2' => $toDate . ' 23:59:59',
-            ':from3' => $fromDate . ' 00:00:00', ':to3' => $toDate . ' 23:59:59',
+            ':from' => $fromDate . ' 00:00:00',
+            ':to'   => $toDate   . ' 23:59:59',
         ]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -137,48 +143,48 @@ class RankingHistorikController {
 
     /**
      * Beräkna antal OK IBC per operatör för ett givet veckonummer + år.
-     * Operatörer räknas från op1, op2 och op3 (alla tre positioner bidrar).
+     * ibc_ok ar en daglig PLC-lopraknare — LAG() ger korrekt per-skift-delta.
      * Returnerar [ operator_nummer => antal_ok_ibc ]
      */
     private function calcWeekProduction(int $year, int $week): array {
-        // rebotling_ibc uses cumulative ibc_ok per skiftraknare.
-        // For operator ranking we count rows (each row = 1 IBC cycle) per operator.
         $sql = "
+            WITH shifts AS (
+                SELECT
+                    skiftraknare,
+                    DATE(MAX(datum)) AS dag,
+                    MAX(op1)         AS op1,
+                    MAX(op2)         AS op2,
+                    MAX(op3)         AS op3,
+                    MAX(ibc_ok)      AS ibc_end
+                FROM rebotling_skiftrapport
+                WHERE YEAR(datum) = :year AND WEEK(datum, 1) = :week
+                  AND ibc_ok IS NOT NULL
+                GROUP BY skiftraknare
+            ),
+            lag_data AS (
+                SELECT
+                    op1, op2, op3,
+                    GREATEST(0,
+                        ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                    ) AS shift_ibc
+                FROM shifts
+            ),
+            combined AS (
+                SELECT op1 AS op, shift_ibc FROM lag_data WHERE op1 IS NOT NULL AND op1 > 0
+                UNION ALL
+                SELECT op2 AS op, shift_ibc FROM lag_data WHERE op2 IS NOT NULL AND op2 > 0
+                UNION ALL
+                SELECT op3 AS op, shift_ibc FROM lag_data WHERE op3 IS NOT NULL AND op3 > 0
+            )
             SELECT op, SUM(shift_ibc) AS total_ok
-            FROM (
-                SELECT op1 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                FROM rebotling_ibc
-                WHERE YEAR(datum) = :y1 AND WEEK(datum, 1) = :w1
-                  AND op1 IS NOT NULL AND op1 > 0
-                GROUP BY op1, skiftraknare
-
-                UNION ALL
-
-                SELECT op2 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                FROM rebotling_ibc
-                WHERE YEAR(datum) = :y2 AND WEEK(datum, 1) = :w2
-                  AND op2 IS NOT NULL AND op2 > 0
-                GROUP BY op2, skiftraknare
-
-                UNION ALL
-
-                SELECT op3 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc
-                FROM rebotling_ibc
-                WHERE YEAR(datum) = :y3 AND WEEK(datum, 1) = :w3
-                  AND op3 IS NOT NULL AND op3 > 0
-                GROUP BY op3, skiftraknare
-            ) AS combined
+            FROM combined
             GROUP BY op
             HAVING total_ok > 0
             ORDER BY total_ok DESC
         ";
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            ':y1' => $year, ':w1' => $week,
-            ':y2' => $year, ':w2' => $week,
-            ':y3' => $year, ':w3' => $week,
-        ]);
+        $stmt->execute([':year' => $year, ':week' => $week]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $result = [];
