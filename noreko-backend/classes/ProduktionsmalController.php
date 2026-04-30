@@ -144,15 +144,20 @@ class ProduktionsmalController {
             $startDatum = $mal['start_datum'];
             $slutDatum = $mal['slut_datum'];
 
-            // Hamta producerade IBC (MAX(ibc_ok) per skiftraknare, sedan SUM)
+            // Hamta producerade IBC via LAG() delta (ibc_ok är dagräknare som inte nollställs per skift)
             $ibcStmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(max_ibc_ok), 0) AS antal
+                SELECT COALESCE(SUM(delta_ok), 0) AS antal
                 FROM (
-                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :start AND datum < DATE_ADD(:slut, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                    SELECT
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok) AS max_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :start AND datum < DATE_ADD(:slut, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
             ");
             $ibcStmt->execute([':start' => $startDatum, ':slut' => min($today, $slutDatum)]);
             $producerat = (int)($ibcStmt->fetchColumn() ?? 0);
@@ -221,13 +226,17 @@ class ProduktionsmalController {
 
             // Daglig produktion i perioden (for stapeldiagram)
             $dagligStmt = $this->pdo->prepare("
-                SELECT dag, SUM(max_ibc_ok) AS antal
+                SELECT dag, SUM(delta_ok) AS antal
                 FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ibc_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :start AND datum < DATE_ADD(:slut, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                    SELECT dag,
+                           GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :start AND datum < DATE_ADD(:slut, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
                 GROUP BY dag
                 ORDER BY dag ASC
             ");

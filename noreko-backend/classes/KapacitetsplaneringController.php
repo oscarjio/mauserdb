@@ -284,18 +284,21 @@ class KapacitetsplaneringController {
         try {
             $stmtProd = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                    COALESCE(SUM(delta_ok), 0) AS ok_antal,
+                    COALESCE(SUM(delta_ej), 0) AS ej_ok_antal
                 FROM (
                     SELECT
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(ibc_ok) AS max_ibc_ok,
-                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok)    AS max_ok,
+                               MAX(ibc_ej_ok) AS max_ej
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
             ");
             $stmtProd->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $radProd = $stmtProd->fetch(\PDO::FETCH_ASSOC);
@@ -408,14 +411,21 @@ class KapacitetsplaneringController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(max_ibc_ok), 0) AS total_ok,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS total_ej_ok
+                    COALESCE(SUM(delta_ok), 0) AS total_ok,
+                    COALESCE(SUM(delta_ej), 0) AS total_ej_ok
                 FROM (
-                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
-                ) AS per_skift
+                    SELECT
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (ORDER BY skiftraknare), 0)) AS delta_ej
+                    FROM (
+                        SELECT skiftraknare,
+                               MAX(ibc_ok)    AS max_ok,
+                               MAX(ibc_ej_ok) AS max_ej
+                        FROM rebotling_ibc
+                        WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                        GROUP BY skiftraknare
+                    ) inner_q
+                ) outer_q
             ");
             $stmt->execute([':datum' => $datum, ':datumb' => $datum]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -972,15 +982,22 @@ class KapacitetsplaneringController {
             $stmtBatch = $this->pdo->prepare("
                 SELECT
                     dag,
-                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                    COALESCE(SUM(delta_ok), 0) AS ok_antal,
+                    COALESCE(SUM(delta_ej), 0) AS ej_ok_antal
                 FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                    SELECT
+                        dag,
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok)    AS max_ok,
+                               MAX(ibc_ej_ok) AS max_ej
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
                 GROUP BY dag
             ");
             $stmtBatch->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);
@@ -1046,19 +1063,23 @@ class KapacitetsplaneringController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_ibc,
+                    COALESCE(SUM(delta_ok), 0) AS ok_ibc,
+                    COALESCE(SUM(delta_ej), 0) AS ej_ok_ibc,
                     COUNT(DISTINCT dag) AS aktiva_dagar
                 FROM (
                     SELECT
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(ibc_ok) AS max_ibc_ok,
-                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                        dag,
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok)    AS max_ok,
+                               MAX(ibc_ej_ok) AS max_ej
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $today]);
             $aggRow = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -1083,13 +1104,20 @@ class KapacitetsplaneringController {
         try {
             $stmtHalf = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(max_ibc_ok) + SUM(max_ibc_ej_ok), 0) AS total_ibc
+                    COALESCE(SUM(delta_ok) + SUM(delta_ej), 0) AS total_ibc
                 FROM (
-                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:half_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                    SELECT
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok)    AS max_ok,
+                               MAX(ibc_ej_ok) AS max_ej
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:half_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
             ");
             $stmtHalf->execute([':from_date' => $fromDate, ':half_date' => $halfDate]);
             $halfRow = $stmtHalf->fetch(\PDO::FETCH_ASSOC);

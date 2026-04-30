@@ -598,19 +598,25 @@ class RebotlingAdminController {
                     agg.ibc_ok, agg.runtime, agg.rasttime
                 FROM (
                     SELECT
-                        COALESCE(SUM(max_ibc_ok), 0)      AS ibc_ok,
+                        COALESCE(SUM(delta_ok), 0)         AS ibc_ok,
                         COALESCE(SUM(max_runtime_plc), 0)  AS runtime,
                         COALESCE(SUM(max_rasttime), 0)     AS rasttime
                     FROM (
                         SELECT
-                            COALESCE(skiftraknare, 0) AS sk,
-                            MAX(ibc_ok)      AS max_ibc_ok,
-                            MAX(runtime_plc) AS max_runtime_plc,
-                            MAX(rasttime)    AS max_rasttime
-                        FROM rebotling_ibc
-                        WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-                        GROUP BY sk
-                    ) per_shift
+                            GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (ORDER BY sk), 0)) AS delta_ok,
+                            max_runtime_plc,
+                            max_rasttime
+                        FROM (
+                            SELECT
+                                COALESCE(skiftraknare, 0) AS sk,
+                                MAX(ibc_ok)      AS max_ok,
+                                MAX(runtime_plc) AS max_runtime_plc,
+                                MAX(rasttime)    AS max_rasttime
+                            FROM rebotling_ibc
+                            WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                            GROUP BY sk
+                        ) per_shift
+                    ) with_delta
                 ) agg
             ")->fetch(PDO::FETCH_ASSOC);
 

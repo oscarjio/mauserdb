@@ -1464,31 +1464,40 @@ class SkiftrapportController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    DATE(datum) AS dag,
-                    CASE
-                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
-                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
-                        ELSE 'natt'
-                    END AS skift_namn,
-                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal,
+                    dag,
+                    skift_namn,
+                    COALESCE(SUM(delta_ok), 0) AS ok_antal,
+                    COALESCE(SUM(delta_ej), 0) AS ej_ok_antal,
                     COALESCE(SUM(max_runtime), 0) AS runtime_total
                 FROM (
                     SELECT
-                        datum,
-                        skiftraknare,
-                        MAX(ibc_ok) AS max_ibc_ok,
-                        MAX(ibc_ej_ok) AS max_ibc_ej_ok,
-                        MAX(runtime_plc) AS max_runtime
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_dt AND datum < DATE_ADD(:to_dt, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare,
-                        CASE
-                            WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
-                            WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
-                            ELSE 'natt'
-                        END
-                ) AS per_skift
+                        dag,
+                        skift_namn,
+                        max_runtime,
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                    FROM (
+                        SELECT
+                            DATE(datum) AS dag,
+                            skiftraknare,
+                            CASE
+                                WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                                WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                                ELSE 'natt'
+                            END AS skift_namn,
+                            MAX(ibc_ok)     AS max_ok,
+                            MAX(ibc_ej_ok)  AS max_ej,
+                            MAX(runtime_plc) AS max_runtime
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_dt AND datum < DATE_ADD(:to_dt, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare,
+                            CASE
+                                WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                                WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                                ELSE 'natt'
+                            END
+                    ) inner_q
+                ) outer_q
                 GROUP BY dag, skift_namn
                 ORDER BY dag ASC
             ");
