@@ -4129,17 +4129,22 @@ class RebotlingAnalyticsController {
             $stmt->execute();
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // KPI-sammanfattning
+            // KPI-sammanfattning (LAG applied before operator filter so deltas are correct)
             $kpiSql = "
+                WITH lag_shifts AS (
+                    SELECT s.op1, s.op2, s.op3, s.totalt, s.drifttid,
+                        GREATEST(0, s.ibc_ok - COALESCE(LAG(s.ibc_ok) OVER (PARTITION BY DATE(s.datum) ORDER BY s.skiftraknare), 0)) AS delta_ibc
+                    FROM rebotling_skiftrapport s
+                )
                 SELECT
-                    COALESCE(SUM(s.ibc_ok), 0)   AS total_ibc_ok,
-                    COALESCE(SUM(s.totalt), 0)    AS total_totalt,
-                    COALESCE(SUM(s.drifttid), 0)  AS total_drifttid,
-                    COUNT(*)                       AS antal_skift
-                FROM rebotling_skiftrapport s
-                LEFT JOIN operators o1 ON o1.number = s.op1
-                LEFT JOIN operators o2 ON o2.number = s.op2
-                LEFT JOIN operators o3 ON o3.number = s.op3
+                    COALESCE(SUM(ls.delta_ibc), 0)  AS total_ibc_ok,
+                    COALESCE(SUM(ls.totalt), 0)      AS total_totalt,
+                    COALESCE(SUM(ls.drifttid), 0)    AS total_drifttid,
+                    COUNT(*)                          AS antal_skift
+                FROM lag_shifts ls
+                LEFT JOIN operators o1 ON o1.number = ls.op1
+                LEFT JOIN operators o2 ON o2.number = ls.op2
+                LEFT JOIN operators o3 ON o3.number = ls.op3
                 {$where}
             ";
             $kpiStmt = $this->pdo->prepare($kpiSql);

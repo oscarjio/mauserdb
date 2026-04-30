@@ -107,21 +107,22 @@ class HistoriskProduktionController {
      */
     private function getProductionPerDay(string $fromDate, string $toDate): array {
         $stmt = $this->pdo->prepare("
-            SELECT
-                dag,
-                COALESCE(SUM(shift_ok), 0)    AS ibc_ok,
-                COALESCE(SUM(shift_ej_ok), 0) AS ibc_ej_ok
+            SELECT dag,
+                COALESCE(SUM(delta_ok), 0)    AS ibc_ok,
+                COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok
             FROM (
-                SELECT
-                    DATE(datum) AS dag,
-                    skiftraknare,
-                    MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                    MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                GROUP BY DATE(datum), skiftraknare
-            ) AS per_shift
+                SELECT dag,
+                    GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                    GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ) inner_q
+            ) outer_q
             GROUP BY dag
             ORDER BY dag ASC
         ");
@@ -135,19 +136,21 @@ class HistoriskProduktionController {
     private function getProductionForRange(string $fromDate, string $toDate): array {
         $stmt = $this->pdo->prepare("
             SELECT
-                COALESCE(SUM(shift_ok), 0)    AS ibc_ok,
-                COALESCE(SUM(shift_ej_ok), 0) AS ibc_ej_ok
+                COALESCE(SUM(delta_ok), 0)    AS ibc_ok,
+                COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok
             FROM (
                 SELECT
-                    DATE(datum) AS dag,
-                    skiftraknare,
-                    MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                    MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                GROUP BY DATE(datum), skiftraknare
-            ) AS per_shift
+                    GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                    GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ) inner_q
+            ) outer_q
         ");
         $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);

@@ -164,24 +164,27 @@ class ProduktionskalenderController {
             $stmt = $this->pdo->prepare("
                 SELECT
                     dag,
-                    SUM(max_ibc_ok) AS ibc_ok,
-                    SUM(max_ibc_ej_ok) AS ibc_ej_ok,
-                    SUM(max_ibc_ok) + SUM(max_ibc_ej_ok) AS ibc_total,
-                    MIN(forsta) AS forsta_cykel,
-                    MAX(sista) AS sista_cykel
+                    SUM(delta_ok)          AS ibc_ok,
+                    SUM(delta_ej)          AS ibc_ej_ok,
+                    SUM(delta_ok) + SUM(delta_ej) AS ibc_total,
+                    MIN(forsta)            AS forsta_cykel,
+                    MAX(sista)             AS sista_cykel
                 FROM (
-                    SELECT
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(ibc_ok) AS max_ibc_ok,
-                        MAX(ibc_ej_ok) AS max_ibc_ej_ok,
-                        MIN(datum) AS forsta,
-                        MAX(datum) AS sista
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND lopnummer > 0 AND lopnummer < 998
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                    SELECT dag,
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej,
+                        forsta, sista
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok)    AS max_ok,
+                               MAX(ibc_ej_ok) AS max_ej,
+                               MIN(datum) AS forsta, MAX(datum) AS sista
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                          AND lopnummer > 0 AND lopnummer < 998
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
                 GROUP BY dag
                 ORDER BY dag ASC
             ");
@@ -313,18 +316,23 @@ class ProduktionskalenderController {
         $prevDagData = [];
         try {
             $stmt = $this->pdo->prepare("
-                SELECT
-                    dag,
-                    SUM(max_ibc_ok) AS ibc_ok,
-                    SUM(max_ibc_ej_ok) AS ibc_ej_ok
+                SELECT dag,
+                    SUM(delta_ok) AS ibc_ok,
+                    SUM(delta_ej) AS ibc_ej_ok
                 FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND lopnummer > 0 AND lopnummer < 998
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                    SELECT dag,
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok)    AS max_ok,
+                               MAX(ibc_ej_ok) AS max_ej
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                          AND lopnummer > 0 AND lopnummer < 998
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
                 GROUP BY dag
             ");
             $stmt->execute([$prevFrom, $prevTo]);
@@ -399,26 +407,18 @@ class ProduktionskalenderController {
 
         $opMap = $this->getOperatorMap();
 
-        // Grundläggande IBC-data (MAX per skiftraknare, then SUM)
+        // ibc_ok resets at midnight — MAX across all rows for a single day = true daily total
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(max_ibc_ok), 0) AS ibc_ok,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ibc_ej_ok,
-                    COALESCE(SUM(max_ibc_ok) + SUM(max_ibc_ej_ok), 0) AS ibc_total,
-                    MIN(forsta) AS forsta_cykel,
-                    MAX(sista) AS sista_cykel
-                FROM (
-                    SELECT skiftraknare,
-                           MAX(ibc_ok) AS max_ibc_ok,
-                           MAX(ibc_ej_ok) AS max_ibc_ej_ok,
-                           MIN(datum) AS forsta,
-                           MAX(datum) AS sista
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND lopnummer > 0 AND lopnummer < 998
-                    GROUP BY skiftraknare
-                ) AS per_skift
+                    COALESCE(MAX(ibc_ok), 0)    AS ibc_ok,
+                    COALESCE(MAX(ibc_ej_ok), 0) AS ibc_ej_ok,
+                    COALESCE(MAX(ibc_ok) + MAX(ibc_ej_ok), 0) AS ibc_total,
+                    MIN(datum) AS forsta_cykel,
+                    MAX(datum) AS sista_cykel
+                FROM rebotling_ibc
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                  AND lopnummer > 0 AND lopnummer < 998
             ");
             $stmt->execute([$date, $date]);
             $base = $stmt->fetch(PDO::FETCH_ASSOC);

@@ -183,18 +183,21 @@ class MaskinhistorikController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(max_ibc_ok), 0) AS total_ok,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS total_ej_ok
+                    COALESCE(SUM(delta_ok), 0)  AS total_ok,
+                    COALESCE(SUM(delta_ej), 0)  AS total_ej_ok
                 FROM (
                     SELECT
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(ibc_ok) AS max_ibc_ok,
-                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok)    AS max_ok,
+                               MAX(ibc_ej_ok) AS max_ej
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);

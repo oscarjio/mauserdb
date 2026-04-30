@@ -982,26 +982,28 @@ class KassationsanalysController {
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
 
         try {
-            // Per vecka: kasserade vs totalt producerade
+            // Per vecka: kasserade vs totalt producerade (LAG-korrigerade per-skift deltas)
             $stmt = $this->pdo->prepare("
                 SELECT
-                    CONCAT(YEAR(sub.datum), '-V', LPAD(WEEK(sub.datum, 3), 2, '0')) AS vecka,
-                    MIN(sub.datum) AS vecka_start,
-                    SUM(sub.shift_ej_ok) AS kasserade,
-                    SUM(sub.shift_ok) + SUM(sub.shift_ej_ok) AS totalt
+                    CONCAT(YEAR(datum), '-V', LPAD(WEEK(datum, 3), 2, '0')) AS vecka,
+                    MIN(datum) AS vecka_start,
+                    SUM(delta_ej) AS kasserade,
+                    SUM(delta_ok) + SUM(delta_ej) AS totalt
                 FROM (
-                    SELECT
-                        DATE(datum) AS datum,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS sub
-                GROUP BY YEAR(sub.datum), WEEK(sub.datum, 3)
-                ORDER BY MIN(sub.datum) ASC
+                    SELECT datum,
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS delta_ej
+                    FROM (
+                        SELECT DATE(datum) AS datum, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
+                GROUP BY YEAR(datum), WEEK(datum, 3)
+                ORDER BY MIN(datum) ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $veckor = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -1364,15 +1366,21 @@ class KassationsanalysController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(max_ibc_ok), 0) AS godkanda,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS kasserade
+                    COALESCE(SUM(delta_ok), 0) AS godkanda,
+                    COALESCE(SUM(delta_ej), 0) AS kasserade
                 FROM (
-                    SELECT skiftraknare, DATE(datum) AS dag,
-                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum BETWEEN :from_date AND :to_date
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_skift
+                    SELECT
+                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_ok)    AS max_ok,
+                               MAX(ibc_ej_ok) AS max_ej
+                        FROM rebotling_ibc
+                        WHERE datum BETWEEN :from_date AND :to_date
+                        GROUP BY DATE(datum), skiftraknare
+                    ) inner_q
+                ) outer_q
             ");
             $stmt->execute([
                 ':from_date' => $fromDate . ' 00:00:00',
