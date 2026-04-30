@@ -106,24 +106,30 @@ class OeeJamforelseController {
         // Batch-hämta IBC-data per ISO-vecka i EN query
         $ibcPerWeek = [];
         try {
-            $ibcStmt = $this->pdo->prepare("
-                SELECT
-                    YEARWEEK(DATE(datum), 3) AS yw,
-                    COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                    COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
-                FROM (
-                    SELECT skiftraknare, datum,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+            $f = $this->pdo->quote($globalFromStr);
+            $t = $this->pdo->quote($globalToStr);
+            foreach ($this->pdo->query("
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end
                     FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY skiftraknare
-                ) sub
+                    WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag,
+                           GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ok,
+                           GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ej_ok
+                    FROM lag_base
+                )
+                SELECT
+                    YEARWEEK(dag, 3) AS yw,
+                    COALESCE(SUM(shift_ok),    0) AS ok_antal,
+                    COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+                FROM lag_shifts
                 GROUP BY yw
-            ");
-            $ibcStmt->execute([':from_date' => $globalFromStr, ':to_date' => $globalToStr]);
-            foreach ($ibcStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            ")->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $ibcPerWeek[$row['yw']] = $row;
             }
         } catch (\PDOException $e) {

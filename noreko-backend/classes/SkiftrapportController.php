@@ -1103,35 +1103,33 @@ class SkiftrapportController {
         $nextDay = date('Y-m-d', strtotime($datum . ' +1 day'));
         $toDt   = $nextDay . ' 06:00:00';
 
-        // ---- BATCH QUERY 1: IBC-data per skift ----
+        // ---- BATCH QUERY 1: IBC-data per skift — MAX-MIN per (dag, skiftraknare) hanterar midnatt-reset ----
         $ibcMap = ['dag' => ['ok' => 0, 'ej_ok' => 0], 'kvall' => ['ok' => 0, 'ej_ok' => 0], 'natt' => ['ok' => 0, 'ej_ok' => 0]];
         try {
-            $stmt = $this->pdo->prepare("
+            $fFromDt = $this->pdo->quote($fromDt);
+            $fToDt   = $this->pdo->quote($toDt);
+            foreach ($this->pdo->query("
                 SELECT
-                    CASE
-                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
-                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
-                        ELSE 'natt'
-                    END AS skift_namn,
-                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                    skift_namn,
+                    COALESCE(SUM(GREATEST(0, max_ok - min_ok)), 0) AS ok_antal,
+                    COALESCE(SUM(GREATEST(0, max_ej - min_ej)), 0) AS ej_ok_antal
                 FROM (
-                    SELECT skiftraknare,
-                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok,
-                           datum
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           CASE
+                               WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                               WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                               ELSE 'natt'
+                           END AS skift_namn,
+                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                           MIN(COALESCE(ibc_ok, 0))    AS min_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej,
+                           MIN(COALESCE(ibc_ej_ok, 0)) AS min_ej
                     FROM rebotling_ibc
-                    WHERE datum >= :from_dt AND datum < :to_dt
-                    GROUP BY skiftraknare,
-                        CASE
-                            WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
-                            WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
-                            ELSE 'natt'
-                        END
-                ) AS per_skift
+                    WHERE datum >= {$fFromDt} AND datum < {$fToDt}
+                    GROUP BY DATE(datum), skiftraknare, skift_namn
+                ) sub
                 GROUP BY skift_namn
-            ");
-            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
-            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            ")->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $ibcMap[$row['skift_namn']] = [
                     'ok'    => (int)$row['ok_antal'],
                     'ej_ok' => (int)$row['ej_ok_antal'],
@@ -1274,35 +1272,34 @@ class SkiftrapportController {
         // Nattskift gar till 06:00 nasta dag, sa vi behover data t.o.m. dagen efter
         $toDatePlusOne = date('Y-m-d', strtotime($toDate . ' +1 day'));
 
-        // ---- BATCH QUERY 1: IBC-data per dag + skift ----
+        // ---- BATCH QUERY 1: IBC-data per dag + skift — MAX-MIN per (dag, skiftraknare) hanterar midnatt-reset ----
         $ibcMap = []; // [datum][skift] => {ok, ej_ok}
         try {
-            $stmt = $this->pdo->prepare("
+            $fFromDt = $this->pdo->quote($fromDate . ' 00:00:00');
+            $fToDt   = $this->pdo->quote($toDatePlusOne . ' 06:00:00');
+            foreach ($this->pdo->query("
                 SELECT
-                    DATE(datum) AS dag,
-                    CASE
-                        WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
-                        WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
-                        ELSE 'natt'
-                    END AS skift_namn,
-                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
-                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                    dag,
+                    skift_namn,
+                    COALESCE(SUM(GREATEST(0, max_ok - min_ok)), 0) AS ok_antal,
+                    COALESCE(SUM(GREATEST(0, max_ej - min_ej)), 0) AS ej_ok_antal
                 FROM (
-                    SELECT datum, skiftraknare,
-                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           CASE
+                               WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
+                               WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
+                               ELSE 'natt'
+                           END AS skift_namn,
+                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                           MIN(COALESCE(ibc_ok, 0))    AS min_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej,
+                           MIN(COALESCE(ibc_ej_ok, 0)) AS min_ej
                     FROM rebotling_ibc
-                    WHERE datum >= :from_dt AND datum < :to_dt
-                    GROUP BY DATE(datum), skiftraknare,
-                        CASE
-                            WHEN HOUR(datum) >= 6 AND HOUR(datum) < 14 THEN 'dag'
-                            WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 'kvall'
-                            ELSE 'natt'
-                        END
-                ) AS per_skift
+                    WHERE datum >= {$fFromDt} AND datum < {$fToDt}
+                    GROUP BY DATE(datum), skiftraknare, skift_namn
+                ) sub
                 GROUP BY dag, skift_namn
-            ");
-            $stmt->execute([':from_dt' => $fromDate . ' 00:00:00', ':to_dt' => $toDatePlusOne . ' 06:00:00']);
-            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            ")->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $dag = $row['dag'];
                 $skift = $row['skift_namn'];
                 // Nattskift (22-06): rader efter midnatt (00-06) tillhor FOREGA dag

@@ -81,6 +81,40 @@ class VDVeckorapportController {
     }
 
     // ============================================================
+    // PRIVATE SQL HELPER
+    // ============================================================
+
+    /**
+     * LAG-CTE för korrekta per-skift-deltor (ibc_ok är daglig kumulativ räknare).
+     * Datum injiceras via quote() (PHP-genererade värden, ej användarinput).
+     */
+    private function buildLagCte(string $fran, string $till): string {
+        $f = $this->pdo->quote($fran);
+        $t = $this->pdo->quote($till);
+        return "
+            WITH lag_base AS (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                       MAX(COALESCE(ibc_ej_ok, 0))   AS ibc_ej_end,
+                       MAX(COALESCE(runtime_plc, 0))  AS runtime_end,
+                       MIN(COALESCE(op1, 0)) AS op1,
+                       MIN(COALESCE(op2, 0)) AS op2,
+                       MIN(COALESCE(op3, 0)) AS op3
+                FROM rebotling_ibc
+                WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
+                GROUP BY DATE(datum), skiftraknare
+            ),
+            lag_shifts AS (
+                SELECT dag, skiftraknare, op1, op2, op3,
+                       GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
+                       GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok,
+                       runtime_end AS shift_runtime_min
+                FROM lag_base
+            )
+        ";
+    }
+
+    // ============================================================
     // run=kpi-jamforelse
     // ============================================================
 
@@ -158,28 +192,16 @@ class VDVeckorapportController {
     }
 
     private function beraknaKpiForPeriod(string $fran, string $till): array {
-        // IBC-produktion och kassation
+        $lagCte = $this->buildLagCte($fran, $till);
         $sql = "
+            {$lagCte}
             SELECT
-                SUM(max_ibc_ok) + SUM(max_ibc_ej_ok) AS total_ibc,
-                SUM(max_ibc_ok) AS godkanda,
-                SUM(max_ibc_ej_ok) AS kasserade,
-                MIN(forsta) AS forsta,
-                MAX(sista) AS sista
-            FROM (
-                SELECT skiftraknare,
-                       COALESCE(MAX(ibc_ok), 0) AS max_ibc_ok,
-                       COALESCE(MAX(ibc_ej_ok), 0) AS max_ibc_ej_ok,
-                       MIN(datum) AS forsta,
-                       MAX(datum) AS sista
-                FROM rebotling_ibc
-                WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
-                GROUP BY skiftraknare
-            ) AS per_shift
+                COALESCE(SUM(shift_ibc_ok), 0) + COALESCE(SUM(shift_ibc_ej_ok), 0) AS total_ibc,
+                COALESCE(SUM(shift_ibc_ok), 0)   AS godkanda,
+                COALESCE(SUM(shift_ibc_ej_ok), 0) AS kasserade
+            FROM lag_shifts
         ";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':fran' => $fran, ':till' => $till]);
-        $rad = $stmt->fetch(PDO::FETCH_ASSOC);
+        $rad = $this->pdo->query($sql)->fetch(PDO::FETCH_ASSOC);
 
         $total    = (int)($rad['total_ibc']  ?? 0);
         $godkanda = (int)($rad['godkanda']   ?? 0);
@@ -241,22 +263,17 @@ class VDVeckorapportController {
     }
 
     private function dagligProduktion(string $fran, string $till): array {
+        $lagCte = $this->buildLagCte($fran, $till);
         $sql = "
-            SELECT dag, SUM(max_ibc_ok) + SUM(max_ibc_ej_ok) AS total_ibc, SUM(max_ibc_ok) AS godkanda
-            FROM (
-                SELECT DATE(datum) AS dag, skiftraknare,
-                       COALESCE(MAX(ibc_ok), 0) AS max_ibc_ok,
-                       COALESCE(MAX(ibc_ej_ok), 0) AS max_ibc_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
-                GROUP BY DATE(datum), skiftraknare
-            ) AS per_shift
+            {$lagCte}
+            SELECT dag,
+                   SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok) AS total_ibc,
+                   SUM(shift_ibc_ok) AS godkanda
+            FROM lag_shifts
             GROUP BY dag
             ORDER BY dag ASC
         ";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':fran' => $fran, ':till' => $till]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
         $result = [];
         foreach ($rows as $r) {
@@ -278,23 +295,20 @@ class VDVeckorapportController {
     private function trenderAnomalier(): void {
         $dagar = 14;
 
-        $dagar = (int)$dagar; // Säkerställ int
+        $dagar    = (int)$dagar;
+        $fromDate = date('Y-m-d', strtotime("-{$dagar} days"));
+        $toDate   = date('Y-m-d');
+        $lagCte   = $this->buildLagCte($fromDate, $toDate);
         $sql = "
-            SELECT dag, SUM(max_ibc_ok) + SUM(max_ibc_ej_ok) AS total_ibc, SUM(max_ibc_ok) AS godkanda
-            FROM (
-                SELECT DATE(datum) AS dag, skiftraknare,
-                       COALESCE(MAX(ibc_ok), 0) AS max_ibc_ok,
-                       COALESCE(MAX(ibc_ej_ok), 0) AS max_ibc_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL {$dagar} DAY)
-                GROUP BY DATE(datum), skiftraknare
-            ) AS per_shift
+            {$lagCte}
+            SELECT dag,
+                   SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok) AS total_ibc,
+                   SUM(shift_ibc_ok) AS godkanda
+            FROM lag_shifts
             GROUP BY dag
             ORDER BY dag ASC
         ";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
         if (count($rows) < 3) {
             echo json_encode(['success' => true, 'data' => ['anomalier' => [], 'trender' => []]], JSON_UNESCAPED_UNICODE);
@@ -386,48 +400,30 @@ class VDVeckorapportController {
         $fran   = date('Y-m-d', strtotime("-{$period} days"));
         $till   = date('Y-m-d');
 
-        // Samla operatorsdata fran rebotling_ibc (kumulativa PLC-falt)
+        $lagCte = $this->buildLagCte($fran, $till);
         $sql = "
+            {$lagCte}
             SELECT
                 sub.op_num AS operator_id,
                 COALESCE(o.name, CONCAT('Op #', sub.op_num)) AS operator_namn,
-                SUM(sub.shift_ok)                  AS ibc_ok,
-                SUM(sub.shift_ej_ok)               AS ibc_kasserade,
-                SUM(sub.shift_ok + sub.shift_ej_ok) AS ibc_totalt,
-                SUM(sub.runtime_sek)               AS drifttid_sek,
-                COUNT(*)                           AS antal_skift
+                SUM(sub.shift_ibc_ok)                        AS ibc_ok,
+                SUM(sub.shift_ibc_ej_ok)                     AS ibc_kasserade,
+                SUM(sub.shift_ibc_ok + sub.shift_ibc_ej_ok)  AS ibc_totalt,
+                SUM(sub.shift_runtime_min) * 60              AS drifttid_sek,
+                COUNT(*)                                     AS antal_skift
             FROM (
-                SELECT op_num, skiftraknare,
-                       MAX(ibc_ok) AS shift_ok,
-                       MAX(ibc_ej_ok) AS shift_ej_ok,
-                       MAX(runtime_plc) * 60 AS runtime_sek
-                FROM (
-                    SELECT op1 AS op_num, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
-                    FROM rebotling_ibc
-                    WHERE datum >= :fran1 AND datum < DATE_ADD(:till1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                    UNION ALL
-                    SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
-                    FROM rebotling_ibc
-                    WHERE datum >= :fran2 AND datum < DATE_ADD(:till2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                    UNION ALL
-                    SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
-                    FROM rebotling_ibc
-                    WHERE datum >= :fran3 AND datum < DATE_ADD(:till3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                ) raw
-                GROUP BY op_num, skiftraknare
+                SELECT op1 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op1 > 0
+                UNION ALL
+                SELECT op2 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op2 > 0
+                UNION ALL
+                SELECT op3 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op3 > 0
             ) sub
             LEFT JOIN operators o ON o.number = sub.op_num
             GROUP BY sub.op_num, o.name
             HAVING ibc_totalt > 0
             ORDER BY ibc_ok DESC
         ";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            ':fran1' => $fran, ':till1' => $till,
-            ':fran2' => $fran, ':till2' => $till,
-            ':fran3' => $fran, ':till3' => $till,
-        ]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($rows)) {
             echo json_encode([
@@ -663,34 +659,23 @@ class VDVeckorapportController {
 
     private function hamtaOperatorsData(string $fran, string $till): array {
         try {
+            $lagCte = $this->buildLagCte($fran, $till);
             $sql = "
+                {$lagCte}
                 SELECT
-                    sub.op_num AS operator_id,
-                    COALESCE(o.name, CONCAT('Op #', sub.op_num)) AS operator_namn,
-                    SUM(sub.shift_ok)                  AS ibc_ok,
-                    SUM(sub.shift_ej_ok)               AS ibc_kasserade,
-                    SUM(sub.shift_ok + sub.shift_ej_ok) AS ibc_totalt,
-                    SUM(sub.runtime_sek)               AS drifttid_sek,
-                    COUNT(*)                           AS antal_skift
+                    sub.op_num                                      AS operator_id,
+                    COALESCE(o.name, CONCAT('Op #', sub.op_num))   AS operator_namn,
+                    SUM(sub.shift_ibc_ok)                          AS ibc_ok,
+                    SUM(sub.shift_ibc_ej_ok)                       AS ibc_kasserade,
+                    SUM(sub.shift_ibc_ok + sub.shift_ibc_ej_ok)   AS ibc_totalt,
+                    SUM(sub.shift_runtime_min) * 60                AS drifttid_sek,
+                    COUNT(*)                                        AS antal_skift
                 FROM (
-                    SELECT op_num, skiftraknare,
-                           MAX(ibc_ok) AS shift_ok,
-                           MAX(ibc_ej_ok) AS shift_ej_ok,
-                           MAX(runtime_plc) * 60 AS runtime_sek
-                    FROM (
-                        SELECT op1 AS op_num, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
-                        FROM rebotling_ibc
-                        WHERE datum >= :fran1 AND datum < DATE_ADD(:till1, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                        UNION ALL
-                        SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
-                        FROM rebotling_ibc
-                        WHERE datum >= :fran2 AND datum < DATE_ADD(:till2, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                        UNION ALL
-                        SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
-                        FROM rebotling_ibc
-                        WHERE datum >= :fran3 AND datum < DATE_ADD(:till3, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                    ) raw
-                    GROUP BY op_num, skiftraknare
+                    SELECT op1 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op1 > 0
+                    UNION ALL
+                    SELECT op2 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op2 > 0
+                    UNION ALL
+                    SELECT op3 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op3 > 0
                 ) sub
                 LEFT JOIN operators o ON o.number = sub.op_num
                 GROUP BY sub.op_num, o.name
@@ -698,13 +683,7 @@ class VDVeckorapportController {
                 ORDER BY ibc_ok DESC
                 LIMIT 20
             ";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':fran1' => $fran, ':till1' => $till,
-                ':fran2' => $fran, ':till2' => $till,
-                ':fran3' => $fran, ':till3' => $till,
-            ]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
             return array_map(function($r) {
                 $total = (int)$r['ibc_totalt'];
@@ -735,22 +714,17 @@ class VDVeckorapportController {
 
     private function beraknaAnomalierPeriod(string $fran, string $till): array {
         try {
+            $lagCte = $this->buildLagCte($fran, $till);
             $sql = "
-                SELECT dag, SUM(max_ibc_ok) + SUM(max_ibc_ej_ok) AS total_ibc, SUM(max_ibc_ok) AS godkanda
-                FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           COALESCE(MAX(ibc_ok), 0) AS max_ibc_ok,
-                           COALESCE(MAX(ibc_ej_ok), 0) AS max_ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :fran AND datum < DATE_ADD(:till, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
+                {$lagCte}
+                SELECT dag,
+                       SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok) AS total_ibc,
+                       SUM(shift_ibc_ok)                         AS godkanda
+                FROM lag_shifts
                 GROUP BY dag
                 ORDER BY dag ASC
             ";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':fran' => $fran, ':till' => $till]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
             if (count($rows) < 3) return [];
 

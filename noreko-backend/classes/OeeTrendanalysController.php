@@ -111,6 +111,27 @@ class OeeTrendanalysController {
     /**
      * Beräkna drifttid i sekunder från rebotling_onoff (datum + running kolumner).
      */
+    private function buildLagCte(string $from, string $to): string {
+        $f = $this->pdo->quote($from);
+        $t = $this->pdo->quote($to);
+        return "
+            WITH lag_base AS (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                       MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end
+                FROM rebotling_ibc
+                WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
+                GROUP BY DATE(datum), skiftraknare
+            ),
+            lag_shifts AS (
+                SELECT dag, skiftraknare,
+                       GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ok,
+                       GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ej_ok
+                FROM lag_base
+            )
+        ";
+    }
+
     private function calcDrifttidSek(string $from, string $to): int {
         $stmt = $this->pdo->prepare("
             SELECT datum, running FROM rebotling_onoff
@@ -144,23 +165,13 @@ class OeeTrendanalysController {
 
         $tillganglighet = $schemaSek > 0 ? ($drifttidSek / $schemaSek) : 0.0;
 
-        // IBC via kumulativa PLC-fält
-        $sqlIbc = "
-            SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc,
-                   COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
-            FROM (
-                SELECT DATE(datum) AS dag, skiftraknare,
-                       MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                       MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
-
-                GROUP BY DATE(datum), skiftraknare
-            ) sub
-        ";
-        $stmt = $this->pdo->prepare($sqlIbc);
-        $stmt->execute([':from' => $from, ':to' => $to]);
-        $ibcRow   = $stmt->fetch(PDO::FETCH_ASSOC);
+        // IBC via LAG-korrigerade skiftdeltan
+        $lagCte = $this->buildLagCte($from, $to);
+        $ibcRow = $this->pdo->query("
+            {$lagCte}
+            SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc, COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+            FROM lag_shifts
+        ")->fetch(PDO::FETCH_ASSOC);
         $okIbc    = (int)($ibcRow['ok_ibc']    ?? 0);
         $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
@@ -190,23 +201,12 @@ class OeeTrendanalysController {
         $dagCount  = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
 
         // Hamta IBC-data totalt (rebotling_ibc saknar station_id — fordela lika over stationer)
-        $sqlIbc = "
-            SELECT
-                COALESCE(SUM(shift_ok), 0) AS ok_ibc,
-                COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
-            FROM (
-                SELECT DATE(datum) AS dag, skiftraknare,
-                       MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                       MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
-
-                GROUP BY DATE(datum), skiftraknare
-            ) sub
-        ";
-        $stmt = $this->pdo->prepare($sqlIbc);
-        $stmt->execute([':from' => $from, ':to' => $to]);
-        $totalIbcRow = $stmt->fetch(PDO::FETCH_ASSOC);
+        $lagCte      = $this->buildLagCte($from, $to);
+        $totalIbcRow = $this->pdo->query("
+            {$lagCte}
+            SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc, COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+            FROM lag_shifts
+        ")->fetch(PDO::FETCH_ASSOC);
         $totalOkIbc = (int)($totalIbcRow['ok_ibc'] ?? 0);
         $totalEjOkIbc = (int)($totalIbcRow['ej_ok_ibc'] ?? 0);
         $totalAllIbc = $totalOkIbc + $totalEjOkIbc;
@@ -525,25 +525,14 @@ class OeeTrendanalysController {
      */
     private function batchIbcPerDag(string $fromDate, string $toDate): array {
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT
-                    dag,
-                    COALESCE(SUM(shift_ok), 0) AS ok_ibc,
-                    COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
-                FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
-                ) sub
-                GROUP BY dag
-            ");
-            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $lagCte = $this->buildLagCte($fromDate, $toDate);
             $result = [];
-            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            foreach ($this->pdo->query("
+                {$lagCte}
+                SELECT dag, COALESCE(SUM(shift_ok), 0) AS ok_ibc, COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+                FROM lag_shifts
+                GROUP BY dag
+            ")->fetchAll(PDO::FETCH_ASSOC) as $row) {
                 $ok = (int)$row['ok_ibc'];
                 $ej = (int)$row['ej_ok_ibc'];
                 $result[$row['dag']] = ['ok_ibc' => $ok, 'ej_ok_ibc' => $ej, 'total_ibc' => $ok + $ej];

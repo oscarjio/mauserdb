@@ -80,6 +80,31 @@ class KvalitetstrendController {
         ], JSON_UNESCAPED_UNICODE);
     }
 
+    private function buildLagCte(string $fromDate, string $toDate): string {
+        $f = $this->pdo->quote($fromDate);
+        $t = $this->pdo->quote($toDate);
+        return "
+            WITH lag_base AS (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                       MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end,
+                       MAX(COALESCE(op1, 0))       AS op1,
+                       MAX(COALESCE(op2, 0))       AS op2,
+                       MAX(COALESCE(op3, 0))       AS op3
+                FROM rebotling_ibc
+                WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
+                GROUP BY DATE(datum), skiftraknare
+            ),
+            lag_shifts AS (
+                SELECT dag, skiftraknare,
+                       GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
+                       GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok,
+                       op1, op2, op3
+                FROM lag_base
+            )
+        ";
+    }
+
     private function getPeriod(): int {
         $p = (int)($_GET['period'] ?? 12);
         if (!in_array($p, [4, 12, 26], true)) {
@@ -145,49 +170,24 @@ class KvalitetstrendController {
             $current = strtotime('+1 day', $current);
         }
 
-        // Hämta per vecka + skiftraknare: MAX(ibc_ok), MAX(ibc_ej_ok), op1/op2/op3
-        // Vi gör en union av op1, op2, op3 som ger (op_num, vecka_key, ibc_ok, ibc_ej_ok)
-        // och summerar per op_num+vecka.
-        $stmt = $this->pdo->prepare(
-            "SELECT
-                op_num,
-                CONCAT(YEAR(datum), '-W', LPAD(WEEK(datum,3), 2, '0')) AS vecka_key,
-                SUM(ibc_ok)    AS ibc_ok,
-                SUM(ibc_ej_ok) AS ibc_ej_ok
-             FROM (
-                SELECT op1 AS op_num, datum,
-                    MAX(ibc_ok)    AS ibc_ok,
-                    MAX(ibc_ej_ok) AS ibc_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                  AND op1 IS NOT NULL AND op1 > 0
-                GROUP BY op1, DATE(datum), skiftraknare
-
+        $lagCte = $this->buildLagCte($fromDate, $toDate);
+        $rows = $this->pdo->query("
+            {$lagCte}
+            SELECT
+                sub.op_num,
+                CONCAT(YEAR(sub.dag), '-W', LPAD(WEEK(sub.dag, 3), 2, '0')) AS vecka_key,
+                SUM(sub.shift_ibc_ok)    AS ibc_ok,
+                SUM(sub.shift_ibc_ej_ok) AS ibc_ej_ok
+            FROM (
+                SELECT op1 AS op_num, dag, shift_ibc_ok, shift_ibc_ej_ok FROM lag_shifts WHERE op1 > 0
                 UNION ALL
-
-                SELECT op2 AS op_num, datum,
-                    MAX(ibc_ok)    AS ibc_ok,
-                    MAX(ibc_ej_ok) AS ibc_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                  AND op2 IS NOT NULL AND op2 > 0
-                GROUP BY op2, DATE(datum), skiftraknare
-
+                SELECT op2 AS op_num, dag, shift_ibc_ok, shift_ibc_ej_ok FROM lag_shifts WHERE op2 > 0
                 UNION ALL
-
-                SELECT op3 AS op_num, datum,
-                    MAX(ibc_ok)    AS ibc_ok,
-                    MAX(ibc_ej_ok) AS ibc_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                  AND op3 IS NOT NULL AND op3 > 0
-                GROUP BY op3, DATE(datum), skiftraknare
-             ) combined
-             GROUP BY op_num, vecka_key
-             ORDER BY op_num, vecka_key"
-        );
-        $stmt->execute([$fromDate, $toDate, $fromDate, $toDate, $fromDate, $toDate]);
-        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                SELECT op3 AS op_num, dag, shift_ibc_ok, shift_ibc_ej_ok FROM lag_shifts WHERE op3 > 0
+            ) sub
+            GROUP BY sub.op_num, vecka_key
+            ORDER BY sub.op_num, vecka_key
+        ")->fetchAll(\PDO::FETCH_ASSOC);
 
         $result = [];
         foreach ($rows as $row) {
@@ -560,49 +560,24 @@ class KvalitetstrendController {
             $fromDate = date('Y-m-d', strtotime("-{$period} weeks"));
 
             // Hämta veckodata för DENNA operatör (op1, op2 eller op3)
-            $stmt = $this->pdo->prepare(
-                "SELECT
-                    CONCAT(YEAR(datum), '-W', LPAD(WEEK(datum,3), 2, '0')) AS vecka_key,
-                    SUM(ibc_ok)    AS ibc_ok,
-                    SUM(ibc_ej_ok) AS ibc_ej_ok
-                 FROM (
-                    SELECT datum,
-                        MAX(ibc_ok)    AS ibc_ok,
-                        MAX(ibc_ej_ok) AS ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND op1 = ?
-                    GROUP BY DATE(datum), skiftraknare
-
+            $lagCte    = $this->buildLagCte($fromDate, $toDate);
+            $opNumSafe = (int)$opNum;
+            $rows = $this->pdo->query("
+                {$lagCte}
+                SELECT
+                    CONCAT(YEAR(sub.dag), '-W', LPAD(WEEK(sub.dag, 3), 2, '0')) AS vecka_key,
+                    SUM(sub.shift_ibc_ok)    AS ibc_ok,
+                    SUM(sub.shift_ibc_ej_ok) AS ibc_ej_ok
+                FROM (
+                    SELECT dag, shift_ibc_ok, shift_ibc_ej_ok FROM lag_shifts WHERE op1 = {$opNumSafe}
                     UNION ALL
-
-                    SELECT datum,
-                        MAX(ibc_ok)    AS ibc_ok,
-                        MAX(ibc_ej_ok) AS ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND op2 = ?
-                    GROUP BY DATE(datum), skiftraknare
-
+                    SELECT dag, shift_ibc_ok, shift_ibc_ej_ok FROM lag_shifts WHERE op2 = {$opNumSafe}
                     UNION ALL
-
-                    SELECT datum,
-                        MAX(ibc_ok)    AS ibc_ok,
-                        MAX(ibc_ej_ok) AS ibc_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND op3 = ?
-                    GROUP BY DATE(datum), skiftraknare
-                 ) combined
-                 GROUP BY vecka_key
-                 ORDER BY vecka_key"
-            );
-            $stmt->execute([
-                $fromDate, $toDate, $opNum,
-                $fromDate, $toDate, $opNum,
-                $fromDate, $toDate, $opNum,
-            ]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                    SELECT dag, shift_ibc_ok, shift_ibc_ej_ok FROM lag_shifts WHERE op3 = {$opNumSafe}
+                ) sub
+                GROUP BY vecka_key
+                ORDER BY vecka_key
+            ")->fetchAll(\PDO::FETCH_ASSOC);
 
             // Indexera per vecka
             $opVeckodata = [];

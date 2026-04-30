@@ -253,24 +253,24 @@ class SkiftoverlamningController {
             $skiftTyp = $this->detectSkiftTyp();
             $tider = $this->skiftTider($skiftTyp);
 
-            // Hämta IBC-data för aktuellt skift via kumulativa PLC-fält
-            $stmt = $this->pdo->prepare("
+            // Hämta IBC-data för aktuellt skift — MAX-MIN per (dag, skiftraknare) hanterar midnatt-reset
+            $fStart = $this->pdo->quote($tider['start']);
+            $fEnd   = $this->pdo->quote($tider['slut']);
+            $ibc = $this->pdo->query("
                 SELECT
-                    COUNT(*) AS total,
-                    COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                    COALESCE(SUM(shift_ej_ok), 0) AS kasserade
+                    COALESCE(SUM(GREATEST(0, max_ok - min_ok)), 0) AS ok_antal,
+                    COALESCE(SUM(GREATEST(0, max_ej - min_ej)), 0) AS kasserade
                 FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                           MIN(COALESCE(ibc_ok, 0))    AS min_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej,
+                           MIN(COALESCE(ibc_ej_ok, 0)) AS min_ej
                     FROM rebotling_ibc
-                    WHERE datum BETWEEN :from_dt AND :to_dt
-
-                    GROUP BY skiftraknare
+                    WHERE datum BETWEEN {$fStart} AND {$fEnd}
+                    GROUP BY DATE(datum), skiftraknare
                 ) sub
-            ");
-            $stmt->execute([':from_dt' => $tider['start'], ':to_dt' => $tider['slut']]);
-            $ibc = $stmt->fetch(\PDO::FETCH_ASSOC);
+            ")->fetch(\PDO::FETCH_ASSOC);
 
             $okAntal   = (int)($ibc['ok_antal'] ?? 0);
             $kasserade = (int)($ibc['kasserade'] ?? 0);
@@ -362,23 +362,24 @@ class SkiftoverlamningController {
 
             $tider = $this->skiftTider($forraTyp, $forraDatum);
 
-            // IBC-data via kumulativa PLC-fält
-            $stmt = $this->pdo->prepare("
+            // IBC-data — MAX-MIN per (dag, skiftraknare) hanterar midnatt-reset
+            $fStart = $this->pdo->quote($tider['start']);
+            $fEnd   = $this->pdo->quote($tider['slut']);
+            $ibc = $this->pdo->query("
                 SELECT
-                    COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                    COALESCE(SUM(shift_ej_ok), 0) AS kasserade
+                    COALESCE(SUM(GREATEST(0, max_ok - min_ok)), 0) AS ok_antal,
+                    COALESCE(SUM(GREATEST(0, max_ej - min_ej)), 0) AS kasserade
                 FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                           MIN(COALESCE(ibc_ok, 0))    AS min_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej,
+                           MIN(COALESCE(ibc_ej_ok, 0)) AS min_ej
                     FROM rebotling_ibc
-                    WHERE datum BETWEEN :from_dt AND :to_dt
-
-                    GROUP BY skiftraknare
+                    WHERE datum BETWEEN {$fStart} AND {$fEnd}
+                    GROUP BY DATE(datum), skiftraknare
                 ) sub
-            ");
-            $stmt->execute([':from_dt' => $tider['start'], ':to_dt' => $tider['slut']]);
-            $ibc = $stmt->fetch(\PDO::FETCH_ASSOC);
+            ")->fetch(\PDO::FETCH_ASSOC);
 
             $okAntal   = (int)($ibc['ok_antal'] ?? 0);
             $kasserade = (int)($ibc['kasserade'] ?? 0);
@@ -1076,23 +1077,24 @@ class SkiftoverlamningController {
             $skiftTyp = $this->detectSkiftTyp();
             $tider = $this->skiftTider($skiftTyp);
 
-            // IBC-data for aktuellt skift via kumulativa PLC-fält
-            $stmt = $this->pdo->prepare("
+            // IBC-data for aktuellt skift — MAX-MIN per (dag, skiftraknare) hanterar midnatt-reset
+            $fStart = $this->pdo->quote($tider['start']);
+            $fEnd   = $this->pdo->quote($tider['slut']);
+            $ibc = $this->pdo->query("
                 SELECT
-                    COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                    COALESCE(SUM(shift_ej_ok), 0) AS kasserade
+                    COALESCE(SUM(GREATEST(0, max_ok - min_ok)), 0) AS ok_antal,
+                    COALESCE(SUM(GREATEST(0, max_ej - min_ej)), 0) AS kasserade
                 FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                           MIN(COALESCE(ibc_ok, 0))    AS min_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej,
+                           MIN(COALESCE(ibc_ej_ok, 0)) AS min_ej
                     FROM rebotling_ibc
-                    WHERE datum BETWEEN :from_dt AND :to_dt
-
-                    GROUP BY skiftraknare
+                    WHERE datum BETWEEN {$fStart} AND {$fEnd}
+                    GROUP BY DATE(datum), skiftraknare
                 ) sub
-            ");
-            $stmt->execute([':from_dt' => $tider['start'], ':to_dt' => $tider['slut']]);
-            $ibc = $stmt->fetch(\PDO::FETCH_ASSOC);
+            ")->fetch(\PDO::FETCH_ASSOC);
 
             $okAntal   = (int)($ibc['ok_antal'] ?? 0);
             $kasserade = (int)($ibc['kasserade'] ?? 0);

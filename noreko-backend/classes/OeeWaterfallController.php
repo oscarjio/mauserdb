@@ -171,21 +171,26 @@ class OeeWaterfallController {
         $totalIbc = 0;
         $okIbc    = 0;
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc,
-                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
-                FROM (
+            $f = $this->pdo->quote($fromDate);
+            $t = $this->pdo->quote($toDate);
+            $row = $this->pdo->query("
+                WITH lag_base AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                           MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end
                     FROM rebotling_ibc
-                    WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
-
+                    WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
-                ) sub
-            ");
-            $stmt->execute([':from' => $fromDate, ':to' => $toDate]);
-            $row      = $stmt->fetch(PDO::FETCH_ASSOC);
+                ),
+                lag_shifts AS (
+                    SELECT
+                           GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ok,
+                           GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ej_ok
+                    FROM lag_base
+                )
+                SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc, COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+                FROM lag_shifts
+            ")->fetch(PDO::FETCH_ASSOC);
             $okIbc    = (int)($row['ok_ibc']    ?? 0);
             $totalIbc = $okIbc + (int)($row['ej_ok_ibc'] ?? 0);
         } catch (\PDOException $e) {

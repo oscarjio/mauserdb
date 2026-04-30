@@ -161,6 +161,27 @@ class ProduktionsDashboardController {
      * Hamtar dagligt produktionsmal om tabellen rebotling_produktionsmal finns.
      * Returnerar 0 om tabellen saknas eller inget mal finns.
      */
+    private function buildLagCte(string $from, string $to): string {
+        $f = $this->pdo->quote($from);
+        $t = $this->pdo->quote($to);
+        return "
+            WITH lag_base AS (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                       MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end
+                FROM rebotling_ibc
+                WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
+                GROUP BY DATE(datum), skiftraknare
+            ),
+            lag_shifts AS (
+                SELECT dag, skiftraknare,
+                       GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ok,
+                       GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ej_ok
+                FROM lag_base
+            )
+        ";
+    }
+
     private function getDagligtMal(string $datum): int {
         try {
             // Kontrollera om tabellen finns
@@ -198,21 +219,12 @@ class ProduktionsDashboardController {
         $periodSek = max(1, strtotime($toDt) - strtotime($fromDt));
 
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
-                FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from AND datum < :to
-
-                    GROUP BY skiftraknare
-                ) sub
-            ");
-            $stmt->execute([':from' => $fromDt, ':to' => $toDt]);
-            $row     = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $lagCte = $this->buildLagCte($fromDt, $toDt);
+            $row    = $this->pdo->query("
+                {$lagCte}
+                SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal, COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+                FROM lag_shifts
+            ")->fetch(\PDO::FETCH_ASSOC);
             $okAntal = (int)($row['ok_antal']    ?? 0);
             $total   = $okAntal + (int)($row['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
@@ -266,21 +278,12 @@ class ProduktionsDashboardController {
 
         // --- Dagens produktion ---
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
-                FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :idag AND datum < DATE_ADD(:idag2, INTERVAL 1 DAY)
-
-                    GROUP BY skiftraknare
-                ) sub
-            ");
-            $stmt->execute([':idag' => $idag, ':idag2' => $idag]);
-            $radIdag   = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $lagCteIdag = $this->buildLagCte($idag, $idag);
+            $radIdag    = $this->pdo->query("
+                {$lagCteIdag}
+                SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal, COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+                FROM lag_shifts
+            ")->fetch(\PDO::FETCH_ASSOC);
             $ibcOkIdag = (int)($radIdag['ok_antal'] ?? 0);
             $ibcIdag   = $ibcOkIdag + (int)($radIdag['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
@@ -288,23 +291,14 @@ class ProduktionsDashboardController {
             $ibcIdag = 0; $ibcOkIdag = 0;
         }
 
-        // --- Gardag produktion (samma skift-aggregering som idag for korrekt jamforelse) ---
+        // --- Gardag produktion ---
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
-                FROM (
-                    SELECT skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :igar AND datum < DATE_ADD(:igar2, INTERVAL 1 DAY)
-
-                    GROUP BY skiftraknare
-                ) sub
-            ");
-            $stmt->execute([':igar' => $igar, ':igar2' => $igar]);
-            $radIgar = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $lagCteIgar = $this->buildLagCte($igar, $igar);
+            $radIgar    = $this->pdo->query("
+                {$lagCteIgar}
+                SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal, COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+                FROM lag_shifts
+            ")->fetch(\PDO::FETCH_ASSOC);
             $ibcIgar = (int)($radIgar['ok_antal'] ?? 0) + (int)($radIgar['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboardController::oversikt igar: ' . $e->getMessage());
@@ -428,26 +422,16 @@ class ProduktionsDashboardController {
     private function getVeckoProduktion(): void {
         $result = [];
 
-        $stmt = $this->pdo->prepare("
-            SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
-                   COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
-            FROM (
-                SELECT skiftraknare,
-                       MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                       MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= :dag AND datum < DATE_ADD(:dag2, INTERVAL 1 DAY)
-
-                GROUP BY skiftraknare
-            ) sub
-        ");
-
         for ($i = 6; $i >= 0; $i--) {
             $dagStr = date('Y-m-d', strtotime("-{$i} days"));
 
             try {
-                $stmt->execute([':dag' => $dagStr, ':dag2' => $dagStr]);
-                $radDag = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $lagCte = $this->buildLagCte($dagStr, $dagStr);
+                $radDag = $this->pdo->query("
+                    {$lagCte}
+                    SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal, COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+                    FROM lag_shifts
+                ")->fetch(\PDO::FETCH_ASSOC);
                 $total = (int)($radDag['ok_antal'] ?? 0) + (int)($radDag['ej_ok_antal'] ?? 0);
             } catch (\PDOException $e) {
                 error_log('ProduktionsDashboardController::vecko-produktion: ' . $e->getMessage());

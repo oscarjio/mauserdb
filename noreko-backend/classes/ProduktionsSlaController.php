@@ -105,6 +105,27 @@ class ProduktionsSlaController {
         echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 
+    private function buildLagCte(string $from, string $to): string {
+        $f = $this->pdo->quote($from);
+        $t = $this->pdo->quote($to);
+        return "
+            WITH lag_base AS (
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                       MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end
+                FROM rebotling_ibc
+                WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
+                GROUP BY DATE(datum), skiftraknare
+            ),
+            lag_shifts AS (
+                SELECT dag, skiftraknare,
+                       GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ok,
+                       GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ej_ok
+                FROM lag_base
+            )
+        ";
+    }
+
     private function ensureTables(): void {
         try {
             $check = $this->pdo->query(
@@ -148,24 +169,12 @@ class ProduktionsSlaController {
      * Använder MAX(ibc_ok) per (datum, skiftraknare) — samma mönster som StatistikDashboardController.
      */
     private function getProductionForRange(string $fromDate, string $toDate): array {
-        $stmt = $this->pdo->prepare("
-            SELECT
-                COALESCE(SUM(shift_ok), 0)    AS ibc_ok,
-                COALESCE(SUM(shift_ej_ok), 0) AS ibc_ej_ok
-            FROM (
-                SELECT
-                    DATE(datum) AS dag,
-                    skiftraknare,
-                    MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                    MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                GROUP BY DATE(datum), skiftraknare
-            ) AS per_shift
-        ");
-        $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        $lagCte = $this->buildLagCte($fromDate, $toDate);
+        $row = $this->pdo->query("
+            {$lagCte}
+            SELECT COALESCE(SUM(shift_ok), 0) AS ibc_ok, COALESCE(SUM(shift_ej_ok), 0) AS ibc_ej_ok
+            FROM lag_shifts
+        ")->fetch(\PDO::FETCH_ASSOC);
         $ok   = (int)($row['ibc_ok'] ?? 0);
         $ejOk = (int)($row['ibc_ej_ok'] ?? 0);
         $total = $ok + $ejOk;
@@ -177,27 +186,14 @@ class ProduktionsSlaController {
      * Hämta produktionsdata per dag för ett datumintervall.
      */
     private function getProductionPerDay(string $fromDate, string $toDate): array {
-        $stmt = $this->pdo->prepare("
-            SELECT
-                dag,
-                COALESCE(SUM(shift_ok), 0)    AS ibc_ok,
-                COALESCE(SUM(shift_ej_ok), 0) AS ibc_ej_ok
-            FROM (
-                SELECT
-                    DATE(datum) AS dag,
-                    skiftraknare,
-                    MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                    MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                GROUP BY DATE(datum), skiftraknare
-            ) AS per_shift
+        $lagCte = $this->buildLagCte($fromDate, $toDate);
+        return $this->pdo->query("
+            {$lagCte}
+            SELECT dag, COALESCE(SUM(shift_ok), 0) AS ibc_ok, COALESCE(SUM(shift_ej_ok), 0) AS ibc_ej_ok
+            FROM lag_shifts
             GROUP BY dag
             ORDER BY dag ASC
-        ");
-        $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        ")->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
