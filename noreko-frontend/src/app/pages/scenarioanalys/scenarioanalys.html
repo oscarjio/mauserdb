@@ -1,0 +1,255 @@
+<div class="page-wrap">
+
+  <div class="page-header">
+    <h2><i class="fas fa-flask me-2"></i>Scenarioanalys</h2>
+    <p class="page-subtitle">
+      Vad-händer-om-kalkylator — beräkna hur mycket extra IBC tre operativa förbättringar skulle ge
+    </p>
+  </div>
+
+  <!-- Period selector -->
+  <div class="period-bar">
+    <label>Period</label>
+    <select [(ngModel)]="selectedPeriod" (ngModelChange)="load()" class="period-select">
+      <option *ngFor="let p of availablePeriods" [value]="p">{{ periodLabel(p) }}</option>
+    </select>
+    <span class="period-range" *ngIf="data">{{ data.from | date:'d MMM':'':'sv' }} – {{ data.to | date:'d MMM yyyy':'':'sv' }}</span>
+  </div>
+
+  <div class="spinner-wrap" *ngIf="isLoading">
+    <div class="spinner-border text-info"></div>
+    <span>Laddar basdata...</span>
+  </div>
+
+  <ng-container *ngIf="data && !isLoading">
+
+    <!-- Baseline KPIs -->
+    <div class="section-title">Nuläge — {{ periodLabel(selectedPeriod) }}</div>
+    <div class="kpi-bar">
+      <div class="kpi-card">
+        <div class="kpi-label">Godkänd IBC</div>
+        <div class="kpi-value">{{ data.total_ibc | number }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">IBC/h</div>
+        <div class="kpi-value">{{ data.team_ibc_h }}</div>
+      </div>
+      <div class="kpi-card kpi-warn">
+        <div class="kpi-label">Kassation</div>
+        <div class="kpi-value">{{ data.kass_rate }}%</div>
+        <div class="kpi-sub">{{ data.total_ej | number }} kasserade</div>
+      </div>
+      <div class="kpi-card kpi-warn">
+        <div class="kpi-label">Stoppgrad</div>
+        <div class="kpi-value">{{ data.stoppgrad }}%</div>
+        <div class="kpi-sub">{{ data.total_stopp_h | number:'1.0-0' }} h stopp</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Drifttid</div>
+        <div class="kpi-value">{{ data.total_drift_h | number:'1.0-0' }} h</div>
+        <div class="kpi-sub">{{ data.n_shifts }} skift</div>
+      </div>
+    </div>
+
+    <!-- Scenario panels -->
+    <div class="scenarios">
+
+      <!-- 1. Kassation -->
+      <div class="scenario-card">
+        <div class="sc-header">
+          <i class="fas fa-vial sc-icon kass-icon"></i>
+          <div>
+            <div class="sc-title">Kassationsminskning</div>
+            <div class="sc-desc">Minska kassationsgraden från <strong>{{ data.kass_rate }}%</strong> till</div>
+          </div>
+        </div>
+        <div class="slider-row">
+          <input type="range" class="sc-slider" min="0" [max]="data.kass_rate" step="0.5"
+                 [(ngModel)]="targetKass" />
+          <span class="slider-val">{{ targetKass | number:'1.1-1' }}%</span>
+        </div>
+        <div class="sc-result" [class.positive]="kassGainIbc > 0">
+          <span class="gain-number">+{{ kassGainIbc | number }}</span>
+          <span class="gain-label">IBC/period</span>
+          <span class="gain-pct" *ngIf="kassGainIbc > 0">(+{{ kassGainPct }}%)</span>
+        </div>
+        <div class="gain-bar-wrap">
+          <div class="gain-bar kass-bar" [style.width.%]="barWidth(kassGainIbc)"></div>
+        </div>
+        <div class="sc-explain">
+          Varje kasserad IBC är producerad men inte leveransbar. Lägre kassation omvandlar
+          redan-producerat material till godkänt — ingen extra maskintid behövs.
+        </div>
+      </div>
+
+      <!-- 2. Uptime -->
+      <div class="scenario-card">
+        <div class="sc-header">
+          <i class="fas fa-pause-circle sc-icon stopp-icon"></i>
+          <div>
+            <div class="sc-title">Stopptidsminskning</div>
+            <div class="sc-desc">Minska stoppgraden från <strong>{{ data.stoppgrad }}%</strong> till</div>
+          </div>
+        </div>
+        <div class="slider-row">
+          <input type="range" class="sc-slider" min="0" [max]="data.stoppgrad" step="0.5"
+                 [(ngModel)]="targetStopp" />
+          <span class="slider-val">{{ targetStopp | number:'1.1-1' }}%</span>
+        </div>
+        <div class="sc-result" [class.positive]="stoppGainIbc > 0">
+          <span class="gain-number">+{{ stoppGainIbc | number }}</span>
+          <span class="gain-label">IBC/period</span>
+          <span class="gain-pct" *ngIf="stoppGainIbc > 0">(+{{ stoppGainPct }}%)</span>
+        </div>
+        <div class="gain-bar-wrap">
+          <div class="gain-bar stopp-bar" [style.width.%]="barWidth(stoppGainIbc)"></div>
+        </div>
+        <div class="sc-explain">
+          Beräknat som <em>extra drifttimmar × {{ data.team_ibc_h }} IBC/h</em>.
+          Extra tid: {{ stoppGainH | number:'1.1-1' }} h om stoppgrad sänks till {{ targetStopp | number:'1.1-1' }}%.
+        </div>
+      </div>
+
+      <!-- 3. Underperformer lift -->
+      <div class="scenario-card">
+        <div class="sc-header">
+          <i class="fas fa-arrow-up sc-icon perf-icon"></i>
+          <div>
+            <div class="sc-title">Prestationslyft</div>
+            <div class="sc-desc">
+              Om operatörer under <strong>{{ perfThreshold }}%</strong> av lagsnitt
+              ({{ (data.team_ibc_h * perfThreshold / 100) | number:'1.1-1' }} IBC/h)
+              nådde det tröskelvärdet
+            </div>
+          </div>
+        </div>
+        <div class="slider-row">
+          <input type="range" class="sc-slider" min="70" max="100" step="5"
+                 [(ngModel)]="perfThreshold" />
+          <span class="slider-val">{{ perfThreshold }}% av lagsnitt</span>
+        </div>
+        <div class="sc-result" [class.positive]="perfGainIbc > 0">
+          <span class="gain-number">+{{ perfGainIbc | number }}</span>
+          <span class="gain-label">IBC/period</span>
+          <span class="gain-pct" *ngIf="perfGainIbc > 0">(+{{ perfGainPct }}%)</span>
+        </div>
+        <div class="gain-bar-wrap">
+          <div class="gain-bar perf-bar" [style.width.%]="barWidth(perfGainIbc)"></div>
+        </div>
+        <!-- Underperformers list -->
+        <div class="underperformers" *ngIf="underperformers.length > 0">
+          <div class="up-header">Operatörer under tröskel ({{ underperformers.length }})</div>
+          <div class="up-row" *ngFor="let op of underperformers">
+            <span class="up-name">{{ op.name }}</span>
+            <span class="up-ibch">{{ op.ibc_h | number:'1.1-1' }} IBC/h</span>
+            <span class="up-delta">
+              gap: –{{ (data.team_ibc_h * perfThreshold / 100 - op.ibc_h) | number:'1.1-1' }} IBC/h
+              × {{ op.drift_h | number:'1.0-0' }} h
+              = –{{ ((data.team_ibc_h * perfThreshold / 100 - op.ibc_h) * op.drift_h) | number:'1.0-0' }} IBC
+            </span>
+          </div>
+        </div>
+        <div class="sc-explain">
+          Realistisk undre gräns. Tar inte hänsyn till varför operatören underpresterar
+          (produkt, position, dagsform) — se Tränarvy eller Prestandavarning för orsaksanalys.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Summary box -->
+    <div class="summary-box" *ngIf="totalGainIbc > 0">
+      <div class="sum-title">
+        <i class="fas fa-chart-line me-2"></i>Kombinerad potential
+        <span class="sum-period">{{ periodLabel(selectedPeriod) }}</span>
+      </div>
+      <div class="sum-grid">
+        <div class="sum-item">
+          <div class="sum-label">Nuvarande IBC</div>
+          <div class="sum-val">{{ data.total_ibc | number }}</div>
+        </div>
+        <div class="sum-item">
+          <div class="sum-label">Potentiell ökning</div>
+          <div class="sum-val positive">+{{ totalGainIbc | number }}</div>
+        </div>
+        <div class="sum-item">
+          <div class="sum-label">Projekterat IBC</div>
+          <div class="sum-val">{{ (data.total_ibc + totalGainIbc) | number }}</div>
+        </div>
+        <div class="sum-item">
+          <div class="sum-label">Nuvarande IBC/h</div>
+          <div class="sum-val">{{ data.team_ibc_h }}</div>
+        </div>
+        <div class="sum-item">
+          <div class="sum-label">Projekterat IBC/h</div>
+          <div class="sum-val positive">{{ projectedIbcH }}</div>
+        </div>
+        <div class="sum-item">
+          <div class="sum-label">Total förbättring</div>
+          <div class="sum-val positive">+{{ totalGainPct }}%</div>
+        </div>
+      </div>
+      <div class="sum-breakdown">
+        <span class="sb-item kass">Kassation: +{{ kassGainIbc | number }} IBC</span>
+        <span class="sb-sep">+</span>
+        <span class="sb-item stopp">Stopptid: +{{ stoppGainIbc | number }} IBC</span>
+        <span class="sb-sep">+</span>
+        <span class="sb-item perf">Prestanda: +{{ perfGainIbc | number }} IBC</span>
+      </div>
+      <p class="disclaimer">
+        <i class="fas fa-info-circle me-1"></i>
+        Scenarierna antas vara oberoende — i verkligheten kan kombinerade förbättringar samverka
+        eller motverka varandra. Använd som diskussionsunderlag, inte exakt prognos.
+      </p>
+    </div>
+
+    <!-- Operator table -->
+    <div class="op-section" *ngIf="data.operators.length > 0">
+      <div class="section-title">Operatörsprestanda — {{ periodLabel(selectedPeriod) }}</div>
+      <div class="op-table-wrap">
+        <table class="op-table">
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th>Skift</th>
+              <th>Drifttid (h)</th>
+              <th>IBC</th>
+              <th>IBC/h</th>
+              <th>vs Lagsnitt</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of data.operators" [class.below-thresh]="op.ibc_h < data.team_ibc_h * perfThreshold / 100">
+              <td>{{ op.name }}</td>
+              <td>{{ op.shifts }}</td>
+              <td>{{ op.drift_h | number:'1.0-0' }}</td>
+              <td>{{ op.ibc | number }}</td>
+              <td [style.color]="op.vs_team >= 0 ? '#68d391' : '#fc8181'">
+                {{ op.ibc_h | number:'1.1-1' }}
+              </td>
+              <td>
+                <span class="vs-pill" [class.pos]="op.vs_team >= 0" [class.neg]="op.vs_team < 0">
+                  {{ op.vs_team >= 0 ? '+' : '' }}{{ op.vs_team | number:'1.0-0' }}%
+                </span>
+              </td>
+            </tr>
+            <tr class="team-row">
+              <td><strong>Lagsnitt</strong></td>
+              <td>{{ data.n_shifts }}</td>
+              <td>{{ data.total_drift_h | number:'1.0-0' }}</td>
+              <td>{{ data.total_ibc | number }}</td>
+              <td><strong>{{ data.team_ibc_h }}</strong></td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">
+        Markerade rader = under valt prestandatröskel ({{ perfThreshold }}% av lagsnitt).
+        Varje operatör krediteras för IBC/h oavsett position — position-specifik analys i Kompetensmatris.
+      </p>
+    </div>
+
+  </ng-container>
+
+</div>

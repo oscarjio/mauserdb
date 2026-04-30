@@ -384,6 +384,8 @@ class RebotlingController {
                 $this->getDagsplanering();
             } elseif ($action === 'veckoplanering') {
                 $this->getVeckoplanering();
+            } elseif ($action === 'scenarioanalys') {
+                $this->getScenarioAnalys();
             } else {
                 $this->getLiveStats();
             }
@@ -17934,6 +17936,136 @@ class RebotlingController {
         } catch (\Throwable $e) {
             error_log('RebotlingController::getVeckoplanering: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Serverfel vid veckoplanering'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // scenarioanalys — What-if production improvement calculator.
+    // Returns period baseline (IBC, kassation, stoppgrad, operator breakdown)
+    // so the frontend can compute real-time scenario projections without extra queries.
+    private function getScenarioAnalys(): void
+    {
+        try {
+            $period = $_GET['period'] ?? date('Y-m');
+            // Support YYYY-MM or YYYY-QN (convert quarter to date range)
+            if (preg_match('/^(\d{4})-Q([1-4])$/', $period, $m)) {
+                $qStart = [1 => 1, 2 => 4, 3 => 7, 4 => 10][(int)$m[2]];
+                $from   = sprintf('%04d-%02d-01', (int)$m[1], $qStart);
+                $to     = date('Y-m-t', strtotime(sprintf('%04d-%02d-01', (int)$m[1], $qStart + 2)));
+            } else {
+                [$y, $mo] = explode('-', $period . '-01', 3);
+                $from = sprintf('%04d-%02d-01', (int)$y, (int)$mo);
+                $to   = date('Y-m-t', strtotime($from));
+            }
+
+            // Operator names
+            $opNames = [];
+            foreach ($this->pdo->query(
+                "SELECT number, name FROM operators ORDER BY name"
+            )->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            // All shifts in period — LAG() corrects ibc_ok (PLC daily running counter)
+            $stmt = $this->pdo->prepare("
+                SELECT op1, op2, op3, drifttid, driftstopptime,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok,
+                       bur_ej
+                FROM (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))      AS dag,
+                           MAX(op1)              AS op1,
+                           MAX(op2)              AS op2,
+                           MAX(op3)              AS op3,
+                           MAX(ibc_ok)           AS ibc_end,
+                           MAX(ibc_ej_ok)        AS ej_end,
+                           MAX(bur_ej_ok)        AS bur_ej,
+                           MAX(drifttid)         AS drifttid,
+                           MAX(driftstopptime)   AS driftstopptime
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from AND :to AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) base
+            ");
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $shifts = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Accumulate period totals + per-operator data
+            $totIbc   = 0; $totEj  = 0; $totBur = 0;
+            $totDrift = 0; $totStopp = 0; $nShifts = 0;
+            $opData   = []; // [opNum] => [ibc, min, shifts]
+
+            foreach ($shifts as $s) {
+                $ibc   = max(0, (int)$s['ibc_ok']);
+                $ej    = max(0, (int)$s['ibc_ej_ok']);
+                $bur   = max(0, (int)$s['bur_ej']);
+                $drift = max(0, (int)$s['drifttid']);
+                $stopp = max(0, (int)$s['driftstopptime']);
+
+                $totIbc   += $ibc;
+                $totEj    += $ej;
+                $totBur   += $bur;
+                $totDrift += $drift;
+                $totStopp += $stopp;
+                $nShifts++;
+
+                foreach (['op1', 'op2', 'op3'] as $col) {
+                    $num = (int)$s[$col];
+                    if ($num <= 0) continue;
+                    if (!isset($opData[$num])) $opData[$num] = ['ibc' => 0, 'min' => 0, 'shifts' => 0];
+                    $opData[$num]['ibc']    += $ibc;
+                    $opData[$num]['min']    += $drift;
+                    $opData[$num]['shifts'] += 1;
+                }
+            }
+
+            $totProduced = $totIbc + $totEj + $totBur;
+            $kassRate    = $totProduced > 0 ? round(($totEj + $totBur) / $totProduced * 100, 2) : 0.0;
+            $totDriftH   = round($totDrift / 60.0, 2);
+            $totStoppH   = round($totStopp / 60.0, 2);
+            $availH      = $totDriftH + $totStoppH;
+            $stoppgrad   = $availH > 0 ? round($totStoppH / $availH * 100, 2) : 0.0;
+            $teamIbcH    = $totDriftH > 0 ? round($totIbc / $totDriftH, 2) : 0.0;
+
+            // Build per-operator breakdown (only ops with ≥2 shifts)
+            $operators = [];
+            foreach ($opData as $num => $d) {
+                if ($d['shifts'] < 2) continue;
+                $opH   = $d['min'] > 0 ? round($d['ibc'] / ($d['min'] / 60.0), 2) : 0.0;
+                $vsPct = $teamIbcH > 0 ? round(($opH / $teamIbcH - 1) * 100, 1) : 0.0;
+                $operators[] = [
+                    'number'    => $num,
+                    'name'      => $opNames[$num] ?? "Op $num",
+                    'ibc'       => $d['ibc'],
+                    'drift_h'   => round($d['min'] / 60.0, 1),
+                    'ibc_h'     => $opH,
+                    'vs_team'   => $vsPct,
+                    'shifts'    => $d['shifts'],
+                ];
+            }
+            usort($operators, fn($a, $b) => $a['ibc_h'] <=> $b['ibc_h']);
+
+            echo json_encode([
+                'success'      => true,
+                'from'         => $from,
+                'to'           => $to,
+                'period'       => $period,
+                'total_ibc'    => $totIbc,
+                'total_ej'     => $totEj + $totBur,
+                'total_produced' => $totProduced,
+                'total_drift_h'  => $totDriftH,
+                'total_stopp_h'  => $totStoppH,
+                'avail_h'        => $availH,
+                'kass_rate'      => $kassRate,
+                'stoppgrad'      => $stoppgrad,
+                'team_ibc_h'     => $teamIbcH,
+                'n_shifts'       => $nShifts,
+                'operators'      => $operators,
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getScenarioAnalys: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid scenarioanalys'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
