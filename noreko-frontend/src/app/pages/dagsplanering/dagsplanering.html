@@ -1,0 +1,227 @@
+<div class="dags-container">
+  <div class="dags-header">
+    <h2><i class="fas fa-clipboard-list me-2"></i>Dagsplanering</h2>
+    <p class="dags-subtitle">Välj dagens lag baserat på form, vila och positionsstyrkor</p>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-info" role="status"></div>
+    <span>Hämtar operatörsdata...</span>
+  </div>
+
+  <div *ngIf="error && !loading" class="alert-error">{{ error }}</div>
+
+  <div *ngIf="!loading && !error && operators.length > 0">
+
+    <!-- ═══════════════════════════════════════════════════════
+         SUGGESTION CARD
+    ═══════════════════════════════════════════════════════ -->
+    <div *ngIf="suggestion" class="suggestion-card">
+      <div class="suggestion-header">
+        <i class="fas fa-magic me-2"></i>
+        <span>Automatiskt förslag — balanserat på prestanda + form + vila</span>
+        <button class="btn-apply" (click)="applySelection()">
+          <i class="fas fa-check me-1"></i>Använd förslaget
+        </button>
+      </div>
+      <div class="suggestion-slots">
+        <div class="sug-slot">
+          <div class="sug-pos-label">Tvättplats (Op1)</div>
+          <div class="sug-name">{{ opName(suggestion.op1) }}</div>
+          <div class="sug-detail" *ngIf="opByNum(suggestion.op1) as op">
+            <span class="form-badge" [class]="formClass(op.form_label)">{{ formEmoji(op.form_label) }} {{ op.form_label }}</span>
+            <span class="pos-ibch" *ngIf="op.pos['op1']">{{ op.pos['op1']!.ibc_h.toFixed(1) }} IBC/h</span>
+          </div>
+        </div>
+        <div class="sug-slot">
+          <div class="sug-pos-label">Kontroll (Op2)</div>
+          <div class="sug-name">{{ opName(suggestion.op2) }}</div>
+          <div class="sug-detail" *ngIf="opByNum(suggestion.op2) as op">
+            <span class="form-badge" [class]="formClass(op.form_label)">{{ formEmoji(op.form_label) }} {{ op.form_label }}</span>
+            <span class="pos-ibch" *ngIf="op.pos['op2']">{{ op.pos['op2']!.ibc_h.toFixed(1) }} IBC/h</span>
+          </div>
+        </div>
+        <div class="sug-slot">
+          <div class="sug-pos-label">Truck (Op3)</div>
+          <div class="sug-name">{{ opName(suggestion.op3) }}</div>
+          <div class="sug-detail" *ngIf="opByNum(suggestion.op3) as op">
+            <span class="form-badge" [class]="formClass(op.form_label)">{{ formEmoji(op.form_label) }} {{ op.form_label }}</span>
+            <span class="pos-ibch" *ngIf="op.pos['op3']">{{ op.pos['op3']!.ibc_h.toFixed(1) }} IBC/h</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         MANUAL PICKER
+    ═══════════════════════════════════════════════════════ -->
+    <div class="picker-card">
+      <div class="picker-header">
+        <i class="fas fa-users me-2"></i>Välj lag manuellt
+      </div>
+      <div class="picker-slots">
+        <!-- Op1 -->
+        <div class="picker-slot">
+          <label class="picker-label"><i class="fas fa-tint me-1 text-info"></i>Tvättplats (Op1)</label>
+          <select class="picker-select" [(ngModel)]="selectedOp1">
+            <option [ngValue]="null">— Välj operatör —</option>
+            <option *ngFor="let op of availableForOp1" [ngValue]="op.number">
+              {{ op.name }} ({{ op.shifts_7d }}s/7d{{ op.shifts_today > 0 ? ' · jobbat idag' : '' }})
+            </option>
+          </select>
+          <div class="picker-stats" *ngIf="opByNum(selectedOp1) as op">
+            <span class="form-badge" [class]="formClass(op.form_label)">{{ formEmoji(op.form_label) }}</span>
+            <span *ngIf="op.pos['op1']; else noPos1">{{ op.pos['op1']!.ibc_h.toFixed(1) }} IBC/h
+              <span class="vs-pct" [class]="vsTeamClass(op.pos['op1']!.vs_team_pct)">
+                {{ op.pos['op1']!.vs_team_pct >= 0 ? '+' : '' }}{{ op.pos['op1']!.vs_team_pct.toFixed(1) }}% vs lag
+              </span>
+            </span>
+            <ng-template #noPos1><span class="no-data">Ej tränad op1</span></ng-template>
+          </div>
+        </div>
+        <!-- Op2 -->
+        <div class="picker-slot">
+          <label class="picker-label"><i class="fas fa-eye me-1 text-warning"></i>Kontroll (Op2)</label>
+          <select class="picker-select" [(ngModel)]="selectedOp2">
+            <option [ngValue]="null">— Välj operatör —</option>
+            <option *ngFor="let op of availableForOp2" [ngValue]="op.number">
+              {{ op.name }} ({{ op.shifts_7d }}s/7d{{ op.shifts_today > 0 ? ' · jobbat idag' : '' }})
+            </option>
+          </select>
+          <div class="picker-stats" *ngIf="opByNum(selectedOp2) as op">
+            <span class="form-badge" [class]="formClass(op.form_label)">{{ formEmoji(op.form_label) }}</span>
+            <span *ngIf="op.pos['op2']; else noPos2">{{ op.pos['op2']!.ibc_h.toFixed(1) }} IBC/h
+              <span class="vs-pct" [class]="vsTeamClass(op.pos['op2']!.vs_team_pct)">
+                {{ op.pos['op2']!.vs_team_pct >= 0 ? '+' : '' }}{{ op.pos['op2']!.vs_team_pct.toFixed(1) }}% vs lag
+              </span>
+            </span>
+            <ng-template #noPos2><span class="no-data">Ej tränad op2</span></ng-template>
+          </div>
+        </div>
+        <!-- Op3 -->
+        <div class="picker-slot">
+          <label class="picker-label"><i class="fas fa-truck me-1 text-success"></i>Truck (Op3)</label>
+          <select class="picker-select" [(ngModel)]="selectedOp3">
+            <option [ngValue]="null">— Välj operatör —</option>
+            <option *ngFor="let op of availableForOp3" [ngValue]="op.number">
+              {{ op.name }} ({{ op.shifts_7d }}s/7d{{ op.shifts_today > 0 ? ' · jobbat idag' : '' }})
+            </option>
+          </select>
+          <div class="picker-stats" *ngIf="opByNum(selectedOp3) as op">
+            <span class="form-badge" [class]="formClass(op.form_label)">{{ formEmoji(op.form_label) }}</span>
+            <span *ngIf="op.pos['op3']; else noPos3">{{ op.pos['op3']!.ibc_h.toFixed(1) }} IBC/h
+              <span class="vs-pct" [class]="vsTeamClass(op.pos['op3']!.vs_team_pct)">
+                {{ op.pos['op3']!.vs_team_pct >= 0 ? '+' : '' }}{{ op.pos['op3']!.vs_team_pct.toFixed(1) }}% vs lag
+              </span>
+            </span>
+            <ng-template #noPos3><span class="no-data">Ej tränad op3</span></ng-template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview of selected team -->
+      <div class="selected-preview" *ngIf="selectedOp1 || selectedOp2 || selectedOp3">
+        <div class="preview-title">Valt lag</div>
+        <div class="preview-row" *ngFor="let slot of selectedTeamPreview">
+          <span class="preview-pos">{{ slot.pos === 'op1' ? 'Tvättplats' : slot.pos === 'op2' ? 'Kontroll' : 'Truck' }}</span>
+          <span class="preview-name">{{ slot.name }}</span>
+          <span class="preview-ibch" *ngIf="slot.ibcH !== '—'">{{ slot.ibcH }} IBC/h
+            <span class="vs-pct" *ngIf="slot.vsPct !== null" [class]="vsTeamClass(slot.vsPct)">
+              {{ slot.vsPct >= 0 ? '+' : '' }}{{ slot.vsPct!.toFixed(1) }}% vs lag
+            </span>
+          </span>
+          <span class="preview-nodata" *ngIf="slot.ibcH === '—' && slot.name !== '(Välj operatör)'">Saknar positionsdata</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         OPERATOR TABLE
+    ═══════════════════════════════════════════════════════ -->
+    <div class="table-card">
+      <div class="table-header-row">
+        <span class="table-title"><i class="fas fa-list me-2"></i>Alla aktiva operatörer</span>
+        <div class="sort-btns">
+          <button [class.active]="sortField==='days_since_last'" (click)="setSort('days_since_last')">Vila <i class="fas fa-sort"></i></button>
+          <button [class.active]="sortField==='shifts_7d'" (click)="setSort('shifts_7d')">Skift/7d <i class="fas fa-sort"></i></button>
+          <button [class.active]="sortField==='form_ratio'" (click)="setSort('form_ratio')">Form <i class="fas fa-sort"></i></button>
+          <button [class.active]="sortField==='avg_30d'" (click)="setSort('avg_30d')">IBC/h <i class="fas fa-sort"></i></button>
+          <button [class.active]="sortField==='name'" (click)="setSort('name')">Namn <i class="fas fa-sort"></i></button>
+        </div>
+      </div>
+
+      <div class="table-team-avg">
+        <span>Lagsnitt: Op1 {{ teamAvg.op1.toFixed(1) }} IBC/h &nbsp;·&nbsp; Op2 {{ teamAvg.op2.toFixed(1) }} IBC/h &nbsp;·&nbsp; Op3 {{ teamAvg.op3.toFixed(1) }} IBC/h</span>
+      </div>
+
+      <div class="op-table-scroll">
+        <table class="op-table">
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th class="center">Senast jobbad</th>
+              <th class="center">Skift/7d</th>
+              <th class="center">Skift/30d</th>
+              <th class="center">Form</th>
+              <th class="center">Snitt 30d</th>
+              <th class="center">Op1 Tvättplats</th>
+              <th class="center">Op2 Kontroll</th>
+              <th class="center">Op3 Truck</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of sortedOperators"
+                [class.row-today]="op.shifts_today > 0"
+                [class.row-rested]="op.days_since_last >= 2 && op.shifts_today === 0">
+              <td class="op-name-cell">
+                <a [routerLink]="['/rebotling/operator', op.number]" class="op-link">{{ op.name }}</a>
+                <span *ngIf="op.shifts_today > 0" class="badge-today">jobbat idag</span>
+              </td>
+              <td class="center">
+                <span class="days-since" [class]="daysSinceClass(op.days_since_last)">
+                  {{ op.days_since_last === 0 ? 'idag' : op.days_since_last === 1 ? 'igår' : op.days_since_last + 'd sedan' }}
+                </span>
+              </td>
+              <td class="center">
+                <span class="shift-count" [class]="workloadClass(op.shifts_7d)">{{ op.shifts_7d }}</span>
+              </td>
+              <td class="center text-muted small">{{ op.shifts_30d }}</td>
+              <td class="center">
+                <span class="form-badge" [class]="formClass(op.form_label)" [title]="op.form_ratio !== null ? (op.form_ratio * 100 | number:'1.0-0') + '% av eget snitt' : 'Otillräcklig data'">
+                  {{ formEmoji(op.form_label) }} {{ op.form_label }}
+                </span>
+              </td>
+              <td class="center">
+                <span *ngIf="op.avg_30d !== null" class="ibch-val">{{ op.avg_30d.toFixed(1) }}</span>
+                <span *ngIf="op.avg_30d === null" class="text-muted">—</span>
+              </td>
+              <!-- Op1 -->
+              <td class="center pos-cell" *ngIf="op.pos['op1'] as p; else noOp1">
+                <span class="pos-ibch-sm">{{ p.ibc_h.toFixed(1) }}</span>
+                <span class="vs-pct-sm" [class]="vsTeamClass(p.vs_team_pct)">{{ p.vs_team_pct >= 0 ? '+' : '' }}{{ p.vs_team_pct.toFixed(0) }}%</span>
+                <span class="pos-skift-sm">({{ p.antal_skift }}s)</span>
+              </td>
+              <ng-template #noOp1><td class="center text-muted small">—</td></ng-template>
+              <!-- Op2 -->
+              <td class="center pos-cell" *ngIf="op.pos['op2'] as p; else noOp2">
+                <span class="pos-ibch-sm">{{ p.ibc_h.toFixed(1) }}</span>
+                <span class="vs-pct-sm" [class]="vsTeamClass(p.vs_team_pct)">{{ p.vs_team_pct >= 0 ? '+' : '' }}{{ p.vs_team_pct.toFixed(0) }}%</span>
+                <span class="pos-skift-sm">({{ p.antal_skift }}s)</span>
+              </td>
+              <ng-template #noOp2><td class="center text-muted small">—</td></ng-template>
+              <!-- Op3 -->
+              <td class="center pos-cell" *ngIf="op.pos['op3'] as p; else noOp3">
+                <span class="pos-ibch-sm">{{ p.ibc_h.toFixed(1) }}</span>
+                <span class="vs-pct-sm" [class]="vsTeamClass(p.vs_team_pct)">{{ p.vs_team_pct >= 0 ? '+' : '' }}{{ p.vs_team_pct.toFixed(0) }}%</span>
+                <span class="pos-skift-sm">({{ p.antal_skift }}s)</span>
+              </td>
+              <ng-template #noOp3><td class="center text-muted small">—</td></ng-template>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /if operators -->
+</div>

@@ -380,6 +380,8 @@ class RebotlingController {
                 $this->getStoppPerProdukt();
             } elseif ($action === 'skift-duell') {
                 $this->getSkiftDuell();
+            } elseif ($action === 'dagsplanering') {
+                $this->getDagsplanering();
             } else {
                 $this->getLiveStats();
             }
@@ -17415,6 +17417,309 @@ class RebotlingController {
         } catch (\Throwable $e) {
             error_log('RebotlingController::getSkiftDuell: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-duell'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // ================================================================
+    // dagsplanering — Daily Planning Assistant
+    // Returns active operators with workload balance, position performance,
+    // recent form, and a suggested fairness-aware team assignment.
+    // ================================================================
+    private function getDagsplanering(): void
+    {
+        try {
+            $today  = date('Y-m-d');
+            $from90 = date('Y-m-d', strtotime('-90 days'));
+            $from30 = date('Y-m-d', strtotime('-30 days'));
+            $from7  = date('Y-m-d', strtotime('-7 days'));
+
+            // 1. Active operators
+            $stmtOps = $this->pdo->query("SELECT number, name FROM operators WHERE active = 1 ORDER BY name");
+            $activeOps = $stmtOps->fetchAll(\PDO::FETCH_ASSOC);
+            if (empty($activeOps)) {
+                echo json_encode(['success' => true, 'data' => ['operators' => [], 'team_avg' => ['op1' => 0, 'op2' => 0, 'op3' => 0], 'suggestion' => null]], \JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            $activeNumbers = array_column($activeOps, 'number');
+            $activeByNum   = array_column($activeOps, null, 'number');
+
+            // 2. LAG() CTE over last 90 days on rebotling_skiftrapport
+            $f90  = $this->pdo->quote($from90);
+            $fToday = $this->pdo->quote($today);
+            $sql = "
+                WITH lag_base AS (
+                    SELECT skiftraknare,
+                           DATE(MAX(datum))        AS dag,
+                           MAX(COALESCE(op1, 0))   AS op1,
+                           MAX(COALESCE(op2, 0))   AS op2,
+                           MAX(COALESCE(op3, 0))   AS op3,
+                           MAX(COALESCE(ibc_ok, 0)) AS ibc_end,
+                           MAX(COALESCE(drifttid, 0)) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= {$f90} AND datum <= {$fToday}
+                      AND drifttid >= 30
+                    GROUP BY skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag, skiftraknare, op1, op2, op3, drifttid,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok
+                    FROM lag_base
+                )
+                SELECT dag, skiftraknare, op1, op2, op3, drifttid, ibc_ok
+                FROM lag_shifts
+                WHERE ibc_ok > 0 OR drifttid > 0
+                ORDER BY dag ASC, skiftraknare ASC
+            ";
+            $rows = $this->pdo->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
+
+            // 3. PHP-side aggregation per operator
+            // For each operator: shift list with date, position, ibc_h
+            $opData = [];
+            foreach ($activeNumbers as $num) {
+                $opData[$num] = [
+                    'shifts_all' => [],    // all shifts in 90d: ['dag'=>, 'pos'=>, 'ibc_h'=>, 'sk'=>]
+                ];
+            }
+
+            foreach ($rows as $r) {
+                $dt = $r['drifttid'];
+                if ($dt <= 0) continue;
+                $ibcH  = round($r['ibc_ok'] / ($dt / 60.0), 3);
+                $dag   = $r['dag'];
+                $sk    = (int)$r['skiftraknare'];
+
+                foreach (['op1' => 1, 'op2' => 2, 'op3' => 3] as $pos => $posIdx) {
+                    $opNum = (int)$r[$pos];
+                    if ($opNum <= 0 || !isset($opData[$opNum])) continue;
+                    $opData[$opNum]['shifts_all'][] = [
+                        'dag'   => $dag,
+                        'pos'   => $posIdx,
+                        'ibc_h' => $ibcH,
+                        'sk'    => $sk,
+                    ];
+                }
+            }
+
+            // 4. Build per-operator stats
+            $ibcH = fn($ibc, $min) => ($min > 0) ? round($ibc / ($min / 60.0), 2) : null;
+
+            // Team-level position IBC sums for team avg (last 30d)
+            $teamPos = ['op1' => ['ibc' => 0, 'min' => 0], 'op2' => ['ibc' => 0, 'min' => 0], 'op3' => ['ibc' => 0, 'min' => 0]];
+
+            foreach ($rows as $r) {
+                if ((string)$r['dag'] < $from30) continue;
+                $dt = $r['drifttid'];
+                if ($dt <= 0) continue;
+                foreach (['op1' => 1, 'op2' => 2, 'op3' => 3] as $pos => $posIdx) {
+                    $opNum = (int)$r[$pos];
+                    if ($opNum > 0) {
+                        $teamPos[$pos]['ibc'] += (int)$r['ibc_ok'];
+                        $teamPos[$pos]['min'] += $dt;
+                    }
+                }
+            }
+            $teamAvg = [
+                'op1' => $teamPos['op1']['min'] > 0 ? round($teamPos['op1']['ibc'] / ($teamPos['op1']['min'] / 60.0), 2) : 0,
+                'op2' => $teamPos['op2']['min'] > 0 ? round($teamPos['op2']['ibc'] / ($teamPos['op2']['min'] / 60.0), 2) : 0,
+                'op3' => $teamPos['op3']['min'] > 0 ? round($teamPos['op3']['ibc'] / ($teamPos['op3']['min'] / 60.0), 2) : 0,
+            ];
+
+            $result = [];
+            foreach ($activeNumbers as $num) {
+                $shifts = $opData[$num]['shifts_all'];
+                usort($shifts, fn($a, $b) => strcmp($a['dag'], $b['dag']));
+
+                // Shift counts by period (count unique sk per period)
+                $sksAll  = []; $sks30 = []; $sks7 = []; $sksToday = [];
+                foreach ($shifts as $s) {
+                    $sksAll[$s['sk']] = true;
+                    if ($s['dag'] >= $from30) $sks30[$s['sk']] = true;
+                    if ($s['dag'] >= $from7)  $sks7[$s['sk']]  = true;
+                    if ($s['dag'] === $today)  $sksToday[$s['sk']] = true;
+                }
+                $shifts90d = count($sksAll);
+                $shifts30d = count($sks30);
+                $shifts7d  = count($sks7);
+                $shiftsToday = count($sksToday);
+
+                // Last shift date
+                $lastShiftDate = null;
+                foreach (array_reverse($shifts) as $s) {
+                    $lastShiftDate = $s['dag'];
+                    break;
+                }
+                $daysSinceLast = $lastShiftDate ? (int)floor((strtotime($today) - strtotime($lastShiftDate)) / 86400) : 999;
+
+                // Position performance (last 30d, SUM/SUM per position)
+                $posIbc = [1 => 0, 2 => 0, 3 => 0];
+                $posMin = [1 => 0, 2 => 0, 3 => 0];
+                $posSkifts = [1 => [], 2 => [], 3 => []];
+                foreach ($shifts as $s) {
+                    if ($s['dag'] < $from30) continue;
+                    $posIbc[$s['pos']] += $s['ibc_h'] * ($s['ibc_h'] > 0 ? 1 : 0); // approximate
+                    $posSkifts[$s['pos']][$s['sk']] = $s['ibc_h'];
+                }
+
+                // For proper SUM/SUM, need raw ibc+min. Recompute from rows.
+                // Re-extract from $rows for this operator last 30d
+                $posRaw = [1 => ['ibc' => 0, 'min' => 0], 2 => ['ibc' => 0, 'min' => 0], 3 => ['ibc' => 0, 'min' => 0]];
+                foreach ($rows as $r) {
+                    if ($r['dag'] < $from30) continue;
+                    foreach (['op1' => 1, 'op2' => 2, 'op3' => 3] as $pos => $posIdx) {
+                        if ((int)$r[$pos] === $num) {
+                            $posRaw[$posIdx]['ibc'] += (int)$r['ibc_ok'];
+                            $posRaw[$posIdx]['min'] += (int)$r['drifttid'];
+                        }
+                    }
+                }
+
+                $posStats = [];
+                foreach ([1 => 'op1', 2 => 'op2', 3 => 'op3'] as $posIdx => $posKey) {
+                    $cnt = count(array_unique(array_column(array_filter($shifts, fn($s) => $s['pos'] === $posIdx && $s['dag'] >= $from30), 'sk')));
+                    if ($cnt < 2 || $posRaw[$posIdx]['min'] < 60) {
+                        $posStats[$posKey] = null;
+                    } else {
+                        $pIbcH = round($posRaw[$posIdx]['ibc'] / ($posRaw[$posIdx]['min'] / 60.0), 2);
+                        $tAvg  = $teamAvg[$posKey] ?: 1;
+                        $posStats[$posKey] = [
+                            'ibc_h'       => $pIbcH,
+                            'vs_team_pct' => round(($pIbcH / $tAvg - 1) * 100, 1),
+                            'antal_skift' => $cnt,
+                        ];
+                    }
+                }
+
+                // Recent form: last 5 unique shifts vs 30d avg
+                $recentShifts = array_values(array_unique(array_reverse(array_column($shifts, 'sk'))));
+                $recent5sks   = array_slice($recentShifts, 0, 5);
+                $recent5Ibc = 0; $recent5Min = 0;
+                $avg30Ibc   = 0; $avg30Min   = 0;
+                foreach ($rows as $r) {
+                    $isRecent = in_array((int)$r['skiftraknare'], array_map('intval', $recent5sks), true);
+                    $is30d    = $r['dag'] >= $from30;
+                    $opInRow  = (int)$r['op1'] === $num || (int)$r['op2'] === $num || (int)$r['op3'] === $num;
+                    if (!$opInRow) continue;
+                    if ($isRecent) { $recent5Ibc += (int)$r['ibc_ok']; $recent5Min += (int)$r['drifttid']; }
+                    if ($is30d)    { $avg30Ibc   += (int)$r['ibc_ok']; $avg30Min   += (int)$r['drifttid']; }
+                }
+                $recentAvg = $recent5Min >= 60 ? round($recent5Ibc / ($recent5Min / 60.0), 2) : null;
+                $avg30     = $avg30Min   >= 60 ? round($avg30Ibc   / ($avg30Min   / 60.0), 2) : null;
+                $formRatio = ($recentAvg !== null && $avg30 !== null && $avg30 > 0)
+                    ? round($recentAvg / $avg30, 3) : null;
+                $formLabel = $formRatio === null ? 'okänd'
+                    : ($formRatio >= 1.10 ? 'het'
+                    : ($formRatio >= 1.02 ? 'varm'
+                    : ($formRatio >= 0.95 ? 'neutral'
+                    : ($formRatio >= 0.85 ? 'sval' : 'kall'))));
+
+                $result[] = [
+                    'number'          => $num,
+                    'name'            => $activeByNum[$num]['name'],
+                    'shifts_90d'      => $shifts90d,
+                    'shifts_30d'      => $shifts30d,
+                    'shifts_7d'       => $shifts7d,
+                    'shifts_today'    => $shiftsToday,
+                    'last_shift_date' => $lastShiftDate,
+                    'days_since_last' => $daysSinceLast,
+                    'pos'             => $posStats,
+                    'recent_avg'      => $recentAvg,
+                    'avg_30d'         => $avg30,
+                    'form_ratio'      => $formRatio,
+                    'form_label'      => $formLabel,
+                ];
+            }
+
+            // 5. Suggested assignment — greedy score-based
+            // score(op, pos) = pos_ibc_h × form_factor × rest_factor
+            $posKeys = ['op1', 'op2', 'op3'];
+            $posIdxMap = ['op1' => 1, 'op2' => 2, 'op3' => 3];
+            $maxShifts7d = max(1, max(array_column($result, 'shifts_7d')));
+
+            $suggestion = null;
+            if (!empty($result)) {
+                // Build score matrix
+                $scores = [];
+                foreach ($result as $op) {
+                    if ($op['shifts_today'] > 0) continue; // already worked today
+                    foreach ($posKeys as $pk) {
+                        $posData = $op['pos'][$pk] ?? null;
+                        if ($posData === null) {
+                            // Use team avg as fallback if operator has any experience
+                            $baseIbcH = $teamAvg[$pk] * 0.85; // penalty for unknown position
+                        } else {
+                            $baseIbcH = $posData['ibc_h'];
+                        }
+                        $formFactor = $op['form_ratio'] !== null ? min(1.3, max(0.7, $op['form_ratio'])) : 1.0;
+                        $restFactor = 1.0 + max(0, ($maxShifts7d - $op['shifts_7d']) / $maxShifts7d) * 0.2;
+                        $scores[$op['number']][$pk] = round($baseIbcH * $formFactor * $restFactor, 3);
+                    }
+                }
+
+                // Greedy: pick best available (op, pos) pair, remove both from pool
+                $assigned = []; // pos => op_number
+                $usedOps  = [];
+                $remaining = $posKeys;
+                // Try each position in order of "most competitive" (highest potential IBC/h)
+                $posMaxScore = [];
+                foreach ($posKeys as $pk) {
+                    $best = 0;
+                    foreach ($scores as $opNum => $posScores) {
+                        if (isset($posScores[$pk]) && $posScores[$pk] > $best) $best = $posScores[$pk];
+                    }
+                    $posMaxScore[$pk] = $best;
+                }
+                arsort($posMaxScore);
+                foreach (array_keys($posMaxScore) as $pk) {
+                    $best = -1; $bestOp = null;
+                    foreach ($scores as $opNum => $posScores) {
+                        if (in_array($opNum, $usedOps, true)) continue;
+                        $s = $posScores[$pk] ?? 0;
+                        if ($s > $best) { $best = $s; $bestOp = $opNum; }
+                    }
+                    if ($bestOp !== null) {
+                        $assigned[$pk] = $bestOp;
+                        $usedOps[] = $bestOp;
+                    }
+                }
+
+                // Expected IBC/h for the suggestion: SUM/SUM would double-count
+                // since ibc_ok is shared, use the assigned op1's position IBC/h as proxy
+                $expectedIbcH = null;
+                if (isset($assigned['op1']) && isset($scores[$assigned['op1']]['op1'])) {
+                    // IBC/h is per shift (shared), best estimated from the op1 pos (Tvättplats drives pace)
+                    $op1Score = $scores[$assigned['op1']]['op1'];
+                    $formFactor = 1.0;
+                    foreach ($result as $op) {
+                        if ($op['number'] === $assigned['op1']) {
+                            $formFactor = $op['form_ratio'] !== null ? min(1.3, max(0.7, $op['form_ratio'])) : 1.0;
+                            break;
+                        }
+                    }
+                    // Raw IBC/h estimate (remove form/rest adjustments for display)
+                    $expectedIbcH = round($op1Score, 1);
+                }
+
+                $suggestion = [
+                    'op1'           => $assigned['op1'] ?? null,
+                    'op2'           => $assigned['op2'] ?? null,
+                    'op3'           => $assigned['op3'] ?? null,
+                    'expected_ibc_h' => $expectedIbcH,
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data'    => [
+                    'operators' => $result,
+                    'team_avg'  => $teamAvg,
+                    'suggestion' => $suggestion,
+                    'today'     => $today,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getDagsplanering: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid dagsplanering'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
