@@ -177,22 +177,22 @@ class StatistikDashboardController {
      */
     private function avgIbcPerH(string $fromDate, string $toDate): float {
         try {
+            // ibc_ok is a daily cumulative counter — use LAG() delta per shift to avoid double-counting.
             $stmt = $this->pdo->prepare("
-                SELECT
-                    COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total_ibc,
-                    COALESCE(SUM(shift_drift), 0)             AS total_drift_min
+                SELECT COALESCE(SUM(ibc_ok_delta + ibc_ej_ok_delta), 0) AS total_ibc
                 FROM (
-                    SELECT
-                        DATE(datum) AS dag,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
-                        0                            AS shift_drift
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))    AS ibc_ok_delta,
+                           GREATEST(0, max_ej_ok - COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok_delta
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS shift_max
+                ) AS shift_delta
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -368,23 +368,24 @@ class StatistikDashboardController {
         $fromDate = date('Y-m-d', strtotime("-{$period} days"));
 
         try {
-            // Daglig IBC-data
+            // Daglig IBC-data med LAG()-delta för kumulativ daglig räknare.
             $stmt = $this->pdo->prepare("
-                SELECT
-                    DATE(datum) AS dag,
-                    COALESCE(SUM(shift_ok), 0)      AS ibc_ok,
-                    COALESCE(SUM(shift_ej_ok), 0)   AS ibc_ej_ok
+                SELECT dag,
+                       COALESCE(SUM(ibc_ok_delta), 0)    AS ibc_ok,
+                       COALESCE(SUM(ibc_ej_ok_delta), 0) AS ibc_ej_ok
                 FROM (
-                    SELECT
-                        datum,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))    AS ibc_ok_delta,
+                           GREATEST(0, max_ej_ok - COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok_delta
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS shift_max
+                ) AS shift_delta
                 GROUP BY dag
                 ORDER BY dag ASC
             ");
@@ -462,23 +463,24 @@ class StatistikDashboardController {
         $fromDate = date('Y-m-d', strtotime('-6 days'));
 
         try {
-            // Daglig IBC-data
+            // Daglig IBC-data med LAG()-delta för kumulativ daglig räknare.
             $stmt = $this->pdo->prepare("
-                SELECT
-                    DATE(datum) AS dag,
-                    COALESCE(SUM(shift_ok), 0)    AS ibc_ok,
-                    COALESCE(SUM(shift_ej_ok), 0) AS ibc_ej_ok
+                SELECT dag,
+                       COALESCE(SUM(ibc_ok_delta), 0)    AS ibc_ok,
+                       COALESCE(SUM(ibc_ej_ok_delta), 0) AS ibc_ej_ok
                 FROM (
-                    SELECT
-                        datum,
-                        skiftraknare,
-                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-
-                    GROUP BY DATE(datum), skiftraknare
-                ) AS per_shift
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))    AS ibc_ok_delta,
+                           GREATEST(0, max_ej_ok - COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok_delta
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))    AS max_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS shift_max
+                ) AS shift_delta
                 GROUP BY dag
                 ORDER BY dag ASC
             ");

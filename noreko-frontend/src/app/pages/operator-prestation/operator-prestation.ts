@@ -128,6 +128,7 @@ export class OperatorPrestationPage {
         { title: 'Kassationsbudget', desc: 'Sätt ett kassations%-mål per månad och följ framsteg — kumulativ daglig kurva vs budget, produkter och operatörer med högst kassation. Prognos för månadsslut vid oförändrad takt.', route: '/rebotling/kassationsbudget', icon: 'fas fa-vial', color: '#fc8181' },
         { title: 'Stopptidsbudget', desc: 'Sätt ett max stoppgrad%-mål per månad och följ maskinens tillgänglighet mot budget — kumulativ daglig stoppgradskurva, stoppgrad per produkt och prognos för månadsslut.', route: '/rebotling/stopptidsbudget', icon: 'fas fa-pause-circle', color: '#f6ad55' },
         { title: 'Dagsplanering', desc: 'Välj dagens lag med stöd av data — automatisk rekommendation balanserar positionsstyrka, aktuell form och vila (vem har jobbat mest/minst de senaste 7 dagarna). Manuell picker med positionsstatistik.', route: '/rebotling/dagsplanering', icon: 'fas fa-calendar-day', color: '#68d391' },
+        { title: 'Veckoplanering', desc: 'Planera hela veckan i en vy — se faktiska skift för avklarade dagar och tilldela operatörer till framtida dagar med förväntat IBC/h baserat på 30-dagarshistorik. Belastningstabel visar hur många skift varje operatör har planerat.', route: '/rebotling/veckoplanering', icon: 'fas fa-calendar-week', color: '#63b3ed' },
       ]
     },
   ];

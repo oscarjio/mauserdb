@@ -1,0 +1,175 @@
+<div class="page-wrap">
+
+  <div class="page-header">
+    <h2><i class="fas fa-calendar-week me-2"></i>Veckoplanering</h2>
+    <p class="page-subtitle">
+      {{ weekStart | date:'d MMM':'':'sv' }} – {{ weekEnd | date:'d MMM yyyy':'':'sv' }}
+    </p>
+  </div>
+
+  <!-- KPI bar -->
+  <div class="kpi-bar" *ngIf="!isLoading">
+    <div class="kpi-card">
+      <div class="kpi-label">Denna vecka — IBC</div>
+      <div class="kpi-value">{{ weekKpi.total_ibc | number }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">IBC/h (snitt)</div>
+      <div class="kpi-value">{{ weekKpi.ibc_h }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Kassation</div>
+      <div class="kpi-value" [style.color]="kassColor(weekKpi.kassation)">{{ weekKpi.kassation }}%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Dagar med data</div>
+      <div class="kpi-value">{{ weekKpi.days_done }}/7</div>
+    </div>
+  </div>
+
+  <div class="spinner-wrap" *ngIf="isLoading">
+    <div class="spinner-border text-info"></div>
+    <span>Laddar vecka...</span>
+  </div>
+
+  <!-- Day cards -->
+  <div class="days-grid" *ngIf="!isLoading">
+    <div
+      *ngFor="let day of days; trackBy: trackByDate"
+      class="day-card"
+      [class.today]="day.is_today"
+      [class.past]="day.is_past"
+      [class.future]="day.is_future"
+    >
+      <!-- Day header -->
+      <div class="day-header">
+        <span class="day-name">{{ day.day_name }}</span>
+        <span class="day-date">{{ day.date | date:'d/M':'':'sv' }}</span>
+        <span class="day-badge" *ngIf="day.is_today">Idag</span>
+      </div>
+
+      <!-- Past/today with actual shifts -->
+      <ng-container *ngIf="day.shifts.length > 0">
+        <div class="shift-row" *ngFor="let s of day.shifts">
+          <div class="shift-ops">
+            <span class="op-pill op1" *ngIf="s.op1_name">{{ s.op1_name }}</span>
+            <span class="op-pill op2" *ngIf="s.op2_name">{{ s.op2_name }}</span>
+            <span class="op-pill op3" *ngIf="s.op3_name">{{ s.op3_name }}</span>
+          </div>
+          <div class="shift-metrics">
+            <span class="metric-badge" [style.color]="ibcHColor(s.ibc_h, weekKpi.ibc_h)">
+              {{ s.ibc_h | number:'1.1-1' }} IBC/h
+            </span>
+            <span class="metric-small">{{ s.ibc_ok }} IBC</span>
+            <span class="metric-small kassation" *ngIf="s.kassation > 0" [style.color]="kassColor(s.kassation)">
+              {{ s.kassation }}% kass
+            </span>
+            <a class="skift-link" [routerLink]="['/rebotling/skift-insikt']"
+               [queryParams]="{skiftraknare: s.skiftraknare}" title="Skift-insikt">
+              <i class="fas fa-search"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Day total if multiple shifts -->
+        <div class="day-total" *ngIf="day.shifts.length > 1">
+          <span>Dags-totalt: <strong>{{ day.ibc_ok | number }} IBC</strong></span>
+          <span class="ms-2" [style.color]="ibcHColor(day.ibc_h, weekKpi.ibc_h)">
+            {{ day.ibc_h | number:'1.1-1' }} IBC/h
+          </span>
+        </div>
+      </ng-container>
+
+      <!-- No actual data yet: empty past day or planning section -->
+      <ng-container *ngIf="day.shifts.length === 0">
+        <div class="no-data" *ngIf="day.is_past">
+          <i class="fas fa-minus-circle me-1"></i>Ingen data
+        </div>
+
+        <!-- Planning section for today (no shifts yet) and future days -->
+        <ng-container *ngIf="day.is_today || day.is_future">
+          <div class="plan-section" *ngIf="plans[day.date] as plan">
+            <!-- Op pickers -->
+            <div class="picker-row">
+              <label class="pos-label op1-label">Tvättplats</label>
+              <select class="op-select" [(ngModel)]="plan.op1" (ngModelChange)="onPlanChange(day.date)">
+                <option [value]="0">— välj —</option>
+                <option *ngFor="let op of operators" [value]="op.number"
+                        [disabled]="(plan.op2 === op.number || plan.op3 === op.number) && op.number !== 0">
+                  {{ op.name }}
+                  <ng-container *ngIf="op.pos_stats['1']?.ibc_h !== null && op.pos_stats['1']?.ibc_h !== undefined">
+                    ({{ op.pos_stats['1']!.ibc_h | number:'1.1-1' }})
+                  </ng-container>
+                </option>
+              </select>
+            </div>
+            <div class="picker-row">
+              <label class="pos-label op2-label">Kontroll</label>
+              <select class="op-select" [(ngModel)]="plan.op2" (ngModelChange)="onPlanChange(day.date)">
+                <option [value]="0">— välj —</option>
+                <option *ngFor="let op of operators" [value]="op.number"
+                        [disabled]="(plan.op1 === op.number || plan.op3 === op.number) && op.number !== 0">
+                  {{ op.name }}
+                  <ng-container *ngIf="op.pos_stats['2']?.ibc_h !== null && op.pos_stats['2']?.ibc_h !== undefined">
+                    ({{ op.pos_stats['2']!.ibc_h | number:'1.1-1' }})
+                  </ng-container>
+                </option>
+              </select>
+            </div>
+            <div class="picker-row">
+              <label class="pos-label op3-label">Truck</label>
+              <select class="op-select" [(ngModel)]="plan.op3" (ngModelChange)="onPlanChange(day.date)">
+                <option [value]="0">— välj —</option>
+                <option *ngFor="let op of operators" [value]="op.number"
+                        [disabled]="(plan.op1 === op.number || plan.op2 === op.number) && op.number !== 0">
+                  {{ op.name }}
+                  <ng-container *ngIf="op.pos_stats['3']?.ibc_h !== null && op.pos_stats['3']?.ibc_h !== undefined">
+                    ({{ op.pos_stats['3']!.ibc_h | number:'1.1-1' }})
+                  </ng-container>
+                </option>
+              </select>
+            </div>
+
+            <!-- Prediction -->
+            <div class="prediction" *ngIf="plan.op1 || plan.op2 || plan.op3">
+              <ng-container *ngIf="predictedIbcH(day.date) as pred">
+                <i class="fas fa-magic me-1"></i>
+                Förväntat <strong>{{ pred }}</strong> IBC/h
+              </ng-container>
+            </div>
+
+            <button class="clear-btn" *ngIf="plan.op1 || plan.op2 || plan.op3"
+                    (click)="clearPlan(day.date)">
+              <i class="fas fa-times me-1"></i>Rensa
+            </button>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- Workload table -->
+  <div class="workload-section" *ngIf="!isLoading && operators.length > 0">
+    <h5><i class="fas fa-user-clock me-2"></i>Belastning denna vecka</h5>
+    <div class="workload-grid">
+      <div class="workload-row" *ngFor="let op of operators">
+        <span class="wl-name">{{ op.name }}</span>
+        <div class="wl-dots">
+          <span
+            *ngFor="let _ of [].constructor(workloadThisWeek(op.number))"
+            class="wl-dot"
+          ></span>
+        </div>
+        <span class="wl-count">{{ workloadThisWeek(op.number) }}</span>
+        <span class="wl-ibch" *ngIf="op.ibc_h_30d !== null">
+          {{ op.ibc_h_30d | number:'1.1-1' }} IBC/h
+        </span>
+      </div>
+    </div>
+    <p class="storage-note">
+      <i class="fas fa-info-circle me-1"></i>
+      Planeringsdata sparas i webbläsaren — faktiska skift uppdateras automatiskt när de registreras i systemet.
+    </p>
+  </div>
+
+</div>

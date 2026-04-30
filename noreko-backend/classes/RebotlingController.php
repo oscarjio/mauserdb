@@ -382,6 +382,8 @@ class RebotlingController {
                 $this->getSkiftDuell();
             } elseif ($action === 'dagsplanering') {
                 $this->getDagsplanering();
+            } elseif ($action === 'veckoplanering') {
+                $this->getVeckoplanering();
             } else {
                 $this->getLiveStats();
             }
@@ -17720,6 +17722,218 @@ class RebotlingController {
         } catch (\Throwable $e) {
             error_log('RebotlingController::getDagsplanering: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Serverfel vid dagsplanering'], \JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // veckoplanering — Weekly Shift Planning
+    // Returns this week's actual shifts (Mon–Sun) + operator 30d stats for planning predictions.
+    // ibc_ok uses LAG() pattern (PLC daily running counter).
+    private function getVeckoplanering(): void
+    {
+        try {
+            $today   = date('Y-m-d');
+            $dow     = (int)date('N'); // 1=Mon, 7=Sun
+            $weekStart = date('Y-m-d', strtotime('-' . ($dow - 1) . ' days'));
+            $weekEnd   = date('Y-m-d', strtotime($weekStart . ' +6 days'));
+
+            // Operator names (all, not just active — historic shifts may have inactive ops)
+            $opNames = [];
+            foreach ($this->pdo->query(
+                "SELECT number, name FROM operators ORDER BY name"
+            )->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            // Active operators (for planning dropdowns)
+            $activeOps = [];
+            foreach ($this->pdo->query(
+                "SELECT number, name FROM operators WHERE active=1 ORDER BY name"
+            )->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $activeOps[] = ['number' => (int)$r['number'], 'name' => $r['name']];
+            }
+
+            // Product names
+            $productNames = [];
+            try {
+                foreach ($this->pdo->query(
+                    "SELECT id, name FROM rebotling_products ORDER BY id"
+                )->fetchAll(\PDO::FETCH_ASSOC) as $p) {
+                    $productNames[(int)$p['id']] = $p['name'];
+                }
+            } catch (\Throwable $e) { /* table may not exist */ }
+
+            // This week's shifts — LAG() corrects ibc_ok (PLC daily running counter)
+            $stmtWeek = $this->pdo->prepare("
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       op1, op2, op3, drifttid, driftstopptime, product_id,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY DATE(datum) ORDER BY skiftraknare), 0)) AS ibc_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY DATE(datum) ORDER BY skiftraknare), 0)) AS ibc_ej_ok
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(datum)           AS datum,
+                           MAX(op1)             AS op1,
+                           MAX(op2)             AS op2,
+                           MAX(op3)             AS op3,
+                           MAX(ibc_ok)          AS ibc_end,
+                           MAX(ibc_ej_ok)       AS ej_end,
+                           MAX(drifttid)        AS drifttid,
+                           MAX(driftstopptime)  AS driftstopptime,
+                           MAX(product_id)      AS product_id
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :weekStart AND :weekEnd
+                    GROUP BY skiftraknare
+                ) base
+                ORDER BY DATE(datum), skiftraknare
+            ");
+            $stmtWeek->execute([':weekStart' => $weekStart, ':weekEnd' => $weekEnd]);
+            $weekRows = $stmtWeek->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Last 30 days: per-operator per-position IBC/h (for planning predictions)
+            $from30 = date('Y-m-d', strtotime('-30 days'));
+            $stmt30 = $this->pdo->prepare("
+                SELECT DATE(datum) AS dag, skiftraknare, op1, op2, op3, drifttid,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY DATE(datum) ORDER BY skiftraknare), 0)) AS ibc_ok
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(datum)    AS datum,
+                           MAX(op1)      AS op1,
+                           MAX(op2)      AS op2,
+                           MAX(op3)      AS op3,
+                           MAX(ibc_ok)   AS ibc_end,
+                           MAX(drifttid) AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum BETWEEN :from30 AND :to30 AND drifttid > 0
+                    GROUP BY skiftraknare
+                ) base30
+            ");
+            $stmt30->execute([':from30' => $from30, ':to30' => $today]);
+            $rows30 = $stmt30->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Accumulate 30d stats per [opNum][posNum]: ibc, min, shifts
+            $opPos30 = [];
+            foreach ($rows30 as $r) {
+                $ibc = max(0, (int)$r['ibc_ok']);
+                $min = max(0, (int)$r['drifttid']);
+                if ($min <= 0) continue;
+                foreach (['op1' => 1, 'op2' => 2, 'op3' => 3] as $col => $posNum) {
+                    $opNum = (int)$r[$col];
+                    if ($opNum <= 0) continue;
+                    if (!isset($opPos30[$opNum][$posNum])) {
+                        $opPos30[$opNum][$posNum] = ['ibc' => 0, 'min' => 0, 'shifts' => 0];
+                    }
+                    $opPos30[$opNum][$posNum]['ibc']    += $ibc;
+                    $opPos30[$opNum][$posNum]['min']    += $min;
+                    $opPos30[$opNum][$posNum]['shifts'] += 1;
+                }
+            }
+
+            // Build operator list with per-position 30d IBC/h
+            $operators = [];
+            foreach ($activeOps as $op) {
+                $num      = $op['number'];
+                $posStats = [];
+                $totIbc   = 0;
+                $totMin   = 0;
+                foreach ([1, 2, 3] as $pos) {
+                    $d = $opPos30[$num][$pos] ?? null;
+                    $ibcH = ($d && $d['min'] > 0) ? round($d['ibc'] / ($d['min'] / 60.0), 2) : null;
+                    $posStats[$pos] = ['ibc_h' => $ibcH, 'shifts' => $d ? $d['shifts'] : 0];
+                    if ($d) { $totIbc += $d['ibc']; $totMin += $d['min']; }
+                }
+                $operators[] = [
+                    'number'    => $num,
+                    'name'      => $op['name'],
+                    'ibc_h_30d' => $totMin > 0 ? round($totIbc / ($totMin / 60.0), 2) : null,
+                    'pos_stats' => $posStats,
+                ];
+            }
+
+            // Organise actual shifts by day and compute day KPIs
+            $shiftsByDay = [];
+            foreach ($weekRows as $r) {
+                $dag   = $r['dag'];
+                $ibc   = max(0, (int)$r['ibc_ok']);
+                $ej    = max(0, (int)$r['ibc_ej_ok']);
+                $min   = max(0, (int)$r['drifttid']);
+                $stopp = max(0, (int)$r['driftstopptime']);
+                $tot   = $ibc + $ej;
+
+                $shiftsByDay[$dag][] = [
+                    'skiftraknare' => (int)$r['skiftraknare'],
+                    'op1_num'      => (int)($r['op1'] ?? 0),
+                    'op2_num'      => (int)($r['op2'] ?? 0),
+                    'op3_num'      => (int)($r['op3'] ?? 0),
+                    'op1_name'     => $opNames[(int)($r['op1'] ?? 0)] ?? '',
+                    'op2_name'     => $opNames[(int)($r['op2'] ?? 0)] ?? '',
+                    'op3_name'     => $opNames[(int)($r['op3'] ?? 0)] ?? '',
+                    'ibc_ok'       => $ibc,
+                    'ibc_ej_ok'    => $ej,
+                    'drifttid'     => $min,
+                    'driftstopptime' => $stopp,
+                    'product_id'   => (int)($r['product_id'] ?? 0),
+                    'product_name' => $productNames[(int)($r['product_id'] ?? 0)] ?? '',
+                    'ibc_h'        => $min > 0 ? round($ibc / ($min / 60.0), 2) : 0.0,
+                    'kassation'    => $tot > 0  ? round($ej  / $tot * 100, 1)    : 0.0,
+                    'stoppgrad'    => ($min + $stopp) > 0 ? round($stopp / ($min + $stopp) * 100, 1) : 0.0,
+                ];
+            }
+
+            // Build Mon–Sun day array
+            $dayNames = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
+            $days     = [];
+            $weekTotalIbc = 0; $weekTotalEj = 0; $weekTotalMin = 0;
+
+            for ($i = 0; $i < 7; $i++) {
+                $dateStr  = date('Y-m-d', strtotime($weekStart . " +{$i} days"));
+                $shifts   = $shiftsByDay[$dateStr] ?? [];
+                $dayIbc   = array_sum(array_column($shifts, 'ibc_ok'));
+                $dayEj    = array_sum(array_column($shifts, 'ibc_ej_ok'));
+                $dayMin   = array_sum(array_column($shifts, 'drifttid'));
+                $dayTot   = $dayIbc + $dayEj;
+                $dayIbcH  = $dayMin > 0 ? round($dayIbc / ($dayMin / 60.0), 2) : null;
+                $dayKass  = $dayTot > 0 ? round($dayEj / $dayTot * 100, 1) : null;
+
+                $weekTotalIbc += $dayIbc;
+                $weekTotalEj  += $dayEj;
+                $weekTotalMin += $dayMin;
+
+                $days[] = [
+                    'date'      => $dateStr,
+                    'day_name'  => $dayNames[$i],
+                    'day_num'   => (int)date('j', strtotime($dateStr)),
+                    'is_today'  => ($dateStr === $today),
+                    'is_past'   => ($dateStr < $today),
+                    'is_future' => ($dateStr > $today),
+                    'shifts'    => $shifts,
+                    'ibc_ok'    => $dayIbc,
+                    'ibc_h'     => $dayIbcH,
+                    'kassation' => $dayKass,
+                ];
+            }
+
+            $weekTot  = $weekTotalIbc + $weekTotalEj;
+            $weekIbcH = $weekTotalMin > 0 ? round($weekTotalIbc / ($weekTotalMin / 60.0), 2) : 0.0;
+            $weekKass = $weekTot > 0     ? round($weekTotalEj  / $weekTot * 100, 1)           : 0.0;
+            $daysDone = count(array_filter($days, fn($d) => $d['is_past'] && count($d['shifts']) > 0));
+
+            echo json_encode([
+                'success'    => true,
+                'week_start' => $weekStart,
+                'week_end'   => $weekEnd,
+                'today'      => $today,
+                'days'       => $days,
+                'operators'  => $operators,
+                'week_kpi'   => [
+                    'total_ibc' => $weekTotalIbc,
+                    'ibc_h'     => $weekIbcH,
+                    'kassation' => $weekKass,
+                    'days_done' => $daysDone,
+                ],
+            ], \JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getVeckoplanering: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid veckoplanering'], \JSON_UNESCAPED_UNICODE);
         }
     }
 }
