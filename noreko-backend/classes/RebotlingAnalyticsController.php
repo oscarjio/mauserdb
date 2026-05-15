@@ -1015,59 +1015,44 @@ class RebotlingAnalyticsController {
             // drifttid/rasttime reset per shift so MAX() per skiftraknare is sufficient.
             $stmt = $this->pdo->prepare("
                 SELECT
-                    SUM(delta_ibc)    AS ibc_ok,
-                    SUM(delta_bur)    AS bur_ej_ok,
-                    SUM(delta_ej_ok)  AS ibc_ej_ok,
-                    SUM(delta_totalt) AS totalt,
-                    SUM(max_drift)    AS drifttid,
-                    SUM(max_rast)     AS rasttime
+                    SUM(ibc_ok)    AS ibc_ok,
+                    SUM(bur_ej_ok) AS bur_ej_ok,
+                    SUM(ibc_ej_ok) AS ibc_ej_ok,
+                    SUM(totalt)    AS totalt,
+                    SUM(drifttid)  AS drifttid,
+                    SUM(rasttime)  AS rasttime
                 FROM (
-                    SELECT
-                        delta_ibc,
-                        delta_bur,
-                        delta_ej_ok,
-                        delta_totalt,
-                        max_drift, max_rast
-                    FROM (
-                        SELECT skiftraknare,
-                               MAX(COALESCE(ibc_ok,    0)) AS ibc_ok,
-                               MAX(COALESCE(bur_ej_ok, 0)) AS bur_ej_ok,
-                               MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok,
-                               MAX(COALESCE(totalt,    0)) AS totalt,
-                               MAX(COALESCE(drifttid,  0)) AS max_drift,
-                               MAX(COALESCE(rasttime,  0)) AS max_rast
-                        FROM rebotling_skiftrapport
-                        WHERE datum = :date
-                        GROUP BY skiftraknare
-                    ) base
-                ) lag_d
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok,    0)) AS ibc_ok,
+                           MAX(COALESCE(bur_ej_ok, 0)) AS bur_ej_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok,
+                           MAX(COALESCE(totalt,    0)) AS totalt,
+                           MAX(COALESCE(drifttid,  0)) AS drifttid,
+                           MAX(COALESCE(rasttime,  0)) AS rasttime
+                    FROM rebotling_skiftrapport
+                    WHERE datum = :date
+                    GROUP BY skiftraknare
+                ) base
             ");
             $opStmt = $this->pdo->prepare("
                 SELECT
                     u.username AS user_name,
                     o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name,
-                    SUM(d.delta_ibc)    AS ibc_ok,
-                    SUM(d.delta_totalt) AS totalt,
-                    SUM(d.max_drift)    AS drifttid
+                    SUM(d.ibc_ok)    AS ibc_ok,
+                    SUM(d.totalt)    AS totalt,
+                    SUM(d.drifttid)  AS drifttid
                 FROM (
-                    SELECT
-                        user_id, op1, op2, op3,
-                        delta_ibc,
-                        delta_totalt,
-                        max_drift
-                    FROM (
-                        SELECT skiftraknare,
-                               MAX(user_id)                AS user_id,
-                               MAX(op1)                    AS op1,
-                               MAX(op2)                    AS op2,
-                               MAX(op3)                    AS op3,
-                               MAX(COALESCE(ibc_ok,   0))  AS ibc_ok,
-                               MAX(COALESCE(totalt,   0))  AS totalt,
-                               MAX(COALESCE(drifttid, 0))  AS max_drift
-                        FROM rebotling_skiftrapport
-                        WHERE datum = :date
-                        GROUP BY skiftraknare
-                    ) base
+                    SELECT skiftraknare,
+                           MAX(user_id)                AS user_id,
+                           MAX(op1)                    AS op1,
+                           MAX(op2)                    AS op2,
+                           MAX(op3)                    AS op3,
+                           MAX(COALESCE(ibc_ok,   0))  AS ibc_ok,
+                           MAX(COALESCE(totalt,   0))  AS totalt,
+                           MAX(COALESCE(drifttid, 0))  AS drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE datum = :date
+                    GROUP BY skiftraknare
                 ) d
                 LEFT JOIN users     u  ON u.id      = d.user_id
                 LEFT JOIN operators o1 ON o1.number = d.op1
@@ -1276,7 +1261,7 @@ class RebotlingAnalyticsController {
             // drifttid resets per shift so MAX per skiftraknare is correct without LAG.
             $stmt = $this->pdo->prepare("
                 SELECT datum, skiftraknare,
-                       shift_ibc,
+                       ibc_ok,
                        max_drift
                 FROM (
                     SELECT datum, skiftraknare,
@@ -1295,7 +1280,7 @@ class RebotlingAnalyticsController {
 
             $points = [];
             foreach ($rows as $r) {
-                $ibcOk    = (int)$r['shift_ibc'];
+                $ibcOk    = (int)$r['ibc_ok'];
                 $driftMin = (float)$r['max_drift'];
                 if ($driftMin > 0 && $ibcOk > 0) {
                     $ibcPerH = round($ibcOk * 60.0 / $driftMin, 2);
@@ -1309,24 +1294,20 @@ class RebotlingAnalyticsController {
             // Fallback: PLC-data aggregerat per dag+skift om inga skiftrapporter
             if (empty($points)) {
                 $stmt2 = $this->pdo->prepare("
-                    SELECT dag, skiftraknare, shift_runtime,
-                           shift_ibc_ok
-                    FROM (
-                        SELECT DATE(datum) AS dag, skiftraknare,
-                               MAX(COALESCE(ibc_ok,    0)) AS ibc_ok,
-                               MAX(COALESCE(runtime_plc,0)) AS shift_runtime
-                        FROM rebotling_ibc
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days2 DAY)
-                          AND ibc_ok IS NOT NULL
-                        GROUP BY DATE(datum), skiftraknare
-                    ) base
-                    HAVING shift_runtime > 0 AND shift_ibc_ok > 0
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok,    0)) AS ibc_ok,
+                           MAX(COALESCE(runtime_plc,0)) AS shift_runtime
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days2 DAY)
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                    HAVING shift_runtime > 0 AND ibc_ok > 0
                     ORDER BY dag ASC, skiftraknare ASC
                 ");
                 $stmt2->execute(['days2' => $days]);
                 $rows2 = $stmt2->fetchAll(PDO::FETCH_ASSOC);
                 foreach ($rows2 as $r) {
-                    $ibcPerH = round($r['shift_ibc_ok'] * 60.0 / $r['shift_runtime'], 2);
+                    $ibcPerH = round($r['ibc_ok'] * 60.0 / $r['shift_runtime'], 2);
                     $points[] = [
                         'label'        => $r['dag'] . ' #' . $r['skiftraknare'],
                         'ibc_per_hour' => $ibcPerH,
@@ -1867,7 +1848,7 @@ class RebotlingAnalyticsController {
             // ibc_ok in rebotling_ibc is a daily running counter (does not reset per shift).
             // LAG() over skiftraknare within each day gives the true per-shift delta.
             $stmtWeeks = $this->pdo->query("
-                WITH per_shift_acc AS (
+                WITH per_shift AS (
                     SELECT
                         DATE(datum)                     AS dag,
                         YEAR(datum)                     AS yr,
@@ -1880,23 +1861,16 @@ class RebotlingAnalyticsController {
                     FROM rebotling_ibc
                     WHERE ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
-                ),
-                per_shift AS (
-                    SELECT dag, yr, wk, skiftraknare,
-                           shift_ibc,
-                           shift_ej_ok,
-                           shift_runtime, shift_rast
-                    FROM per_shift_acc
                 )
                 SELECT
                     yr, wk,
-                    SUM(shift_ibc)                                                                    AS ibc_total,
-                    ROUND(SUM(shift_ibc) * 100.0 / NULLIF(SUM(shift_ibc) + SUM(shift_ej_ok), 0), 1) AS avg_quality,
-                    COUNT(DISTINCT dag)                                                                AS days_active,
-                    SUM(shift_ibc)                                                                    AS ibc_ok,
-                    SUM(shift_ej_ok)                                                                  AS ibc_ej_ok,
-                    SUM(shift_runtime)                                                                AS runtime_min,
-                    SUM(shift_rast)                                                                   AS rast_min
+                    SUM(ibc_ok)                                                                      AS ibc_total,
+                    ROUND(SUM(ibc_ok) * 100.0 / NULLIF(SUM(ibc_ok) + SUM(ibc_ej_ok), 0), 1)        AS avg_quality,
+                    COUNT(DISTINCT dag)                                                               AS days_active,
+                    SUM(ibc_ok)                                                                      AS ibc_ok,
+                    SUM(ibc_ej_ok)                                                                   AS ibc_ej_ok,
+                    SUM(shift_runtime)                                                               AS runtime_min,
+                    SUM(shift_rast)                                                                  AS rast_min
                 FROM per_shift
                 GROUP BY yr, wk
                 ORDER BY ibc_total DESC
@@ -1976,7 +1950,7 @@ class RebotlingAnalyticsController {
             // 3. Bästa dagen + månadsöversikt (konsoliderad CTE, 1 query)
             // ================================================================
             $stmtDayMonth = $this->pdo->query("
-                WITH per_shift_acc AS (
+                WITH per_shift AS (
                     SELECT
                         DATE(datum)                     AS dag,
                         DATE_FORMAT(datum, '%Y-%m')     AS ym,
@@ -1987,17 +1961,11 @@ class RebotlingAnalyticsController {
                     WHERE ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ),
-                per_shift AS (
-                    SELECT dag, ym,
-                           shift_ibc,
-                           shift_ej_ok
-                    FROM per_shift_acc
-                ),
                 per_day AS (
                     SELECT
                         dag, ym,
-                        SUM(shift_ibc)      AS ibc_total,
-                        ROUND(SUM(shift_ibc) * 100.0 / NULLIF(SUM(shift_ibc) + SUM(shift_ej_ok), 0), 1) AS quality
+                        SUM(ibc_ok)    AS ibc_total,
+                        ROUND(SUM(ibc_ok) * 100.0 / NULLIF(SUM(ibc_ok) + SUM(ibc_ej_ok), 0), 1) AS quality
                     FROM per_shift
                     GROUP BY dag
                 )
@@ -2019,7 +1987,7 @@ class RebotlingAnalyticsController {
 
             // Månadsöversikt senaste 13 månader — beräknas från per_shift CTE
             $stmtMonthly = $this->pdo->query("
-                WITH per_shift_acc AS (
+                WITH per_shift AS (
                     SELECT
                         DATE(datum)                     AS dag,
                         DATE_FORMAT(datum, '%Y-%m')     AS ym,
@@ -2032,22 +2000,15 @@ class RebotlingAnalyticsController {
                     WHERE datum >= DATE_SUB(LAST_DAY(NOW()), INTERVAL 13 MONTH)
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
-                ),
-                per_shift AS (
-                    SELECT dag, ym, skiftraknare,
-                           shift_ibc,
-                           shift_ej_ok,
-                           shift_runtime, shift_rast
-                    FROM per_shift_acc
                 )
                 SELECT
-                    ym                                                                                AS month,
-                    SUM(shift_ibc)                                                                    AS ibc_total,
-                    ROUND(SUM(shift_ibc) * 100.0 / NULLIF(SUM(shift_ibc) + SUM(shift_ej_ok), 0), 1) AS avg_quality,
-                    SUM(shift_ibc)                                                                    AS ibc_ok,
-                    SUM(shift_ej_ok)                                                                  AS ibc_ej_ok,
-                    SUM(shift_runtime)                                                                AS runtime_min,
-                    SUM(shift_rast)                                                                   AS rast_min
+                    ym                                                                               AS month,
+                    SUM(ibc_ok)                                                                      AS ibc_total,
+                    ROUND(SUM(ibc_ok) * 100.0 / NULLIF(SUM(ibc_ok) + SUM(ibc_ej_ok), 0), 1)        AS avg_quality,
+                    SUM(ibc_ok)                                                                      AS ibc_ok,
+                    SUM(ibc_ej_ok)                                                                   AS ibc_ej_ok,
+                    SUM(shift_runtime)                                                               AS runtime_min,
+                    SUM(shift_rast)                                                                  AS rast_min
                 FROM per_shift
                 GROUP BY ym
                 ORDER BY ym ASC
@@ -2252,39 +2213,33 @@ class RebotlingAnalyticsController {
                 // ibc_ok/ibc_ej_ok are daily running counters — LAG() computes per-shift delta.
                 // Single CTE (2 params) replaces old 3× UNION ALL with 6 positional params.
                 $rankSQL = "
-                    WITH lag_shifts AS (
-                        SELECT skiftraknare, dag, op1, op2, op3,
-                               ibc_delta,
-                               ej_ok_delta,
-                               runtime_h
-                        FROM (
-                            SELECT skiftraknare,
-                                   DATE(MAX(datum))              AS dag,
-                                   MAX(COALESCE(op1, 0))         AS op1,
-                                   MAX(COALESCE(op2, 0))         AS op2,
-                                   MAX(COALESCE(op3, 0))         AS op3,
-                                   MAX(COALESCE(ibc_ok,    0))   AS ibc_ok,
-                                   MAX(COALESCE(ibc_ej_ok, 0))   AS ibc_ej_ok,
-                                   MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
-                            FROM rebotling_ibc
-                            WHERE datum >= ? AND datum < ?
-                            GROUP BY skiftraknare
-                        ) base
+                    WITH per_shift AS (
+                        SELECT skiftraknare,
+                               DATE(MAX(datum))              AS dag,
+                               MAX(COALESCE(op1, 0))         AS op1,
+                               MAX(COALESCE(op2, 0))         AS op2,
+                               MAX(COALESCE(op3, 0))         AS op3,
+                               MAX(COALESCE(ibc_ok,    0))   AS ibc_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0))   AS ibc_ej_ok,
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < ?
+                        GROUP BY skiftraknare
                     )
                     SELECT op_id,
                            COUNT(DISTINCT skiftraknare) AS shifts,
-                           SUM(ibc_delta)                                                          AS total_ibc,
-                           SUM(ibc_delta)        / NULLIF(SUM(runtime_h), 0)                      AS avg_ibc_per_h,
-                           SUM(ibc_delta)*100.0  / NULLIF(SUM(ibc_delta + ej_ok_delta), 0)        AS avg_quality_pct
+                           SUM(ibc_ok)                                                        AS total_ibc,
+                           SUM(ibc_ok)        / NULLIF(SUM(runtime_h), 0)                    AS avg_ibc_per_h,
+                           SUM(ibc_ok)*100.0  / NULLIF(SUM(ibc_ok + ibc_ej_ok), 0)           AS avg_quality_pct
                     FROM (
-                        SELECT skiftraknare, op1 AS op_id, ibc_delta, ej_ok_delta, runtime_h FROM lag_shifts WHERE op1 > 0
+                        SELECT skiftraknare, op1 AS op_id, ibc_ok, ibc_ej_ok, runtime_h FROM per_shift WHERE op1 > 0
                         UNION ALL
-                        SELECT skiftraknare, op2,           ibc_delta, ej_ok_delta, runtime_h FROM lag_shifts WHERE op2 > 0
+                        SELECT skiftraknare, op2,           ibc_ok, ibc_ej_ok, runtime_h FROM per_shift WHERE op2 > 0
                         UNION ALL
-                        SELECT skiftraknare, op3,           ibc_delta, ej_ok_delta, runtime_h FROM lag_shifts WHERE op3 > 0
+                        SELECT skiftraknare, op3,           ibc_ok, ibc_ej_ok, runtime_h FROM per_shift WHERE op3 > 0
                     ) t
                     GROUP BY op_id
-                    ORDER BY (SUM(ibc_delta) * 0.6 + SUM(ibc_delta) / NULLIF(SUM(runtime_h), 0) * 0.4) DESC
+                    ORDER BY (SUM(ibc_ok) * 0.6 + SUM(ibc_ok) / NULLIF(SUM(runtime_h), 0) * 0.4) DESC
                     LIMIT 10
                 ";
                 $stmtRank = $this->pdo->prepare($rankSQL);
@@ -2969,24 +2924,18 @@ class RebotlingAnalyticsController {
 
         try {
             $stmt = $this->pdo->prepare("
-                WITH per_shift_acc AS (
+                WITH per_shift AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0))    AS ibc_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
                     GROUP BY DATE(datum), skiftraknare
-                ),
-                per_shift AS (
-                    SELECT dag,
-                           shift_ibc,
-                           shift_ej
-                    FROM per_shift_acc
                 )
                 SELECT dag,
-                       ROUND(SUM(shift_ibc) * 100.0 / NULLIF(SUM(shift_ibc) + SUM(shift_ej), 0), 1) AS quality_pct,
-                       SUM(shift_ibc) AS ibc_ok,
-                       SUM(shift_ibc) + SUM(shift_ej) AS ibc_totalt
+                       ROUND(SUM(ibc_ok) * 100.0 / NULLIF(SUM(ibc_ok) + SUM(ibc_ej_ok), 0), 1) AS quality_pct,
+                       SUM(ibc_ok) AS ibc_ok,
+                       SUM(ibc_ok) + SUM(ibc_ej_ok) AS ibc_totalt
                 FROM per_shift
                 GROUP BY dag
                 ORDER BY dag ASC
@@ -3067,7 +3016,7 @@ class RebotlingAnalyticsController {
 
         try {
             $stmt = $this->pdo->prepare("
-                WITH per_shift_acc AS (
+                WITH per_shift AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
                            MAX(COALESCE(rasttime, 0))    AS shift_rast,
@@ -3076,17 +3025,11 @@ class RebotlingAnalyticsController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
                     GROUP BY DATE(datum), skiftraknare
-                ),
-                per_shift AS (
-                    SELECT shift_runtime, shift_rast,
-                           shift_ibc_ok,
-                           shift_ibc_ej_ok
-                    FROM per_shift_acc
                 )
                 SELECT SUM(shift_runtime)   AS total_runtime,
                        SUM(shift_rast)      AS total_rast,
-                       SUM(shift_ibc_ok)    AS ibc_ok,
-                       SUM(shift_ibc_ej_ok) AS ibc_ej_ok
+                       SUM(ibc_ok)          AS ibc_ok,
+                       SUM(ibc_ej_ok)       AS ibc_ej_ok
                 FROM per_shift
             ");
             $stmt->execute([':days' => $days]);
@@ -3153,7 +3096,7 @@ class RebotlingAnalyticsController {
             // ibc_ok/ibc_ej_ok are cumulative PLC counters — use LAG() delta per shift.
             // runtime_plc/rasttime reset per shift so MAX() per shift is correct.
             $stmt = $this->pdo->prepare("
-                WITH per_shift_acc AS (
+                WITH per_shift AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(ibc_ok,    0)) AS ibc_ok,
                            MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
@@ -3165,25 +3108,19 @@ class RebotlingAnalyticsController {
                       AND ibc_ok > 0
                     GROUP BY DATE(datum), skiftraknare
                 ),
-                per_shift AS (
-                    SELECT dag, shift_runtime, shift_rast,
-                           shift_ibc_ok,
-                           shift_ibc_ej_ok
-                    FROM per_shift_acc
-                ),
                 per_dag AS (
                     SELECT dag,
-                           SUM(shift_ibc_ok)    AS dag_ibc,
+                           SUM(ibc_ok)          AS dag_ibc,
                            SUM(shift_runtime)   AS dag_runtime,
                            SUM(shift_rast)      AS dag_rast,
-                           SUM(shift_ibc_ej_ok) AS dag_ibc_ej_ok,
+                           SUM(ibc_ej_ok)       AS dag_ibc_ej_ok,
                            CASE
                                WHEN SUM(shift_runtime) > 0 THEN
                                    ROUND(
                                        LEAST(SUM(shift_runtime) / GREATEST(SUM(shift_runtime) + SUM(shift_rast), 1), 1.0)
-                                       * LEAST((SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok)) / SUM(shift_runtime) / (15.0 / 60.0), 1.0)
-                                       * CASE WHEN (SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok)) > 0
-                                              THEN SUM(shift_ibc_ok) / (SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok))
+                                       * LEAST((SUM(ibc_ok) + SUM(ibc_ej_ok)) / SUM(shift_runtime) / (15.0 / 60.0), 1.0)
+                                       * CASE WHEN (SUM(ibc_ok) + SUM(ibc_ej_ok)) > 0
+                                              THEN SUM(ibc_ok) / (SUM(ibc_ok) + SUM(ibc_ej_ok))
                                               ELSE 0 END
                                        * 100, 1)
                                ELSE NULL
@@ -4816,25 +4753,19 @@ HTML;
         try {
             // 1. Daglig kvalitets% (ibc_ok / totalt * 100) med glidande 7-dagars snitt
             $stmtDaily = $this->pdo->prepare("
-                WITH per_shift_acc AS (
+                WITH per_shift AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0))    AS ibc_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
                     GROUP BY DATE(datum), skiftraknare
-                ),
-                per_shift AS (
-                    SELECT dag,
-                           shift_ibc,
-                           shift_ej
-                    FROM per_shift_acc
                 )
                 SELECT dag,
-                       SUM(shift_ibc) AS ibc_ok,
-                       SUM(shift_ibc) + SUM(shift_ej) AS ibc_totalt,
-                       SUM(shift_ej) AS ibc_ej_ok,
-                       ROUND(SUM(shift_ibc) * 100.0 / NULLIF(SUM(shift_ibc) + SUM(shift_ej), 0), 1) AS kvalitet_pct
+                       SUM(ibc_ok) AS ibc_ok,
+                       SUM(ibc_ok) + SUM(ibc_ej_ok) AS ibc_totalt,
+                       SUM(ibc_ej_ok) AS ibc_ej_ok,
+                       ROUND(SUM(ibc_ok) * 100.0 / NULLIF(SUM(ibc_ok) + SUM(ibc_ej_ok), 0), 1) AS kvalitet_pct
                 FROM per_shift
                 GROUP BY dag
                 ORDER BY dag ASC
@@ -5006,24 +4937,18 @@ HTML;
         try {
             // 1. Totala IBC (godkända + kasserade) för perioden
             $stmtTotal = $this->pdo->prepare("
-                WITH per_shift_acc AS (
+                WITH per_shift AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0))    AS ibc_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum <= :to_date
                     GROUP BY DATE(datum), skiftraknare
-                ),
-                per_shift AS (
-                    SELECT dag,
-                           shift_ibc,
-                           shift_ej
-                    FROM per_shift_acc
                 )
                 SELECT
-                    SUM(shift_ibc) AS total_ok,
-                    SUM(shift_ej)  AS total_ej_ok,
-                    SUM(shift_ibc) + SUM(shift_ej) AS total_ibc
+                    SUM(ibc_ok)    AS total_ok,
+                    SUM(ibc_ej_ok) AS total_ej_ok,
+                    SUM(ibc_ok) + SUM(ibc_ej_ok) AS total_ibc
                 FROM per_shift
             ");
             $stmtTotal->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -5037,24 +4962,18 @@ HTML;
 
             // 2. Föregående period för trend
             $stmtPrevTotal = $this->pdo->prepare("
-                WITH per_shift_acc AS (
+                WITH per_shift AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0))    AS ibc_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
                     FROM rebotling_ibc
                     WHERE datum >= :prev_from AND datum < :prev_to
                     GROUP BY DATE(datum), skiftraknare
-                ),
-                per_shift AS (
-                    SELECT dag,
-                           shift_ibc,
-                           shift_ej
-                    FROM per_shift_acc
                 )
                 SELECT
-                    SUM(shift_ibc) AS total_ok,
-                    SUM(shift_ej)  AS total_ej_ok,
-                    SUM(shift_ibc) + SUM(shift_ej) AS total_ibc
+                    SUM(ibc_ok)    AS total_ok,
+                    SUM(ibc_ej_ok) AS total_ej_ok,
+                    SUM(ibc_ok) + SUM(ibc_ej_ok) AS total_ibc
                 FROM per_shift
             ");
             $stmtPrevTotal->execute([':prev_from' => $prevFrom, ':prev_to' => $prevTo]);
@@ -5804,27 +5723,22 @@ HTML;
         $stmtDays = $this->pdo->prepare("
             SELECT
                 dag,
-                SUM(shift_ibc_ok)    AS ibc_ok,
-                SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                SUM(ibc_ok)          AS ibc_ok,
+                SUM(ibc_ej_ok)       AS ibc_ej_ok,
                 SUM(shift_runtime)   AS runtime_min,
                 SUM(shift_rast)      AS rast_min,
                 COUNT(DISTINCT skiftraknare) AS skift_count
             FROM (
-                SELECT dag, skiftraknare, shift_runtime, shift_rast,
-                       shift_ibc_ok,
-                       shift_ibc_ej_ok
-                FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
-                           MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
-                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
-                           MAX(COALESCE(rasttime,   0)) AS shift_rast
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND ibc_ok IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare
-                ) base
-            ) lag_d
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
+                       MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
+                       MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                       MAX(COALESCE(rasttime,   0)) AS shift_rast
+                FROM rebotling_ibc
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                  AND ibc_ok IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare
+            ) base
             GROUP BY dag
             ORDER BY dag ASC
         ");
@@ -5876,26 +5790,21 @@ HTML;
         // ---- Förra veckan (total IBC + OEE) ----
         $stmtPrev = $this->pdo->prepare("
             SELECT
-                SUM(shift_ibc_ok)    AS ibc_ok,
-                SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                SUM(ibc_ok)          AS ibc_ok,
+                SUM(ibc_ej_ok)       AS ibc_ej_ok,
                 SUM(shift_runtime)   AS runtime_min,
                 SUM(shift_rast)      AS rast_min
             FROM (
-                SELECT dag, skiftraknare, shift_runtime, shift_rast,
-                       shift_ibc_ok,
-                       shift_ibc_ej_ok
-                FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
-                           MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
-                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
-                           MAX(COALESCE(rasttime,   0)) AS shift_rast
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND ibc_ok IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare
-                ) base
-            ) lag_d
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
+                       MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
+                       MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                       MAX(COALESCE(rasttime,   0)) AS shift_rast
+                FROM rebotling_ibc
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                  AND ibc_ok IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare
+            ) base
         ");
         $stmtPrev->execute([$startPrev, $endPrev]);
         $prevRow = $stmtPrev->fetch(PDO::FETCH_ASSOC);
@@ -5935,27 +5844,22 @@ HTML;
         $stmtOps = $this->pdo->prepare("
             SELECT
                 operator_id,
-                SUM(shift_ibc_ok) AS ibc_ok,
-                SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                SUM(ibc_ok)     AS ibc_ok,
+                SUM(ibc_ej_ok)  AS ibc_ej_ok,
                 SUM(shift_runtime) AS runtime_min,
                 COUNT(DISTINCT skiftraknare) AS antal_skift
             FROM (
-                SELECT dag, skiftraknare, operator_id, shift_runtime,
-                       shift_ibc_ok,
-                       shift_ibc_ej_ok
-                FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(COALESCE(op1,        0)) AS operator_id,
-                           MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
-                           MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
-                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                      AND op1 IS NOT NULL AND op1 > 0
-                      AND ibc_ok IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare
-                ) base
-            ) lag_d
+                SELECT DATE(datum) AS dag, skiftraknare,
+                       MAX(COALESCE(op1,        0)) AS operator_id,
+                       MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
+                       MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
+                       MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                FROM rebotling_ibc
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                  AND op1 IS NOT NULL AND op1 > 0
+                  AND ibc_ok IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare
+            ) base
             WHERE operator_id > 0
             GROUP BY operator_id
             HAVING runtime_min > 0
@@ -6528,26 +6432,21 @@ HTML;
             $stmt = $this->pdo->prepare("
                 SELECT
                     COUNT(*)                 AS shifts,
-                    SUM(shift_ibc_ok)        AS total_ibc_ok,
-                    SUM(shift_ibc_ej_ok)     AS total_ibc_ej_ok,
+                    SUM(ibc_ok)              AS total_ibc_ok,
+                    SUM(ibc_ej_ok)           AS total_ibc_ej_ok,
                     SUM(shift_runtime)       AS total_runtime_min,
                     SUM(shift_rast)          AS total_rast_min
                 FROM (
-                    SELECT dag, skiftraknare, shift_runtime, shift_rast,
-                           shift_ibc_ok,
-                           shift_ibc_ej_ok
-                    FROM (
-                        SELECT DATE(datum) AS dag, skiftraknare,
-                               MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
-                               MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
-                               MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
-                               MAX(COALESCE(rasttime,   0)) AS shift_rast
-                        FROM rebotling_ibc r
-                        WHERE $dateFilter
-                          AND ibc_ok IS NOT NULL
-                        GROUP BY DATE(datum), skiftraknare
-                    ) base
-                ) lag_d
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
+                           MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                           MAX(COALESCE(rasttime,   0)) AS shift_rast
+                    FROM rebotling_ibc r
+                    WHERE $dateFilter
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) base
             ");
             $stmt->execute();
             $data = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -6704,7 +6603,7 @@ HTML;
                 $weekEnd   = $sunday->format('Y-m-d 23:59:59');
 
                 $stmt = $this->pdo->prepare(
-                    "SELECT COALESCE(SUM(delta_ibc), 0) AS cnt FROM (SELECT delta_ibc FROM (SELECT DATE(datum) AS dag, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS ibc_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND produktion_procent > 0 GROUP BY DATE(datum), skiftraknare) base) lag_d"
+                    "SELECT COALESCE(SUM(ibc_ok), 0) AS cnt FROM (SELECT DATE(datum) AS dag, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS ibc_ok FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND produktion_procent > 0 GROUP BY DATE(datum), skiftraknare) base"
                 );
                 $stmt->execute([$weekStart, $weekEnd]);
                 $actual = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
