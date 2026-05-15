@@ -3925,22 +3925,17 @@ class RebotlingController {
             // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta
             // so later shifts on the same day are not over-credited.
             $stmtShifts = $this->pdo->prepare("
-                SELECT skiftraknare, dag AS datum,
-                       op1, op2, op3, drifttid,
-                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ok
-                FROM (
-                    SELECT skiftraknare,
-                           DATE(MAX(datum))  AS dag,
-                           MAX(op1)          AS op1,
-                           MAX(op2)          AS op2,
-                           MAX(op3)          AS op3,
-                           MAX(ibc_ok)       AS ibc_end,
-                           MAX(drifttid)     AS drifttid
-                    FROM rebotling_skiftrapport
-                    WHERE datum BETWEEN :from AND :to AND drifttid > 0
-                    GROUP BY skiftraknare
-                ) raw
-                ORDER BY dag ASC, skiftraknare ASC
+                SELECT skiftraknare,
+                       DATE(MAX(datum)) AS datum,
+                       MAX(op1)         AS op1,
+                       MAX(op2)         AS op2,
+                       MAX(op3)         AS op3,
+                       MAX(ibc_ok)      AS ibc_ok,
+                       MAX(drifttid)    AS drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum BETWEEN :from AND :to AND drifttid > 0
+                GROUP BY skiftraknare
+                ORDER BY datum ASC, skiftraknare ASC
             ");
             $stmtShifts->execute([':from' => $from, ':to' => $to]);
             $allShifts = $stmtShifts->fetchAll(\PDO::FETCH_ASSOC);

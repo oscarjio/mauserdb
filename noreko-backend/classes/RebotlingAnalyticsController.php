@@ -2294,49 +2294,46 @@ class RebotlingAnalyticsController {
             try {
                 $firstDay = $monthParam . '-01';
                 $nextMonthOp = date('Y-m-01', strtotime($firstDay . ' +1 month'));
+                // ibc_ok/ibc_ej_ok are daily running counters — LAG() computes per-shift delta.
+                // Single CTE (2 params) replaces old 3× UNION ALL with 6 positional params.
                 $rankSQL = "
+                    WITH lag_shifts AS (
+                        SELECT skiftraknare, dag, op1, op2, op3,
+                               GREATEST(0, ibc_end   - COALESCE(LAG(ibc_end)   OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
+                               GREATEST(0, ej_ok_end - COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ej_ok_delta,
+                               runtime_h
+                        FROM (
+                            SELECT skiftraknare,
+                                   DATE(MAX(datum))              AS dag,
+                                   MAX(COALESCE(op1, 0))         AS op1,
+                                   MAX(COALESCE(op2, 0))         AS op2,
+                                   MAX(COALESCE(op3, 0))         AS op3,
+                                   MAX(COALESCE(ibc_ok,    0))   AS ibc_end,
+                                   MAX(COALESCE(ibc_ej_ok, 0))   AS ej_ok_end,
+                                   MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                            FROM rebotling_ibc
+                            WHERE datum >= ? AND datum < ?
+                            GROUP BY skiftraknare
+                        ) base
+                    )
                     SELECT op_id,
                            COUNT(DISTINCT skiftraknare) AS shifts,
-                           SUM(shift_ibc) AS total_ibc,
-                           SUM(shift_ibc) / NULLIF(SUM(runtime_h), 0) AS avg_ibc_per_h,
-                           SUM(shift_ok * 100.0) / NULLIF(SUM(shift_total), 0) AS avg_quality_pct
+                           SUM(ibc_delta)                                                          AS total_ibc,
+                           SUM(ibc_delta)        / NULLIF(SUM(runtime_h), 0)                      AS avg_ibc_per_h,
+                           SUM(ibc_delta)*100.0  / NULLIF(SUM(ibc_delta + ej_ok_delta), 0)        AS avg_quality_pct
                     FROM (
-                        SELECT op1 AS op_id, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
-                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
-                        FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < ?
-                          AND op1 IS NOT NULL AND op1 > 0
-                        GROUP BY op1, skiftraknare
+                        SELECT skiftraknare, op1 AS op_id, ibc_delta, ej_ok_delta, runtime_h FROM lag_shifts WHERE op1 > 0
                         UNION ALL
-                        SELECT op2 AS op_id, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
-                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
-                        FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < ?
-                          AND op2 IS NOT NULL AND op2 > 0
-                        GROUP BY op2, skiftraknare
+                        SELECT skiftraknare, op2,           ibc_delta, ej_ok_delta, runtime_h FROM lag_shifts WHERE op2 > 0
                         UNION ALL
-                        SELECT op3 AS op_id, skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
-                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
-                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
-                        FROM rebotling_ibc
-                        WHERE datum >= ? AND datum < ?
-                          AND op3 IS NOT NULL AND op3 > 0
-                        GROUP BY op3, skiftraknare
+                        SELECT skiftraknare, op3,           ibc_delta, ej_ok_delta, runtime_h FROM lag_shifts WHERE op3 > 0
                     ) t
                     GROUP BY op_id
-                    ORDER BY (SUM(shift_ibc) * 0.6 + SUM(shift_ibc) / NULLIF(SUM(runtime_h), 0) * 0.4) DESC
+                    ORDER BY (SUM(ibc_delta) * 0.6 + SUM(ibc_delta) / NULLIF(SUM(runtime_h), 0) * 0.4) DESC
                     LIMIT 10
                 ";
                 $stmtRank = $this->pdo->prepare($rankSQL);
-                $stmtRank->execute([$firstDay, $nextMonthOp, $firstDay, $nextMonthOp, $firstDay, $nextMonthOp]);
+                $stmtRank->execute([$firstDay, $nextMonthOp]);
                 $rankRows = $stmtRank->fetchAll(PDO::FETCH_ASSOC);
                 // Batch-hämta operatörsnamn
                 $opIds2 = array_column($rankRows, 'op_id');
