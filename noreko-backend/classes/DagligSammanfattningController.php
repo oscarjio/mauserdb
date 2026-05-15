@@ -224,22 +224,18 @@ class DagligSammanfattningController {
         $totalSek    = $schemaSek;
 
         // IBC via kumulativa PLC-fält
+        // ibc_ok/ibc_ej_ok reset per skiftraknare — MAX() per skiftraknare is correct.
         $ibcStmt = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(ibc_delta), 0) AS ok_antal,
-                    COALESCE(SUM(ej_ok_delta), 0) AS ej_ok_antal
+            "SELECT COALESCE(SUM(ibc_ok), 0) AS ok_antal,
+                    COALESCE(SUM(ibc_ej_ok), 0) AS ej_ok_antal
              FROM (
-                 SELECT dag, skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
-                        GREATEST(0, ej_ok_end - COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ej_ok_delta
-                 FROM (
-                     SELECT DATE(datum) AS dag, skiftraknare,
-                            MAX(COALESCE(ibc_ok, 0)) AS ibc_end,
-                            MAX(COALESCE(ibc_ej_ok, 0)) AS ej_ok_end
-                     FROM rebotling_ibc
-                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                     GROUP BY DATE(datum), skiftraknare
-                 ) innermost
-             ) sub"
+                 SELECT DATE(datum) AS dag, skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0)) AS ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                 GROUP BY DATE(datum), skiftraknare
+             ) base"
         );
         $ibcStmt->execute([$date, $date]);
         $ibcRow   = $ibcStmt->fetch(PDO::FETCH_ASSOC);
@@ -442,17 +438,14 @@ class DagligSammanfattningController {
 
         // Summera per skift + datum föreg
         $foStmt = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(ibc_delta), 0) AS ibc_ok FROM (
-                SELECT dag, skiftraknare,
-                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
-                FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(ibc_ok) AS ibc_end
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) innermost
-             ) skiften"
+            "SELECT COALESCE(SUM(ibc_ok), 0) AS ibc_ok
+             FROM (
+                 SELECT DATE(datum) AS dag, skiftraknare,
+                        MAX(ibc_ok) AS ibc_ok
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                 GROUP BY DATE(datum), skiftraknare
+             ) base"
         );
         $foStmt->execute([$foregDatum, $foregDatum]);
         $foRow  = $foStmt->fetch(PDO::FETCH_ASSOC);
@@ -484,17 +477,14 @@ class DagligSammanfattningController {
         $placeholders = implode(',', array_fill(0, count($dates), '?'));
 
         $s = $this->pdo->prepare(
-            "SELECT dag, COALESCE(SUM(ibc_delta), 0) AS ibc FROM (
-                SELECT dag, skiftraknare,
-                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
-                FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(ibc_ok) AS ibc_end
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) IN ({$placeholders})
-                    GROUP BY DATE(datum), skiftraknare
-                ) innermost
-             ) t
+            "SELECT dag, COALESCE(SUM(ibc_ok), 0) AS ibc
+             FROM (
+                 SELECT DATE(datum) AS dag, skiftraknare,
+                        MAX(ibc_ok) AS ibc_ok
+                 FROM rebotling_ibc
+                 WHERE DATE(datum) IN ({$placeholders})
+                 GROUP BY DATE(datum), skiftraknare
+             ) base
              GROUP BY dag"
         );
         $s->execute($dates);

@@ -185,46 +185,72 @@ class Rebotling {
                 }
             }
             
-            // Beräkna total runtime för nuvarande skift
+            // Beräkna netto-runtime för nuvarande skift:
+            // onoff-loop ger total on-tid → subtrahera rasttid från rebotling_runtime.
+            // D4007 uppdateras bara vid skiftslut och kan inte användas under pågående skift.
             $totalRuntimeMinutes = 0;
             $stmt = $this->db->prepare('
                 SELECT datum, running
-                FROM rebotling_onoff 
+                FROM rebotling_onoff
                 WHERE skiftraknare = ?
                 ORDER BY datum ASC
             ');
             $stmt->execute([$skiftraknare]);
             $skiftEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             if (count($skiftEntries) > 0) {
                 $lastRunningStart = null;
                 $now = new DateTime();
-                
+
                 foreach ($skiftEntries as $entry) {
                     $entryTime = new DateTime($entry['datum']);
                     $isRunning = (bool)($entry['running'] ?? false);
-                    
+
                     if ($isRunning && $lastRunningStart === null) {
                         $lastRunningStart = $entryTime;
                     } elseif (!$isRunning && $lastRunningStart !== null) {
                         $diff = $lastRunningStart->diff($entryTime);
-                        $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                        $totalRuntimeMinutes += $periodMinutes;
+                        $totalRuntimeMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                         $lastRunningStart = null;
                     }
                 }
-                
+
                 if ($lastRunningStart !== null) {
                     $lastEntryTime = new DateTime($skiftEntries[count($skiftEntries) - 1]['datum']);
                     $diff = $lastRunningStart->diff($lastEntryTime);
-                    $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                    $totalRuntimeMinutes += $periodMinutes;
-                    
+                    $totalRuntimeMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                     $diffSinceLast = $lastEntryTime->diff($now);
-                    $minutesSinceLastUpdate = ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
-                    $totalRuntimeMinutes += $minutesSinceLastUpdate;
+                    $totalRuntimeMinutes += ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
                 }
             }
+
+            // Subtrahera rasttid för skiftet
+            $rastStmt = $this->db->prepare('
+                SELECT datum, rast_status
+                FROM rebotling_runtime
+                WHERE datum >= (SELECT MIN(datum) FROM rebotling_onoff WHERE skiftraknare = ?)
+                ORDER BY datum ASC
+            ');
+            $rastStmt->execute([$skiftraknare]);
+            $rastEvents = $rastStmt->fetchAll(PDO::FETCH_ASSOC);
+            $rastStart = null;
+            $totalRastMinutes = 0;
+            $now2 = new DateTime();
+            foreach ($rastEvents as $ev) {
+                $t = new DateTime($ev['datum']);
+                if ((int)$ev['rast_status'] === 1) {
+                    $rastStart = $t;
+                } elseif ((int)$ev['rast_status'] === 0 && $rastStart !== null) {
+                    $diff = $rastStart->diff($t);
+                    $totalRastMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $rastStart = null;
+                }
+            }
+            if ($rastStart !== null) {
+                $diff = $rastStart->diff($now2);
+                $totalRastMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+            }
+            $totalRuntimeMinutes = max(0.0, $totalRuntimeMinutes - $totalRastMinutes);
             
             // Hämta antal IBCer för nuvarande skift (inklusive den som ska läggas till)
             $stmt = $this->db->prepare('

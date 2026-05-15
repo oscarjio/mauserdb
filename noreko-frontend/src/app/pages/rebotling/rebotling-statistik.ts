@@ -166,6 +166,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   loading: boolean = false;
   error: string | null = null;
   breadcrumb: string[] = [];
+  isLive: boolean = false;
+  private liveIntervalId: ReturnType<typeof setInterval> | null = null;
 
   totalRastMinutes: number = 0;
   timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'stopped' | 'driftstopp'; startTime: string; endTime: string; duration: string }[] = [];
@@ -409,7 +411,35 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     }).join(' ');
   }
 
+  private isViewingToday(): boolean {
+    if (this.viewMode !== 'day' || this.selectedPeriods.length !== 1) return false;
+    const sel = this.selectedPeriods[0];
+    const today = new Date();
+    return sel.getFullYear() === today.getFullYear() &&
+           sel.getMonth() === today.getMonth() &&
+           sel.getDate() === today.getDate();
+  }
+
+  private startLivePolling(): void {
+    this.stopLivePolling();
+    this.isLive = true;
+    this.liveIntervalId = setInterval(() => {
+      if (!this.loading && this.isViewingToday()) {
+        this.loadStatistics();
+      }
+    }, 30000);
+  }
+
+  private stopLivePolling(): void {
+    if (this.liveIntervalId !== null) {
+      clearInterval(this.liveIntervalId);
+      this.liveIntervalId = null;
+    }
+    this.isLive = false;
+  }
+
   ngOnDestroy() {
+    this.stopLivePolling();
     clearTimeout(this.chartUpdateTimer);
     clearTimeout(this.exportFeedbackTimer);
     try {
@@ -715,6 +745,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       this.updateChart(response.data);
       this.updateTable(response.data);
       this.loading = false;
+
+      // Starta live-polling om dag-vy visar idag, stoppa annars
+      if (this.isViewingToday()) {
+        if (this.liveIntervalId === null) this.startLivePolling();
+      } else {
+        this.stopLivePolling();
+      }
 
       // Restore scroll position if saved (e.g. from month chart click)
       if (this.savedScrollY !== null) {

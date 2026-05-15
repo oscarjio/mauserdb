@@ -104,6 +104,9 @@
             </button>
             <span class="breadcrumb-sep" *ngIf="breadcrumb.length > 2"><i class="fas fa-chevron-right"></i></span>
             <button *ngIf="breadcrumb.length > 2" class="breadcrumb-btn active">{{ breadcrumb[2] }}</button>
+            <span *ngIf="isLive" class="live-badge ms-2">
+              <span class="live-dot"></span>LIVE
+            </span>
           </nav>
           <div class="nav-controls d-flex align-items-center gap-2">
             <button class="btn btn-dark btn-sm" (click)="navigatePrevious()" aria-label="Föregående period"><i class="fas fa-chevron-left"></i></button>
