@@ -323,31 +323,31 @@
 
 ## BUG-083: Dubbla snabba klick på navigations-pil hoppar 2 steg (debounce saknas)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
+**Status:** FIXAD — 2026-05-16
 **Symptom:** Dubbla snabba klick på föregående/nästa-pil hoppar 2 steg (t.ex. 2024→2022, missar 2023). Gäller troligen dag/månad/år-navigation.
 **Rotorsak:** `navigatePrevious()`/`navigateNext()` saknar debounce eller "is-navigating"-guard. Varje klick triggar ett API-anrop och state-ändring direkt.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` `navigatePrevious()`, `navigateNext()`
-**Fix:** Lägg till `isNavigating`-flag (boolean, ~300ms cooldown) eller `debounceTime(300)` på click-event. Enklaste fix: `if (this.isFetching) return;` i navigeringsfunktionerna.
+**Fix tillämpat:** `if (this.loading) return;` i början av `navigatePrevious()` och `navigateNext()`. Också `[disabled]="loading"` på föregående-knappen i HTML.
 
 ---
 
 ## BUG-084: Framtida år/period tillåts utan guard — visar 0% rött istf. "ingen data"
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
+**Status:** FIXAD — 2026-05-16
 **Symptom:** Man kan navigera till år 2027 (och framtida månader/dagar) via nästa-pilen. Visas som 0% röda staplar istf. en tydlig "Framtida period — ingen data tillgänglig"-indikation.
 **Rotorsak:** `navigateNext()` saknar kontroll mot aktuellt datum. Ingen guard i `applyStateFromUrl()` heller — man kan skriva in framtida datum manuellt i URL:en och få samma fel.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` `navigateNext()`, eventuellt `applyStateFromUrl()`
-**Fix:** I `navigateNext()`: kontrollera om nästa period är i framtiden — om ja, return early (disable knappen eller visa toast). Nästa-pilens `disabled`-attribut bör sättas dynamiskt baserat på om innevarande period redan är max. I template: binda `[disabled]="isAtCurrentPeriod()"`.
+**Fix tillämpat:** Ny metod `isAtCurrentPeriod()` — returnerar true om innevarande period redan är i nutid. Guard `if (this.isAtCurrentPeriod()) return;` i `navigateNext()`. Knappen disabled via `[disabled]="isAtCurrentPeriod() || loading"` i HTML.
 
 ---
 
 ## BUG-085: Kvalitet & OEE-flik visar "Idag" 0% trots månadsvy April vald — period-väljare synkar inte
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
+**Status:** FIXAD — 2026-05-16
 **Symptom:** På statistiksidans "Kvalitet & OEE"-flik visas "Idag" med 0% oavsett vilken period som valts (t.ex. månadsvy April). Period-väljaren i fliken håller kvar "Idag" och hämtar inte data för den valda månaden/perioden.
-**Rotorsak:** Kvalitet & OEE-komponenten/sektionen har troligen en egen intern period-state ("Idag") som inte synkas med huvud-statistiksidans `viewMode`/`currentMonth`/`currentYear`. När man byter till månadsvy April uppdateras inte OEE-flikens anrop med rätt datumintervall.
-**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` och/eller sub-komponent för Kvalitet & OEE-fliken. Sök på "Idag", "oee", "kvalitet" i komponenten.
-**Fix:** Synka OEE-flikens datumintervall med huvud-statistiksidans valda period (`currentYear`/`currentMonth`/`selectedPeriods`). OEE-fliken bör använda samma `getDateRange()`-metod för att hämta korrekt from/to-datum och skicka med det i API-anropet.
+**Rotorsak:** `StatistikOeeGaugeComponent` hade helt intern period-state ('today'/'7d'/'30d') utan koppling till förälderns datumspann.
+**Filer:** `statistik-oee-gauge.ts`, `statistik-oee-gauge.html`, `rebotling-statistik.html`, `rebotling.service.ts`, `RebotlingAnalyticsController.php`
+**Fix tillämpat:** `@Input() fromDate`/`toDate` till OEE gauge — när de är satta används `period=custom` med parent's datumspann. `ngOnChanges` reagerar på period-ändringar i föräldern. Backend `getRealtimeOee()` utökat med `period=custom&from=YYYY-MM-DD&to=YYYY-MM-DD`. Period-knapparna döljs i custom-läge och ersätts med ett datum-badge. Föräldern binder `[fromDate]="getDateRange().start" [toDate]="getDateRange().end"`.
 
 ---
 

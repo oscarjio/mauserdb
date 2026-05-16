@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, interval, of } from 'rxjs';
 import { takeUntil, catchError, timeout, startWith } from 'rxjs/operators';
@@ -11,8 +11,12 @@ import { RebotlingService, RealtimeOeeResponse, RealtimeOeeData } from '../../..
   templateUrl: './statistik-oee-gauge.html',
   imports: [CommonModule]
 })
-export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDestroy {
-  selectedPeriod: 'today' | '7d' | '30d' = 'today';
+export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDestroy, OnChanges {
+  /** BUG-085: Datum från föräldrakomponenten (YYYY-MM-DD). Om satta används "custom"-perioden. */
+  @Input() fromDate: string | null = null;
+  @Input() toDate: string | null = null;
+
+  selectedPeriod: 'today' | '7d' | '30d' | 'custom' = 'today';
   loading = false;
   data: RealtimeOeeData | null = null;
   error: string | null = null;
@@ -24,11 +28,25 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
   constructor(private rebotlingService: RebotlingService) {}
 
   ngOnInit(): void {
-    // Poll var 60:e sekund + initial load
-    interval(60000).pipe(
-      startWith(0),
-      takeUntil(this.destroy$)
-    ).subscribe(() => this.loadOee());
+    if (this.fromDate && this.toDate) {
+      // BUG-085: Förälderns period är satt — ladda custom range direkt utan polling
+      this.selectedPeriod = 'custom';
+      this.loadOee();
+    } else {
+      // Poll var 60:e sekund + initial load
+      interval(60000).pipe(
+        startWith(0),
+        takeUntil(this.destroy$)
+      ).subscribe(() => this.loadOee());
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // BUG-085: Om förälderns datum ändras (ny period vald), ladda om med nytt datumspann
+    if ((changes['fromDate'] || changes['toDate']) && this.fromDate && this.toDate) {
+      this.selectedPeriod = 'custom';
+      this.loadOee();
+    }
   }
 
   ngAfterViewInit(): void {
@@ -51,7 +69,13 @@ export class StatistikOeeGaugeComponent implements OnInit, AfterViewInit, OnDest
   loadOee(): void {
     this.loading = true;
     this.error = null;
-    this.rebotlingService.getRealtimeOee(this.selectedPeriod).pipe(
+    // BUG-085: Skicka custom datumspann om förälderns period är satt
+    const isCustom = this.selectedPeriod === 'custom' && !!this.fromDate && !!this.toDate;
+    this.rebotlingService.getRealtimeOee(
+      this.selectedPeriod,
+      isCustom ? (this.fromDate ?? undefined) : undefined,
+      isCustom ? (this.toDate ?? undefined) : undefined
+    ).pipe(
       timeout(15000),
       catchError((_err) => {
         this.error = 'Kunde inte hämta OEE-data';

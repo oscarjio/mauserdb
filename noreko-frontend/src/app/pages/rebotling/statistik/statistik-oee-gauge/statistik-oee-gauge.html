@@ -8,14 +8,20 @@
           Realtids-OEE
         </h5>
         <div class="d-flex align-items-center gap-2">
-          <div class="btn-group btn-group-sm" role="group">
-            <button class="btn" [class.btn-success]="selectedPeriod === 'today'" [class.btn-outline-secondary]="selectedPeriod !== 'today'" (click)="selectPeriod('today')">Idag</button>
-            <button class="btn" [class.btn-success]="selectedPeriod === '7d'" [class.btn-outline-secondary]="selectedPeriod !== '7d'" (click)="selectPeriod('7d')">7 dagar</button>
-            <button class="btn" [class.btn-success]="selectedPeriod === '30d'" [class.btn-outline-secondary]="selectedPeriod !== '30d'" (click)="selectPeriod('30d')">30 dagar</button>
-          </div>
-          <span class="small text-muted ms-2" *ngIf="data">
-            <i class="fas fa-sync-alt me-1" [class.fa-spin]="loading"></i>Auto-uppdatering
-          </span>
+          <!-- BUG-085: Visa vald period från föräldern om custom-läge är aktivt -->
+          <ng-container *ngIf="selectedPeriod !== 'custom'; else customPeriodLabel">
+            <div class="btn-group btn-group-sm" role="group">
+              <button class="btn" [class.btn-success]="selectedPeriod === 'today'" [class.btn-outline-secondary]="selectedPeriod !== 'today'" (click)="selectPeriod('today')">Idag</button>
+              <button class="btn" [class.btn-success]="selectedPeriod === '7d'" [class.btn-outline-secondary]="selectedPeriod !== '7d'" (click)="selectPeriod('7d')">7 dagar</button>
+              <button class="btn" [class.btn-success]="selectedPeriod === '30d'" [class.btn-outline-secondary]="selectedPeriod !== '30d'" (click)="selectPeriod('30d')">30 dagar</button>
+            </div>
+            <span class="small text-muted ms-2" *ngIf="data">
+              <i class="fas fa-sync-alt me-1" [class.fa-spin]="loading"></i>Auto-uppdatering
+            </span>
+          </ng-container>
+          <ng-template #customPeriodLabel>
+            <span class="badge bg-success">{{ fromDate }} – {{ toDate }}</span>
+          </ng-template>
         </div>
       </div>
 

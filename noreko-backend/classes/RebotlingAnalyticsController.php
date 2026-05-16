@@ -6409,24 +6409,42 @@ HTML;
 
     public function getRealtimeOee() {
         $period = $_GET['period'] ?? 'today';
-        $allowed = ['today', '7d', '30d'];
+        $allowed = ['today', '7d', '30d', 'custom'];
         if (!in_array($period, $allowed, true)) $period = 'today';
+
+        // BUG-085: Stöd för custom datumspann (skickas som period=custom&from=YYYY-MM-DD&to=YYYY-MM-DD)
+        $customFrom = null;
+        $customTo   = null;
+        if ($period === 'custom') {
+            $from = $_GET['from'] ?? '';
+            $to   = $_GET['to']   ?? '';
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+                $customFrom = $from;
+                $customTo   = $to;
+            } else {
+                $period = 'today'; // Fallback om ogiltiga datum
+            }
+        }
 
         try {
             // Bestäm datumfilter
-            $dateFilter = match($period) {
-                'today' => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY",
-                '7d'    => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
-                '30d'   => "r.datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
-                default => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY"
-            };
-
-            $periodLabel = match($period) {
-                'today' => 'Idag',
-                '7d'    => 'Senaste 7 dagar',
-                '30d'   => 'Senaste 30 dagar',
-                default => 'Idag'
-            };
+            if ($period === 'custom' && $customFrom && $customTo) {
+                $dateFilter  = "r.datum BETWEEN '$customFrom' AND '$customTo'";
+                $periodLabel = "$customFrom – $customTo";
+            } else {
+                $dateFilter = match($period) {
+                    'today' => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY",
+                    '7d'    => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
+                    '30d'   => "r.datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
+                    default => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY"
+                };
+                $periodLabel = match($period) {
+                    'today' => 'Idag',
+                    '7d'    => 'Senaste 7 dagar',
+                    '30d'   => 'Senaste 30 dagar',
+                    default => 'Idag'
+                };
+            }
 
             // ibc_ok is a daily running counter — LAG() PARTITION BY dag gives per-shift delta.
             $stmt = $this->pdo->prepare("

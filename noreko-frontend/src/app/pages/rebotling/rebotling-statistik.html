@@ -109,9 +109,9 @@
             </span>
           </nav>
           <div class="nav-controls d-flex align-items-center gap-2">
-            <button class="btn btn-dark btn-sm" (click)="navigatePrevious()" aria-label="Föregående period"><i class="fas fa-chevron-left"></i></button>
+            <button class="btn btn-dark btn-sm" (click)="navigatePrevious()" [disabled]="loading" aria-label="Föregående period"><i class="fas fa-chevron-left"></i></button>
             <span class="mx-2 view-mode-label">{{ getViewModeLabel() }}</span>
-            <button class="btn btn-dark btn-sm" (click)="navigateNext()" aria-label="Nästa period"><i class="fas fa-chevron-right"></i></button>
+            <button class="btn btn-dark btn-sm" (click)="navigateNext()" [disabled]="isAtCurrentPeriod() || loading" aria-label="Nästa period"><i class="fas fa-chevron-right"></i></button>
           </div>
         </div>
       </div>
@@ -492,7 +492,8 @@
     <div class="container-fluid">
 
       @defer (on viewport) {
-        <app-statistik-oee-gauge></app-statistik-oee-gauge>
+        <!-- BUG-085: Skicka förälderns datumspann till OEE-gauge så den visar vald period, inte alltid "Idag" -->
+        <app-statistik-oee-gauge [fromDate]="getDateRange().start" [toDate]="getDateRange().end"></app-statistik-oee-gauge>
       } @placeholder {
         <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
       }

@@ -318,11 +318,14 @@ export class RebotlingService {
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getRealtimeOee(period: string = 'today'): Observable<any> {
-    return this.http.get<RealtimeOeeResponse>(
-      `${environment.apiUrl}?action=rebotling&run=realtime-oee&period=${period}`,
-      { withCredentials: true }
-    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  getRealtimeOee(period: string = 'today', from?: string, to?: string): Observable<any> {
+    let url = `${environment.apiUrl}?action=rebotling&run=realtime-oee&period=${period}`;
+    // BUG-085: Stöd för custom datumspann
+    if (period === 'custom' && from && to) {
+      url += `&from=${from}&to=${to}`;
+    }
+    return this.http.get<RealtimeOeeResponse>(url, { withCredentials: true })
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getStopCauseDrilldown(cause: string, days: number = 30): Observable<any> {
