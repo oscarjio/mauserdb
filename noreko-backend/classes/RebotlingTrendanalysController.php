@@ -57,18 +57,31 @@ class RebotlingTrendanalysController {
         // ibc_count = daglig sekventiell räknare (startar om varje dag).
         // MAX(ibc_count) GROUP BY DATE ger korrekt dagstotal.
         // ibc_ok nollställs inte per skift → GROUP BY DATE ger korrekt ok-summa.
+        // drifttid hämtas från rebotling_skiftrapport (D4007 netto, i minuter)
+        // via MAX(drifttid) per skiftraknare+datum och SUM per dag.
         $sql = "
             SELECT
-                DATE(datum) AS datum,
-                COALESCE(MAX(ibc_count), 0) AS total_ibc,
-                COALESCE(MAX(ibc_ok), 0)    AS godkanda,
-                MIN(datum) AS forsta_cykel,
-                MAX(datum) AS sista_cykel
-            FROM rebotling_ibc
-            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
-              AND datum < CURDATE() + INTERVAL 1 DAY
-            GROUP BY DATE(datum)
-            ORDER BY DATE(datum) ASC
+                DATE(r.datum) AS datum,
+                COALESCE(MAX(r.ibc_count), 0) AS total_ibc,
+                COALESCE(MAX(r.ibc_ok), 0)    AS godkanda,
+                COALESCE(SUM(s.dag_drift), 0) AS netto_drift_min
+            FROM rebotling_ibc r
+            LEFT JOIN (
+                SELECT datum,
+                       SUM(max_drift) AS dag_drift
+                FROM (
+                    SELECT datum,
+                           skiftraknare,
+                           MAX(COALESCE(drifttid, 0)) AS max_drift
+                    FROM rebotling_skiftrapport
+                    GROUP BY datum, skiftraknare
+                ) AS per_skift
+                GROUP BY datum
+            ) s ON s.datum = DATE(r.datum)
+            WHERE r.datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+              AND r.datum < CURDATE() + INTERVAL 1 DAY
+            GROUP BY DATE(r.datum)
+            ORDER BY DATE(r.datum) ASC
         ";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':dagar' => $dagar]);
@@ -80,18 +93,15 @@ class RebotlingTrendanalysController {
             $total    = (int)$row['total_ibc'];
             $godkanda = min($total, (int)$row['godkanda']);
 
-            // Drifttid = tid mellan första och sista cykel (sekunder)
-            $drifttid = 0;
-            if ($row['forsta_cykel'] && $row['sista_cykel']) {
-                $drifttid = strtotime($row['sista_cykel']) - strtotime($row['forsta_cykel']);
-                if ($drifttid < 0) $drifttid = 0;
-            }
+            // Netto drifttid i sekunder (från D4007, exkl. rast och stopp)
+            $netto_min = (int)$row['netto_drift_min'];
+            $drifttid  = $netto_min * 60; // konvertera minuter → sekunder
 
-            // Planerad tid: ett skift = 8h = 28800s, max 3 skift = 86400s
-            // Uppskatta antal skift från drifttid
+            // Planerad tid: netto drifttid + uppskattad rast/stopp (25 min/skift)
+            // Uppskatta antal skift från netto drifttid
             $planerad_tid = max($drifttid, 1);
             if ($drifttid < 28800) {
-                $planerad_tid = 28800; // minst ett skift
+                $planerad_tid = 28800; // minst ett skift (~8h)
             } elseif ($drifttid < 57600) {
                 $planerad_tid = 57600; // 2 skift
             } else {
@@ -99,7 +109,9 @@ class RebotlingTrendanalysController {
             }
 
             // OEE-komponenter
+            // T (Tillgänglighet): netto / planerad — om netto saknas → 0
             $T = $drifttid > 0 ? min($drifttid / $planerad_tid, 1.0) : 0;
+            // P (Prestanda): faktisk takt vs ideal takt — baserat på netto drifttid
             $P = ($drifttid > 0 && $total > 0)
                 ? min(($total * self::CYKELTID) / $drifttid, 1.0)
                 : 0;
@@ -339,28 +351,40 @@ class RebotlingTrendanalysController {
 
     private function veckosammanfattning(): void {
         try {
+        // drifttid hämtas från rebotling_skiftrapport (D4007 netto, i minuter)
+        // via MAX per skiftraknare+datum, SUM per dag, aggregerat per vecka.
         $sql = "
             SELECT
                 ar, vecka,
-                MIN(from_datum) AS from_datum,
-                MAX(to_datum)   AS to_datum,
-                SUM(day_total)  AS total_ibc,
-                SUM(day_ok)     AS godkanda_sum,
-                MIN(forsta_cykel) AS forsta_cykel,
-                MAX(sista_cykel)  AS sista_cykel
+                MIN(from_datum)       AS from_datum,
+                MAX(to_datum)         AS to_datum,
+                SUM(day_total)        AS total_ibc,
+                SUM(day_ok)           AS godkanda_sum,
+                COALESCE(SUM(dag_drift_min), 0) AS netto_drift_min
             FROM (
                 SELECT
-                    YEAR(datum) AS ar,
-                    WEEK(datum, 1) AS vecka,
-                    MIN(DATE(datum)) AS from_datum,
-                    MAX(DATE(datum)) AS to_datum,
-                    COALESCE(MAX(ibc_count), 0) AS day_total,
-                    COALESCE(MAX(ibc_ok), 0)    AS day_ok,
-                    MIN(datum) AS forsta_cykel,
-                    MAX(datum) AS sista_cykel
-                FROM rebotling_ibc
-                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 84 DAY)
-                GROUP BY YEAR(datum), WEEK(datum, 1), DATE(datum)
+                    YEAR(r.datum) AS ar,
+                    WEEK(r.datum, 1) AS vecka,
+                    MIN(DATE(r.datum)) AS from_datum,
+                    MAX(DATE(r.datum)) AS to_datum,
+                    COALESCE(MAX(r.ibc_count), 0) AS day_total,
+                    COALESCE(MAX(r.ibc_ok), 0)    AS day_ok,
+                    COALESCE(sd.dag_drift_min, 0)  AS dag_drift_min
+                FROM rebotling_ibc r
+                LEFT JOIN (
+                    SELECT datum,
+                           SUM(max_drift) AS dag_drift_min
+                    FROM (
+                        SELECT datum,
+                               skiftraknare,
+                               MAX(COALESCE(drifttid, 0)) AS max_drift
+                        FROM rebotling_skiftrapport
+                        GROUP BY datum, skiftraknare
+                    ) AS per_skift
+                    GROUP BY datum
+                ) sd ON sd.datum = DATE(r.datum)
+                WHERE r.datum >= DATE_SUB(CURDATE(), INTERVAL 84 DAY)
+                GROUP BY YEAR(r.datum), WEEK(r.datum, 1), DATE(r.datum)
             ) AS per_dag
             GROUP BY ar, vecka
             ORDER BY ar DESC, vecka DESC
@@ -377,8 +401,9 @@ class RebotlingTrendanalysController {
             $godkanda = min($total, (int)$row['godkanda_sum']);
             $kasserade = $total - $godkanda;
 
-            $drifttid = strtotime($row['sista_cykel']) - strtotime($row['forsta_cykel']);
-            if ($drifttid < 0) $drifttid = 0;
+            // Netto drifttid i sekunder (från D4007, exkl. rast och stopp)
+            $netto_min = (int)$row['netto_drift_min'];
+            $drifttid  = $netto_min * 60; // konvertera minuter → sekunder
 
             // Estimera planerad tid per vecka (max 5 * 2 * 8h = 80h)
             $planerad_tid = max($drifttid, 1);
