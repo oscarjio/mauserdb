@@ -103,3 +103,15 @@
 **Rotorsak:** `StatistikVeckotrendComponent` saknade helt CSS-fil och `styleUrls`. Klasserna `.veckotrend-wrapper`, `.kpi-row`, `.kpi-card`, `.sparkline-container` m.fl. hade inga stilregler → oformatterade/sammanpressade kort.
 **Fix:** Skapade `statistik-veckotrend.css` med CSS Grid (auto-fit minmax 160px) för `.kpi-row`, full-width flex `.kpi-card` med `min-width: 0`, och lade till `styleUrls` i komponent-dekoratorn.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/statistik/statistik-veckotrend/statistik-veckotrend.css` (ny), `statistik-veckotrend.ts` (styleUrls tillagt)
+
+---
+
+## BUG-011: buildShiftSummaries — ibc_count summeras som tal istf. räknas som event (FIXAD)
+**Rapporterad:** 2026-05-16
+**Fixad:** 2026-05-16
+**Status:** Åtgärdad
+**Symptom:** Skiftöversiktskortet (dagvy i rebotling-statistik) visade absurt höga IBC-tal per skift — t.ex. "4920 IBC" i stället för "123 IBC".
+**Rotorsak:** `buildShiftSummaries()` i `rebotling-statistik.ts` rad 2028 summerade `c.ibc_count` (den dagliga sekvensräknaren 1, 2, 3, … N) i stället för att räkna varje rad som 1 cycle-event. Summan av 1+2+…+N = N*(N+1)/2 — ca N/2 × korrekt värde. Täckt av `|| 1` som fallback men felet gäller för alla rader med ibc_count ≥ 2.
+**Rotorsak (teknisk):** `rebotling_ibc.ibc_count` är en PLC-räknare som stiger sekventiellt per dag (1, 2, 3...). Varje rad i tabellen motsvarar ett IBC-cykelevent. Rätt sätt att räkna cykler i ett skift är att räkna antal rader (+= 1), inte att summera ibc_count-värdet.
+**Fix:** `s.ibcCount += (c.ibc_count || 1)` → `s.ibcCount += 1`
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` rad 2028
