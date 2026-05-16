@@ -348,3 +348,13 @@
 **Rotorsak:** Kvalitet & OEE-komponenten/sektionen har troligen en egen intern period-state ("Idag") som inte synkas med huvud-statistiksidans `viewMode`/`currentMonth`/`currentYear`. När man byter till månadsvy April uppdateras inte OEE-flikens anrop med rätt datumintervall.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` och/eller sub-komponent för Kvalitet & OEE-fliken. Sök på "Idag", "oee", "kvalitet" i komponenten.
 **Fix:** Synka OEE-flikens datumintervall med huvud-statistiksidans valda period (`currentYear`/`currentMonth`/`selectedPeriods`). OEE-fliken bör använda samma `getDateRange()`-metod för att hämta korrekt from/to-datum och skicka med det i API-anropet.
+
+---
+
+## BUG-086: Cykeltid per operator-chart visar bara första bokstaven (M K E R B O T) istf. fulla namn
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** Diagrammet "Cykeltid per operator" på statistiksidan visar bara en bokstav per operatör (M, K, E, R, B, O, T) istf. fullständiga operatörnamn.
+**Rotorsak (hypotes):** Antingen (1) Chart.js trunkerar x/y-axelns labels pga. liten chartbredd — `maxRotation`/`maxLength` ej satt, (2) backend returnerar bara initialbokstav, eller (3) frontend-koden mappar `operator.charAt(0)` eller liknande av misstag.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — sök på "operator", "cykeltid", "cyklel per operator"-diagrammet. Eventuellt backend `RebotlingController.php` om namnen kortas där.
+**Fix:** Kontrollera backend-svar (Network tab → operator-names). Om de är fullständiga där men trunkerade i chart → Chart.js `ticks.maxLength`/`ticks.callback`. Om de är korta redan i backend → fixa SQL `SELECT DISTINCT operatör`.
