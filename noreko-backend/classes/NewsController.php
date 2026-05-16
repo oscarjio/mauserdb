@@ -283,31 +283,32 @@ class NewsController {
         // 1. Rekordag — bästa produktionsdagen någonsin, om den inträffade de senaste 30 dagarna
         try {
             $sql = "
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end
+                    FROM rebotling_ibc
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_delta AS (
+                    SELECT dag, skiftraknare, ibc_end,
+                           ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ibc
+                    FROM lag_base
+                ),
+                dag_totals AS (
+                    SELECT dag, SUM(delta_ibc) AS ibc_ok
+                    FROM lag_delta
+                    GROUP BY dag
+                ),
+                best_day AS (
+                    SELECT dag FROM dag_totals ORDER BY ibc_ok DESC LIMIT 1
+                )
                 SELECT 'rekordag' AS typ,
-                       DATE(datum) AS event_datum,
-                       DATE_FORMAT(DATE(datum),'%Y-%m-%d 12:00:00') AS event_datetime,
-                       MAX(ibc_ok) AS value,
-                       CONCAT('Rekordag! ', DATE_FORMAT(DATE(datum),'%d %b'), ': ', MAX(ibc_ok), ' IBC — nytt dagrekord!') AS text
-                FROM rebotling_ibc
-                WHERE datum >= (
-                    SELECT best_day FROM (
-                        SELECT DATE(datum) AS best_day
-                        FROM rebotling_ibc
-                        GROUP BY DATE(datum)
-                        ORDER BY MAX(ibc_ok) DESC
-                        LIMIT 1
-                    ) AS bd
-                )
-                  AND datum < (
-                    SELECT DATE_ADD(best_day, INTERVAL 1 DAY) FROM (
-                        SELECT DATE(datum) AS best_day
-                        FROM rebotling_ibc
-                        GROUP BY DATE(datum)
-                        ORDER BY MAX(ibc_ok) DESC
-                        LIMIT 1
-                    ) AS bd2
-                )
-                  AND datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                       dt.dag AS event_datum,
+                       DATE_FORMAT(dt.dag,'%Y-%m-%d 12:00:00') AS event_datetime,
+                       dt.ibc_ok AS value,
+                       CONCAT('Rekordag! ', DATE_FORMAT(dt.dag,'%d %b'), ': ', dt.ibc_ok, ' IBC — nytt dagrekord!') AS text
+                FROM dag_totals dt
+                JOIN best_day bd ON bd.dag = dt.dag
+                WHERE dt.dag >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
                 LIMIT 1
             ";
             $stmt = $this->pdo->query($sql);
@@ -331,22 +332,36 @@ class NewsController {
         // 2. Hög OEE-dag — OEE >= 90% de senaste 14 dagarna
         try {
             $sql = "
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS ibc_end,
+                           MAX(ibc_ej_ok) AS ej_end
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+                      AND ibc_ok > 0
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_delta AS (
+                    SELECT dag,
+                           ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ibc,
+                           ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ej
+                    FROM lag_base
+                ),
+                dagdata AS (
+                    SELECT dag,
+                           ROUND(
+                               CASE WHEN SUM(delta_ibc) + SUM(delta_ej) > 0
+                                    THEN (SUM(delta_ibc) / (SUM(delta_ibc) + SUM(delta_ej))) * 100
+                                    ELSE 0 END, 1) AS oee_val
+                    FROM lag_delta
+                    GROUP BY dag
+                )
                 SELECT 'hog_oee' AS typ,
                        dag AS event_datum,
                        CONCAT(dag, ' 12:00:00') AS event_datetime,
                        oee_val AS value,
                        CONCAT('Utmärkt dag! ', DATE_FORMAT(dag,'%d %b'), ': OEE ', oee_val, '% — över 90%!') AS text
-                FROM (
-                    SELECT DATE(datum) AS dag,
-                           ROUND(
-                               CASE WHEN MAX(ibc_ok) + MAX(ibc_ej_ok) > 0
-                                    THEN (MAX(ibc_ok) / (MAX(ibc_ok) + MAX(ibc_ej_ok))) * 100
-                                    ELSE 0 END, 1) AS oee_val
-                    FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(NOW(), INTERVAL 14 DAY)
-                      AND ibc_ok > 0
-                    GROUP BY DATE(datum)
-                ) AS dagdata
+                FROM dagdata
                 WHERE oee_val >= 90
                 ORDER BY event_datum DESC
                 LIMIT 3
@@ -442,14 +457,24 @@ class NewsController {
         // 5. Senaste produktionsdagar — alltid inkludera för att fylla upp flödet
         try {
             $sql = "
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_delta AS (
+                    SELECT dag,
+                           ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ibc
+                    FROM lag_base
+                )
                 SELECT 'produktion' AS typ,
-                       DATE(datum) AS event_datum,
-                       DATE_FORMAT(DATE(datum),'%Y-%m-%d 12:00:00') AS event_datetime,
-                       MAX(ibc_ok) AS value,
-                       CONCAT('📊 ', DATE_FORMAT(DATE(datum),'%d %b %Y'), ': ', MAX(ibc_ok), ' IBC producerade') AS text
-                FROM rebotling_ibc
-                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-                GROUP BY DATE(datum)
+                       dag AS event_datum,
+                       DATE_FORMAT(dag,'%Y-%m-%d 12:00:00') AS event_datetime,
+                       SUM(delta_ibc) AS value,
+                       CONCAT('📊 ', DATE_FORMAT(dag,'%d %b %Y'), ': ', SUM(delta_ibc), ' IBC producerade') AS text
+                FROM lag_delta
+                GROUP BY dag
                 ORDER BY event_datum DESC
                 LIMIT 5
             ";
@@ -475,25 +500,41 @@ class NewsController {
         // 6. Produktionsrekord — dagens produktion slog bästa dagen senaste 30 dagarna
         try {
             $sql = "
-                SELECT sub.event_datum, sub.today_ibc, prev.prev_best
-                FROM (
-                    SELECT DATE(t.datum) AS event_datum,
-                           MAX(t.ibc_ok) AS today_ibc
-                    FROM rebotling_ibc t
-                    WHERE t.datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
-                    GROUP BY DATE(t.datum)
-                ) sub
-                LEFT JOIN (
-                    SELECT DATE(datum) AS dag, MAX(ibc_ok) AS prev_best
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 37 DAY)
-                      AND datum < CURDATE()
-                    GROUP BY DATE(datum)
-                ) prev ON prev.dag >= DATE_SUB(sub.event_datum, INTERVAL 30 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_delta AS (
+                    SELECT dag,
+                           ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ibc
+                    FROM lag_base
+                ),
+                dag_totals AS (
+                    SELECT dag, SUM(delta_ibc) AS ibc_ok
+                    FROM lag_delta
+                    GROUP BY dag
+                ),
+                recent AS (
+                    SELECT dag AS event_datum, ibc_ok AS today_ibc
+                    FROM dag_totals
+                    WHERE dag >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                ),
+                prev_window AS (
+                    SELECT dag, ibc_ok AS prev_ibc
+                    FROM dag_totals
+                    WHERE dag >= DATE_SUB(CURDATE(), INTERVAL 37 DAY)
+                      AND dag < CURDATE()
+                )
+                SELECT sub.event_datum, sub.today_ibc, MAX(prev.prev_ibc) AS prev_best
+                FROM recent sub
+                LEFT JOIN prev_window prev
+                       ON prev.dag >= DATE_SUB(sub.event_datum, INTERVAL 30 DAY)
                       AND prev.dag < sub.event_datum
                 GROUP BY sub.event_datum, sub.today_ibc
-                HAVING sub.today_ibc > MAX(prev.prev_best)
-                   AND MAX(prev.prev_best) IS NOT NULL
+                HAVING sub.today_ibc > MAX(prev.prev_ibc)
+                   AND MAX(prev.prev_ibc) IS NOT NULL
                 ORDER BY sub.event_datum DESC
                 LIMIT 3
             ";
@@ -520,18 +561,32 @@ class NewsController {
         // 7. OEE-milstolpe — WCM-klass (OEE >= 85%) senaste 14 dagarna
         try {
             $sql = "
-                SELECT dag AS event_datum, oee_val
-                FROM (
-                    SELECT DATE(datum) AS dag,
-                           ROUND(
-                               CASE WHEN MAX(ibc_ok) + MAX(ibc_ej_ok) > 0
-                                    THEN (MAX(ibc_ok) / (MAX(ibc_ok) + MAX(ibc_ej_ok))) * 100
-                                    ELSE 0 END, 1) AS oee_val
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS ibc_end,
+                           MAX(ibc_ej_ok) AS ej_end
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(NOW(), INTERVAL 14 DAY)
                       AND ibc_ok > 0
-                    GROUP BY DATE(datum)
-                ) AS dagdata
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_delta AS (
+                    SELECT dag,
+                           ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ibc,
+                           ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ej
+                    FROM lag_base
+                ),
+                dagdata AS (
+                    SELECT dag,
+                           ROUND(
+                               CASE WHEN SUM(delta_ibc) + SUM(delta_ej) > 0
+                                    THEN (SUM(delta_ibc) / (SUM(delta_ibc) + SUM(delta_ej))) * 100
+                                    ELSE 0 END, 1) AS oee_val
+                    FROM lag_delta
+                    GROUP BY dag
+                )
+                SELECT dag AS event_datum, oee_val
+                FROM dagdata
                 WHERE oee_val >= 85 AND oee_val < 90
                 ORDER BY event_datum DESC
                 LIMIT 3
