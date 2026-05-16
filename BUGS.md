@@ -115,3 +115,53 @@
 **Rotorsak (teknisk):** `rebotling_ibc.ibc_count` är en PLC-räknare som stiger sekventiellt per dag (1, 2, 3...). Varje rad i tabellen motsvarar ett IBC-cykelevent. Rätt sätt att räkna cykler i ett skift är att räkna antal rader (+= 1), inte att summera ibc_count-värdet.
 **Fix:** `s.ibcCount += (c.ibc_count || 1)` → `s.ibcCount += 1`
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` rad 2028
+
+---
+
+## BUG-012 (BUG-71): Månadsvy snitt-effektivitet stämmer ej med staplar (EJ FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** April månadsvy visar 130% snitt-effektivitet i KPI-kortet men staplarna visar ~94% i genomsnitt. Dessutom visar staplarna IBC-antal som stapelns tooltip-värde men höjden representerar effektivitet — förvirrande UX.
+**Rotorsak (hypotes):** KPI-kortet (avgEfficiency) beräknas med en annan formel eller datakälla än stapeldiagrammets efficiencyArr. Kan också bero på att snitt-beräkningen i KPI inte viktar per drifttid.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`
+**Fix:** Synkronisera KPI-effektivitetformel med stapelformel. Överväg separata staplar för IBC-antal och effektivitet.
+
+---
+
+## BUG-013 (BUG-72): Månadsvy Y-axel går till 900% effektivitet (EJ FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad — KRITISK
+**Symptom:** Februari 2026 månadsvy: Y-axeln sträcker sig till ~900%. En stapel visar ~900% effektivitet vilket är uppenbart fel.
+**Rotorsak (hypotes):** BUG-007-fixet beräknar `IBC × target / netRuntime × 100`. Om netRuntime för perioden är extremt liten (t.ex. en kort testdag i februari med få cykler men kort onoff-segment) exploderar formeln. Saknar sanity cap.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` efficiencyArr-beräkning
+**Fix:** Lägg till rimlighetsgräns, t.ex. `Math.min(250, ...)`, och/eller kräv minst 30 min netRuntime för att använda formeln.
+
+---
+
+## BUG-014 (BUG-73): Negativa IBC-värden i stapeldiagram (-59 IBC 25 feb) (EJ FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad — KRITISK
+**Symptom:** 25 februari visar -59 IBC i stapeldiagrammet. Negativa IBC är aldrig möjliga.
+**Rotorsak (hypotes):** LAG()-delta på rebotling_skiftrapport.ibc_ok ger negativa värden när skift 2 har lägre ibc_ok än skift 1 (t.ex. sk1=100, sk2=41 → delta=41-100=-59). ibc_ok återställs per skiftraknare (inte kumulativt), så LAG()-subtraktion är fel — varje skifts ibc_ok är redan dess nettovärde.
+**Filer:** Troligen backend-endpoint för årsvy/månadsvy aggregering, alternativt frontend buildTableData
+**Fix:** Byt ut LAG()-delta på rebotling_skiftrapport.ibc_ok mot direkt MAX(ibc_ok) GROUP BY skiftraknare — samma fix som BUG-001. Lägg till `Math.max(0, delta)` som fallback.
+
+---
+
+## BUG-015: Statistiksidan navigation — browser back-knapp fungerar inte (FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** Fixad, deployad till dev 2026-05-16
+**Symptom:** Browser back-knappen fungerade inte korrekt på rebotling/statistik:
+- Klick på "Föregående"/"Nästa" månad/år/dag pushade inte ny history-entry → browser back hoppade förbi navigationen
+- Klick på år-breadcrumben (navigateToYear) pushade inte history → browser back från årsvy fungerade inte
+- Heatmap-läget syncades inte till URL alls → browser back/reload startade i fel vy
+- `applyStateFromUrl` parsade inte 'heatmap' som giltig viewMode → URL-återställning av heatmap ignorerades
+**Rotorsak:** `navigatePrevious()`, `navigateNext()` och `navigateToYear()` anropade `syncStateToUrl()` (default `replaceUrl: true`) istället för `syncStateToUrl(false)`. `enterHeatmapMode()` anropade inte `syncStateToUrl()` alls.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`
+**Fix:**
+- `navigateToYear()`: `syncStateToUrl()` → `syncStateToUrl(false)`
+- `navigatePrevious()`: `syncStateToUrl()` → `syncStateToUrl(false)`
+- `navigateNext()`: `syncStateToUrl()` → `syncStateToUrl(false)`
+- `enterHeatmapMode()`: Tillagd `syncStateToUrl(false)` anrop
+- `applyStateFromUrl()`: Tillagd `'heatmap'` i accept-listan för viewMode
+- queryParams-subscription: Anropar nu `loadHeatmap()` om `viewMode === 'heatmap'` (istf. alltid `loadStatistics()`)
