@@ -280,9 +280,9 @@
 
 ---
 
-## BUG-079: Månadsvy KPI-snitt stämmer ej med staplarnas snitt (DUPLIKAT av BUG-012)
+## BUG-079: Månadsvy KPI-snitt stämmer ej med staplarnas snitt (FIXAD — ingår i BUG-012-fix)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad — bekräftad med maj-data
+**Status:** FIXAD — samma fix som BUG-012 (computeTotalNetRuntimeMinutes)
 **Symptom (maj):** Månadsvy maj visar 115% snitt-effektivitet i KPI-kortet men staplarnas genomsnitt ≈ (58+98+105+85)/4 = 86.5%.
 **Notering:** BUG-007-fix är bekräftad — Maj 5 dagvy=60% ≈ månadsvy stapel 58% (de matchar nu). Problemet är KPI-snittet, inte staplarna.
 **Rotorsak:** Samma som BUG-012 — KPI-effektivitetssnittet viktar inte på samma sätt som staplarna, eller använder annan datakälla (data.summary.net_runtime_minutes vs computeNetRuntimeByKey per dag).
@@ -307,3 +307,13 @@
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — navigeringsfunktion för månads-pill, `applyStateFromUrl()`, `syncStateToUrl()`
 **Fix:** I pill-klick-handlern: rensa `selectedPeriods` och/eller sätt `dates=null` explicit innan `syncStateToUrl(false)` anropas. Alternativt: i `applyStateFromUrl()` — om `view=month`, ignorera `dates=`-parametern.
 **Prioritet:** KRITISK — gör pill-navigering oanvändbar
+
+---
+
+## BUG-082: Stapel-labels inkonsekvent format — 2025 visar "IBC: 696" men 2026 visar "1494"
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** Årsvy 2025 visar "IBC: 696" som stapel-label men årsvy 2026 visar "1494" (utan "IBC: "-prefix). Inkonsekvent format beroende på år.
+**Rotorsak:** BUG-012-fix lade till "IBC: "-prefix i en av bar-label-kodvägarna men inte alla — troligen finns flera ställen i `createBarChart()` eller `prepareChartData()` som sätter `countData` labels. Eller så är det bara 2026-datan som hämtas via ny kodväg och 2025 via gammal.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` bar-chart label-konfiguration
+**Fix:** Säkerställ att "IBC: "-prefixet appliceras på ALLA bar-labels oavsett år/period.

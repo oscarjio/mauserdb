@@ -302,8 +302,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     if (!isNaN(month) && month >= 0 && month <= 11) {
       this.currentMonth = month;
     }
+    // BUG-081: Ignorera dates= om view inte är 'day' — annars läcker dagvyns
+    // datum-parameter in i månads-/årsvy och filtrerar ned till bara valda dagar.
     const datesStr = q['dates'];
-    if (datesStr && typeof datesStr === 'string') {
+    if (datesStr && typeof datesStr === 'string' && this.viewMode === 'day') {
       const parts = datesStr.split(',').map((s: string) => s.trim()).filter(Boolean);
       this.selectedPeriods = parts
         .map((s: string) => {
@@ -316,6 +318,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         this.currentYear = first.getFullYear();
         this.currentMonth = first.getMonth();
       }
+    } else if (this.viewMode !== 'day') {
+      // Rensa eventuella kvarlämnande period-val när vi inte är i dagvy
+      this.selectedPeriods = [];
     }
   }
 
@@ -1329,7 +1334,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const efficiencyArr: number[] = [];
     const cycleCountArr: number[] = [];
     slicedEntries.forEach(([key, value]) => {
-      const count = value.cycles.length;
+      const count = Math.max(0, value.cycles.length); // BUG-014: sanity guard (cycles.length alltid >= 0 men defensivt)
       cycleCountArr.push(count);
       if (count > 0) {
         const avgTarget = value.cycles.reduce((s: number, c: any) => s + parseFloat(c.target_cycle_time || 3), 0) / count;
@@ -1719,7 +1724,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 const xPos = scales.x.getPixelForValue(pb.index);
                 ctx.save();
 
-                // Visa vertikal linje bara vid produktbyten (inte vid index 0)
+                // Visa vertikal linje och etikett bara vid faktiska produktbyten (inte vid index 0)
                 if (pb.index > 0) {
                   ctx.strokeStyle = '#ff8800';
                   ctx.lineWidth = 2;
@@ -1729,12 +1734,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                   ctx.lineTo(xPos, bottom);
                   ctx.stroke();
                   ctx.setLineDash([]);
-                }
 
-                ctx.fillStyle = '#ff8800';
-                ctx.font = 'bold 11px sans-serif';
-                ctx.textAlign = pb.index === 0 ? 'left' : 'center';
-                ctx.fillText(pb.namn, xPos + (pb.index === 0 ? 2 : 0), top - 4);
+                  ctx.fillStyle = '#ff8800';
+                  ctx.font = 'bold 11px sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.fillText(pb.namn, xPos, top - 4);
+                }
                 ctx.restore();
               } catch (e) {}
             });

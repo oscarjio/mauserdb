@@ -689,8 +689,8 @@
                     {{ (+c.cycle_time).toFixed(1) }}
                   </td>
                   <td class="text-end">{{ c.ibc_count }}</td>
-                  <td class="text-end text-success">{{ c.ibc_ok }}</td>
-                  <td class="text-end" [class.text-danger]="+(c.ibc_ej_ok) > 0">{{ c.ibc_ej_ok }}</td>
+                  <td class="text-end text-success">{{ c.ibc_ok >= 0 ? c.ibc_ok : 0 }}</td>
+                  <td class="text-end" [class.text-danger]="+(c.ibc_ej_ok) > 0">{{ c.ibc_ej_ok >= 0 ? c.ibc_ej_ok : 0 }}</td>
                   <td>{{ c.produkt_namn || '-' }}</td>
                   <td class="text-end">{{ c.skiftraknare }}</td>
                   <td class="text-end">{{ c.produktion_procent ? (+c.produktion_procent).toFixed(0) + '%' : '-' }}</td>

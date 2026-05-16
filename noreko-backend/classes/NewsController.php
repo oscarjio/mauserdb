@@ -290,7 +290,7 @@ class NewsController {
                 ),
                 lag_delta AS (
                     SELECT dag, skiftraknare, ibc_end,
-                           ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ibc
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc
                     FROM lag_base
                 ),
                 dag_totals AS (
@@ -343,8 +343,8 @@ class NewsController {
                 ),
                 lag_delta AS (
                     SELECT dag,
-                           ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ibc,
-                           ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ej
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
                     FROM lag_base
                 ),
                 dagdata AS (
@@ -465,7 +465,7 @@ class NewsController {
                 ),
                 lag_delta AS (
                     SELECT dag,
-                           ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ibc
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc
                     FROM lag_base
                 )
                 SELECT 'produktion' AS typ,
@@ -508,7 +508,7 @@ class NewsController {
                 ),
                 lag_delta AS (
                     SELECT dag,
-                           ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ibc
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc
                     FROM lag_base
                 ),
                 dag_totals AS (
@@ -572,8 +572,8 @@ class NewsController {
                 ),
                 lag_delta AS (
                     SELECT dag,
-                           ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ibc,
-                           ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0) AS delta_ej
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
                     FROM lag_base
                 ),
                 dagdata AS (
