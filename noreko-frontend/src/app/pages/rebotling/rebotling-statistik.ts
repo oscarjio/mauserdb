@@ -906,7 +906,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           ? validTargets.reduce((s, t) => s + t, 0) / validTargets.length
           : (this.targetCycleTime || 3);
         cell.avgCycleTime = Math.round(avgCycleTime * 10) / 10;
-        cell.efficiency = avgCycleTime > 0 ? Math.min(100, Math.round((avgTarget / avgCycleTime) * 100)) : 0;
+        cell.efficiency = avgCycleTime > 0 ? Math.round((avgTarget / avgCycleTime) * 100) : 0;
       }
     });
 
@@ -1178,7 +1178,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         const avgTarget = value.cycles.reduce((s: number, c: any) => s + parseFloat(c.target_cycle_time || 3), 0) / count;
         if (validTimes.length > 0) {
           const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
-          efficiencyArr.push(Math.min(100, Math.round((avgTarget / avgActual) * 100)));
+          efficiencyArr.push(Math.round((avgTarget / avgActual) * 100));
         } else {
           efficiencyArr.push(0);
         }
