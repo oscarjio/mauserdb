@@ -118,13 +118,13 @@
 
 ---
 
-## BUG-012 (BUG-71): Månadsvy snitt-effektivitet stämmer ej med staplar (EJ FIXAD)
+## BUG-012 (BUG-71): Månadsvy snitt-effektivitet stämmer ej med staplar (FIXAD)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
-**Symptom:** April månadsvy visar 130% snitt-effektivitet i KPI-kortet men staplarna visar ~94% i genomsnitt. Dessutom visar staplarna IBC-antal som stapelns tooltip-värde men höjden representerar effektivitet — förvirrande UX.
-**Rotorsak (hypotes):** KPI-kortet (avgEfficiency) beräknas med en annan formel eller datakälla än stapeldiagrammets efficiencyArr. Kan också bero på att snitt-beräkningen i KPI inte viktar per drifttid.
+**Status:** FIXAD 2026-05-16
+**Symptom:** April månadsvy visade 130% snitt-effektivitet i KPI-kortet men staplarna visade ~94% i genomsnitt. Staplarna visade IBC-antal utan prefix vilket var förvirrande (ser ut som ett effektivitetsvärde).
+**Rotorsak:** KPI-kortet använde `data.summary.net_runtime_minutes` (backend) för att beräkna netto-drifttid. Backendkoden subtraherar rast+driftstopp från totalRuntime utan att kontrollera om pauserna faller inom körsegment — detta kan övertolka pauserna och ge ett för litet `netRtMin` → effektivitet > 100%. Stapeldiagrammet beräknar i stället netto-drifttid direkt från events i frontend (onoff minus rast/driftstopp korrekt klippta mot varje on-segment). Dessa gav olika resultat för månadsdata.
+**Fix:** Ny hjälpmetod `computeTotalNetRuntimeMinutes()` — exakt samma algoritm som stapeldiagrammets `netRuntimeByKey`-beräkning men summerar totalt. `updateStatistics()` använder nu frontend-beräknad netto-drifttid för månad/år-vy (dagvy får behålla backend-värdet). Bar-etiketter fick prefixet "IBC:" för att göra det tydligt att det är antal IBC och inte effektivitet (UX-fix).
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`
-**Fix:** Synkronisera KPI-effektivitetformel med stapelformel. Överväg separata staplar för IBC-antal och effektivitet.
 
 ---
 
@@ -176,6 +176,41 @@
 **Filer:** `noreko-backend/classes/RebotlingController.php` getStatistics(), `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`
 **Fix:** Kontrollera SQL-query för getStatistics — ta bort/höj LIMIT för år-perioder. Alternativt hämta aggregerad månadsdata från backend (SUM per dag) istf. råcykler.
 **Prioritet:** KRITISK — gör årsvy opålitlig
+
+---
+
+## BUG-016: Tomma staplar i år/månadsvy färgas röda (FIXAD)
+**Rapporterad:** 2026-05-16
+**Fixad:** 2026-05-16
+**Status:** FIXAD — detta commit
+**Symptom:** Månader/dagar utan produktion (0 IBC) visades som 0-höga röda staplar i bar-diagrammet. Rött signalerar "dålig prestation" — för dagar/månader utan produktion är det missvisande.
+**Rotorsak:** `barColors` och `barBorderColors` i `createBarChart()` använde bara effektivitetsvärdet (eff=0 → röd) utan att kolla om perioden faktiskt hade produktion.
+**Fix:** Kontrollerar `countData[i] === 0` innan effektivitetsfärg väljs — nollperioder får grå färg (`rgba(100,100,100,0.35)`).
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` (createBarChart)
+
+---
+
+## BUG-017: Bar chart tooltip visar ASCII istf. korrekt svenska (FIXAD)
+**Rapporterad:** 2026-05-16
+**Fixad:** 2026-05-16
+**Status:** FIXAD — detta commit
+**Symptom:** Bar chart-tooltip visade `(over mal)`, `(nara mal)`, `(under mal)` med felstavade svenska ord.
+**Rotorsak:** Strängarna i `createBarChart` tooltip-callback använde ASCII utan åäö: `'over mal'`, `'nara mal'`.
+**Fix:** Ersatt med korrekt svenska: `'över mål'`, `'nära mål'`, `'under mål'`.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` (createBarChart tooltip callback)
+
+---
+
+## BUG-013 (partiellt fixad): Månadsvy Y-axel kan gå till 900%+ effektivitet — nu cappat 250% (PARTIELLT FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** PARTIELLT FIXAD — cap på 250% lagd till, men rotorsaken (kräver backend-data om onoff_events kvalitet) finns kvar
+**Symptom:** Február 2026 månadsvy: Y-axeln sträckte sig till ~900%. En stapel visade ~900% effektivitet.
+**Rotorsak:** `IBC × target / netRuntime × 100` exploderar om netRuntime är extremt kort (t.ex. <5 min på en testdag). Inga sanity-gränser fanns.
+**Fix (2026-05-16):**
+1. Kräver minst 5 min `netRuntime` för att använda net-runtime-formeln — kortare perioder faller tillbaka på `target/avg_cykeltid`.
+2. Hårdcapp på 250% i `prepareChartData` (efficiencyArr), `updatePeriodCellsData` (cell.efficiency) och `updateTable` (avgEff).
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`
+**Kvarstående:** Backend kan fortfarande returnera data med extremt kort onoff_event-segment som leder till hög eff%. En mer robust fix kräver backend-sida minimum-drifttid-filter.
 
 ---
 
@@ -242,3 +277,33 @@
 **Filer:** `noreko-backend/classes/RebotlingController.php` getStatistics() LIMIT-klausul
 **Fix:** Del av BUG-015-fix — ta bort/höj LIMIT för cycles-query i getStatistics(). Skickat till BUG-015-agenten.
 **Prioritet:** KRITISK — årsvy är helt opålitlig
+
+---
+
+## BUG-079: Månadsvy KPI-snitt stämmer ej med staplarnas snitt (DUPLIKAT av BUG-012)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad — bekräftad med maj-data
+**Symptom (maj):** Månadsvy maj visar 115% snitt-effektivitet i KPI-kortet men staplarnas genomsnitt ≈ (58+98+105+85)/4 = 86.5%.
+**Notering:** BUG-007-fix är bekräftad — Maj 5 dagvy=60% ≈ månadsvy stapel 58% (de matchar nu). Problemet är KPI-snittet, inte staplarna.
+**Rotorsak:** Samma som BUG-012 — KPI-effektivitetssnittet viktar inte på samma sätt som staplarna, eller använder annan datakälla (data.summary.net_runtime_minutes vs computeNetRuntimeByKey per dag).
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` KPI-kort avgEfficiency-beräkning
+
+---
+
+## BUG-080: "NON UN" orange etikett i chart-hörnet — ej konfigurerad/broken
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** En orange etikett med texten "NON UN" visas i övre hörnet av ett diagram på statistiksidan. Ser ut att vara gammalt/ej konfigurerat.
+**Rotorsak:** Okänd — troligen ett hårdkodat test-label eller ett annoteringsobjekt i Chart.js-konfigurationen som aldrig togs bort/konfigurerades korrekt.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` chart-konfiguration
+
+---
+
+## BUG-081: State-leak — klick på månads-pill från dagvy ger månadsvy med 1 stapel (KRITISK)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad — KRITISK
+**Symptom:** Användare är i dagvy (t.ex. Maj 5). Klickar på "Maj"-pill/breadcrumb för att gå till månadsvy. Månadsvy visar bara 1 stapel (Maj 5) istf. alla maj-dagar.
+**Rotorsak:** URL-parametern `dates=2026-05-05` från dagvyn följer med vid navigering till månadsvy. Antingen: (1) `applyStateFromUrl()` läser `dates=` och filtrerar månadsdata till bara dessa datum, eller (2) `navigateToMonth()` (pill-click-handler) anropar `syncStateToUrl()` medan `dates` fortfarande är satt.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — navigeringsfunktion för månads-pill, `applyStateFromUrl()`, `syncStateToUrl()`
+**Fix:** I pill-klick-handlern: rensa `selectedPeriods` och/eller sätt `dates=null` explicit innan `syncStateToUrl(false)` anropas. Alternativt: i `applyStateFromUrl()` — om `view=month`, ignorera `dates=`-parametern.
+**Prioritet:** KRITISK — gör pill-navigering oanvändbar
