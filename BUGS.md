@@ -267,9 +267,9 @@
 
 ---
 
-## BUG-018 (BUG-77): Årsvy vs månadsvy effektivitet systematiskt fel (EJ FIXAD)
+## BUG-018 (BUG-77): Årsvy vs månadsvy effektivitet systematiskt fel (FIXAD)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad — GIGANTISK. Sannolikt samma rotorsak som BUG-015.
+**Status:** FIXAD 2026-05-16 — Bekräftat av ägaren: April månadsvy nu 39% ≈ årsvy 38%
 **Symptom:** Årsvy och månadsvy visar helt olika effektivitet för samma månader:
 - April: årsvy 38% (röd) vs månadsvy 130% (grön)
 - Februari: årsvy 50% vs månadsvy 115%
@@ -430,12 +430,7 @@
 
 ## BUG-092: Tab-switching trasig i årsvy — klick på "Analys" (och andra tabbar) ger ingen effekt
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad — trolig regression, KRITISK
-**Symptom:** I årsvy fungerar inte fliken "Analys" — klick ger ingen effekt och Översikt-fliken visas kvar. Troligen gäller för alla flikar i årsvy.
-**Rotorsak (hypotes):** Trolig regression från nylig commit (8b65612b BUG-083/084/085). Möjliga orsaker:
-1. `isAtCurrentPeriod()` kastar ett fel i årsvy som sväljs och avbryter click-eventchain
-2. `this.loading` fastnar på `true` (BUG-083-fix la till guard `if (this.loading) return`) och disabled-binder blockerar klickbara element
-3. Tab-click-handlern anropar `loadStatistics()` som nu av misstag returnerar tidigt pga. ett av de nya guarderna
-4. Angular template-bindings bröts av `[disabled]="isAtCurrentPeriod() || loading"` — om `isAtCurrentPeriod()` kastar undantag kan hela component-vy sluta svara
-**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` + `rebotling-statistik.html` — tab-click-handler, `isAtCurrentPeriod()`, `loading`-state
-**Fix:** Kontrollera konsol-errors vid tab-klick i årsvy. Kontrollera `isAtCurrentPeriod()` — returnerar den true i årsvy (2026 = nuläge)? Om ja: `[disabled]="isAtCurrentPeriod() || loading"` på nästa-pilen kan vara OK, men om samma disabled-logik oavsiktligt applicerades på tab-knapparna är det felet.
+**Status:** FIXAD — 2026-05-16
+**Symptom:** I årsvy fungerar inte flikar — klick ger ingen effekt och Översikt-fliken visas kvar. Dag- och månadsvy fungerade korrekt.
+**Rotorsak:** `queryParams`-subscriptionen i `ngOnInit` jämförde `incomingMonth === this.currentMonth` för att avgöra om URL-ändringen var självgenererad. I årsvy saknas `month`-parametern i URL → `parseInt(params['month'], 10)` = `NaN`. `NaN === integer` är alltid `false`, så early-return misslyckades och `loadStatistics()` anropades dubbelt. Det dubbla anropet orsakade att `loading`-flaggan flimrade `true→false→true→false` i Angulars change detection-cykel, vilket triggade `ExpressionChangedAfterItHasBeenCheckedError` och bröt komponentens reaktivitet — tab-klick fick ingen synlig effekt.
+**Fix tillämpat (commit TBD):** Lade till `monthMatches`-variabel i queryParams-subscription. I årsvy (`incomingView === 'year'`) sätts `monthMatches = true` utan att jämföra NaN-värdet. I månads- och dagvy sker jämförelsen som vanligt. Filen: `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — `ngOnInit` queryParams-subscription.

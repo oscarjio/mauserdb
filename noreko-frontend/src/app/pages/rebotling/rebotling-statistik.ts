@@ -270,9 +270,18 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const currentDates = this.selectedPeriods.map(d => this.formatDate(d)).join(',');
 
       // Hoppa över om URL matchar nuvarande state (vi satte den själva)
+      // BUG-092: I årsvy har URL ingen month-param → incomingMonth = NaN.
+      // NaN === integer är alltid false, så early-return slogs aldrig i årsvy
+      // och loadStatistics() anropades dubbelt → loading flimrade true/false/true/false
+      // vilket orsakade ExpressionChangedAfterItHasBeenChecked-fel och bröt
+      // Angulars change detection så att tab-klick inte gav effekt.
+      // Fix: jämför month BARA om incomingView kräver det (inte för årsvy).
+      const monthMatches = incomingView === 'year'
+        ? true
+        : incomingMonth === this.currentMonth;
       if (incomingView === this.viewMode &&
           incomingYear === this.currentYear &&
-          incomingMonth === this.currentMonth &&
+          monthMatches &&
           incomingDates === currentDates) {
         return;
       }
