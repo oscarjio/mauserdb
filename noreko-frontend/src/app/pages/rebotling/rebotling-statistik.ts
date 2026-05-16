@@ -2282,12 +2282,22 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.tableData = [];
     const grouped = new Map<string, any[]>();
 
-    // Beräkna netto drifttid per period-nyckel för månad/år-vy (BUG-007-konsistens)
+    // Beräkna netto drifttid per period-nyckel (BUG-007-konsistens + BUG-088-fix)
     let tableNetRuntime: Map<string, number> = new Map();
-    if (this.viewMode === 'year' || this.viewMode === 'month') {
+    if (this.viewMode === 'year') {
+      tableNetRuntime = this.computeNetRuntimeByKey(data, (d: Date) =>
+        `${d.getFullYear()}-${d.getMonth()}`
+      );
+    } else if (this.viewMode === 'month') {
+      tableNetRuntime = this.computeNetRuntimeByKey(data, (d: Date) =>
+        `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+      );
+    } else {
+      // BUG-088: Dag-vy — beräkna netto drifttid per 10-minutersperiod från onoff-events
       tableNetRuntime = this.computeNetRuntimeByKey(data, (d: Date) => {
-        if (this.viewMode === 'year') return `${d.getFullYear()}-${d.getMonth()}`;
-        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        const hour = d.getHours();
+        const minute = Math.floor(d.getMinutes() / 10) * 10;
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${hour}-${minute}`;
       });
     }
 
@@ -2358,17 +2368,20 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       }
 
       // Filtrera bort NULL cycle_time värden för korrekt genomsnitt
+      // BUG-088: parseFloat krävs — PDO returnerar ROUND()-uttryck som sträng ("5.23")
+      // vilket annars ger strängkonkatenering i reduce() och NaN i genomsnittet.
       const validCycleTimes = cycles
-        .map(c => c.cycle_time)
-        .filter(t => t !== null && t !== undefined && t > 0);
+        .map((c: any) => parseFloat(c.cycle_time))
+        .filter((t: number) => !isNaN(t) && t > 0 && t <= 30);
 
       const avgCycleTime = validCycleTimes.length > 0
-        ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
+        ? validCycleTimes.reduce((sum: number, t: number) => sum + t, 0) / validCycleTimes.length
         : 0;
 
       // Effektivitet: IBC × target / netto_drifttid × 100 (matchar BUG-007-fixet)
+      // BUG-088: parseFloat för target_cycle_time — kan vara sträng från PDO
       const avgTarget = cycles.length > 0
-        ? cycles.reduce((sum: number, c: any) => sum + (c.target_cycle_time || 3), 0) / cycles.length
+        ? cycles.reduce((sum: number, c: any) => sum + parseFloat(c.target_cycle_time || 3), 0) / cycles.length
         : 3;
 
       // Hämta netto drifttid för perioden (år/månad-vy). Dag-vy: fallback till avg_cykeltid × cykler.

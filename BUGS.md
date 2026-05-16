@@ -380,11 +380,14 @@
 
 ## BUG-088: Detaljerad Statistik — NaN min och NaN% för nästan alla 10-min-perioder (KRITISK)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad — KRITISK, troligen regression
+**Status:** FIXAD — commit TBD
 **Symptom:** "Detaljerad Statistik"-tabellen (10-minutersperioder i dagvy) visar `NaN min` och `NaN%` för nästan alla rader. Bara första raden (07:10) visar korrekta värden.
-**Rotorsak (hypotes):** Division med noll eller undefined array-element efter index 0. Troligt regressionsfel infört av en av de senaste agenterna (afb0e7d commit 8b65612b, a0ba672e commit d0dd8e40) som modifierade `computeNetRuntimeByKey()`, `updateTable()` eller liknande metoder i `rebotling-statistik.ts`. Alternativt: `getDateRange()` returnerar nu ett objekt med `.start`/`.end` men en del kod förväntar sig fortfarande det gamla formatet.
-**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — `updateTable()`, `buildDetailedTable()`, `computeNetRuntimeByKey()`, 10-min-perioder
-**Fix:** Lägg till `|| 0` / `|| 1` guards mot NaN. Hitta var divisionen sker och vad täljaren/nämnaren är för rader efter index 0.
+**Rotorsak (bekräftad):** PHP PDO returnerar MySQL `ROUND(TIMESTAMPDIFF(SECOND,...)/60.0, 2)` som sträng (`"5.23"`) i `fetchAll(PDO::FETCH_ASSOC)`. I `updateTable()` saknades `parseFloat()` vid `.map(c => c.cycle_time)` och `c.target_cycle_time || 3`. Utan parseFloat gav `reduce((sum, t) => sum + t, 0)` strängkonkatenering (`"05.234.87..."`) istf. addition → division = NaN. Rad 0 visade korrekt värde om den råkade ha tomma validCycleTimes (null från LAG i första cykeln).
+**Fix:** 
+1. `parseFloat(c.cycle_time)` + filter `!isNaN(t) && t > 0 && t <= 30` i updateTable()
+2. `parseFloat(c.target_cycle_time || 3)` i avgTarget-beräkningen  
+3. Dag-vy tableNetRuntime nu beräknad via `computeNetRuntimeByKey` med 10-min-nyckel (istf. tom Map)
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — `updateTable()`
 **Prioritet:** KRITISK — regression som gör detaljerad statistik oanvändbar
 
 ---
@@ -396,3 +399,43 @@
 **Rotorsak (hypotes):** BUG-085-fixet (commit 8b65612b) kan ha ändrat `getDateRange()` att returnera `{ start, end }` istf. `{ from, to }`. Alla kodvägar som använder `getDateRange().from` eller `getDateRange().to` (t.ex. `computeNetRuntimeByKey()`, effektivitetsberäkning i månadsvy) får då `undefined` → NaN → felaktig effektivitet. Sannolikt samma rotorsak som BUG-088.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — `getDateRange()`, `computeNetRuntimeByKey()`, `prepareChartData()`
 **Fix:** Kontrollera alla anrop till `getDateRange()` i filen — om returnformatet ändrades måste alla konsumenter uppdateras konsekvent. BUG-088-agenten (a092f2a) undersöker samma regression.
+
+---
+
+## BUG-090: Status-tidslinje slutar vid 14:45, resten av dygnet saknas + 00:00-07:02 visas som "Stopp"
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom (2 delbugg):**
+1. **Trunkerad tidslinje:** Statuslinjen slutar vid ca 14:45 — resten av dygnet (14:45–24:00) saknas trots att produktionen kan fortsätta
+2. **Felaktig "Stopp"-label:** Perioden 00:00–07:02 visas som "Stopp" trots att inget skift är planerat — ska vara "Ingen produktion planerad" eller dolt
+**Rotorsak:**
+- Del 1: Tidslinje-komponenten begränsar sig till events inom datumintervallet — om sista event är 14:45 slutar linjen där istf. att sträcka sig till dygnslutet. Alternativt begränsar ett API-anrop data till visst antal events (LIMIT).
+- Del 2: 00:00–07:02 har en `driftstopp`- eller `onoff`-status=0 (stopp) i databasen — systemet tolkar detta som "maskinen är stoppad" men det är natt utan planerat skift.
+**Filer:** Tidslinje-komponent i statistiksidan eller dashboard. Sök på "status", "tidslinje", "timeline", "stopp" i rebotling-komponenter.
+**Fix:**
+1. Sträck tidslinjen alltid till dygnslutet (eller nu + 2h)
+2. Lägg till "oplanerad tid"-kategori: om stopptid är utanför skifttider (06:00–22:00 eller liknande), visa "Ingen produktion planerad" istf. "Stopp"
+
+---
+
+## BUG-091: Klassificeringslinje Statistik visar 0% röd och 0 kassation röd — borde visa "Ingen data"
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** Klassificeringslinjens statistiksida visar KPI-kort med 0% (röd) och Kassation 0 (röd). Linjen är EJ i drift — inga data ska finnas — men istf. "Ingen data tillgänglig" visas felaktigt 0-värden med rödmarkering.
+**Rotorsak:** Statistiksidans KPI-kort saknar guard för "ingen data". `0%` behandlas som dålig prestation och färgas röd, men korrekt beteende vid noll-data är att visa ett neutralt "–" eller "Ingen data".
+**Filer:** Klassificeringslinjens statistikkomponent (sök i `src/app/pages/klassificeringslinje/` eller liknande). Troligen delad med rebotling-statistik-mönster.
+**Fix:** Om `total_cycles === 0`: visa "–" istf. "0%" och använd neutral grå istf. röd. Lägg till `*ngIf="data?.total_cycles > 0; else noData"` med ett tydligt "Ingen produktionsdata tillgänglig"-meddelande.
+
+---
+
+## BUG-092: Tab-switching trasig i årsvy — klick på "Analys" (och andra tabbar) ger ingen effekt
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad — trolig regression, KRITISK
+**Symptom:** I årsvy fungerar inte fliken "Analys" — klick ger ingen effekt och Översikt-fliken visas kvar. Troligen gäller för alla flikar i årsvy.
+**Rotorsak (hypotes):** Trolig regression från nylig commit (8b65612b BUG-083/084/085). Möjliga orsaker:
+1. `isAtCurrentPeriod()` kastar ett fel i årsvy som sväljs och avbryter click-eventchain
+2. `this.loading` fastnar på `true` (BUG-083-fix la till guard `if (this.loading) return`) och disabled-binder blockerar klickbara element
+3. Tab-click-handlern anropar `loadStatistics()` som nu av misstag returnerar tidigt pga. ett av de nya guarderna
+4. Angular template-bindings bröts av `[disabled]="isAtCurrentPeriod() || loading"` — om `isAtCurrentPeriod()` kastar undantag kan hela component-vy sluta svara
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` + `rebotling-statistik.html` — tab-click-handler, `isAtCurrentPeriod()`, `loading`-state
+**Fix:** Kontrollera konsol-errors vid tab-klick i årsvy. Kontrollera `isAtCurrentPeriod()` — returnerar den true i årsvy (2026 = nuläge)? Om ja: `[disabled]="isAtCurrentPeriod() || loading"` på nästa-pilen kan vara OK, men om samma disabled-logik oavsiktligt applicerades på tab-knapparna är det felet.
