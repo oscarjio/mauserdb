@@ -17308,7 +17308,6 @@ class RebotlingController {
 
                 // Position performance (last 30d, SUM/SUM per position)
                 $posIbc = [1 => 0, 2 => 0, 3 => 0];
-                $posMin = [1 => 0, 2 => 0, 3 => 0];
                 $posSkifts = [1 => [], 2 => [], 3 => []];
                 foreach ($shifts as $s) {
                     if ($s['dag'] < $from30) continue;
@@ -17388,7 +17387,6 @@ class RebotlingController {
             // 5. Suggested assignment — greedy score-based
             // score(op, pos) = pos_ibc_h × form_factor × rest_factor
             $posKeys = ['op1', 'op2', 'op3'];
-            $posIdxMap = ['op1' => 1, 'op2' => 2, 'op3' => 3];
             $maxShifts7d = max(1, max(array_column($result, 'shifts_7d')));
 
             $suggestion = null;
@@ -17414,7 +17412,6 @@ class RebotlingController {
                 // Greedy: pick best available (op, pos) pair, remove both from pool
                 $assigned = []; // pos => op_number
                 $usedOps  = [];
-                $remaining = $posKeys;
                 // Try each position in order of "most competitive" (highest potential IBC/h)
                 $posMaxScore = [];
                 foreach ($posKeys as $pk) {

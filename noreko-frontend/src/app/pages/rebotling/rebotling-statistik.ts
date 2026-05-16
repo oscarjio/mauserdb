@@ -1163,24 +1163,68 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       if (si >= 0) rastPeriods.push({ startIndex: si, endIndex: labels.length - 1 });
     }
 
+    // Beräkna netto drifttid per period från onoff/rast/stopp-events
+    // Ger samma formel som dagvy: IBC × target / netRuntime × 100
+    const netRuntimeByKey = new Map<string, number>();
+    const pausePs: { start: number; end: number }[] = [];
+    let psStart: number | null = null;
+    for (const ev of (data.rast_events || [])) {
+      const t = new Date(ev.datum).getTime();
+      if (parseInt(ev.rast_status) === 1) { psStart = t; }
+      else if (parseInt(ev.rast_status) === 0 && psStart !== null) {
+        pausePs.push({ start: psStart, end: t }); psStart = null;
+      }
+    }
+    psStart = null;
+    for (const ev of (data.driftstopp_events || [])) {
+      const t = new Date(ev.datum).getTime();
+      if (parseInt(ev.driftstopp_status) === 1) { psStart = t; }
+      else if (parseInt(ev.driftstopp_status) === 0 && psStart !== null) {
+        pausePs.push({ start: psStart, end: t }); psStart = null;
+      }
+    }
+    const sortedOnoff = [...onoff].sort((a: any, b: any) => new Date(a.datum).getTime() - new Date(b.datum).getTime());
+    let segStart: number | null = null;
+    let wasRunning = false;
+    for (const ev of sortedOnoff) {
+      const t = new Date(ev.datum).getTime();
+      const running = !!ev.running;
+      if (running && !wasRunning) { segStart = t; wasRunning = true; }
+      else if (!running && wasRunning && segStart !== null) {
+        let netMs = t - segStart;
+        for (const p of pausePs) {
+          const os = Math.max(p.start, segStart); const oe = Math.min(p.end, t);
+          if (oe > os) netMs -= (oe - os);
+        }
+        const sd = new Date(segStart);
+        const key = this.viewMode === 'month'
+          ? (monthViewHourly ? `${sd.getFullYear()}-${sd.getMonth()}-${sd.getDate()}-${sd.getHours()}` : `${sd.getDate()}`)
+          : this.monthNames[sd.getMonth()].substring(0, 3);
+        netRuntimeByKey.set(key, (netRuntimeByKey.get(key) || 0) + Math.max(0, netMs / 60000));
+        segStart = null; wasRunning = false;
+      }
+    }
+
     // Build efficiency and cycle count arrays for bar chart (month/year views)
-    // Efficiency = target_cycle_time / avg_actual_cycle_time * 100
+    // Formel: IBC × target_cykeltid / netto_drifttid × 100 (matchar dagvy-KPI)
     const efficiencyArr: number[] = [];
     const cycleCountArr: number[] = [];
-    slicedEntries.forEach(([, value]) => {
+    slicedEntries.forEach(([key, value]) => {
       const count = value.cycles.length;
       cycleCountArr.push(count);
       if (count > 0) {
-        // parseFloat säkerställer att PDO-strängar ("2.61") blir tal före summering
-        const validTimes = value.cycles
-          .map((c: any) => parseFloat(c.cycle_time))
-          .filter((t: number) => !isNaN(t) && t > 0 && t <= 30);
         const avgTarget = value.cycles.reduce((s: number, c: any) => s + parseFloat(c.target_cycle_time || 3), 0) / count;
-        if (validTimes.length > 0) {
-          const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
-          efficiencyArr.push(Math.round((avgTarget / avgActual) * 100));
+        const netMin = netRuntimeByKey.get(key) || 0;
+        if (netMin > 0) {
+          efficiencyArr.push(Math.round(count * avgTarget / netMin * 100));
         } else {
-          efficiencyArr.push(0);
+          // Fallback om inga onoff-events finns: target / avg_cykeltid
+          const validTimes = value.cycles
+            .map((c: any) => parseFloat(c.cycle_time))
+            .filter((t: number) => !isNaN(t) && t > 0 && t <= 30);
+          efficiencyArr.push(validTimes.length > 0
+            ? Math.round((avgTarget / (validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length)) * 100)
+            : 0);
         }
       } else {
         efficiencyArr.push(0);
