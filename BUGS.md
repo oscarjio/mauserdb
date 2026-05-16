@@ -380,7 +380,7 @@
 
 ## BUG-088: Detaljerad Statistik — NaN min och NaN% för nästan alla 10-min-perioder (KRITISK)
 **Rapporterad:** 2026-05-16
-**Status:** FIXAD — commit TBD
+**Status:** FIXAD — commit 9a11f12b
 **Symptom:** "Detaljerad Statistik"-tabellen (10-minutersperioder i dagvy) visar `NaN min` och `NaN%` för nästan alla rader. Bara första raden (07:10) visar korrekta värden.
 **Rotorsak (bekräftad):** PHP PDO returnerar MySQL `ROUND(TIMESTAMPDIFF(SECOND,...)/60.0, 2)` som sträng (`"5.23"`) i `fetchAll(PDO::FETCH_ASSOC)`. I `updateTable()` saknades `parseFloat()` vid `.map(c => c.cycle_time)` och `c.target_cycle_time || 3`. Utan parseFloat gav `reduce((sum, t) => sum + t, 0)` strängkonkatenering (`"05.234.87..."`) istf. addition → division = NaN. Rad 0 visade korrekt värde om den råkade ha tomma validCycleTimes (null från LAG i första cykeln).
 **Fix:** 
