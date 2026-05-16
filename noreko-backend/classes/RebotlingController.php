@@ -1173,10 +1173,37 @@ class RebotlingController {
             }, $cycles));
             $days_with_production = count($unique_dates);
 
+            // BUG-015-FIX: Bygg server-side per-dag och per-månad aggregering.
+            // Frontend grupperar cykler via JS new Date() + getMonth() vilket kan ge
+            // fel månadsgrupp om JS tolkar datum-strängen på ett oväntat sätt.
+            // PHP:s date() är deterministisk och korrekt för alla datumsformat.
+            $by_day  = [];  // 'YYYY-MM-DD' => cycle count
+            $by_month = []; // 'YYYY-MM'    => cycle count
+            foreach ($cycles as $c) {
+                $d = substr($c['datum'], 0, 10); // YYYY-MM-DD
+                $m = substr($c['datum'], 0, 7);  // YYYY-MM
+                $by_day[$d]  = ($by_day[$d]  ?? 0) + 1;
+                $by_month[$m] = ($by_month[$m] ?? 0) + 1;
+            }
+            // Sortera på nyckel så frontend alltid får kronologisk ordning
+            ksort($by_day);
+            ksort($by_month);
+            // Bygg arrayer för enkel JS-konsumtion
+            $by_day_arr = [];
+            foreach ($by_day as $date => $cnt) {
+                $by_day_arr[] = ['date' => $date, 'cycles' => $cnt];
+            }
+            $by_month_arr = [];
+            foreach ($by_month as $month_key => $cnt) {
+                $by_month_arr[] = ['month' => $month_key, 'cycles' => $cnt];
+            }
+
             echo json_encode([
                 'success' => true,
                 'data' => [
                     'cycles' => $cycles,
+                    'by_day'   => $by_day_arr,
+                    'by_month' => $by_month_arr,
                     'onoff_events' => $onoff_events,
                     'rast_events' => $rast_events,
                     'driftstopp_events' => $driftstopp_events,

@@ -521,6 +521,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   navigatePrevious() {
+    // BUG-083: Guard mot dubbla snabba klick — vänta tills pågående API-anrop är klart
+    if (this.loading) return;
+
     if (this.viewMode === 'year') {
       this.currentYear--;
     } else if (this.viewMode === 'month') {
@@ -545,6 +548,11 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   navigateNext() {
+    // BUG-083: Guard mot dubbla snabba klick — vänta tills pågående API-anrop är klart
+    if (this.loading) return;
+    // BUG-084: Tillåt inte navigation till framtida perioder
+    if (this.isAtCurrentPeriod()) return;
+
     if (this.viewMode === 'year') {
       this.currentYear++;
     } else if (this.viewMode === 'month') {
@@ -566,6 +574,26 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.generatePeriodCells();
     this.syncStateToUrl(false); // push ny history-entry så back-knappen fungerar
     this.loadStatistics();
+  }
+
+  /** BUG-084: Returnerar true om innevarande period redan är nuläget (kan ej gå framåt) */
+  isAtCurrentPeriod(): boolean {
+    const now = new Date();
+    const thisYear = now.getFullYear();
+    const thisMonth = now.getMonth();
+    const today = new Date(thisYear, thisMonth, now.getDate());
+
+    if (this.viewMode === 'year') {
+      return this.currentYear >= thisYear;
+    } else if (this.viewMode === 'month') {
+      return this.currentYear > thisYear ||
+        (this.currentYear === thisYear && this.currentMonth >= thisMonth);
+    } else if (this.viewMode === 'day' && this.selectedPeriods.length > 0) {
+      const selected = new Date(this.selectedPeriods[this.selectedPeriods.length - 1]);
+      selected.setHours(0, 0, 0, 0);
+      return selected >= today;
+    }
+    return false;
   }
 
   generatePeriodCells() {
@@ -958,15 +986,21 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const grouped = new Map<string, any[]>();
 
     cycles.forEach((cycle: any) => {
-      const date = new Date(cycle.datum);
       let key: string;
 
       if (this.viewMode === 'year') {
-        key = `${date.getFullYear()}-${date.getMonth()}`;
+        // BUG-015-FIX: Extrahera år-månad direkt ur datum-strängen (YYYY-MM-DD...)
+        // istf. new Date().getMonth() för att undvika JS-timezone-parsingbugg.
+        // Nyckeln '2026-3' = år 2026 + 0-indexerad månad 3 (april).
+        const yearNum = parseInt(cycle.datum.substring(0, 4), 10);
+        const monthNum = parseInt(cycle.datum.substring(5, 7), 10) - 1; // 0-indexed
+        key = `${yearNum}-${monthNum}`;
       } else if (this.viewMode === 'month') {
+        const date = new Date(cycle.datum);
         key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
       } else {
         // Group by 10-minute intervals
+        const date = new Date(cycle.datum);
         const hour = date.getHours();
         const minute = Math.floor(date.getMinutes() / 10) * 10;
         key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${hour}-${minute}`;
@@ -1158,15 +1192,19 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     // Add cycle data (månad/år-vy — dag-vy hanteras i preparePerCycleChartData)
     cycles.forEach((cycle: any) => {
-      const date = new Date(cycle.datum);
       let key: string;
 
       if (this.viewMode === 'month') {
+        const date = new Date(cycle.datum);
         key = monthViewHourly
           ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`
           : `${date.getDate()}`;
       } else {
-        key = this.monthNames[date.getMonth()].substring(0, 3);
+        // BUG-015-FIX: Använd substr på datum-strängen istf. new Date().getMonth() för att
+        // undvika JS-timezone-parsing som kan flytta cykler till fel månadshink.
+        // datum = 'YYYY-MM-DD HH:MM:SS' → substr(5,2) = MM (01-12, nollindexad: -1)
+        const monthIdx = parseInt(cycle.datum.substring(5, 7), 10) - 1; // 0-11
+        key = this.monthNames[monthIdx]?.substring(0, 3) ?? '';
       }
 
       if (grouped.has(key)) {
@@ -2254,14 +2292,18 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     }
 
     data.cycles.forEach((cycle: any) => {
-      const date = new Date(cycle.datum);
       let key: string;
 
       if (this.viewMode === 'year') {
-        key = `${date.getFullYear()}-${date.getMonth()}`;
+        // BUG-015-FIX: Extrahera år-månad direkt ur datum-strängen istf. new Date().getMonth()
+        const yearNum  = parseInt(cycle.datum.substring(0, 4), 10);
+        const monthNum = parseInt(cycle.datum.substring(5, 7), 10) - 1; // 0-indexed
+        key = `${yearNum}-${monthNum}`;
       } else if (this.viewMode === 'month') {
+        const date = new Date(cycle.datum);
         key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
       } else {
+        const date = new Date(cycle.datum);
         // Dag-vy: gruppera per cykel med tidsstämpel.
         // Om markering aktiv: filtrera via sortedDayCycles tidsintervall.
         if (

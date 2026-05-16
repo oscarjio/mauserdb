@@ -169,14 +169,14 @@
 
 ---
 
-## BUG-015 (BUG-74): Årsvy vs månadsvy visar helt olika IBC-tal för samma period (EJ FIXAD)
+## BUG-015 (BUG-74): Årsvy vs månadsvy visar helt olika IBC-tal för samma period (FIXAD)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad — KRITISK
+**Status:** FIXAD 2026-05-16
 **Symptom:** April 2026: årsvy visar 449 IBC men månadsvy visar 1370 IBC för exakt samma period (3× diskrepans).
-**Rotorsak (hypotes):** Backend `getStatistics()` har troligen en LIMIT-klausul som trunkerar data vid årsvy — månadsvy hämtar bara april och träffar inte gränsen. Alternativt: årsvy returnerar aggregerad data (MAX per skiftraknare) medan månadsvy returnerar råcykler — formlerna ger olika tal.
-**Filer:** `noreko-backend/classes/RebotlingController.php` getStatistics(), `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`
-**Fix:** Kontrollera SQL-query för getStatistics — ta bort/höj LIMIT för år-perioder. Alternativt hämta aggregerad månadsdata från backend (SUM per dag) istf. råcykler.
-**Prioritet:** KRITISK — gör årsvy opålitlig
+**Rotorsak (verifierad):** Ingen LIMIT-klausul hittades. Backend returnerade korrekt 1370 cykler för april i år-svaret. Rotorsaken var att frontend:s `prepareChartData`, `updatePeriodCellsData` och `updateTable` alla använde `new Date(cycle.datum).getMonth()` för att grupera cykler i månadshink för årsvy. JS `new Date()` parsning av MySQL-datumsträng (`"YYYY-MM-DD HH:MM:SS"`) är implementation-beroende och kan i vissa browser-/timezone-konfigurationer kasta datum till fel månad (t.ex. sent på kvällen nära månadsslut i UTC+2). Resultatet: cykler hamnade i fel månadshink → årsvy visade fel tal (449 istf 1370 för april, eftersom maj-cykler (449) hamnade i april-hinken).
+**Fix:** Tre ändringar i frontend (`rebotling-statistik.ts`): `prepareChartData`, `updatePeriodCellsData`, `updateTable` — år-vy nu extraherar månadsnummer direkt ur datum-strängen (`cycle.datum.substring(5,7)`) istf. `new Date().getMonth()`. Deterministic, timezone-oberoende. Backend kompletterad med `by_month` och `by_day` fält i `getStatistics`-svaret för framtida server-side aggregering.
+**Verifiering:** `by_month` bekräftar 2026-04: 1370, 2026-05: 449 — stämmer med `SELECT COUNT(*) FROM rebotling_ibc WHERE datum BETWEEN '2026-04-01' AND '2026-04-30'` = 1370.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`, `noreko-backend/classes/RebotlingController.php`
 
 ---
 
@@ -353,8 +353,27 @@
 
 ## BUG-086: Cykeltid per operator-chart visar bara första bokstaven (M K E R B O T) istf. fulla namn
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
+**Status:** FIXAD
 **Symptom:** Diagrammet "Cykeltid per operator" på statistiksidan visar bara en bokstav per operatör (M, K, E, R, B, O, T) istf. fullständiga operatörnamn.
-**Rotorsak (hypotes):** Antingen (1) Chart.js trunkerar x/y-axelns labels pga. liten chartbredd — `maxRotation`/`maxLength` ej satt, (2) backend returnerar bara initialbokstav, eller (3) frontend-koden mappar `operator.charAt(0)` eller liknande av misstag.
-**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — sök på "operator", "cykeltid", "cyklel per operator"-diagrammet. Eventuellt backend `RebotlingController.php` om namnen kortas där.
-**Fix:** Kontrollera backend-svar (Network tab → operator-names). Om de är fullständiga där men trunkerade i chart → Chart.js `ticks.maxLength`/`ticks.callback`. Om de är korta redan i backend → fixa SQL `SELECT DISTINCT operatör`.
+**Rotorsak:** Frontend-koden mappade `op.initialer` istf. `op.namn` för chart-labels i `statistik-cykeltid-operator.ts` rad 91. Backend returnerade redan `op.namn` korrekt.
+**Fix:** Ändrade `chartData.map(op => op.initialer)` → `chartData.map(op => op.namn)` i `renderCycleByOpChart()`. Ingen label-rotation behövdes — diagrammet är horisontellt (indexAxis: 'y'). HTML-tabellen visade redan `op.namn` korrekt.
+**Fil:** `noreko-frontend/src/app/pages/rebotling/statistik/statistik-cykeltid-operator/statistik-cykeltid-operator.ts`
+
+---
+
+## BUG-087: Analys-flik — Veckojämförelse/SPC tre problem
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom (3 delbugg):**
+1. **Stavfel:** "Veckojamforelse" saknar å — borde vara "Veckojämförelse"
+2. **SPC period-synk:** SPC-diagrammet visar alltid 7 dagar fast månadsvy är vald — ignorerar vald period (samma problem som BUG-085 men i Analys-fliken)
+3. **Conceptual bug:** "Förra veckan"-staplar läggs på "Denna veckan"-dagar — x-axeln innehåller dagarna i nuvarande vecka men stapeldata är från förra veckan → missvisande jämförelse som antyder att det är samma dag
+**Rotorsak:**
+- Del 1: Hårdkodat ASCII-sträng utan åäö i komponent/template
+- Del 2: SPC-komponenten har egen fast period (7 dagar), synkar inte med huvud-statistiksidans viewMode/currentMonth
+- Del 3: Jämförelselogiken plottar förra veckans data på nuvarande veckans x-axelpositioner utan tydlig distinktion — bör antingen ha separata x-axlar eller tydlig labels "V18 (denna)" vs "V17 (förra)"
+**Filer:** Analys-flik i `rebotling-statistik.ts` och/eller sub-komponent statistik-veckotrend/analys. Sök på "Veckojamforelse", "SPC", "veckojämförelse"
+**Fix:**
+1. Fixa stavning: "Veckojamforelse" → "Veckojämförelse"
+2. SPC-period: Hämta from/to från `getDateRange()` baserat på vald period
+3. Konceptuell fix: Lägg förra-veckan-data som egen dataset (t.ex. streckad linje/annorlunda färg) med tydliga labels — inte på samma x-position som nuvarande dag

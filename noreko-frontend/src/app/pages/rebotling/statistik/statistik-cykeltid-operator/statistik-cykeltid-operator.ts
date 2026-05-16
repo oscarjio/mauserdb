@@ -88,7 +88,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
     if (!canvas || !this.rankedData.length) return;
 
     const chartData = [...this.rankedData].reverse();
-    const labels = chartData.map(op => op.initialer);
+    const labels = chartData.map(op => op.namn);
 
     const minValues = chartData.map(op => op.min_min ?? (op.bast_cykel_sek / 60));
     const medianValues = chartData.map(op => op.median_min ?? (op.snitt_cykel_sek / 60));
