@@ -280,14 +280,18 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       this.applyStateFromUrl(params);
       this.updateBreadcrumb();
       this.generatePeriodCells();
-      this.loadStatistics();
+      if (this.viewMode === 'heatmap') {
+        this.loadHeatmap();
+      } else {
+        this.loadStatistics();
+      }
     });
   }
 
   /** Läs vy, år, månad och valda datum från URL query params. */
   private applyStateFromUrl(q: Record<string, string>) {
     const view = (q['view'] || 'month') as ViewMode;
-    if (view === 'year' || view === 'month' || view === 'day') {
+    if (view === 'year' || view === 'month' || view === 'day' || view === 'heatmap') {
       this.viewMode = view;
     }
     const year = parseInt(q['year'], 10);
@@ -477,7 +481,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false); // push ny history-entry så back-knappen fungerar
     this.loadStatistics();
   }
 
@@ -529,7 +533,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false); // push ny history-entry så back-knappen fungerar
     this.loadStatistics();
   }
 
@@ -553,7 +557,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false); // push ny history-entry så back-knappen fungerar
     this.loadStatistics();
   }
 
@@ -813,24 +817,17 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   updateStatistics(data: any) {
     this.totalCycles = data.summary.total_cycles;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
-    // Effektivitet:
-    //  - Dag-vy: total_ibc * target / netto_drifttid (matchar skiftrapporten)
-    //  - Månad/år-vy: target / avg_cykeltid (samma formel som stapeldiagrammet)
+    // Effektivitet (alla vyer): total_ibc × target / netto_drifttid × 100
+    // Matchar skiftrapporten och BUG-007-fixet i stapeldiagrammet.
+    // net_runtime_minutes finns i backend-svaret för alla vy-lägen (dag/månad/år).
     const targetCt = data.summary.target_cycle_time || 3;
-    let properEff: number;
-    if (this.viewMode === 'day') {
-      // net_runtime_minutes kan saknas i äldre backend-svar — fall back på total_runtime_hours
-      const netRtMin = data.summary.net_runtime_minutes
-        || (data.summary.total_runtime_hours * 60)
-        || 0;
-      const totalCyc = data.summary.total_cycles || 0;
-      properEff = (netRtMin > 0 && totalCyc > 0)
-        ? Math.round(totalCyc * targetCt / netRtMin * 100)
-        : 0;
-    } else {
-      const avgCt = data.summary.avg_cycle_time || 0;
-      properEff = avgCt > 0 ? Math.round((targetCt / avgCt) * 100) : 0;
-    }
+    const netRtMin = data.summary.net_runtime_minutes
+      || (data.summary.total_runtime_hours * 60)
+      || 0;
+    const totalCyc = data.summary.total_cycles || 0;
+    const properEff = (netRtMin > 0 && totalCyc > 0)
+      ? Math.round(totalCyc * targetCt / netRtMin * 100)
+      : 0;
     this.avgEfficiency = properEff;
     this.avgProdPct = properEff;
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
@@ -845,13 +842,62 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.rawCycles = data.cycles || [];
     this.sortRawCycles();
 
-    this.updatePeriodCellsData(data.cycles);
+    this.updatePeriodCellsData(data);
   }
 
-  updatePeriodCellsData(cycles: any[]) {
+  /**
+   * Beräknar netto drifttid per period-nyckel från onoff/rast/stopp-events.
+   * Återanvänds i updatePeriodCellsData och updateTable för konsekvent effektivitetsformel.
+   */
+  private computeNetRuntimeByKey(data: any, keyFn: (d: Date) => string): Map<string, number> {
+    const netRuntimeByKey = new Map<string, number>();
+    const pausePs: { start: number; end: number }[] = [];
+    let psStart: number | null = null;
+    for (const ev of (data.rast_events || [])) {
+      const t = new Date(ev.datum).getTime();
+      if (parseInt(ev.rast_status) === 1) { psStart = t; }
+      else if (parseInt(ev.rast_status) === 0 && psStart !== null) {
+        pausePs.push({ start: psStart, end: t }); psStart = null;
+      }
+    }
+    psStart = null;
+    for (const ev of (data.driftstopp_events || [])) {
+      const t = new Date(ev.datum).getTime();
+      if (parseInt(ev.driftstopp_status) === 1) { psStart = t; }
+      else if (parseInt(ev.driftstopp_status) === 0 && psStart !== null) {
+        pausePs.push({ start: psStart, end: t }); psStart = null;
+      }
+    }
+    const sortedOnoff = [...(data.onoff_events || [])].sort(
+      (a: any, b: any) => new Date(a.datum).getTime() - new Date(b.datum).getTime()
+    );
+    let segStart: number | null = null;
+    let wasRunning = false;
+    for (const ev of sortedOnoff) {
+      const t = new Date(ev.datum).getTime();
+      const running = !!ev.running;
+      if (running && !wasRunning) { segStart = t; wasRunning = true; }
+      else if (!running && wasRunning && segStart !== null) {
+        let netMs = t - segStart;
+        for (const p of pausePs) {
+          const os = Math.max(p.start, segStart); const oe = Math.min(p.end, t);
+          if (oe > os) netMs -= (oe - os);
+        }
+        const key = keyFn(new Date(segStart));
+        netRuntimeByKey.set(key, (netRuntimeByKey.get(key) || 0) + Math.max(0, netMs / 60000));
+        segStart = null; wasRunning = false;
+      }
+    }
+    return netRuntimeByKey;
+  }
+
+  updatePeriodCellsData(data: any) {
+    const cycles: any[] = Array.isArray(data) ? data : (data.cycles || []);
+    const hasEvents = !Array.isArray(data) && data.onoff_events !== undefined;
+
     const grouped = new Map<string, any[]>();
 
-    cycles.forEach(cycle => {
+    cycles.forEach((cycle: any) => {
       const date = new Date(cycle.datum);
       let key: string;
 
@@ -871,6 +917,15 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       }
       grouped.get(key)!.push(cycle);
     });
+
+    // Beräkna netto drifttid per period-nyckel (samma formel som BUG-007-fixet i stapeldiagrammet)
+    let netRuntimeByKey: Map<string, number> = new Map();
+    if (hasEvents && (this.viewMode === 'year' || this.viewMode === 'month')) {
+      netRuntimeByKey = this.computeNetRuntimeByKey(data, (d: Date) => {
+        if (this.viewMode === 'year') return `${d.getFullYear()}-${d.getMonth()}`;
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      });
+    }
 
     this.periodCells.forEach(cell => {
       let key: string;
@@ -892,21 +947,29 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       if (periodCycles.length > 0) {
         // Filtrera bort NULL och 0 värden när vi beräknar genomsnitt
         const validCycleTimes = periodCycles
-          .map(c => c.cycle_time)
-          .filter(t => t !== null && t !== undefined && t > 0);
+          .map((c: any) => c.cycle_time)
+          .filter((t: any) => t !== null && t !== undefined && t > 0);
 
         const avgCycleTime = validCycleTimes.length > 0
-          ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
+          ? validCycleTimes.reduce((sum: number, t: number) => sum + t, 0) / validCycleTimes.length
           : 0;
 
         const validTargets = periodCycles
-          .map(c => parseFloat(c.target_cycle_time))
-          .filter(t => !isNaN(t) && t > 0);
+          .map((c: any) => parseFloat(c.target_cycle_time))
+          .filter((t: number) => !isNaN(t) && t > 0);
         const avgTarget = validTargets.length > 0
-          ? validTargets.reduce((s, t) => s + t, 0) / validTargets.length
+          ? validTargets.reduce((s: number, t: number) => s + t, 0) / validTargets.length
           : (this.targetCycleTime || 3);
         cell.avgCycleTime = Math.round(avgCycleTime * 10) / 10;
-        cell.efficiency = avgCycleTime > 0 ? Math.round((avgTarget / avgCycleTime) * 100) : 0;
+
+        // Effektivitet: IBC × target / netto_drifttid × 100 (matchar BUG-007-fixet)
+        // Fallback till target/avg_cykeltid om inga onoff-events finns (dag-vy eller äldre data)
+        const netMin = netRuntimeByKey.get(key) || 0;
+        if (netMin > 0) {
+          cell.efficiency = Math.round(periodCycles.length * avgTarget / netMin * 100);
+        } else {
+          cell.efficiency = avgCycleTime > 0 ? Math.round((avgTarget / avgCycleTime) * 100) : 0;
+        }
       }
     });
 
@@ -1657,14 +1720,16 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const effData: number[] = chartData.efficiencyArr || [];
     const countData: number[] = chartData.cycleCountArr || [];
 
-    // Color each bar by efficiency value
-    const barColors = effData.map((eff: number) => {
+    // Color each bar by efficiency value (0 = no data → grå, ej röd)
+    const barColors = effData.map((eff: number, i: number) => {
+      if (countData[i] === 0) return 'rgba(100, 100, 100, 0.35)';
       if (eff >= 90) return 'rgba(39, 174, 96, 0.75)';
       if (eff >= 70) return 'rgba(255, 193, 7, 0.75)';
       return 'rgba(220, 53, 69, 0.65)';
     });
 
-    const barBorderColors = effData.map((eff: number) => {
+    const barBorderColors = effData.map((eff: number, i: number) => {
+      if (countData[i] === 0) return 'rgba(100, 100, 100, 0.5)';
       if (eff >= 90) return '#27ae60';
       if (eff >= 70) return '#ffc107';
       return '#dc3545';
@@ -1716,7 +1781,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 const idx = context.dataIndex;
                 const eff = effData[idx] || 0;
                 const count = countData[idx] || 0;
-                const effStatus = eff >= 100 ? ' (over mal)' : eff >= 90 ? ' (nara mal)' : ' (under mal)';
+                const effStatus = eff >= 100 ? ' (över mål)' : eff >= 90 ? ' (nära mål)' : ' (under mål)';
                 return [`Effektivitet: ${eff}%${effStatus}`, `Antal IBC: ${count} st`];
               }
             }
@@ -2025,7 +2090,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       if (!c.skiftraknare) return;
       if (!map.has(c.skiftraknare)) map.set(c.skiftraknare, { ibcCount: 0, times: [], rastMin: 0 });
       const s = map.get(c.skiftraknare)!;
-      s.ibcCount += (c.ibc_count || 1);
+      s.ibcCount += 1; // Varje rad = ett cykelevent; ibc_count är daglig sekvensräknare, EJ summerbar
       if (c.cycle_time != null && c.cycle_time > 0 && c.cycle_time <= 30) s.times.push(parseFloat(c.cycle_time));
     });
     this.shiftSummaries = Array.from(map.entries())
@@ -2116,6 +2181,15 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.tableData = [];
     const grouped = new Map<string, any[]>();
 
+    // Beräkna netto drifttid per period-nyckel för månad/år-vy (BUG-007-konsistens)
+    let tableNetRuntime: Map<string, number> = new Map();
+    if (this.viewMode === 'year' || this.viewMode === 'month') {
+      tableNetRuntime = this.computeNetRuntimeByKey(data, (d: Date) => {
+        if (this.viewMode === 'year') return `${d.getFullYear()}-${d.getMonth()}`;
+        return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      });
+    }
+
     data.cycles.forEach((cycle: any) => {
       const date = new Date(cycle.datum);
       let key: string;
@@ -2161,7 +2235,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       grouped.get(key)!.push(cycle);
     });
 
-    grouped.forEach((cycles, _key) => {
+    grouped.forEach((cycles, periodKey) => {
       const date = new Date(cycles[0].datum);
       let period: string;
 
@@ -2187,15 +2261,26 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
         : 0;
 
-      // Efficiency = target_cycle_time / avg_actual_cycle_time * 100
+      // Effektivitet: IBC × target / netto_drifttid × 100 (matchar BUG-007-fixet)
       const avgTarget = cycles.length > 0
         ? cycles.reduce((sum: number, c: any) => sum + (c.target_cycle_time || 3), 0) / cycles.length
         : 3;
-      const avgEff = validCycleTimes.length > 0
-        ? (avgTarget / (validCycleTimes.reduce((s: number, t: number) => s + t, 0) / validCycleTimes.length)) * 100
-        : 0;
 
-      const runtimeMinutes = cycles.length * avgCycleTime;
+      // Hämta netto drifttid för perioden (år/månad-vy). Dag-vy: fallback till avg_cykeltid × cykler.
+      const periodNetMin = tableNetRuntime.get(periodKey) || 0;
+      let avgEff: number;
+      let runtimeMinutes: number;
+      if (periodNetMin > 0) {
+        avgEff = (cycles.length * avgTarget / periodNetMin) * 100;
+        runtimeMinutes = periodNetMin;
+      } else {
+        // Fallback (dag-vy eller perioder utan onoff-data): target/avg_cykeltid × 100
+        avgEff = validCycleTimes.length > 0
+          ? (avgTarget / (validCycleTimes.reduce((s: number, t: number) => s + t, 0) / validCycleTimes.length)) * 100
+          : 0;
+        runtimeMinutes = cycles.length * avgCycleTime;
+      }
+
       const runtimeHours = runtimeMinutes / 60;
       const ibcPerHour = runtimeHours > 0 ? Math.round((cycles.length / runtimeHours) * 10) / 10 : 0;
 
@@ -2249,6 +2334,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.resetChartSelection();
     try { this.productionChart?.destroy(); } catch (e) {}
     this.productionChart = null;
+    this.syncStateToUrl(false); // push ny history-entry så back-knappen fungerar
     this.loadHeatmap();
   }
 

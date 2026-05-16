@@ -16,6 +16,7 @@ import { RebotlingService, WeeklyKpiCard, WeeklyKpisResponse } from '../../../..
   standalone: true,
   selector: 'app-statistik-veckotrend',
   templateUrl: './statistik-veckotrend.html',
+  styleUrls: ['./statistik-veckotrend.css'],
   imports: [CommonModule],
 })
 export class StatistikVeckotrendComponent implements OnInit, AfterViewInit, OnDestroy {
