@@ -189,13 +189,13 @@
 
 ---
 
-## BUG-017 (BUG-76): URL-param month= skickas med vid view=year (EJ FIXAD)
+## BUG-017 (BUG-76): URL-param month= skickas med vid view=year (FIXAD)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
+**Status:** FIXAD 2026-05-16
 **Symptom:** När man navigerar till årsvy innehåller URL:en `month=`-parametern trots att den inte är relevant för år-vy.
-**Rotorsak:** Navigation till år-vy rensas inte `month`-parametern från URL:en, troligen i `navigateToYear()` eller `goBack()`-logiken.
-**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` navigeringsmetoder
-**Fix:** Vid navigation till view=year: ta bort month-parametern från URL. Vid navigation till view=month: ta bort dates-parametern.
+**Rotorsak:** `syncStateToUrl()` satte alltid month och dates i queryParams oavsett viewMode.
+**Fix:** `syncStateToUrl()` i rebotling-statistik.ts: view=year → month=null, dates=null. view=month → dates=null. view=day → dates sätts bara om selectedPeriods finns. Angular Router tar bort null-params automatiskt.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`
 
 ---
 
