@@ -300,14 +300,13 @@
 
 ---
 
-## BUG-081: State-leak — klick på månads-pill från dagvy ger månadsvy med 1 stapel (KRITISK)
+## BUG-081: State-leak — klick på månads-pill från dagvy ger månadsvy med 1 stapel (FIXAD)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad — KRITISK
+**Status:** FIXAD — commit `4217b2a6`
 **Symptom:** Användare är i dagvy (t.ex. Maj 5). Klickar på "Maj"-pill/breadcrumb för att gå till månadsvy. Månadsvy visar bara 1 stapel (Maj 5) istf. alla maj-dagar.
-**Rotorsak:** URL-parametern `dates=2026-05-05` från dagvyn följer med vid navigering till månadsvy. Antingen: (1) `applyStateFromUrl()` läser `dates=` och filtrerar månadsdata till bara dessa datum, eller (2) `navigateToMonth()` (pill-click-handler) anropar `syncStateToUrl()` medan `dates` fortfarande är satt.
-**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — navigeringsfunktion för månads-pill, `applyStateFromUrl()`, `syncStateToUrl()`
-**Fix:** I pill-klick-handlern: rensa `selectedPeriods` och/eller sätt `dates=null` explicit innan `syncStateToUrl(false)` anropas. Alternativt: i `applyStateFromUrl()` — om `view=month`, ignorera `dates=`-parametern.
-**Prioritet:** KRITISK — gör pill-navigering oanvändbar
+**Rotorsak:** `applyStateFromUrl()` läste `dates=`-parametern och satte `selectedPeriods` oavsett vilket `view=` som angavs. Om routern triggade `applyStateFromUrl` under övergången (eller vid initial sidladdning med en gammal URL) filtrerades månadsdata ned till bara det angivna datumet.
+**Fix (Alt C):** I `applyStateFromUrl()` — `dates=`-parametern ignoreras och `selectedPeriods` töms om `viewMode !== 'day'`. `navigateToMonth()` sätter redan `selectedPeriods = []` + `syncStateToUrl` tar bort `dates` för monthview (BUG-017), men det dubbla skyddet i `applyStateFromUrl` stänger alla race-condition-vägar.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — `applyStateFromUrl()` rad ~305
 
 ---
 
@@ -328,3 +327,13 @@
 **Rotorsak:** `navigatePrevious()`/`navigateNext()` saknar debounce eller "is-navigating"-guard. Varje klick triggar ett API-anrop och state-ändring direkt.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` `navigatePrevious()`, `navigateNext()`
 **Fix:** Lägg till `isNavigating`-flag (boolean, ~300ms cooldown) eller `debounceTime(300)` på click-event. Enklaste fix: `if (this.isFetching) return;` i navigeringsfunktionerna.
+
+---
+
+## BUG-084: Framtida år/period tillåts utan guard — visar 0% rött istf. "ingen data"
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** Man kan navigera till år 2027 (och framtida månader/dagar) via nästa-pilen. Visas som 0% röda staplar istf. en tydlig "Framtida period — ingen data tillgänglig"-indikation.
+**Rotorsak:** `navigateNext()` saknar kontroll mot aktuellt datum. Ingen guard i `applyStateFromUrl()` heller — man kan skriva in framtida datum manuellt i URL:en och få samma fel.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` `navigateNext()`, eventuellt `applyStateFromUrl()`
+**Fix:** I `navigateNext()`: kontrollera om nästa period är i framtiden — om ja, return early (disable knappen eller visa toast). Nästa-pilens `disabled`-attribut bör sättas dynamiskt baserat på om innevarande period redan är max. I template: binda `[disabled]="isAtCurrentPeriod()"`.
