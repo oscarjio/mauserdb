@@ -128,23 +128,24 @@
 
 ---
 
-## BUG-013 (BUG-72): Månadsvy Y-axel går till 900% effektivitet (EJ FIXAD)
+## BUG-013 (BUG-72): Månadsvy Y-axel går till 900% effektivitet (FIXAD)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad — KRITISK
-**Symptom:** Februari 2026 månadsvy: Y-axeln sträcker sig till ~900%. En stapel visar ~900% effektivitet vilket är uppenbart fel.
-**Rotorsak (hypotes):** BUG-007-fixet beräknar `IBC × target / netRuntime × 100`. Om netRuntime för perioden är extremt liten (t.ex. en kort testdag i februari med få cykler men kort onoff-segment) exploderar formeln. Saknar sanity cap.
-**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` efficiencyArr-beräkning
-**Fix:** Lägg till rimlighetsgräns, t.ex. `Math.min(250, ...)`, och/eller kräv minst 30 min netRuntime för att använda formeln.
+**Fixad:** 2026-05-16
+**Status:** FIXAD
+**Symptom:** Februari 2026 månadsvy: Y-axeln sträckte sig till ~900%. En stapel visade ~900% effektivitet vilket är uppenbart fel.
+**Rotorsak:** `IBC × target / netRuntime × 100` exploderar om netRuntime är extremt kort (t.ex. <5 min på en testdag).
+**Fix:** Kräver minst 5 min netRuntime (`netMin >= 5`) + cap 250% (`Math.min(250, ...)`) i `prepareChartData`, `updatePeriodCellsData` och `updateTable` i `rebotling-statistik.ts`.
 
 ---
 
-## BUG-014 (BUG-73): Negativa IBC-värden i stapeldiagram (-59 IBC 25 feb) (EJ FIXAD)
+## BUG-014 (BUG-73): Negativa IBC-värden i stapeldiagram (-59 IBC 25 feb) (FIXAD)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad — KRITISK
-**Symptom:** 25 februari visar -59 IBC i stapeldiagrammet. Negativa IBC är aldrig möjliga.
-**Rotorsak (hypotes):** LAG()-delta på rebotling_skiftrapport.ibc_ok ger negativa värden när skift 2 har lägre ibc_ok än skift 1 (t.ex. sk1=100, sk2=41 → delta=41-100=-59). ibc_ok återställs per skiftraknare (inte kumulativt), så LAG()-subtraktion är fel — varje skifts ibc_ok är redan dess nettovärde.
-**Filer:** Troligen backend-endpoint för årsvy/månadsvy aggregering, alternativt frontend buildTableData
-**Fix:** Byt ut LAG()-delta på rebotling_skiftrapport.ibc_ok mot direkt MAX(ibc_ok) GROUP BY skiftraknare — samma fix som BUG-001. Lägg till `Math.max(0, delta)` som fallback.
+**Fixad:** 2026-05-16
+**Status:** FIXAD
+**Symptom:** 25 februari visade -59 IBC i nyhetsflödet. Negativa IBC är aldrig möjliga.
+**Rotorsak:** `NewsController.php` hade 5 LAG()-delta-queries UTAN `GREATEST(0, ...)` — ger negativa delta_ibc om PLC-räknaren återställs (sk1=100, sk2=41 → delta=-59).
+**Fix:** (1) `noreko-backend/classes/NewsController.php`: `GREATEST(0, ...)` lagt till i alla 5 LAG()-delta. (2) `rebotling-statistik.ts`: `Math.max(0, ...)` på cycleCountArr. (3) `rebotling-statistik.html`: guard `c.ibc_ok >= 0 ? c.ibc_ok : 0` i rådata-modal.
+**Filer:** `noreko-backend/classes/NewsController.php`, `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`, `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.html`
 
 ---
 
@@ -337,3 +338,13 @@
 **Rotorsak:** `navigateNext()` saknar kontroll mot aktuellt datum. Ingen guard i `applyStateFromUrl()` heller — man kan skriva in framtida datum manuellt i URL:en och få samma fel.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` `navigateNext()`, eventuellt `applyStateFromUrl()`
 **Fix:** I `navigateNext()`: kontrollera om nästa period är i framtiden — om ja, return early (disable knappen eller visa toast). Nästa-pilens `disabled`-attribut bör sättas dynamiskt baserat på om innevarande period redan är max. I template: binda `[disabled]="isAtCurrentPeriod()"`.
+
+---
+
+## BUG-085: Kvalitet & OEE-flik visar "Idag" 0% trots månadsvy April vald — period-väljare synkar inte
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** På statistiksidans "Kvalitet & OEE"-flik visas "Idag" med 0% oavsett vilken period som valts (t.ex. månadsvy April). Period-väljaren i fliken håller kvar "Idag" och hämtar inte data för den valda månaden/perioden.
+**Rotorsak:** Kvalitet & OEE-komponenten/sektionen har troligen en egen intern period-state ("Idag") som inte synkas med huvud-statistiksidans `viewMode`/`currentMonth`/`currentYear`. När man byter till månadsvy April uppdateras inte OEE-flikens anrop med rätt datumintervall.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` och/eller sub-komponent för Kvalitet & OEE-fliken. Sök på "Idag", "oee", "kvalitet" i komponenten.
+**Fix:** Synka OEE-flikens datumintervall med huvud-statistiksidans valda period (`currentYear`/`currentMonth`/`selectedPeriods`). OEE-fliken bör använda samma `getDateRange()`-metod för att hämta korrekt from/to-datum och skicka med det i API-anropet.
