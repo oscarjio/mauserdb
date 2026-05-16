@@ -200,7 +200,12 @@ class Rebotling {
 
             if (count($skiftEntries) > 0) {
                 $lastRunningStart = null;
-                $now = new DateTime();
+                // BUG-008 fix: PHP timezone is UTC but MySQL stores timestamps in server local time (CEST).
+                // new DateTime() returns UTC, causing a 2-hour offset against DB timestamps.
+                // Fix: fetch NOW() from MySQL so the "current time" is in the same timezone as DB entries.
+                $nowStmt = $this->db->query("SELECT NOW() as now_db");
+                $nowRow = $nowStmt->fetch(PDO::FETCH_ASSOC);
+                $now = new DateTime($nowRow['now_db']);
 
                 foreach ($skiftEntries as $entry) {
                     $entryTime = new DateTime($entry['datum']);
@@ -220,7 +225,10 @@ class Rebotling {
                     $diff = $lastRunningStart->diff($lastEntryTime);
                     $totalRuntimeMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                     $diffSinceLast = $lastEntryTime->diff($now);
-                    $totalRuntimeMinutes += ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
+                    // Guard: if diff is negative (clock skew / timezone issue), treat as 0
+                    if ($diffSinceLast->invert === 0) {
+                        $totalRuntimeMinutes += ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
+                    }
                 }
             }
 
@@ -235,7 +243,8 @@ class Rebotling {
             $rastEvents = $rastStmt->fetchAll(PDO::FETCH_ASSOC);
             $rastStart = null;
             $totalRastMinutes = 0;
-            $now2 = new DateTime();
+            // BUG-008 fix: reuse the DB-sourced $now for rast calculation too
+            $now2 = $now;
             foreach ($rastEvents as $ev) {
                 $t = new DateTime($ev['datum']);
                 if ((int)$ev['rast_status'] === 1) {
@@ -248,7 +257,9 @@ class Rebotling {
             }
             if ($rastStart !== null) {
                 $diff = $rastStart->diff($now2);
-                $totalRastMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                if ($diff->invert === 0) {
+                    $totalRastMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                }
             }
             $totalRuntimeMinutes = max(0.0, $totalRuntimeMinutes - $totalRastMinutes);
             
