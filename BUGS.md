@@ -323,7 +323,7 @@
 
 ## BUG-083: Dubbla snabba klick på navigations-pil hoppar 2 steg (debounce saknas)
 **Rapporterad:** 2026-05-16
-**Status:** FIXAD — 2026-05-16
+**Status:** FIXAD — 8b65612b
 **Symptom:** Dubbla snabba klick på föregående/nästa-pil hoppar 2 steg (t.ex. 2024→2022, missar 2023). Gäller troligen dag/månad/år-navigation.
 **Rotorsak:** `navigatePrevious()`/`navigateNext()` saknar debounce eller "is-navigating"-guard. Varje klick triggar ett API-anrop och state-ändring direkt.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` `navigatePrevious()`, `navigateNext()`
@@ -333,7 +333,7 @@
 
 ## BUG-084: Framtida år/period tillåts utan guard — visar 0% rött istf. "ingen data"
 **Rapporterad:** 2026-05-16
-**Status:** FIXAD — 2026-05-16
+**Status:** FIXAD — 8b65612b
 **Symptom:** Man kan navigera till år 2027 (och framtida månader/dagar) via nästa-pilen. Visas som 0% röda staplar istf. en tydlig "Framtida period — ingen data tillgänglig"-indikation.
 **Rotorsak:** `navigateNext()` saknar kontroll mot aktuellt datum. Ingen guard i `applyStateFromUrl()` heller — man kan skriva in framtida datum manuellt i URL:en och få samma fel.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` `navigateNext()`, eventuellt `applyStateFromUrl()`
@@ -343,7 +343,7 @@
 
 ## BUG-085: Kvalitet & OEE-flik visar "Idag" 0% trots månadsvy April vald — period-väljare synkar inte
 **Rapporterad:** 2026-05-16
-**Status:** FIXAD — 2026-05-16
+**Status:** FIXAD — 8b65612b
 **Symptom:** På statistiksidans "Kvalitet & OEE"-flik visas "Idag" med 0% oavsett vilken period som valts (t.ex. månadsvy April). Period-väljaren i fliken håller kvar "Idag" och hämtar inte data för den valda månaden/perioden.
 **Rotorsak:** `StatistikOeeGaugeComponent` hade helt intern period-state ('today'/'7d'/'30d') utan koppling till förälderns datumspann.
 **Filer:** `statistik-oee-gauge.ts`, `statistik-oee-gauge.html`, `rebotling-statistik.html`, `rebotling.service.ts`, `RebotlingAnalyticsController.php`
