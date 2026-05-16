@@ -165,3 +165,80 @@
 - `enterHeatmapMode()`: Tillagd `syncStateToUrl(false)` anrop
 - `applyStateFromUrl()`: Tillagd `'heatmap'` i accept-listan för viewMode
 - queryParams-subscription: Anropar nu `loadHeatmap()` om `viewMode === 'heatmap'` (istf. alltid `loadStatistics()`)
+
+---
+
+## BUG-015 (BUG-74): Årsvy vs månadsvy visar helt olika IBC-tal för samma period (EJ FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad — KRITISK
+**Symptom:** April 2026: årsvy visar 449 IBC men månadsvy visar 1370 IBC för exakt samma period (3× diskrepans).
+**Rotorsak (hypotes):** Backend `getStatistics()` har troligen en LIMIT-klausul som trunkerar data vid årsvy — månadsvy hämtar bara april och träffar inte gränsen. Alternativt: årsvy returnerar aggregerad data (MAX per skiftraknare) medan månadsvy returnerar råcykler — formlerna ger olika tal.
+**Filer:** `noreko-backend/classes/RebotlingController.php` getStatistics(), `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`
+**Fix:** Kontrollera SQL-query för getStatistics — ta bort/höj LIMIT för år-perioder. Alternativt hämta aggregerad månadsdata från backend (SUM per dag) istf. råcykler.
+**Prioritet:** KRITISK — gör årsvy opålitlig
+
+---
+
+## BUG-016 (BUG-75): Årsvy saknar Maj-stapel (EJ FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** Årsvy 2026 visar ingen stapel för maj trots att det finns produktionsdata i maj.
+**Rotorsak (hypotes):** Troligen relaterat till BUG-015 (LIMIT trunkerar data) — maj-data hamnar utanför gränsen. Alternativt: frontend-gruppen för år-vy initierar 12 månader men maj-buckets fylls aldrig pga. datumformat/timezone-mismatch (månadsnamn-nyckel).
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` prepareChartData år-vy gruppering, `noreko-backend/classes/RebotlingController.php` getStatistics LIMIT
+**Fix:** Del av BUG-015-fix (höj LIMIT). Verifiera även att årets alla 12 månader initieras korrekt som buckets.
+
+---
+
+## BUG-017 (BUG-76): URL-param month= skickas med vid view=year (EJ FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** När man navigerar till årsvy innehåller URL:en `month=`-parametern trots att den inte är relevant för år-vy.
+**Rotorsak:** Navigation till år-vy rensas inte `month`-parametern från URL:en, troligen i `navigateToYear()` eller `goBack()`-logiken.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` navigeringsmetoder
+**Fix:** Vid navigation till view=year: ta bort month-parametern från URL. Vid navigation till view=month: ta bort dates-parametern.
+
+---
+
+## BUG-018: cycle-trend IBC/h underskattas med ~40% — ibc_ok är frusen snapshot i rebotling_ibc (EJ FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad — KRITISK
+**Symptom:** Cykeltrend-diagrammet (`statistik-cykeltrend`, IBC/h-linje) visar ~16 IBC/h för dagar med faktisk IBC/h ≈ 27. Feluppskattning ~40%.
+**Verifierat dag:** 2026-04-29 (220 cykler, 3 skift: sk116/117/118)
+- Skiftrapport (auktoritativ): ibc_ok=211, drifttid=469 min → **IBC/h = 27.0**
+- API `run=cycle-trend` via MAX(ibc_ok) från rebotling_ibc: ibc_ok=124, runtime=460 min → **IBC/h = 16.2**
+- Avvikelse: -10.8 IBC/h, **-40% fel**
+**Rotorsak:** `ibc_ok` i `rebotling_ibc` är INTE kumulativt per skift — det är ett fruset PLC-snapshot-värde som lagrades tidigt i skiftet och aldrig uppdateras. Skiftets faktiska slutvärde finns i `rebotling_skiftrapport.ibc_ok`. Konkret för 2026-04-29:
+- sk116: MAX(ibc_ok) rebotling_ibc=**0**, skiftrapport=40
+- sk117: MAX(ibc_ok) rebotling_ibc=**40**, skiftrapport=84
+- sk118: MAX(ibc_ok) rebotling_ibc=**84**, skiftrapport=87
+**Berörd endpoint:** `run=cycle-trend` — `getCycleTrend()` rad ~1599–1679 i `RebotlingController.php`
+**Filer:** `noreko-backend/classes/RebotlingController.php` `getCycleTrend()`
+**Fix:** Byt ut `MAX(COALESCE(ibc_ok,0))` från `rebotling_ibc` mot JOIN på `rebotling_skiftrapport` för det korrekta slutvärdet per skiftraknare: `LEFT JOIN rebotling_skiftrapport sr ON sr.skiftraknare = base.skiftraknare` + `COALESCE(sr.ibc_ok, MAX(base.ibc_ok))`.
+
+---
+
+## BUG-019: cycle-trend bur_ej_ok underskattas med ~67% — samma froze-snapshot-problem (EJ FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** Kassationsdata (`bur_ej_ok`) i cykeltrend är systematiskt underskattad.
+**Verifierat dag:** 2026-04-29
+- Skiftrapport (auktoritativ): bur_ej_ok=**12** (sk116=1, sk117=3, sk118=8)
+- API via MAX(bur_ej_ok) från rebotling_ibc: bur_ej_ok=**4** (sk116=0, sk117=1, sk118=3)
+- Avvikelse: -8 enheter, **-67% fel**
+**Rotorsak:** Samma som BUG-018 — `bur_ej_ok` i `rebotling_ibc` är ett fruset snapshot-värde.
+**Filer:** `noreko-backend/classes/RebotlingController.php` `getCycleTrend()` — samma query som BUG-018
+**Fix:** Ingår i BUG-018-fix — JOIN mot `rebotling_skiftrapport` för slutvärden på ibc_ok och bur_ej_ok.
+
+---
+
+## BUG-018 (BUG-77): Årsvy vs månadsvy effektivitet systematiskt fel (EJ FIXAD)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad — GIGANTISK. Sannolikt samma rotorsak som BUG-015.
+**Symptom:** Årsvy och månadsvy visar helt olika effektivitet för samma månader:
+- April: årsvy 38% (röd) vs månadsvy 130% (grön)
+- Februari: årsvy 50% vs månadsvy 115%
+- Mars: årsvy 75% vs månadsvy 120%
+**Rotorsak:** `getStatistics()` har en LIMIT som trunkerar cykler vid årsvy (BUG-015: april 449 vs 1370 cykler). Effektivitetsformeln `IBC × target / netRuntime × 100` ger fel svar när täljaren (IBC) är ~3× för liten men nämnaren (netRuntime från onoff_events) är korrekt. 449/1370 × 130% ≈ 43% — stämmer med rapporterade 38%.
+**Filer:** `noreko-backend/classes/RebotlingController.php` getStatistics() LIMIT-klausul
+**Fix:** Del av BUG-015-fix — ta bort/höj LIMIT för cycles-query i getStatistics(). Skickat till BUG-015-agenten.
+**Prioritet:** KRITISK — årsvy är helt opålitlig
