@@ -313,11 +313,11 @@
 
 ## BUG-082: Stapel-labels inkonsekvent format — 2025 visar "IBC: 696" men 2026 visar "1494"
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
+**Status:** STÄNGD — BUG VAR REDAN FIXAD (dubbeldokumentation)
 **Symptom:** Årsvy 2025 visar "IBC: 696" som stapel-label men årsvy 2026 visar "1494" (utan "IBC: "-prefix). Inkonsekvent format beroende på år.
-**Rotorsak:** BUG-012-fix lade till "IBC: "-prefix i en av bar-label-kodvägarna men inte alla — troligen finns flera ställen i `createBarChart()` eller `prepareChartData()` som sätter `countData` labels. Eller så är det bara 2026-datan som hämtas via ny kodväg och 2025 via gammal.
-**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` bar-chart label-konfiguration
-**Fix:** Säkerställ att "IBC: "-prefixet appliceras på ALLA bar-labels oavsett år/period.
+**Rotorsak (undersökt 2026-05-16):** Koden i `createBarChart()` rad 1955 har REDAN `IBC: ${count}` — det finns bara EN fillText-anrop för count-labels, och den har prefixet. BUG-012 fixade detta i en tidigare commit. Det finns ingen andra kodväg som skriver labels utan prefix. Buggen var troligen rapporterad baserat på cachad/gammal deploy. Koden är korrekt.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` rad 1955
+**Åtgärd:** Ingen kodändring behövdes — koden var redan korrekt. BUGS.md uppdaterad 2026-05-16.
 
 ---
 
@@ -363,17 +363,36 @@
 
 ## BUG-087: Analys-flik — Veckojämförelse/SPC tre problem
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
+**Status:** DELVIS FIXAD — Del 1 åtgärdad 2026-05-16
 **Symptom (3 delbugg):**
-1. **Stavfel:** "Veckojamforelse" saknar å — borde vara "Veckojämförelse"
+1. **Stavfel:** "Veckojamforelse" saknar å — borde vara "Veckojämförelse" ✓ FIXAT
 2. **SPC period-synk:** SPC-diagrammet visar alltid 7 dagar fast månadsvy är vald — ignorerar vald period (samma problem som BUG-085 men i Analys-fliken)
 3. **Conceptual bug:** "Förra veckan"-staplar läggs på "Denna veckan"-dagar — x-axeln innehåller dagarna i nuvarande vecka men stapeldata är från förra veckan → missvisande jämförelse som antyder att det är samma dag
 **Rotorsak:**
-- Del 1: Hårdkodat ASCII-sträng utan åäö i komponent/template
+- Del 1: Hårdkodat ASCII-sträng utan åäö i komponent/template — FIXAT
 - Del 2: SPC-komponenten har egen fast period (7 dagar), synkar inte med huvud-statistiksidans viewMode/currentMonth
 - Del 3: Jämförelselogiken plottar förra veckans data på nuvarande veckans x-axelpositioner utan tydlig distinktion — bör antingen ha separata x-axlar eller tydlig labels "V18 (denna)" vs "V17 (förra)"
-**Filer:** Analys-flik i `rebotling-statistik.ts` och/eller sub-komponent statistik-veckotrend/analys. Sök på "Veckojamforelse", "SPC", "veckojämförelse"
-**Fix:**
-1. Fixa stavning: "Veckojamforelse" → "Veckojämförelse"
-2. SPC-period: Hämta from/to från `getDateRange()` baserat på vald period
-3. Konceptuell fix: Lägg förra-veckan-data som egen dataset (t.ex. streckad linje/annorlunda färg) med tydliga labels — inte på samma x-position som nuvarande dag
+**Filer:** `noreko-frontend/src/app/pages/rebotling/statistik/statistik-veckojamforelse/statistik-veckojamforelse.html`
+**Del 1 fix tillämpat:** Ändrade "Veckojamforelse -- IBC per dag" → "Veckojämförelse — IBC per dag", "forra veckan" → "förra veckan", "Forra veckan" → "Förra veckan" i statistik-veckojamforelse.html. Build + deploy 2026-05-16.
+**Del 2 & 3 (öppna):** Kräver mer analys — komponentens @Input-bindningar och SPC-period-logik måste undersökas. Skippas i detta pass.
+
+---
+
+## BUG-088: Detaljerad Statistik — NaN min och NaN% för nästan alla 10-min-perioder (KRITISK)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad — KRITISK, troligen regression
+**Symptom:** "Detaljerad Statistik"-tabellen (10-minutersperioder i dagvy) visar `NaN min` och `NaN%` för nästan alla rader. Bara första raden (07:10) visar korrekta värden.
+**Rotorsak (hypotes):** Division med noll eller undefined array-element efter index 0. Troligt regressionsfel infört av en av de senaste agenterna (afb0e7d commit 8b65612b, a0ba672e commit d0dd8e40) som modifierade `computeNetRuntimeByKey()`, `updateTable()` eller liknande metoder i `rebotling-statistik.ts`. Alternativt: `getDateRange()` returnerar nu ett objekt med `.start`/`.end` men en del kod förväntar sig fortfarande det gamla formatet.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — `updateTable()`, `buildDetailedTable()`, `computeNetRuntimeByKey()`, 10-min-perioder
+**Fix:** Lägg till `|| 0` / `|| 1` guards mot NaN. Hitta var divisionen sker och vad täljaren/nämnaren är för rader efter index 0.
+**Prioritet:** KRITISK — regression som gör detaljerad statistik oanvändbar
+
+---
+
+## BUG-089: Effektivitet skiljer mellan dag- och månadsvy — månadsvy visar fel (trolig regression)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad — trolig regression
+**Symptom:** Effektivitet i månadsvy stämmer inte med dagvyn för samma dag. Månadsvy visar fel värden.
+**Rotorsak (hypotes):** BUG-085-fixet (commit 8b65612b) kan ha ändrat `getDateRange()` att returnera `{ start, end }` istf. `{ from, to }`. Alla kodvägar som använder `getDateRange().from` eller `getDateRange().to` (t.ex. `computeNetRuntimeByKey()`, effektivitetsberäkning i månadsvy) får då `undefined` → NaN → felaktig effektivitet. Sannolikt samma rotorsak som BUG-088.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — `getDateRange()`, `computeNetRuntimeByKey()`, `prepareChartData()`
+**Fix:** Kontrollera alla anrop till `getDateRange()` i filen — om returnformatet ändrades måste alla konsumenter uppdateras konsekvent. BUG-088-agenten (a092f2a) undersöker samma regression.
