@@ -69,31 +69,30 @@ class ProduktionsTaktController {
 
     /**
      * Räkna IBC:er i ett tidsintervall.
-     * ibc_ok är en daglig löpande räknare (nollställs vid midnatt) — SUM(MAX per skiftraknare)
-     * dubbelräknar på flesskiftsdagar. Korrekt metod: per-dag-delta = MAX(ibc_ok i fönstret)
-     * minus MAX(ibc_ok innan fönstret samma dag), summerat per dag.
+     * ibc_ok nollställs per skift (skiftraknare), INTE per dag.
+     * Korrekt metod: per-skift delta = MAX(ibc_ok <= $to) - MAX(ibc_ok < $from), summerat per skiftraknare.
+     * Hanterar skift som börjar innan fönstret öppnar (subtraherar ingångsvärde).
      */
     private function countIbcBetween(string $from, string $to): int {
         $stmt = $this->pdo->prepare("
             SELECT COALESCE(SUM(GREATEST(0, end_val - COALESCE(start_val, 0))), 0) AS cnt
             FROM (
-                SELECT e.dag, e.end_val, s.start_val
+                SELECT e.skiftraknare, e.end_val, s.start_val
                 FROM (
-                    SELECT DATE(datum) AS dag, MAX(ibc_ok) AS end_val
+                    SELECT skiftraknare, MAX(ibc_ok) AS end_val
                     FROM rebotling_ibc
                     WHERE datum BETWEEN ? AND ?
-                    GROUP BY DATE(datum)
+                    GROUP BY skiftraknare
                 ) e
                 LEFT JOIN (
-                    SELECT DATE(datum) AS dag, MAX(ibc_ok) AS start_val
+                    SELECT skiftraknare, MAX(ibc_ok) AS start_val
                     FROM rebotling_ibc
                     WHERE datum < ?
-                      AND DATE(datum) BETWEEN DATE(?) AND DATE(?)
-                    GROUP BY DATE(datum)
-                ) s ON e.dag = s.dag
+                    GROUP BY skiftraknare
+                ) s ON e.skiftraknare = s.skiftraknare
             ) combined
         ");
-        $stmt->execute([$from, $to, $from, $from, $to]);
+        $stmt->execute([$from, $to, $from]);
         return (int)($stmt->fetchColumn() ?: 0);
     }
 
@@ -220,26 +219,23 @@ class ProduktionsTaktController {
             $now = date('Y-m-d H:i:s');
             $twentyFourHoursAgo = date('Y-m-d H:i:s', strtotime('-24 hours'));
 
+            // ibc_ok nollställs per skift — per-skift delta per timme.
+            // För varje timme och skiftraknare: MAX(ibc_ok i timmen) - COALESCE(MAX(ibc_ok före timmen i samma skift), 0).
+            // Summera deltan per timme.
             $stmt = $this->pdo->prepare("
-                SELECT
-                    h.timme,
-                    GREATEST(0, h.ibc_end - COALESCE(
-                        (SELECT MAX(r2.ibc_ok)
-                         FROM rebotling_ibc r2
-                         WHERE DATE(r2.datum) = h.dag
-                           AND r2.datum < h.timme),
-                        0
-                    )) AS ibc_count
+                SELECT timme, SUM(GREATEST(0, ibc_end - COALESCE(ibc_before, 0))) AS ibc_count
                 FROM (
                     SELECT
                         DATE_FORMAT(datum, '%Y-%m-%d %H:00:00') AS timme,
-                        DATE(datum) AS dag,
-                        MAX(ibc_ok) AS ibc_end
+                        skiftraknare,
+                        MAX(ibc_ok) AS ibc_end,
+                        LAG(MAX(ibc_ok)) OVER (PARTITION BY skiftraknare ORDER BY DATE_FORMAT(datum, '%Y-%m-%d %H:00:00')) AS ibc_before
                     FROM rebotling_ibc
                     WHERE datum BETWEEN ? AND ?
-                    GROUP BY DATE_FORMAT(datum, '%Y-%m-%d %H:00:00'), DATE(datum)
+                    GROUP BY DATE_FORMAT(datum, '%Y-%m-%d %H:00:00'), skiftraknare
                 ) h
-                ORDER BY h.timme ASC
+                GROUP BY timme
+                ORDER BY timme ASC
             ");
             $stmt->execute([$twentyFourHoursAgo, $now]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
