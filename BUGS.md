@@ -290,12 +290,13 @@
 
 ---
 
-## BUG-080: "NON UN" orange etikett i chart-hörnet — ej konfigurerad/broken
+## BUG-080: "NON UN" orange etikett i chart-hörnet — ej konfigurerad/broken (FIXAD)
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
-**Symptom:** En orange etikett med texten "NON UN" visas i övre hörnet av ett diagram på statistiksidan. Ser ut att vara gammalt/ej konfigurerat.
-**Rotorsak:** Okänd — troligen ett hårdkodat test-label eller ett annoteringsobjekt i Chart.js-konfigurationen som aldrig togs bort/konfigurerades korrekt.
-**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` chart-konfiguration
+**Status:** FIXAD 2026-05-16
+**Symptom:** En orange etikett med texten "NON UN" (produktnamn) visades i övre vänstra hörnet av dagvyns linjediagram på statistiksidan — utan någon separator-linje under.
+**Rotorsak:** I `beforeDatasetsDraw`-pluginen ritades produktbyte-etiketter (`pb.namn`) för ALLA produkter i `produktByten`-arrayen, inkl. index 0 (det allra första produktsegmentet). Koden hade redan `if (pb.index > 0)` för att hoppa över den vertikala linjen vid index 0, men etiketten ritades fortfarande utanför detta if-block — därav den hängande oranga etiketten i chart-hörnet.
+**Fix:** Hela blocket (linje + etikett) är nu inlineat i `if (pb.index > 0)` — etiketten ritas bara vid faktiska produktbyten (inte vid startpositionen).
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` rad 1722–1737 (`beforeDatasetsDraw` plugin, `produktByten.forEach`)
 
 ---
 
@@ -317,3 +318,13 @@
 **Rotorsak:** BUG-012-fix lade till "IBC: "-prefix i en av bar-label-kodvägarna men inte alla — troligen finns flera ställen i `createBarChart()` eller `prepareChartData()` som sätter `countData` labels. Eller så är det bara 2026-datan som hämtas via ny kodväg och 2025 via gammal.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` bar-chart label-konfiguration
 **Fix:** Säkerställ att "IBC: "-prefixet appliceras på ALLA bar-labels oavsett år/period.
+
+---
+
+## BUG-083: Dubbla snabba klick på navigations-pil hoppar 2 steg (debounce saknas)
+**Rapporterad:** 2026-05-16
+**Status:** EJ åtgärdad
+**Symptom:** Dubbla snabba klick på föregående/nästa-pil hoppar 2 steg (t.ex. 2024→2022, missar 2023). Gäller troligen dag/månad/år-navigation.
+**Rotorsak:** `navigatePrevious()`/`navigateNext()` saknar debounce eller "is-navigating"-guard. Varje klick triggar ett API-anrop och state-ändring direkt.
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` `navigatePrevious()`, `navigateNext()`
+**Fix:** Lägg till `isNavigating`-flag (boolean, ~300ms cooldown) eller `debounceTime(300)` på click-event. Enklaste fix: `if (this.isFetching) return;` i navigeringsfunktionerna.
