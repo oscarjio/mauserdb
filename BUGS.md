@@ -404,17 +404,14 @@
 
 ## BUG-090: Status-tidslinje slutar vid 14:45, resten av dygnet saknas + 00:00-07:02 visas som "Stopp"
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
+**Status:** FIXAD — commit TBD, deployad till dev 2026-05-18
 **Symptom (2 delbugg):**
 1. **Trunkerad tidslinje:** Statuslinjen slutar vid ca 14:45 — resten av dygnet (14:45–24:00) saknas trots att produktionen kan fortsätta
 2. **Felaktig "Stopp"-label:** Perioden 00:00–07:02 visas som "Stopp" trots att inget skift är planerat — ska vara "Ingen produktion planerad" eller dolt
 **Rotorsak:**
-- Del 1: Tidslinje-komponenten begränsar sig till events inom datumintervallet — om sista event är 14:45 slutar linjen där istf. att sträcka sig till dygnslutet. Alternativt begränsar ett API-anrop data till visst antal events (LIMIT).
-- Del 2: 00:00–07:02 har en `driftstopp`- eller `onoff`-status=0 (stopp) i databasen — systemet tolkar detta som "maskinen är stoppad" men det är natt utan planerat skift.
-**Filer:** Tidslinje-komponent i statistiksidan eller dashboard. Sök på "status", "tidslinje", "timeline", "stopp" i rebotling-komponenter.
-**Fix:**
-1. Sträck tidslinjen alltid till dygnslutet (eller nu + 2h)
-2. Lägg till "oplanerad tid"-kategori: om stopptid är utanför skifttider (06:00–22:00 eller liknande), visa "Ingen produktion planerad" istf. "Stopp"
+- Del 1: `capMin` för historiska dagar sattes till `events[last].min` istf. 1440. Nu: historiska dagar alltid 1440, idag = aktuell tid.
+- Del 2: "stopped"-segment innan första `run_start` eller efter sista `run_end` klassificerades felaktigt som "Stopp". Nu klassificeras dessa som `'unplanned'` (grå, "Ingen produktion planerad").
+**Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` — `buildTimelineSegments()`, CSS + HTML uppdaterade med `seg-unplanned`/`tl-dot.unplanned`.
 
 ---
 

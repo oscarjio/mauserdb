@@ -211,9 +211,10 @@
                    [class.seg-rast]="seg.type === 'rast'"
                    [class.seg-stopped]="seg.type === 'stopped'"
                    [class.seg-driftstopp]="seg.type === 'driftstopp'"
+                   [class.seg-unplanned]="seg.type === 'unplanned'"
                    [style.left.%]="seg.startPct"
                    [style.width.%]="seg.widthPct"
-                   [title]="(seg.type === 'running' ? 'I drift' : seg.type === 'rast' ? 'Rast' : seg.type === 'driftstopp' ? 'Driftstopp' : 'Stopp') + ': ' + seg.startTime + ' \u2013 ' + seg.endTime + ' (' + seg.duration + ')'"></div>
+                   [title]="(seg.type === 'running' ? 'I drift' : seg.type === 'rast' ? 'Rast' : seg.type === 'driftstopp' ? 'Driftstopp' : seg.type === 'unplanned' ? 'Ingen produktion planerad' : 'Stopp') + ': ' + seg.startTime + ' \u2013 ' + seg.endTime + ' (' + seg.duration + ')'"></div>
               <div class="timeline-tick" *ngFor="let t of [12.5, 25, 37.5, 50, 62.5, 75, 87.5]" [style.left.%]="t"></div>
               <div class="timeline-now-marker" *ngIf="timelineEndPct < 100" [style.left.%]="timelineEndPct"></div>
             </div>
@@ -222,6 +223,7 @@
               <small><span class="tl-dot rast"></span> Rast</small>
               <small><span class="tl-dot stopped"></span> Stopp</small>
               <small><span class="tl-dot driftstopp"></span> Driftstopp</small>
+              <small><span class="tl-dot unplanned"></span> Ingen produktion</small>
               <small class="ms-auto">
                 <a href="javascript:void(0)" class="text-muted" (click)="showTimelineDetail = !showTimelineDetail">
                   <i class="fas fa-list me-1"></i>{{ showTimelineDetail ? 'Dölj detaljer' : 'Visa detaljer' }}
@@ -245,14 +247,16 @@
                         [class.tbl-row-running]="seg.type === 'running'"
                         [class.tbl-row-rast]="seg.type === 'rast'"
                         [class.tbl-row-stopped]="seg.type === 'stopped'"
-                        [class.tbl-row-driftstopp]="seg.type === 'driftstopp'">
+                        [class.tbl-row-driftstopp]="seg.type === 'driftstopp'"
+                        [class.tbl-row-unplanned]="seg.type === 'unplanned'">
                       <td class="ps-3">
                         <span class="d-inline-block rounded-circle me-2" style="width:10px;height:10px;"
                               [class.bg-success]="seg.type === 'running'"
                               [class.bg-warning]="seg.type === 'rast'"
                               [class.bg-secondary]="seg.type === 'stopped'"
-                              [class.bg-driftstopp]="seg.type === 'driftstopp'"></span>
-                        <span class="fw-semibold">{{ seg.type === 'running' ? 'I drift' : seg.type === 'rast' ? 'Rast' : seg.type === 'driftstopp' ? 'Driftstopp' : 'Stopp' }}</span>
+                              [class.bg-driftstopp]="seg.type === 'driftstopp'"
+                              [class.bg-unplanned]="seg.type === 'unplanned'"></span>
+                        <span class="fw-semibold">{{ seg.type === 'running' ? 'I drift' : seg.type === 'rast' ? 'Rast' : seg.type === 'driftstopp' ? 'Driftstopp' : seg.type === 'unplanned' ? 'Ingen produktion planerad' : 'Stopp' }}</span>
                       </td>
                       <td class="text-light">{{ seg.startTime }}</td>
                       <td class="text-light">{{ seg.endTime }}</td>
@@ -262,7 +266,8 @@
                               [class.bg-warning]="seg.type === 'rast'"
                               [class.text-dark]="seg.type === 'rast'"
                               [class.bg-secondary]="seg.type === 'stopped'"
-                              [class.bg-driftstopp]="seg.type === 'driftstopp'">{{ seg.duration }}</span>
+                              [class.bg-driftstopp]="seg.type === 'driftstopp'"
+                              [class.bg-unplanned]="seg.type === 'unplanned'">{{ seg.duration }}</span>
                       </td>
                     </tr>
                   </tbody>
@@ -595,7 +600,7 @@
     <div class="container-fluid">
 
       @defer (on viewport) {
-        <app-statistik-spc></app-statistik-spc>
+        <app-statistik-spc [fromDate]="getDateRange().start" [toDate]="getDateRange().end"></app-statistik-spc>
       } @placeholder {
         <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
       }

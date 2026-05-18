@@ -880,6 +880,9 @@
 .tl-dot.rast       { background:#ffc107; }
 .tl-dot.stopped    { background:#64748b; }
 .tl-dot.driftstopp { background:#9f1212; }
+.tl-dot.unplanned  { background:#4a5568; }
+.seg-unplanned { background:rgba(74,85,104,.15); border-left:1px dashed rgba(74,85,104,.35); border-right:1px dashed rgba(74,85,104,.35); }
+.bg-unplanned { background-color:#4a5568 !important; }
 
 /* Timeline detail table rows */
 .tbl-row-running    { background:rgba(39,174,96,.1) !important; }

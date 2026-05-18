@@ -170,7 +170,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   private liveIntervalId: ReturnType<typeof setInterval> | null = null;
 
   totalRastMinutes: number = 0;
-  timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'stopped' | 'driftstopp'; startTime: string; endTime: string; duration: string }[] = [];
+  timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'stopped' | 'driftstopp' | 'unplanned'; startTime: string; endTime: string; duration: string }[] = [];
   timelineEndPct: number = 100;
   showTimelineDetail = false;
   shiftSummaries: { nr: number; ibcCount: number; avgCycleTime: number; rastMinutes: number }[] = [];
@@ -2116,17 +2116,22 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     });
     events.sort((a, b) => a.min - b.min);
 
-    // Cap timeline at current time (today) or last event (past days)
+    // BUG-089 fix: For today cap at current time; for past days always extend to 24:00
     let capMin: number;
     if (isToday) {
       capMin = now.getHours() * 60 + now.getMinutes();
-    } else if (events.length > 0) {
-      capMin = events[events.length - 1].min;
     } else {
-      capMin = 1440;
+      capMin = 1440; // always show full 24h for historical days
     }
     // Always show at least up to cap, and full 24h bar background
     this.timelineEndPct = Math.min(100, (capMin / 1440) * 100);
+
+    // BUG-090 fix: determine the active production window (first run_start → last run_end)
+    // Any "stopped" segments outside this window are "unplanned" (no shift scheduled)
+    const runStartMins = events.filter(e => e.type === 'run_start').map(e => e.min);
+    const runEndMins = events.filter(e => e.type === 'run_end').map(e => e.min);
+    const firstRunStart = runStartMins.length > 0 ? Math.min(...runStartMins) : null;
+    const lastRunEnd = runEndMins.length > 0 ? Math.max(...runEndMins) : null;
 
     const fmtTime = (min: number): string => {
       const h = Math.floor(min / 60);
@@ -2143,8 +2148,19 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     let running = false, onRast = false, onDs = false, lastMin = 0;
     const push = (end: number) => {
       if (end > lastMin) {
-        const type: 'running' | 'rast' | 'stopped' | 'driftstopp' =
+        let type: 'running' | 'rast' | 'stopped' | 'driftstopp' | 'unplanned' =
           onDs ? 'driftstopp' : onRast ? 'rast' : running ? 'running' : 'stopped';
+        // BUG-090 fix: classify stopped segments outside the active shift window as 'unplanned'
+        if (type === 'stopped' && firstRunStart !== null) {
+          const isBeforeShift = end <= firstRunStart;
+          const isAfterShift = lastRunEnd !== null && lastMin >= lastRunEnd;
+          if (isBeforeShift || isAfterShift) {
+            type = 'unplanned';
+          }
+        } else if (type === 'stopped' && firstRunStart === null) {
+          // No running events at all for the day → entire day is unplanned
+          type = 'unplanned';
+        }
         segments.push({
           startPct: (lastMin / 1440) * 100,
           widthPct: ((end - lastMin) / 1440) * 100,
