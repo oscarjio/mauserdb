@@ -304,7 +304,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       this.viewMode = view;
     }
     const year = parseInt(q['year'], 10);
-    if (!isNaN(year) && year >= 2000 && year <= 2100) {
+    const maxYear = new Date().getFullYear();
+    if (!isNaN(year) && year >= 2000 && year <= maxYear) {
       this.currentYear = year;
     }
     const month = parseInt(q['month'], 10);

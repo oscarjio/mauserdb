@@ -202,9 +202,9 @@
 
 ---
 
-## BUG-013 (partiellt fixad): Månadsvy Y-axel kan gå till 900%+ effektivitet — nu cappat 250% (PARTIELLT FIXAD)
+## BUG-013 (partiellt fixad): Månadsvy Y-axel kan gå till 900%+ effektivitet — nu cappat 250% (BEKRÄFTAT FIXAD av ägaren 2026-05-18)
 **Rapporterad:** 2026-05-16
-**Status:** PARTIELLT FIXAD — cap på 250% lagd till, men rotorsaken (kräver backend-data om onoff_events kvalitet) finns kvar
+**Status:** BEKRÄFTAT FIXAD 2026-05-18 — ägaren verifierade: Feb Y-axel 300% (var 900%), eff 53% (var 115%). Cap 250% + netRuntime-formel ger korrekta värden
 **Symptom:** Február 2026 månadsvy: Y-axeln sträckte sig till ~900%. En stapel visade ~900% effektivitet.
 **Rotorsak:** `IBC × target / netRuntime × 100` exploderar om netRuntime är extremt kort (t.ex. <5 min på en testdag). Inga sanity-gränser fanns.
 **Fix (2026-05-16):**
@@ -337,7 +337,7 @@
 **Symptom:** Man kan navigera till år 2027 (och framtida månader/dagar) via nästa-pilen. Visas som 0% röda staplar istf. en tydlig "Framtida period — ingen data tillgänglig"-indikation.
 **Rotorsak:** `navigateNext()` saknar kontroll mot aktuellt datum. Ingen guard i `applyStateFromUrl()` heller — man kan skriva in framtida datum manuellt i URL:en och få samma fel.
 **Filer:** `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts` `navigateNext()`, eventuellt `applyStateFromUrl()`
-**Fix tillämpat:** Ny metod `isAtCurrentPeriod()` — returnerar true om innevarande period redan är i nutid. Guard `if (this.isAtCurrentPeriod()) return;` i `navigateNext()`. Knappen disabled via `[disabled]="isAtCurrentPeriod() || loading"` i HTML.
+**Fix tillämpat:** Ny metod `isAtCurrentPeriod()` — returnerar true om innevarande period redan är i nutid. Guard `if (this.isAtCurrentPeriod()) return;` i `navigateNext()`. Knappen disabled via `[disabled]="isAtCurrentPeriod() || loading"` i HTML. **Komplett fix (2026-05-18):** `applyStateFromUrl()` capar nu `currentYear` vid `new Date().getFullYear()` — år > innevarande år kan inte längre sättas via URL-manipulation.
 
 ---
 
