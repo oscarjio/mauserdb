@@ -404,7 +404,7 @@
 
 ## BUG-090: Status-tidslinje slutar vid 14:45, resten av dygnet saknas + 00:00-07:02 visas som "Stopp"
 **Rapporterad:** 2026-05-16
-**Status:** FIXAD — commit TBD, deployad till dev 2026-05-18
+**Status:** FIXAD — commit 0b524a91, deployad till dev 2026-05-18
 **Symptom (2 delbugg):**
 1. **Trunkerad tidslinje:** Statuslinjen slutar vid ca 14:45 — resten av dygnet (14:45–24:00) saknas trots att produktionen kan fortsätta
 2. **Felaktig "Stopp"-label:** Perioden 00:00–07:02 visas som "Stopp" trots att inget skift är planerat — ska vara "Ingen produktion planerad" eller dolt
