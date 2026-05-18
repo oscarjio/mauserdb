@@ -69,13 +69,27 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
     const canvas = document.getElementById('weekComparisonChart') as HTMLCanvasElement;
     if (!canvas) return;
 
+    // Use weekday names as labels so that both datasets (prev/this week)
+    // align to the same weekday column. Show weekday name + this week's date.
     const weekdays = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
-    const labels = this.weekComparisonThisWeek.map(d => {
-      if (d.label) return d.label;
-      const wd = new Date(d.date + 'T00:00:00').getDay();
-      const wdIdx = wd === 0 ? 6 : wd - 1;
-      return `${weekdays[wdIdx]} ${d.date.substring(5)}`;
-    });
+    const n = Math.max(this.weekComparisonThisWeek.length, this.weekComparisonPrevWeek.length);
+    const labels: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const entry = this.weekComparisonThisWeek[i] ?? this.weekComparisonPrevWeek[i];
+      if (entry?.label) {
+        labels.push(entry.label);
+      } else if (entry?.date) {
+        const wd = new Date(entry.date + 'T00:00:00').getDay();
+        const wdIdx = wd === 0 ? 6 : wd - 1;
+        labels.push(weekdays[wdIdx]);
+      } else {
+        labels.push(`Dag ${i + 1}`);
+      }
+    }
+
+    // Pad shorter array to match length so bars align correctly
+    const thisData = Array.from({ length: n }, (_, i) => this.weekComparisonThisWeek[i]?.ibc_ok ?? 0);
+    const prevData = Array.from({ length: n }, (_, i) => this.weekComparisonPrevWeek[i]?.ibc_ok ?? 0);
 
     if (this.weekComparisonChart) { (this.weekComparisonChart as any).destroy(); }
     this.weekComparisonChart = new Chart(canvas, {
@@ -85,7 +99,7 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
         datasets: [
           {
             label: 'Förra veckan',
-            data: this.weekComparisonPrevWeek.map(d => d.ibc_ok),
+            data: prevData,
             backgroundColor: 'rgba(113,128,150,0.5)',
             borderColor: 'rgba(160,174,192,0.8)',
             borderWidth: 1,
@@ -93,7 +107,7 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
           },
           {
             label: 'Denna vecka',
-            data: this.weekComparisonThisWeek.map(d => d.ibc_ok),
+            data: thisData,
             backgroundColor: 'rgba(66,153,225,0.7)',
             borderColor: 'rgba(99,179,237,1)',
             borderWidth: 1,
@@ -107,22 +121,29 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
         plugins: {
           legend: { labels: { color: '#a0aec0', font: { size: 12 } } },
           tooltip: {
-            intersect: false, mode: 'nearest',
+            intersect: false, mode: 'index',
             backgroundColor: 'rgba(20,20,30,0.95)',
             titleColor: '#fff',
             bodyColor: '#e0e0e0',
             borderColor: '#4299e1',
             borderWidth: 1,
             callbacks: {
-              afterLabel: (ctx: any) => {
-                const thisW = this.weekComparisonThisWeek[ctx.dataIndex]?.ibc_ok ?? 0;
-                const prevW = this.weekComparisonPrevWeek[ctx.dataIndex]?.ibc_ok ?? 0;
-                if (ctx.datasetIndex === 1 && prevW > 0) {
+              title: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? 0;
+                const thisDate = this.weekComparisonThisWeek[idx]?.date ?? '';
+                const prevDate = this.weekComparisonPrevWeek[idx]?.date ?? '';
+                return `${labels[idx]}${thisDate ? ' (' + thisDate.substring(5) + ' vs ' + prevDate.substring(5) + ')' : ''}`;
+              },
+              afterBody: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? 0;
+                const thisW = thisData[idx] ?? 0;
+                const prevW = prevData[idx] ?? 0;
+                if (prevW > 0) {
                   const diff = thisW - prevW;
                   const pct = Math.round((diff / prevW) * 100);
-                  return `${diff >= 0 ? '+' : ''}${diff} IBC (${pct >= 0 ? '+' : ''}${pct}% vs förra)`;
+                  return [`Skillnad: ${diff >= 0 ? '+' : ''}${diff} IBC (${pct >= 0 ? '+' : ''}${pct}%)`];
                 }
-                return '';
+                return [];
               }
             }
           }

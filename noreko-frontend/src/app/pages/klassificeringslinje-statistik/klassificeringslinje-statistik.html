@@ -36,36 +36,47 @@
       <div class="col-6 col-md-4 col-lg-2">
         <div class="kpi-card">
           <div class="kpi-label">Total IBC (period)</div>
-          <div class="kpi-value text-info">{{ totalProduced | number }}</div>
+          <div class="kpi-value" [class.text-info]="totalProduced > 0" [class.text-muted]="totalProduced === 0">
+            {{ totalProduced > 0 ? (totalProduced | number) : '–' }}
+          </div>
           <div class="kpi-sub">enheter</div>
         </div>
       </div>
       <div class="col-6 col-md-4 col-lg-2">
         <div class="kpi-card">
           <div class="kpi-label">Genomsnittlig kvalitet</div>
-          <div class="kpi-value" [class]="getQualityClass(avgQuality)">{{ avgQuality }}%</div>
-          <div class="kpi-sub">{{ reportsCount }} skift</div>
+          <div class="kpi-value"
+            [class]="totalProduced > 0 ? getQualityClass(avgQuality) : 'text-muted'">
+            {{ totalProduced > 0 ? (avgQuality + '%') : '–' }}
+          </div>
+          <div class="kpi-sub">{{ reportsCount > 0 ? (reportsCount + ' skift') : 'Ingen data' }}</div>
         </div>
       </div>
       <div class="col-6 col-md-4 col-lg-2">
         <div class="kpi-card">
           <div class="kpi-label">Antal OK</div>
-          <div class="kpi-value text-success">{{ totalOk | number }}</div>
+          <div class="kpi-value" [class.text-success]="totalOk > 0" [class.text-muted]="totalOk === 0">
+            {{ totalOk > 0 ? (totalOk | number) : '–' }}
+          </div>
           <div class="kpi-sub text-muted">godkända</div>
         </div>
       </div>
       <div class="col-6 col-md-4 col-lg-2">
         <div class="kpi-card">
           <div class="kpi-label">Kassation</div>
-          <div class="kpi-value text-danger">{{ totalEjOk | number }}</div>
+          <div class="kpi-value" [class.text-danger]="totalEjOk > 0" [class.text-muted]="totalEjOk === 0">
+            {{ totalProduced > 0 ? (totalEjOk | number) : '–' }}
+          </div>
           <div class="kpi-sub text-muted" *ngIf="totalProduced > 0">{{ (100 - avgQuality) }}%</div>
         </div>
       </div>
       <div class="col-6 col-md-4 col-lg-2">
         <div class="kpi-card">
           <div class="kpi-label">Snitt IBC / dag</div>
-          <div class="kpi-value text-success">
-            {{ oeeTrendSummary.snitt_per_dag | number:'1.0-0' }}
+          <div class="kpi-value"
+            [class.text-success]="oeeTrendSummary.snitt_per_dag > 0"
+            [class.text-muted]="oeeTrendSummary.snitt_per_dag === 0">
+            {{ oeeTrendSummary.snitt_per_dag > 0 ? (oeeTrendSummary.snitt_per_dag | number:'1.0-0') : '–' }}
           </div>
           <div class="kpi-sub">{{ oeeTrendDagar }}d</div>
         </div>
@@ -73,7 +84,7 @@
       <div class="col-6 col-md-4 col-lg-2">
         <div class="kpi-card">
           <div class="kpi-label">Bästa dag (IBC)</div>
-          <div class="kpi-value text-success">
+          <div class="kpi-value" [class.text-success]="oeeTrendSummary.basta_ibc > 0" [class.text-muted]="oeeTrendSummary.basta_ibc === 0">
             {{ oeeTrendSummary.basta_ibc > 0 ? oeeTrendSummary.basta_ibc : '–' }}
           </div>
           <div class="kpi-sub" *ngIf="oeeTrendSummary.basta_dag">{{ oeeTrendSummary.basta_dag }}</div>

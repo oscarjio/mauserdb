@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, Input, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -12,7 +12,10 @@ import { RebotlingService, SPCResponse } from '../../../../services/rebotling.se
   templateUrl: './statistik-spc.html',
   imports: [CommonModule, FormsModule]
 })
-export class StatistikSpcComponent implements OnInit, OnDestroy {
+export class StatistikSpcComponent implements OnInit, OnChanges, OnDestroy {
+  @Input() fromDate: string = '';
+  @Input() toDate: string = '';
+
   spcDays: number = 7;
   spcLoaded: boolean = false;
   spcLoading: boolean = false;
@@ -31,6 +34,14 @@ export class StatistikSpcComponent implements OnInit, OnDestroy {
     this.loadSPC();
   }
 
+  ngOnChanges(changes: SimpleChanges) {
+    // Re-fetch when parent period changes (fromDate / toDate inputs)
+    if ((changes['fromDate'] || changes['toDate']) && !changes['fromDate']?.firstChange) {
+      this.spcLoaded = false;
+      this.loadSPC();
+    }
+  }
+
   ngOnDestroy() {
     try { this.spcChart?.destroy(); } catch (e) {}
     this.spcChart = null;
@@ -43,7 +54,11 @@ export class StatistikSpcComponent implements OnInit, OnDestroy {
     if (this.spcLoading) return;
     this.spcLoading = true;
 
-    this.rebotlingService.getSPC(this.spcDays).pipe(
+    const obs = (this.fromDate && this.toDate)
+      ? this.rebotlingService.getSPC(this.spcDays, this.fromDate, this.toDate)
+      : this.rebotlingService.getSPC(this.spcDays);
+
+    obs.pipe(
       timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)

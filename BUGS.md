@@ -363,18 +363,20 @@
 
 ## BUG-087: Analys-flik — Veckojämförelse/SPC tre problem
 **Rapporterad:** 2026-05-16
-**Status:** DELVIS FIXAD — Del 1 åtgärdad 2026-05-16
+**Status:** FIXAD (alla 3 delar) — Del 1 åtgärdad 2026-05-16, Del 2+3 åtgärdade 2026-05-18
 **Symptom (3 delbugg):**
-1. **Stavfel:** "Veckojamforelse" saknar å — borde vara "Veckojämförelse" ✓ FIXAT
-2. **SPC period-synk:** SPC-diagrammet visar alltid 7 dagar fast månadsvy är vald — ignorerar vald period (samma problem som BUG-085 men i Analys-fliken)
-3. **Conceptual bug:** "Förra veckan"-staplar läggs på "Denna veckan"-dagar — x-axeln innehåller dagarna i nuvarande vecka men stapeldata är från förra veckan → missvisande jämförelse som antyder att det är samma dag
+1. **Stavfel:** "Veckojamforelse" saknar å — borde vara "Veckojämförelse" ✓ FIXAT 2026-05-16
+2. **SPC period-synk:** SPC-diagrammet visar alltid 7 dagar fast månadsvy är vald — ignorerar vald period ✓ FIXAT 2026-05-18
+3. **Conceptual bug:** "Förra veckan"-staplar läggs på "Denna veckan"-dagar — x-axeln missvisande ✓ FIXAT 2026-05-18
 **Rotorsak:**
 - Del 1: Hårdkodat ASCII-sträng utan åäö i komponent/template — FIXAT
-- Del 2: SPC-komponenten har egen fast period (7 dagar), synkar inte med huvud-statistiksidans viewMode/currentMonth
-- Del 3: Jämförelselogiken plottar förra veckans data på nuvarande veckans x-axelpositioner utan tydlig distinktion — bör antingen ha separata x-axlar eller tydlig labels "V18 (denna)" vs "V17 (förra)"
-**Filer:** `noreko-frontend/src/app/pages/rebotling/statistik/statistik-veckojamforelse/statistik-veckojamforelse.html`
-**Del 1 fix tillämpat:** Ändrade "Veckojamforelse -- IBC per dag" → "Veckojämförelse — IBC per dag", "forra veckan" → "förra veckan", "Forra veckan" → "Förra veckan" i statistik-veckojamforelse.html. Build + deploy 2026-05-16.
-**Del 2 & 3 (öppna):** Kräver mer analys — komponentens @Input-bindningar och SPC-period-logik måste undersökas. Skippas i detta pass.
+- Del 2: SPC-komponenten saknade @Input fromDate/toDate + ngOnChanges — nu reaktiv på förälderns datumval
+- Del 3: Labels genererades enbart från thisWeek-datumen → förvirring. Nu: veckodagsnamn (Mån/Tis/...) som labels, tooltip visar "Mån (05-11 vs 05-04)" för tydlig kontextuell jämförelse. Padding säkerställer att båda arrayerna är lika långa.
+**Filer:**
+- `statistik-spc/statistik-spc.ts`: lade till @Input() fromDate/toDate, ngOnChanges, getSPC(days, fromDate, toDate)
+- `rebotling-statistik.html`: `<app-statistik-spc [fromDate]="..." [toDate]="...">` som OEE-gauge
+- `rebotling.service.ts`: getSPC(days, fromDate?, toDate?)
+- `statistik-veckojamforelse/statistik-veckojamforelse.ts`: ny renderWeekComparisonChart med weekday-labels + padding
 
 ---
 
@@ -417,11 +419,11 @@
 
 ## BUG-091: Klassificeringslinje Statistik visar 0% röd och 0 kassation röd — borde visa "Ingen data"
 **Rapporterad:** 2026-05-16
-**Status:** EJ åtgärdad
+**Status:** FIXAD — 2026-05-18
 **Symptom:** Klassificeringslinjens statistiksida visar KPI-kort med 0% (röd) och Kassation 0 (röd). Linjen är EJ i drift — inga data ska finnas — men istf. "Ingen data tillgänglig" visas felaktigt 0-värden med rödmarkering.
-**Rotorsak:** Statistiksidans KPI-kort saknar guard för "ingen data". `0%` behandlas som dålig prestation och färgas röd, men korrekt beteende vid noll-data är att visa ett neutralt "–" eller "Ingen data".
-**Filer:** Klassificeringslinjens statistikkomponent (sök i `src/app/pages/klassificeringslinje/` eller liknande). Troligen delad med rebotling-statistik-mönster.
-**Fix:** Om `total_cycles === 0`: visa "–" istf. "0%" och använd neutral grå istf. röd. Lägg till `*ngIf="data?.total_cycles > 0; else noData"` med ett tydligt "Ingen produktionsdata tillgänglig"-meddelande.
+**Rotorsak:** Statistiksidans KPI-kort saknade guard för "ingen data". `0%` behandlades som dålig prestation och färgades röd.
+**Filer:** `noreko-frontend/src/app/pages/klassificeringslinje-statistik/klassificeringslinje-statistik.html`
+**Fix:** Alla KPI-korts värden: om `totalProduced === 0` (eller relevant fält är 0) visas "–" med `text-muted` istf. färgat värde. Kassation-kortet och avgQuality-kortet är specifikt skyddade: röd färg visas bara om faktiska värden finns. Snitt IBC/dag och Bästa dag skyddas på samma sätt.
 
 ---
 

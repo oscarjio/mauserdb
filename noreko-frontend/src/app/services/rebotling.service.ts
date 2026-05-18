@@ -196,11 +196,14 @@ export class RebotlingService {
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getSPC(days: number = 7): Observable<any> {
-    return this.http.get<SPCResponse>(
-      `${environment.apiUrl}?action=rebotling&run=spc&days=${days}`,
-      { withCredentials: true }
-    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  getSPC(days: number = 7, fromDate?: string, toDate?: string): Observable<any> {
+    let url: string;
+    if (fromDate && toDate) {
+      url = `${environment.apiUrl}?action=rebotling&run=spc&from_date=${fromDate}&to_date=${toDate}`;
+    } else {
+      url = `${environment.apiUrl}?action=rebotling&run=spc&days=${days}`;
+    }
+    return this.http.get<SPCResponse>(url, { withCredentials: true }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getCycleByOperator(startDate: string, endDate: string): Observable<any> {
