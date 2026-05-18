@@ -358,7 +358,17 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     });
   }
 
-  ngAfterViewInit() {}
+  ngAfterViewInit() {
+    this.updateTabBarStickyOffset();
+  }
+
+  @HostListener('window:resize')
+  updateTabBarStickyOffset() {
+    const header = document.querySelector('.header') as HTMLElement | null;
+    if (header) {
+      document.documentElement.style.setProperty('--app-header-h', `${header.offsetHeight}px`);
+    }
+  }
 
   /** Ladda produktionsoverblick (VD-vy) fran exec-dashboard endpoint */
   loadOverview() {
