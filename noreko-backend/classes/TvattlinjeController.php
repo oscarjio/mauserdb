@@ -1484,24 +1484,22 @@ class TvattlinjeController {
     // PLC Diagnostik — rådata och signalkvalitet för felsökning
     // =========================================================
 
-    // GET ?action=tvattlinje&run=plc-diagnostik[&date=YYYY-MM-DD][&since_id=N][&limit=200]
+    // GET ?action=tvattlinje&run=plc-diagnostik[&date=YYYY-MM-DD][&limit=200]
+    // Full-replace approach: always returns all events for the date, no since_id pagination.
     private function getPlcDiagnostikStream(): void {
         try {
             $date = $_GET['date'] ?? date('Y-m-d');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) $date = date('Y-m-d');
-            $sinceId = isset($_GET['since_id']) ? intval($_GET['since_id']) : 0;
             $limit = isset($_GET['limit']) ? min(intval($_GET['limit']), 500) : 200;
 
             $events = [];
 
             // tvattlinje_onoff
             try {
-                $sql = "SELECT * FROM tvattlinje_onoff WHERE DATE(datum) = :date";
-                $params = [':date' => $date];
-                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
-                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute($params);
+                $stmt = $this->pdo->prepare(
+                    "SELECT * FROM tvattlinje_onoff WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
+                );
+                $stmt->execute([':date' => $date]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'onoff';
                     $row['event_type'] = intval($row['running'] ?? 0) === 1 ? 'ON' : 'OFF';
@@ -1511,12 +1509,10 @@ class TvattlinjeController {
 
             // tvattlinje_ibc
             try {
-                $sql = "SELECT * FROM tvattlinje_ibc WHERE DATE(datum) = :date";
-                $params = [':date' => $date];
-                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
-                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute($params);
+                $stmt = $this->pdo->prepare(
+                    "SELECT * FROM tvattlinje_ibc WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
+                );
+                $stmt->execute([':date' => $date]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'ibc';
                     $row['event_type'] = 'IBC';
@@ -1524,14 +1520,12 @@ class TvattlinjeController {
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream ibc: ' . $e->getMessage()); }
 
-            // tvattlinje_rast — läs enbart från tvattlinje_rast (primär tabell, ingen cross-table merge)
+            // tvattlinje_rast
             try {
-                $sql = "SELECT id, datum, rast_status FROM tvattlinje_rast WHERE DATE(datum) = :date";
-                $params = [':date' => $date];
-                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
-                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute($params);
+                $stmt = $this->pdo->prepare(
+                    "SELECT id, datum, rast_status FROM tvattlinje_rast WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
+                );
+                $stmt->execute([':date' => $date]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'rast';
                     $row['event_type'] = intval($row['rast_status'] ?? 0) === 1 ? 'RAST_START' : 'RAST_END';
@@ -1541,18 +1535,29 @@ class TvattlinjeController {
 
             // tvattlinje_driftstopp
             try {
-                $sql = "SELECT id, datum, driftstopp_status FROM tvattlinje_driftstopp WHERE DATE(datum) = :date";
-                $params = [':date' => $date];
-                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
-                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute($params);
+                $stmt = $this->pdo->prepare(
+                    "SELECT id, datum, driftstopp_status FROM tvattlinje_driftstopp WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
+                );
+                $stmt->execute([':date' => $date]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'driftstopp';
                     $row['event_type'] = intval($row['driftstopp_status'] ?? 0) === 1 ? 'DRIFTSTOPP_START' : 'DRIFTSTOPP_SLUT';
                     $events[] = $row;
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream driftstopp: ' . $e->getMessage()); }
+
+            // tvattlinje_skiftrapport
+            try {
+                $stmt = $this->pdo->prepare(
+                    "SELECT id, created_at AS datum, antal_ok, antal_ej_ok, totalt FROM tvattlinje_skiftrapport WHERE DATE(created_at) = :date ORDER BY created_at DESC LIMIT " . $limit
+                );
+                $stmt->execute([':date' => $date]);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $row['source'] = 'skiftrapport';
+                    $row['event_type'] = 'SKIFTRAPPORT';
+                    $events[] = $row;
+                }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream skiftrapport: ' . $e->getMessage()); }
 
             usort($events, function ($a, $b) {
                 $cmp = strcmp($b['datum'], $a['datum']);

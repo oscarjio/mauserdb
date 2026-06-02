@@ -45,7 +45,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   isFetching = false;
 
   events: PlcEvent[] = [];
-  maxId = 0;
+  private dbEventMap = new Map<string, PlcEvent>();
   isPaused = false;
   autoScroll = true;
   selectedDate: string = '';
@@ -55,6 +55,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   showIbc = true;
   showRast = true;
   showDriftstopp = true;
+  showSkiftrapport = true;
 
   stats = {
     running: false,
@@ -79,7 +80,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   ngOnInit(): void {
     this.selectedDate = this.todayStr();
     this.isToday = true;
-    this.fetchEvents(false);
+    this.fetchEvents(true);
     this.startPolling();
     this.healthIntervalId = setInterval(() => {
       if (this.lastFetchTime) {
@@ -113,19 +114,16 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   private startPolling(): void {
     this.pollIntervalId = setInterval(() => {
       if (!this.isPaused && this.isToday) {
-        this.fetchEvents(true);
+        this.fetchEvents();
       }
     }, 2500);
   }
 
-  fetchEvents(incremental: boolean): void {
+  fetchEvents(initialLoad = false): void {
     if (this.isFetching) return;
     this.isFetching = true;
 
-    let url = `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostik&date=${this.selectedDate}&limit=200`;
-    if (incremental && this.maxId > 0) {
-      url += `&since_id=${this.maxId}`;
-    }
+    const url = `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostik&date=${this.selectedDate}&limit=200`;
 
     this.http.get<PlcDiagnostikResponse>(url, { withCredentials: true })
       .pipe(
@@ -142,22 +140,20 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
         this.fetchError = false;
         this.lastFetchTime = new Date();
 
-        if (incremental) {
-          if (res.data.events.length > 0) {
-            const existing = new Set(this.events.map(e => e.source + '-' + String(e.id)));
-            const newEvents = res.data.events.reverse().filter(e => !existing.has(e.source + '-' + String(e.id)));
-            if (newEvents.length > 0) {
-              this.events = [...this.events, ...newEvents];
-              this.shouldScrollToBottom = true;
-            }
+        const prevSize = this.dbEventMap.size;
+        for (const event of res.data.events) {
+          const key = event.source + '-' + event.id;
+          if (!this.dbEventMap.has(key)) {
+            this.dbEventMap.set(key, event);
           }
-        } else {
-          this.events = res.data.events.reverse();
-          this.shouldScrollToBottom = true;
         }
 
-        if (res.data.max_id > this.maxId) {
-          this.maxId = res.data.max_id;
+        if (initialLoad || this.dbEventMap.size !== prevSize) {
+          const systemEvents = this.events.filter(e => e.source === '_system');
+          const dbEvents = Array.from(this.dbEventMap.values())
+            .sort((a, b) => a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : a.id - b.id);
+          this.events = [...dbEvents, ...systemEvents];
+          this.shouldScrollToBottom = true;
         }
 
         this.stats = res.data.stats;
@@ -166,9 +162,9 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
 
   onDateChange(): void {
     this.isToday = this.selectedDate === this.todayStr();
+    this.dbEventMap.clear();
     this.events = [];
-    this.maxId = 0;
-    this.fetchEvents(false);
+    this.fetchEvents(true);
   }
 
   goToToday(): void {
@@ -188,7 +184,8 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   }
 
   clearConsole(): void {
-    this.events = [];
+    // Behåller Map så gamla events inte dyker upp igen, men rensar visningen
+    this.events = this.events.filter(e => e.source === '_system');
   }
 
   get filteredEvents(): PlcEvent[] {
@@ -198,6 +195,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       if (e.source === 'ibc' && !this.showIbc) return false;
       if (e.source === 'rast' && !this.showRast) return false;
       if (e.source === 'driftstopp' && !this.showDriftstopp) return false;
+      if (e.source === 'skiftrapport' && !this.showSkiftrapport) return false;
       return true;
     });
   }
@@ -209,6 +207,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       case 'IBC': return 'badge-ibc';
       case 'RAST_START': case 'RAST_END': return 'badge-rast';
       case 'DRIFTSTOPP_START': case 'DRIFTSTOPP_SLUT': return 'badge-driftstopp';
+      case 'SKIFTRAPPORT': return 'badge-skiftrapport';
       default: return 'badge-default';
     }
   }
@@ -222,6 +221,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       case 'RAST_END': return 'RAST SLUT';
       case 'DRIFTSTOPP_START': return 'DRIFTSTOPP';
       case 'DRIFTSTOPP_SLUT': return 'DRIFT OK';
+      case 'SKIFTRAPPORT': return 'SKIFTRAPPORT';
       default: return event.event_type;
     }
   }
@@ -349,7 +349,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
     ).subscribe(res => {
       if (res.success) {
         this.addSystemLine(`✓ ${res.message}`, 'success');
-        setTimeout(() => this.fetchEvents(true), 500);
+        setTimeout(() => this.fetchEvents(), 500);
       } else {
         this.addSystemLine(`✗ ${res.error || 'Okänt fel'}`, 'error');
       }

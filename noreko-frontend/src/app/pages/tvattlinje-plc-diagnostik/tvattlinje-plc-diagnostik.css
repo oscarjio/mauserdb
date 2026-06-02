@@ -257,6 +257,12 @@
   border: 1px solid rgba(248, 81, 73, 0.3);
 }
 
+.badge-skiftrapport {
+  background: rgba(163, 113, 247, 0.2);
+  color: #a371f7;
+  border: 1px solid rgba(163, 113, 247, 0.4);
+}
+
 .badge-default {
   background: rgba(139, 148, 158, 0.2);
   color: #8b949e;

@@ -41,6 +41,10 @@
         <input type="checkbox" [(ngModel)]="showDriftstopp">
         <span class="badge-driftstopp filter-badge">DRIFTSTOPP</span>
       </label>
+      <label class="filter-checkbox" title="Skiftrapport-events">
+        <input type="checkbox" [(ngModel)]="showSkiftrapport">
+        <span class="badge-skiftrapport filter-badge">SKIFTRAPPORT</span>
+      </label>
     </div>
     <div class="toolbar-right">
       <input type="date" class="date-input" [(ngModel)]="selectedDate" (change)="onDateChange()">
