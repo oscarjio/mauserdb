@@ -1160,6 +1160,19 @@ class TvattlinjeController {
                 } catch (\Throwable $e) { /* prova nästa tabell */ }
             }
 
+            // Driftstopp-events
+            $driftstopp_events = [];
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT datum, driftstopp_status
+                    FROM tvattlinje_driftstopp
+                    WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                    ORDER BY datum ASC
+                ");
+                $stmt->execute(['start' => $start, 'end' => $end]);
+                $driftstopp_events = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics driftstopp: ' . $e->getMessage()); }
+
             // Beräkna runtime
             $totalRuntimeMinutes = 0;
             if (count($onoff_events) > 0) {
@@ -1227,7 +1240,24 @@ class TvattlinjeController {
                 }
             }
 
-            $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes);
+            // Beräkna driftstopptid
+            $totalDriftstoppMinutes = 0;
+            if (count($driftstopp_events) > 0) {
+                $dsStart = null;
+                foreach ($driftstopp_events as $evt) {
+                    $t = new DateTime($evt['datum'], new DateTimeZone('Europe/Stockholm'));
+                    $status = (int)($evt['driftstopp_status'] ?? 0);
+                    if ($status === 1 && $dsStart === null) {
+                        $dsStart = $t;
+                    } elseif ($status === 0 && $dsStart !== null) {
+                        $diff = $dsStart->diff($t);
+                        $totalDriftstoppMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $dsStart = null;
+                    }
+                }
+            }
+
+            $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);
             $total_runtime_hours = $totalRuntimeMinutes / 60;
 
             // Snitt cykeltid
@@ -1249,20 +1279,22 @@ class TvattlinjeController {
             echo json_encode([
                 'success' => true,
                 'data' => [
-                    'cycles'       => $cycles,
-                    'onoff_events' => $onoff_events,
-                    'rast_events'  => $rast_events,
+                    'cycles'             => $cycles,
+                    'onoff_events'       => $onoff_events,
+                    'rast_events'        => $rast_events,
+                    'driftstopp_events'  => $driftstopp_events,
                     'summary' => [
-                        'total_cycles'          => $total_cycles,
-                        'received_webhooks'     => count($cycles),
-                        'missed_webhooks'       => max(0, $total_cycles - count($cycles)),
-                        'avg_production_percent'=> round($avg_production_percent, 1),
-                        'avg_cycle_time'        => round($avg_cycle_time, 2),
-                        'target_cycle_time'     => $target_cycle_time,
-                        'total_runtime_hours'   => round($total_runtime_hours, 2),
-                        'net_runtime_minutes'   => round($netRuntimeMinutes, 1),
-                        'total_rast_minutes'    => round($totalRastMinutes, 1),
-                        'days_with_production'  => $days_with_production,
+                        'total_cycles'              => $total_cycles,
+                        'received_webhooks'         => count($cycles),
+                        'missed_webhooks'           => max(0, $total_cycles - count($cycles)),
+                        'avg_production_percent'    => round($avg_production_percent, 1),
+                        'avg_cycle_time'            => round($avg_cycle_time, 2),
+                        'target_cycle_time'         => $target_cycle_time,
+                        'total_runtime_hours'       => round($total_runtime_hours, 2),
+                        'net_runtime_minutes'       => round($netRuntimeMinutes, 1),
+                        'total_rast_minutes'        => round($totalRastMinutes, 1),
+                        'total_driftstopp_minutes'  => round($totalDriftstoppMinutes, 1),
+                        'days_with_production'      => $days_with_production,
                     ]
                 ]
             ], JSON_UNESCAPED_UNICODE);

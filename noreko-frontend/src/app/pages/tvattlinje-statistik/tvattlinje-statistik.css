@@ -906,16 +906,20 @@
 .timeline-seg:hover { opacity:0.85; filter:brightness(1.2); }
 .seg-running    { background:#27ae60; }
 .seg-rast       { background:#ffc107; }
+.seg-driftstopp { background:#e74c3c; }
 .seg-stopped    { background:#64748b; }
 .timeline-tick { position:absolute; top:0; width:1px; height:100%; background:rgba(255,255,255,.08); z-index:0; pointer-events:none; }
 .timeline-now-marker { position:absolute; top:-2px; width:2px; height:calc(100% + 4px); background:#63b3ed; z-index:2; pointer-events:none; border-radius:1px; }
 .tl-dot { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
 .tl-dot.running    { background:#27ae60; }
 .tl-dot.rast       { background:#ffc107; }
+.tl-dot.driftstopp { background:#e74c3c; }
 .tl-dot.stopped    { background:#64748b; }
-.tbl-row-running td { background: rgba(39,174,96,0.05); }
-.tbl-row-rast td    { background: rgba(255,193,7,0.05); }
-.tbl-row-stopped td { background: rgba(100,116,139,0.05); }
+.tbl-row-running td    { background: rgba(39,174,96,0.05); }
+.tbl-row-rast td       { background: rgba(255,193,7,0.05); }
+.tbl-row-driftstopp td { background: rgba(231,76,60,0.05); }
+.tbl-row-stopped td    { background: rgba(100,116,139,0.05); }
+.bg-driftstopp { background-color: #e74c3c !important; }
 
 /* ============================================
    Rådata & PLC Diagnostik tabeller

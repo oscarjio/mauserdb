@@ -116,9 +116,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   plcDiagRefreshInterval: any = null;
 
   // ---- Timeline (dag-vy) ----
-  timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'stopped'; startTime: string; endTime: string; duration: string }[] = [];
+  timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'driftstopp' | 'stopped'; startTime: string; endTime: string; duration: string }[] = [];
   timelineEndPct: number = 100;
   showTimelineDetail: boolean = false;
+
+  // ---- Dag-metrics: rast + driftstopp ----
+  totalRastMinutes: number = 0;
+  totalDriftstoppMinutes: number = 0;
 
   // ---- Skiftsammanfattning (dag-vy) ----
   shiftSummaries: { nr: number; ibcCount: number; avgCycleTime: number }[] = [];
@@ -590,6 +594,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
 
+    this.totalRastMinutes = data.summary?.total_rast_minutes || 0;
+    this.totalDriftstoppMinutes = data.summary?.total_driftstopp_minutes || 0;
     this.buildTimelineSegments(data);
     this.buildShiftSummaries(data.cycles || []);
     this.computeDayMetrics(data);
@@ -606,6 +612,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const segments: typeof this.timelineSegments = [];
     const onoff: any[] = data.onoff_events || [];
     const rast: any[] = data.rast_events || [];
+    const driftstopp: any[] = data.driftstopp_events || [];
 
     const now = new Date();
     const isToday = this.selectedPeriods.length === 1 &&
@@ -613,7 +620,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.selectedPeriods[0].getMonth() === now.getMonth() &&
       this.selectedPeriods[0].getDate() === now.getDate();
 
-    type EvType = 'run_start' | 'run_end' | 'rast_start' | 'rast_end';
+    type EvType = 'run_start' | 'run_end' | 'rast_start' | 'rast_end' | 'ds_start' | 'ds_end';
     const events: { min: number; type: EvType }[] = [];
     onoff.forEach((e: any) => {
       const d = new Date(e.datum);
@@ -624,6 +631,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       const d = new Date(e.datum);
       const min = d.getHours() * 60 + d.getMinutes();
       events.push({ min, type: e.rast_status == 1 ? 'rast_start' : 'rast_end' });
+    });
+    driftstopp.forEach((e: any) => {
+      const d = new Date(e.datum);
+      const min = d.getHours() * 60 + d.getMinutes();
+      events.push({ min, type: e.driftstopp_status == 1 ? 'ds_start' : 'ds_end' });
     });
     events.sort((a, b) => a.min - b.min);
 
@@ -649,11 +661,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       return h > 0 ? `${h}h ${m}min` : `${m} min`;
     };
 
-    let running = false, onRast = false, lastMin = 0;
+    let running = false, onRast = false, onDriftstopp = false, lastMin = 0;
     const push = (end: number) => {
       if (end > lastMin) {
-        const type: 'running' | 'rast' | 'stopped' =
-          onRast ? 'rast' : running ? 'running' : 'stopped';
+        const type: 'running' | 'rast' | 'driftstopp' | 'stopped' =
+          onDriftstopp ? 'driftstopp' : onRast ? 'rast' : running ? 'running' : 'stopped';
         segments.push({
           startPct: (lastMin / 1440) * 100,
           widthPct: ((end - lastMin) / 1440) * 100,
@@ -672,6 +684,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       else if (ev.type === 'run_end') running = false;
       else if (ev.type === 'rast_start') onRast = true;
       else if (ev.type === 'rast_end') onRast = false;
+      else if (ev.type === 'ds_start') onDriftstopp = true;
+      else if (ev.type === 'ds_end') onDriftstopp = false;
     }
     push(capMin);
 
