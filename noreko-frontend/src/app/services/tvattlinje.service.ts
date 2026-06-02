@@ -99,6 +99,17 @@ export interface OeeTrendResponse {
   summary: OeeTrendSummary;
 }
 
+export interface RastStatusResponse {
+  success: boolean;
+  data: {
+    on_rast: boolean;
+    rast_minutes_today: number;
+    rast_count_today: number;
+    last_event: string | null;
+    events: { datum: string; rast_status: number }[];
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class TvattlinjeService {
   constructor(private http: HttpClient) {}
@@ -143,5 +154,12 @@ export class TvattlinjeService {
       `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostics&start=${startDate}&end=${endDate}`,
       { withCredentials: true }
     ).pipe(timeout(20000), retry(1), catchError(() => of(null)));
+  }
+
+  getRastStatus(): Observable<any> {
+    return this.http.get<RastStatusResponse>(
+      `${environment.apiUrl}?action=tvattlinje&run=rast`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

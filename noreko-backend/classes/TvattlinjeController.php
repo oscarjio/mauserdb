@@ -28,6 +28,8 @@ class TvattlinjeController {
                 $this->getAlertThresholds();
             } elseif ($action === 'status') {
                 $this->getRunningStatus();
+            } elseif ($action === 'rast') {
+                $this->getRastStatus();
             } elseif ($action === 'statistics') {
                 $this->getStatistics();
             } elseif ($action === 'report') {
@@ -88,6 +90,11 @@ class TvattlinjeController {
                     return;
                 }
                 $this->saveAlertThresholds();
+                return;
+            }
+
+            if ($action === 'plc-simulate') {
+                $this->plcSimulate();
                 return;
             }
         }
@@ -646,6 +653,150 @@ class TvattlinjeController {
                 'success' => false,
                 'error' => 'Kunde inte hämta statistik'
             ], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * POST ?action=tvattlinje&run=plc-simulate
+     * Simulerar PLC-signaler för testning (från PLC-diagnostik-konsolen).
+     * Body JSON: { "command": "onoff", "value": "on"|"off" }
+     *            { "command": "rast",  "value": "on"|"off" }
+     */
+    private function plcSimulate(): void {
+        try {
+            $body = json_decode(file_get_contents('php://input'), true);
+            $command = $body['command'] ?? '';
+            $value   = $body['value']   ?? '';
+
+            if (!in_array($command, ['onoff', 'rast'])) {
+                echo json_encode(['success' => false, 'error' => "Okänt kommando: $command. Tillgängliga: onoff, rast"], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            if (!in_array($value, ['on', 'off'])) {
+                echo json_encode(['success' => false, 'error' => "Ogiltigt värde: $value. Ange on eller off"], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            $isOn = $value === 'on';
+
+            switch ($command) {
+                case 'onoff':
+                    $lastRow = $this->pdo->query("SELECT runtime_today FROM tvattlinje_onoff ORDER BY datum DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+                    $rt = $lastRow ? floatval($lastRow['runtime_today']) : 0;
+                    $stmt = $this->pdo->prepare("INSERT INTO tvattlinje_onoff (s_count_h, s_count_l, running, runtime_today) VALUES (0, 0, :running, :rt)");
+                    $stmt->execute(['running' => $isOn ? 1 : 0, 'rt' => $rt]);
+                    $msg = $isOn ? "Linje STARTAD (simulerad)" : "Linje STOPPAD (simulerad)";
+                    break;
+
+                case 'rast':
+                    // Skriv till tvattlinje_rast (fallback tvattlinje_runtime)
+                    $inserted = false;
+                    foreach (['tvattlinje_rast', 'tvattlinje_runtime'] as $tbl) {
+                        try {
+                            $stmt = $this->pdo->prepare("INSERT INTO {$tbl} (datum, rast_status) VALUES (NOW(), :status)");
+                            $stmt->execute(['status' => $isOn ? 1 : 0]);
+                            $inserted = true;
+                            break;
+                        } catch (\Throwable) { /* prova nästa */ }
+                    }
+                    if (!$inserted) throw new \RuntimeException("Ingen rasttabell tillgänglig");
+                    $msg = $isOn ? "Rast STARTAD (simulerad)" : "Rast AVSLUTAD (simulerad)";
+                    break;
+
+                default:
+                    $msg = '';
+            }
+
+            echo json_encode(['success' => true, 'message' => $msg], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            error_log("TvattlinjeController::plcSimulate: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Simulering misslyckades: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * GET ?action=tvattlinje&run=rast
+     *
+     * Hämtar aktuell raststatus och beräknar total rasttid idag.
+     * Läser från tvattlinje_rast (fallback tvattlinje_runtime).
+     * rast_status=1 = rast börjar, rast_status=0 = rast slutar.
+     */
+    private function getRastStatus() {
+        try {
+            $tz = new \DateTimeZone('Europe/Stockholm');
+            $now = new \DateTime('now', $tz);
+            $todayStr = $now->format('Y-m-d');
+
+            // Slå ihop tvattlinje_rast + tvattlinje_runtime — prod-plcbackend kan skriva
+            // till runtime tills TvattLinje.php uppdateras med sudo på produktionsservern
+            $events = [];
+            foreach (['tvattlinje_rast', 'tvattlinje_runtime'] as $rastTable) {
+                try {
+                    $stmt = $this->pdo->prepare("
+                        SELECT id, datum, rast_status
+                        FROM {$rastTable}
+                        WHERE datum >= :today AND datum < DATE_ADD(:today2, INTERVAL 1 DAY)
+                        ORDER BY datum ASC
+                    ");
+                    $stmt->execute(['today' => $todayStr, 'today2' => $todayStr]);
+                    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                        $events[] = $row;
+                    }
+                } catch (\Throwable $e) { /* tabell saknas */ }
+            }
+            usort($events, fn($a, $b) => strcmp($a['datum'], $b['datum']));
+
+            $totalRastMinutes = 0;
+            $rastStart = null;
+            $currentlyOnRast = false;
+
+            foreach ($events as $event) {
+                if ((int)$event['rast_status'] === 1 && $rastStart === null) {
+                    $rastStart = new \DateTime($event['datum'], $tz);
+                    $currentlyOnRast = true;
+                } elseif ((int)$event['rast_status'] === 0 && $rastStart !== null) {
+                    $end = new \DateTime($event['datum'], $tz);
+                    $diff = $rastStart->diff($end);
+                    $minutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $totalRastMinutes += max(0, (int)round($minutes));
+                    $rastStart = null;
+                    $currentlyOnRast = false;
+                }
+            }
+
+            // Pågående rast — räkna till nu (max 8h)
+            if ($rastStart !== null) {
+                $diff = $rastStart->diff($now);
+                $minutesOpen = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                $minutesOpen = max(0, (int)round($minutesOpen));
+                if ($minutesOpen <= 480) {
+                    $currentlyOnRast = true;
+                    $totalRastMinutes += $minutesOpen;
+                } else {
+                    $currentlyOnRast = false;
+                }
+            }
+
+            $latestEvent = !empty($events) ? end($events) : null;
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'on_rast'            => $currentlyOnRast,
+                    'rast_minutes_today' => round($totalRastMinutes, 1),
+                    'rast_count_today'   => count(array_filter($events, fn($e) => (int)$e['rast_status'] === 1)),
+                    'last_event'         => $latestEvent ? $latestEvent['datum'] : null,
+                    'events'             => array_map(fn($e) => [
+                        'datum'       => $e['datum'],
+                        'rast_status' => (int)$e['rast_status']
+                    ], $events)
+                ]
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            error_log('TvattlinjeController::getRastStatus: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta raststatus'], JSON_UNESCAPED_UNICODE);
         }
     }
 

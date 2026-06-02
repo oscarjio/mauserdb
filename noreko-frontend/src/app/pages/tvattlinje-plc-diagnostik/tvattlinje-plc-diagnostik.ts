@@ -271,10 +271,25 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
 
     const parts = raw.split(/\s+/);
     const cmd = parts[0].toLowerCase();
+    const arg = parts[1]?.toLowerCase() || '';
 
     switch (cmd) {
       case '/help':
         this.showHelp();
+        break;
+      case '/onoff':
+        if (arg === 'on' || arg === 'off') {
+          this.sendSimulation('onoff', arg);
+        } else {
+          this.addSystemLine('Användning: /onoff on|off — Starta eller stoppa linjen', 'error');
+        }
+        break;
+      case '/rast':
+        if (arg === 'on' || arg === 'off') {
+          this.sendSimulation('rast', arg);
+        } else {
+          this.addSystemLine('Användning: /rast on|off — Starta eller avsluta rast', 'error');
+        }
         break;
       case '/status':
         this.addSystemLine(`Linje: ${this.stats.running ? 'IGÅNG' : 'STOPPAD'} | IBC idag: ${this.stats.ibc_today}`, 'info');
@@ -292,12 +307,36 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       '╔══════════════════════════════════════════════════════╗',
       '║  TVÄTTLINJE PLC DIAGNOSTIK — KOMMANDON              ║',
       '╠══════════════════════════════════════════════════════╣',
-      '║  /status   Visa aktuell linjestatus                  ║',
-      '║  /clear    Rensa konsolen                            ║',
-      '║  /help     Visa denna hjälp                          ║',
+      '║  /onoff on       Simulera linje START               ║',
+      '║  /onoff off      Simulera linje STOPP               ║',
+      '║  /rast on        Simulera rast START                 ║',
+      '║  /rast off       Simulera rast SLUT                  ║',
+      '║  /status         Visa aktuell linjestatus            ║',
+      '║  /clear          Rensa konsolen                      ║',
+      '║  /help           Visa denna hjälp                    ║',
       '╚══════════════════════════════════════════════════════╝',
     ];
     lines.forEach(l => this.addSystemLine(l, 'help'));
+  }
+
+  private sendSimulation(command: string, value: string): void {
+    this.addSystemLine(`Skickar ${command} ${value}...`, 'info');
+    this.http.post<{ success: boolean; message?: string; error?: string }>(
+      `${environment.apiUrl}?action=tvattlinje&run=plc-simulate`,
+      { command, value },
+      { withCredentials: true }
+    ).pipe(
+      timeout(5000),
+      catchError(() => of({ success: false, message: '', error: 'Nätverksfel' })),
+      takeUntil(this.destroy$)
+    ).subscribe(res => {
+      if (res.success) {
+        this.addSystemLine(`✓ ${res.message}`, 'success');
+        setTimeout(() => this.fetchEvents(true), 500);
+      } else {
+        this.addSystemLine(`✗ ${res.error || 'Okänt fel'}`, 'error');
+      }
+    });
   }
 
   private addSystemLine(text: string, type: 'cmd' | 'info' | 'success' | 'error' | 'help'): void {
