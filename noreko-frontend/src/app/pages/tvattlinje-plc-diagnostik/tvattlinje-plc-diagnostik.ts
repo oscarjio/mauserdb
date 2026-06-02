@@ -20,7 +20,7 @@ interface PlcDiagnostikResponse {
   success: boolean;
   data: {
     events: PlcEvent[];
-    max_ids: { onoff: number; ibc: number; rast: number; driftstopp: number };
+    max_id: number;
     stats: {
       running: boolean;
       skiftraknare: number;
@@ -45,7 +45,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   isFetching = false;
 
   events: PlcEvent[] = [];
-  maxIds = { onoff: 0, ibc: 0, rast: 0, driftstopp: 0 };
+  maxId = 0;
   isPaused = false;
   autoScroll = true;
   selectedDate: string = '';
@@ -123,8 +123,8 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
     this.isFetching = true;
 
     let url = `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostik&date=${this.selectedDate}&limit=200`;
-    if (incremental) {
-      url += `&since_id_onoff=${this.maxIds.onoff}&since_id_ibc=${this.maxIds.ibc}&since_id_rast=${this.maxIds.rast}&since_id_driftstopp=${this.maxIds.driftstopp}`;
+    if (incremental && this.maxId > 0) {
+      url += `&since_id=${this.maxId}`;
     }
 
     this.http.get<PlcDiagnostikResponse>(url, { withCredentials: true })
@@ -156,11 +156,8 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
           this.shouldScrollToBottom = true;
         }
 
-        if (res.data.max_ids) {
-          if (res.data.max_ids.onoff > this.maxIds.onoff) this.maxIds.onoff = res.data.max_ids.onoff;
-          if (res.data.max_ids.ibc > this.maxIds.ibc) this.maxIds.ibc = res.data.max_ids.ibc;
-          if (res.data.max_ids.rast > this.maxIds.rast) this.maxIds.rast = res.data.max_ids.rast;
-          if (res.data.max_ids.driftstopp > this.maxIds.driftstopp) this.maxIds.driftstopp = res.data.max_ids.driftstopp;
+        if (res.data.max_id > this.maxId) {
+          this.maxId = res.data.max_id;
         }
 
         this.stats = res.data.stats;
@@ -170,7 +167,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   onDateChange(): void {
     this.isToday = this.selectedDate === this.todayStr();
     this.events = [];
-    this.maxIds = { onoff: 0, ibc: 0, rast: 0, driftstopp: 0 };
+    this.maxId = 0;
     this.fetchEvents(false);
   }
 

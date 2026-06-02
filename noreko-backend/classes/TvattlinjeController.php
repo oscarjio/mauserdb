@@ -1489,28 +1489,22 @@ class TvattlinjeController {
         try {
             $date = $_GET['date'] ?? date('Y-m-d');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) $date = date('Y-m-d');
-            // Per-table since_ids to avoid cross-table ID collision
-            $sinceOnoff      = isset($_GET['since_id_onoff'])      ? intval($_GET['since_id_onoff'])      : (isset($_GET['since_id']) ? intval($_GET['since_id']) : 0);
-            $sinceIbc        = isset($_GET['since_id_ibc'])        ? intval($_GET['since_id_ibc'])        : (isset($_GET['since_id']) ? intval($_GET['since_id']) : 0);
-            $sinceRast       = isset($_GET['since_id_rast'])       ? intval($_GET['since_id_rast'])       : 0;
-            $sinceDriftstopp = isset($_GET['since_id_driftstopp']) ? intval($_GET['since_id_driftstopp']) : 0;
+            $sinceId = isset($_GET['since_id']) ? intval($_GET['since_id']) : 0;
             $limit = isset($_GET['limit']) ? min(intval($_GET['limit']), 500) : 200;
 
             $events = [];
-            $maxIds = ['onoff' => 0, 'ibc' => 0, 'rast' => 0, 'driftstopp' => 0];
 
             // tvattlinje_onoff
             try {
                 $sql = "SELECT * FROM tvattlinje_onoff WHERE DATE(datum) = :date";
                 $params = [':date' => $date];
-                if ($sinceOnoff > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceOnoff; }
+                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
                 $sql .= " ORDER BY datum DESC LIMIT " . $limit;
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute($params);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'onoff';
                     $row['event_type'] = intval($row['running'] ?? 0) === 1 ? 'ON' : 'OFF';
-                    if (intval($row['id']) > $maxIds['onoff']) $maxIds['onoff'] = intval($row['id']);
                     $events[] = $row;
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream onoff: ' . $e->getMessage()); }
@@ -1519,53 +1513,43 @@ class TvattlinjeController {
             try {
                 $sql = "SELECT * FROM tvattlinje_ibc WHERE DATE(datum) = :date";
                 $params = [':date' => $date];
-                if ($sinceIbc > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceIbc; }
+                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
                 $sql .= " ORDER BY datum DESC LIMIT " . $limit;
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute($params);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'ibc';
                     $row['event_type'] = 'IBC';
-                    if (intval($row['id']) > $maxIds['ibc']) $maxIds['ibc'] = intval($row['id']);
                     $events[] = $row;
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream ibc: ' . $e->getMessage()); }
 
-            // Välj EN rasttabell: tvattlinje_rast om den har data idag, annars tvattlinje_runtime
-            // Undviker dubbletter när plcbackend skriver till båda tabellerna med marginellt olika timestamps
-            $rastTable = 'tvattlinje_runtime';
+            // tvattlinje_rast — läs enbart från tvattlinje_rast (primär tabell, ingen cross-table merge)
             try {
-                $chk = $this->pdo->prepare("SELECT COUNT(*) FROM tvattlinje_rast WHERE DATE(datum) = :date");
-                $chk->execute([':date' => $date]);
-                if ($chk->fetchColumn() > 0) $rastTable = 'tvattlinje_rast';
-            } catch (\Throwable $e) {}
-            try {
-                $sql = "SELECT id, datum, rast_status FROM {$rastTable} WHERE DATE(datum) = :date";
+                $sql = "SELECT id, datum, rast_status FROM tvattlinje_rast WHERE DATE(datum) = :date";
                 $params = [':date' => $date];
-                if ($sinceRast > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceRast; }
+                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
                 $sql .= " ORDER BY datum DESC LIMIT " . $limit;
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute($params);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'rast';
                     $row['event_type'] = intval($row['rast_status'] ?? 0) === 1 ? 'RAST_START' : 'RAST_END';
-                    if (intval($row['id']) > $maxIds['rast']) $maxIds['rast'] = intval($row['id']);
                     $events[] = $row;
                 }
-            } catch (\Throwable $e) { error_log("TvattlinjeController::plcDiagnostikStream {$rastTable}: " . $e->getMessage()); }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream rast: ' . $e->getMessage()); }
 
             // tvattlinje_driftstopp
             try {
                 $sql = "SELECT id, datum, driftstopp_status FROM tvattlinje_driftstopp WHERE DATE(datum) = :date";
                 $params = [':date' => $date];
-                if ($sinceDriftstopp > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceDriftstopp; }
+                if ($sinceId > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceId; }
                 $sql .= " ORDER BY datum DESC LIMIT " . $limit;
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute($params);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'driftstopp';
                     $row['event_type'] = intval($row['driftstopp_status'] ?? 0) === 1 ? 'DRIFTSTOPP_START' : 'DRIFTSTOPP_SLUT';
-                    if (intval($row['id']) > $maxIds['driftstopp']) $maxIds['driftstopp'] = intval($row['id']);
                     $events[] = $row;
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream driftstopp: ' . $e->getMessage()); }
@@ -1575,6 +1559,12 @@ class TvattlinjeController {
                 return $cmp !== 0 ? $cmp : intval($b['id']) - intval($a['id']);
             });
             $events = array_slice($events, 0, $limit);
+
+            $maxId = 0;
+            foreach ($events as $e) {
+                $eid = intval($e['id'] ?? 0);
+                if ($eid > $maxId) $maxId = $eid;
+            }
 
             $latestOnoff = null;
             try {
@@ -1590,7 +1580,7 @@ class TvattlinjeController {
                 'success' => true,
                 'data' => [
                     'events' => $events,
-                    'max_ids' => $maxIds,
+                    'max_id' => $maxId,
                     'stats' => [
                         'running' => $latestOnoff ? intval($latestOnoff['running'] ?? 0) === 1 : false,
                         'skiftraknare' => 0,
