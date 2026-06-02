@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { of } from 'rxjs';
 import { catchError, finalize, timeout } from 'rxjs/operators';
-import { TvattlinjeService, LineStatusResponse, TvattlinjeLiveStatsResponse } from '../../services/tvattlinje.service';
+import { TvattlinjeService, LineStatusResponse, TvattlinjeLiveStatsResponse, RastStatusResponse, DriftstoppStatusResponse } from '../../services/tvattlinje.service';
 
 @Component({
   standalone: true,
@@ -50,6 +50,21 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   onRast: boolean = false;
   rastMinutesToday: number = 0;
   rastCountToday: number = 0;
+  private isFetchingRast = false;
+  private rastIntervalId: any;
+
+  // Driftstopp
+  onDriftstopp: boolean = false;
+  driftstoppMinutesToday: number = 0;
+  driftstoppCountToday: number = 0;
+  private isFetchingDriftstopp = false;
+  private driftstoppIntervalId: any;
+
+  get driftstoppTimeLabel(): string {
+    const h = Math.floor(this.driftstoppMinutesToday / 60);
+    const m = Math.round(this.driftstoppMinutesToday % 60);
+    return h > 0 ? `${h}h ${m}m driftstopp` : `${m}m driftstopp`;
+  }
 
   // Speedometer properties
   needleRotation: number = -150; // Start position
@@ -87,14 +102,20 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
       this.fetchLineStatus();
       this.fetchLiveStats();
     }, 2000);
+    this.rastIntervalId = setInterval(() => this.fetchRastStatus(), 5000);
+    this.driftstoppIntervalId = setInterval(() => this.fetchDriftstoppStatus(), 5000);
     this.fetchLineStatus();
     this.fetchLiveStats();
+    this.fetchRastStatus();
+    this.fetchDriftstoppStatus();
   }
 
   ngOnDestroy() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
     }
+    if (this.rastIntervalId) clearInterval(this.rastIntervalId);
+    if (this.driftstoppIntervalId) clearInterval(this.driftstoppIntervalId);
   }
 
   private updateDataAge() {
@@ -125,10 +146,47 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
       .subscribe((res: LineStatusResponse | null) => {
         if (res && res.success && res.data) {
           this.isLineRunning = res.data.running;
-          this.onRast = res.data.on_rast ?? false;
-          this.rastMinutesToday = res.data.rast_minutes_today ?? 0;
-          this.rastCountToday = res.data.rast_count_today ?? 0;
-          this.statusBarClass = this.onRast ? 'status-bar-rast' : (this.isLineRunning ? 'status-bar-on' : 'status-bar-off');
+          this.statusBarClass = this.onDriftstopp ? 'status-bar-driftstopp' : (this.onRast ? 'status-bar-rast' : (this.isLineRunning ? 'status-bar-on' : 'status-bar-off'));
+        }
+      });
+  }
+
+  private fetchRastStatus() {
+    if (this.isFetchingRast) return;
+    this.isFetchingRast = true;
+    this.tvattlinjeService
+      .getRastStatus()
+      .pipe(
+        timeout(10000),
+        catchError(() => of<RastStatusResponse | null>(null)),
+        finalize(() => { this.isFetchingRast = false; })
+      )
+      .subscribe((res: RastStatusResponse | null) => {
+        if (res?.success && res.data) {
+          this.onRast = res.data.on_rast;
+          this.rastMinutesToday = res.data.rast_minutes_today;
+          this.rastCountToday = res.data.rast_count_today;
+          this.statusBarClass = this.onDriftstopp ? 'status-bar-driftstopp' : (this.onRast ? 'status-bar-rast' : (this.isLineRunning ? 'status-bar-on' : 'status-bar-off'));
+        }
+      });
+  }
+
+  private fetchDriftstoppStatus() {
+    if (this.isFetchingDriftstopp) return;
+    this.isFetchingDriftstopp = true;
+    this.tvattlinjeService
+      .getDriftstoppStatus()
+      .pipe(
+        timeout(10000),
+        catchError(() => of(null)),
+        finalize(() => { this.isFetchingDriftstopp = false; })
+      )
+      .subscribe((res: DriftstoppStatusResponse | null) => {
+        if (res?.success && res.data) {
+          this.onDriftstopp = res.data.on_driftstopp;
+          this.driftstoppMinutesToday = res.data.driftstopp_minutes_today;
+          this.driftstoppCountToday = res.data.driftstopp_count_today;
+          this.statusBarClass = this.onDriftstopp ? 'status-bar-driftstopp' : (this.onRast ? 'status-bar-rast' : (this.isLineRunning ? 'status-bar-on' : 'status-bar-off'));
         }
       });
   }

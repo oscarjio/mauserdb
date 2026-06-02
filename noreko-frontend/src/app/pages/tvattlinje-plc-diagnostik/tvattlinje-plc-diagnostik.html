@@ -37,6 +37,10 @@
         <input type="checkbox" [(ngModel)]="showRast">
         <span class="badge-rast filter-badge">RAST</span>
       </label>
+      <label class="filter-checkbox" title="Driftstopp-events">
+        <input type="checkbox" [(ngModel)]="showDriftstopp">
+        <span class="badge-driftstopp filter-badge">DRIFTSTOPP</span>
+      </label>
     </div>
     <div class="toolbar-right">
       <input type="date" class="date-input" [(ngModel)]="selectedDate" (change)="onDateChange()">

@@ -110,6 +110,17 @@ export interface RastStatusResponse {
   };
 }
 
+export interface DriftstoppStatusResponse {
+  success: boolean;
+  data: {
+    on_driftstopp: boolean;
+    driftstopp_minutes_today: number;
+    driftstopp_count_today: number;
+    last_event: string | null;
+    events: { datum: string; driftstopp_status: number }[];
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class TvattlinjeService {
   constructor(private http: HttpClient) {}
@@ -159,6 +170,13 @@ export class TvattlinjeService {
   getRastStatus(): Observable<any> {
     return this.http.get<RastStatusResponse>(
       `${environment.apiUrl}?action=tvattlinje&run=rast`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  }
+
+  getDriftstoppStatus(): Observable<any> {
+    return this.http.get<DriftstoppStatusResponse>(
+      `${environment.apiUrl}?action=tvattlinje&run=driftstopp`,
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }

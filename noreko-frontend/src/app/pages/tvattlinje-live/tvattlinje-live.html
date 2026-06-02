@@ -7,6 +7,13 @@
       <span class="ms-3 rast-time-badge">{{ rastTimeLabel }} idag</span>
     </div>
   }
+  @if (onDriftstopp) {
+    <div class="driftstopp-banner">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      <span>DRIFTSTOPP</span>
+      <span class="ms-3 driftstopp-time-badge">{{ driftstoppTimeLabel }} idag</span>
+    </div>
+  }
   <div class="freshness-indicator" [class]="freshnessClass">
     <span class="freshness-dot"></span>
     <span class="freshness-text">{{ freshnessLabel }}</span>

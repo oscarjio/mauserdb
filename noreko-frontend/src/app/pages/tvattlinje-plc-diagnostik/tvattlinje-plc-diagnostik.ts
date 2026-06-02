@@ -20,7 +20,7 @@ interface PlcDiagnostikResponse {
   success: boolean;
   data: {
     events: PlcEvent[];
-    max_id: number;
+    max_ids: { onoff: number; ibc: number; rast: number; driftstopp: number };
     stats: {
       running: boolean;
       skiftraknare: number;
@@ -45,7 +45,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   isFetching = false;
 
   events: PlcEvent[] = [];
-  maxId = 0;
+  maxIds = { onoff: 0, ibc: 0, rast: 0, driftstopp: 0 };
   isPaused = false;
   autoScroll = true;
   selectedDate: string = '';
@@ -54,6 +54,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   showOnoff = true;
   showIbc = true;
   showRast = true;
+  showDriftstopp = true;
 
   stats = {
     running: false,
@@ -122,8 +123,8 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
     this.isFetching = true;
 
     let url = `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostik&date=${this.selectedDate}&limit=200`;
-    if (incremental && this.maxId > 0) {
-      url += `&since_id=${this.maxId}`;
+    if (incremental) {
+      url += `&since_id_onoff=${this.maxIds.onoff}&since_id_ibc=${this.maxIds.ibc}&since_id_rast=${this.maxIds.rast}&since_id_driftstopp=${this.maxIds.driftstopp}`;
     }
 
     this.http.get<PlcDiagnostikResponse>(url, { withCredentials: true })
@@ -152,8 +153,11 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
           this.shouldScrollToBottom = true;
         }
 
-        if (res.data.max_id > this.maxId) {
-          this.maxId = res.data.max_id;
+        if (res.data.max_ids) {
+          if (res.data.max_ids.onoff > this.maxIds.onoff) this.maxIds.onoff = res.data.max_ids.onoff;
+          if (res.data.max_ids.ibc > this.maxIds.ibc) this.maxIds.ibc = res.data.max_ids.ibc;
+          if (res.data.max_ids.rast > this.maxIds.rast) this.maxIds.rast = res.data.max_ids.rast;
+          if (res.data.max_ids.driftstopp > this.maxIds.driftstopp) this.maxIds.driftstopp = res.data.max_ids.driftstopp;
         }
 
         this.stats = res.data.stats;
@@ -163,7 +167,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   onDateChange(): void {
     this.isToday = this.selectedDate === this.todayStr();
     this.events = [];
-    this.maxId = 0;
+    this.maxIds = { onoff: 0, ibc: 0, rast: 0, driftstopp: 0 };
     this.fetchEvents(false);
   }
 
@@ -193,6 +197,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       if (e.source === 'onoff' && !this.showOnoff) return false;
       if (e.source === 'ibc' && !this.showIbc) return false;
       if (e.source === 'rast' && !this.showRast) return false;
+      if (e.source === 'driftstopp' && !this.showDriftstopp) return false;
       return true;
     });
   }
@@ -203,6 +208,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       case 'OFF': return 'badge-off';
       case 'IBC': return 'badge-ibc';
       case 'RAST_START': case 'RAST_END': return 'badge-rast';
+      case 'DRIFTSTOPP_START': case 'DRIFTSTOPP_SLUT': return 'badge-driftstopp';
       default: return 'badge-default';
     }
   }
@@ -214,6 +220,8 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       case 'IBC': return 'IBC';
       case 'RAST_START': return 'RAST START';
       case 'RAST_END': return 'RAST SLUT';
+      case 'DRIFTSTOPP_START': return 'DRIFTSTOPP';
+      case 'DRIFTSTOPP_SLUT': return 'DRIFT OK';
       default: return event.event_type;
     }
   }
@@ -291,6 +299,13 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
           this.addSystemLine('Användning: /rast on|off — Starta eller avsluta rast', 'error');
         }
         break;
+      case '/driftstopp':
+        if (arg === 'on' || arg === 'off') {
+          this.sendSimulation('driftstopp', arg);
+        } else {
+          this.addSystemLine('Användning: /driftstopp on|off — Aktivera eller avsluta driftstopp', 'error');
+        }
+        break;
       case '/status':
         this.addSystemLine(`Linje: ${this.stats.running ? 'IGÅNG' : 'STOPPAD'} | IBC idag: ${this.stats.ibc_today}`, 'info');
         break;
@@ -311,6 +326,8 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       '║  /onoff off      Simulera linje STOPP               ║',
       '║  /rast on        Simulera rast START                 ║',
       '║  /rast off       Simulera rast SLUT                  ║',
+      '║  /driftstopp on  Simulera driftstopp START           ║',
+      '║  /driftstopp off Simulera driftstopp SLUT            ║',
       '║  /status         Visa aktuell linjestatus            ║',
       '║  /clear          Rensa konsolen                      ║',
       '║  /help           Visa denna hjälp                    ║',
