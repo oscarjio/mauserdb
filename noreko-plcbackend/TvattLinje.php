@@ -236,29 +236,34 @@ class TvattLinje {
         $rast_status = (int)$_GET['rast']; // 0 = arbetar, 1 = rast
 
         // Kontrollera om vi ska spara till tvattlinje_rast eller tvattlinje_runtime
-        $table = 'tvattlinje_rast';
-        try {
-            $stmt = $this->db->prepare("SELECT rast_status FROM {$table} ORDER BY datum DESC LIMIT 1");
-            $stmt->execute();
-            $lastEntry = $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            // Fallback: tvattlinje_runtime
-            $table = 'tvattlinje_runtime';
+        $table = null;
+        $lastEntry = null;
+        foreach (['tvattlinje_rast', 'tvattlinje_runtime'] as $candidate) {
             try {
-                $stmt = $this->db->prepare("SELECT rast_status FROM {$table} ORDER BY datum DESC LIMIT 1");
+                $stmt = $this->db->prepare("SELECT rast_status FROM {$candidate} ORDER BY datum DESC LIMIT 1");
                 $stmt->execute();
                 $lastEntry = $stmt->fetch(PDO::FETCH_ASSOC);
-            } catch (\Exception $e2) {
-                error_log("TvattLinje handleRast: varken tvattlinje_rast eller tvattlinje_runtime finns: " . $e2->getMessage());
-                return;
+                $table = $candidate;
+                break;
+            } catch (\Throwable $e) {
+                error_log("TvattLinje handleRast: tabell {$candidate} ej tillgänglig: " . $e->getMessage());
             }
+        }
+
+        if ($table === null) {
+            error_log("TvattLinje handleRast: varken tvattlinje_rast eller tvattlinje_runtime finns — hoppar över");
+            return;
         }
 
         $lastStatus = $lastEntry ? (int)$lastEntry['rast_status'] : -1;
 
         if ($lastStatus !== $rast_status) {
-            $stmt = $this->db->prepare("INSERT INTO {$table} (datum, rast_status) VALUES (NOW(), :rast_status)");
-            $stmt->execute(['rast_status' => $rast_status]);
+            try {
+                $stmt = $this->db->prepare("INSERT INTO {$table} (datum, rast_status) VALUES (NOW(), :rast_status)");
+                $stmt->execute(['rast_status' => $rast_status]);
+            } catch (\Throwable $e) {
+                error_log("TvattLinje handleRast: INSERT till {$table} misslyckades: " . $e->getMessage());
+            }
         }
     }
 
