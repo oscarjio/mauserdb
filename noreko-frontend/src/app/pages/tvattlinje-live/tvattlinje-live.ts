@@ -45,12 +45,23 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   ibcTarget: number = 0;
   utetemperatur: number | null = null;
   productionPercentage: number = 0;
-  
+
+  // Rast status
+  onRast: boolean = false;
+  rastMinutesToday: number = 0;
+  rastCountToday: number = 0;
+
   // Speedometer properties
   needleRotation: number = -150; // Start position
 
   get isGoalAchieved(): boolean {
     return this.productionPercentage >= 100;
+  }
+
+  get rastTimeLabel(): string {
+    const h = Math.floor(this.rastMinutesToday / 60);
+    const m = Math.round(this.rastMinutesToday % 60);
+    return h > 0 ? `${h}h ${m}m rast` : `${m}m rast`;
   }
 
   get statusText(): string {
@@ -114,7 +125,10 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
       .subscribe((res: LineStatusResponse | null) => {
         if (res && res.success && res.data) {
           this.isLineRunning = res.data.running;
-          this.statusBarClass = this.isLineRunning ? 'status-bar-on' : 'status-bar-off';
+          this.onRast = res.data.on_rast ?? false;
+          this.rastMinutesToday = res.data.rast_minutes_today ?? 0;
+          this.rastCountToday = res.data.rast_count_today ?? 0;
+          this.statusBarClass = this.onRast ? 'status-bar-rast' : (this.isLineRunning ? 'status-bar-on' : 'status-bar-off');
         }
       });
   }

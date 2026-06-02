@@ -9,6 +9,8 @@ export interface LineStatusResponse {
   data: {
     running: boolean;
     on_rast?: boolean;
+    rast_minutes_today?: number;
+    rast_count_today?: number;
     lastUpdate: string | null;
   };
 }

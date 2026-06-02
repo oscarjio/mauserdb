@@ -653,21 +653,72 @@ class TvattlinjeController {
         try {
             $stmt = $this->pdo->prepare('
                 SELECT running, datum
-                FROM tvattlinje_onoff 
-                ORDER BY datum DESC 
+                FROM tvattlinje_onoff
+                ORDER BY datum DESC
                 LIMIT 1
             ');
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             $isRunning = $result && isset($result['running']) ? (bool)$result['running'] : false;
             $lastUpdate = $result && isset($result['datum']) ? $result['datum'] : null;
+
+            // Hämta rast-status från tvattlinje_rast (fallback tvattlinje_runtime)
+            $onRast = false;
+            $rastMinutesToday = 0;
+            $rastCountToday = 0;
+
+            $rastEvents = [];
+            foreach (['tvattlinje_rast', 'tvattlinje_runtime'] as $rastTable) {
+                try {
+                    $stmt2 = $this->pdo->prepare("
+                        SELECT datum, rast_status
+                        FROM {$rastTable}
+                        WHERE DATE(datum) = CURDATE()
+                        ORDER BY datum ASC
+                    ");
+                    $stmt2->execute();
+                    $rastEvents = $stmt2->fetchAll(\PDO::FETCH_ASSOC);
+                    break;
+                } catch (\Throwable $e) { /* prova nästa */ }
+            }
+
+            // Beräkna rastminuter idag och on_rast
+            if (!empty($rastEvents)) {
+                $lastEvent = end($rastEvents);
+                $onRast = (int)($lastEvent['rast_status'] ?? 0) === 1;
+
+                $rastStart = null;
+                $counts = 0;
+                foreach ($rastEvents as $evt) {
+                    $status = (int)($evt['rast_status'] ?? 0);
+                    if ($status === 1 && $rastStart === null) {
+                        $rastStart = new \DateTime($evt['datum']);
+                        $counts++;
+                    } elseif ($status === 0 && $rastStart !== null) {
+                        $end = new \DateTime($evt['datum']);
+                        $diff = $rastStart->diff($end);
+                        $rastMinutesToday += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $rastStart = null;
+                    }
+                }
+                // Pågående rast
+                if ($rastStart !== null) {
+                    $now = new \DateTime();
+                    $diff = $rastStart->diff($now);
+                    $rastMinutesToday += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                }
+                $rastCountToday = $counts;
+            }
 
             echo json_encode([
                 'success' => true,
                 'data' => [
-                    'running' => $isRunning,
-                    'lastUpdate' => $lastUpdate
+                    'running'            => $isRunning,
+                    'lastUpdate'         => $lastUpdate,
+                    'on_rast'            => $onRast,
+                    'rast_minutes_today' => round($rastMinutesToday, 1),
+                    'rast_count_today'   => $rastCountToday,
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
