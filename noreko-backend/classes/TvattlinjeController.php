@@ -706,8 +706,8 @@ class TvattlinjeController {
                     break;
 
                 case 'driftstopp':
-                    $stmt = $this->pdo->prepare("INSERT INTO tvattlinje_driftstopp (datum, driftstopp_status) VALUES (NOW(), :status)");
-                    $stmt->execute(['status' => $isOn ? 1 : 0]);
+                    $stmt = $this->pdo->prepare("INSERT INTO tvattlinje_driftstopp (datum, status) VALUES (NOW(), :status)");
+                    $stmt->execute(['status' => $isOn ? 'start' : 'slut']);
                     $msg = $isOn ? "Driftstopp AKTIVERAT (simulerat)" : "Driftstopp AVSLUTAT (simulerat)";
                     break;
 
@@ -733,35 +733,44 @@ class TvattlinjeController {
             $now = new \DateTime('now', $tz);
             $todayStr = $now->format('Y-m-d');
 
-            // Säkerställ att tabellen finns
+            // Säkerställ att tabellen finns (status='start'/'slut' matchar PLC-backend)
             $this->pdo->exec("
                 CREATE TABLE IF NOT EXISTS tvattlinje_driftstopp (
                     id INT NOT NULL AUTO_INCREMENT,
                     datum DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    driftstopp_status TINYINT(1) NOT NULL DEFAULT 0,
+                    status VARCHAR(10) NOT NULL DEFAULT 'slut',
                     PRIMARY KEY (id),
                     KEY idx_datum (datum)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             ");
 
-            $stmt = $this->pdo->prepare("
-                SELECT id, datum, driftstopp_status
-                FROM tvattlinje_driftstopp
-                WHERE datum >= :today AND datum < DATE_ADD(:today2, INTERVAL 1 DAY)
-                ORDER BY datum ASC
-            ");
-            $stmt->execute(['today' => $todayStr, 'today2' => $todayStr]);
-            $events = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            // Läs events — stöd både ny (status VARCHAR) och gammal (driftstopp_status TINYINT) kolumnstruktur
+            $events = [];
+            try {
+                $stmt = $this->pdo->prepare("SELECT id, datum, status FROM tvattlinje_driftstopp WHERE DATE(datum) = :today ORDER BY datum ASC");
+                $stmt->execute(['today' => $todayStr]);
+                $events = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Throwable $e) {
+                // Gammal schema: driftstopp_status TINYINT — normalisera till 'start'/'slut'
+                try {
+                    $stmt = $this->pdo->prepare("SELECT id, datum, driftstopp_status FROM tvattlinje_driftstopp WHERE DATE(datum) = :today ORDER BY datum ASC");
+                    $stmt->execute(['today' => $todayStr]);
+                    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                        $row['status'] = (int)$row['driftstopp_status'] === 1 ? 'start' : 'slut';
+                        $events[] = $row;
+                    }
+                } catch (\Throwable $e2) { error_log('TvattlinjeController::getDriftstoppStatus fetch: ' . $e2->getMessage()); }
+            }
 
             $totalMinutes = 0;
             $stoppStart = null;
             $currentlyOnStopp = false;
 
             foreach ($events as $event) {
-                if ((int)$event['driftstopp_status'] === 1 && $stoppStart === null) {
+                if (($event['status'] ?? '') === 'start' && $stoppStart === null) {
                     $stoppStart = new \DateTime($event['datum'], $tz);
                     $currentlyOnStopp = true;
-                } elseif ((int)$event['driftstopp_status'] === 0 && $stoppStart !== null) {
+                } elseif (($event['status'] ?? '') === 'slut' && $stoppStart !== null) {
                     $end = new \DateTime($event['datum'], $tz);
                     $diff = $stoppStart->diff($end);
                     $minutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
@@ -790,11 +799,11 @@ class TvattlinjeController {
                 'data' => [
                     'on_driftstopp'            => $currentlyOnStopp,
                     'driftstopp_minutes_today' => round($totalMinutes, 1),
-                    'driftstopp_count_today'   => count(array_filter($events, fn($e) => (int)$e['driftstopp_status'] === 1)),
+                    'driftstopp_count_today'   => count(array_filter($events, fn($e) => ($e['status'] ?? '') === 'start')),
                     'last_event'               => $latestEvent ? $latestEvent['datum'] : null,
                     'events'                   => array_map(fn($e) => [
                         'datum'             => $e['datum'],
-                        'driftstopp_status' => (int)$e['driftstopp_status']
+                        'driftstopp_status' => ($e['status'] ?? '') === 'start' ? 1 : 0
                     ], $events)
                 ]
             ], JSON_UNESCAPED_UNICODE);
@@ -826,10 +835,10 @@ class TvattlinjeController {
                     $stmt = $this->pdo->prepare("
                         SELECT id, datum, rast_status
                         FROM {$rastTable}
-                        WHERE datum >= :today AND datum < DATE_ADD(:today2, INTERVAL 1 DAY)
+                        WHERE DATE(datum) = :today
                         ORDER BY datum ASC
                     ");
-                    $stmt->execute(['today' => $todayStr, 'today2' => $todayStr]);
+                    $stmt->execute(['today' => $todayStr]);
                     foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                         $events[] = $row;
                     }
@@ -1093,27 +1102,16 @@ class TvattlinjeController {
                 if ($sr && (float)$sr['value'] > 0) $target_cycle_time = (float)$sr['value'];
             } catch (\Throwable $e) { /* ignorera */ }
 
-            // Hämta cyklar med PLC-fält (om de finns)
+            // Hämta cyklar — production schema: id, s_count, ibc_count, datum, other
             $stmt = $this->pdo->prepare('
                 SELECT
                     i.datum,
                     i.ibc_count,
                     i.s_count,
-                    COALESCE(i.effektivitet, 100) as produktion_procent,
-                    COALESCE(i.skiftraknare, 1) as skiftraknare,
                     TIMESTAMPDIFF(SECOND,
                         LAG(i.datum) OVER (ORDER BY i.datum),
                         i.datum
-                    ) / 60.0 as cycle_time,
-                    i.op1,
-                    i.op2,
-                    i.op3,
-                    i.ibc_ok,
-                    i.ibc_ej_ok,
-                    i.omtvaatt,
-                    i.runtime_plc,
-                    i.rasttime,
-                    i.lopnummer
+                    ) / 60.0 as cycle_time
                 FROM tvattlinje_ibc i
                 WHERE i.datum >= :start AND i.datum < DATE_ADD(:end, INTERVAL 1 DAY)
                 ORDER BY i.datum ASC
@@ -1151,26 +1149,31 @@ class TvattlinjeController {
                     $stmt = $this->pdo->prepare("
                         SELECT datum, rast_status
                         FROM {$rast_table}
-                        WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                        WHERE DATE(datum) BETWEEN :start AND :end
                         ORDER BY datum ASC
                     ");
                     $stmt->execute(['start' => $start, 'end' => $end]);
                     $rast_events = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                    break; // Använd första funna tabellen
-                } catch (\Throwable $e) { /* prova nästa tabell */ }
+                    if (count($rast_events) > 0) break;
+                } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics rast ' . $rast_table . ': ' . $e->getMessage()); }
             }
 
-            // Driftstopp-events
+            // Driftstopp-events (status='start'/'slut' matchar PLC-backend)
             $driftstopp_events = [];
             try {
                 $stmt = $this->pdo->prepare("
-                    SELECT datum, driftstopp_status
+                    SELECT datum, status
                     FROM tvattlinje_driftstopp
-                    WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                    WHERE DATE(datum) BETWEEN :start AND :end
                     ORDER BY datum ASC
                 ");
                 $stmt->execute(['start' => $start, 'end' => $end]);
-                $driftstopp_events = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                $raw_ds = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                // Normalisera till driftstopp_status 0/1 för frontend-kompatibilitet
+                foreach ($raw_ds as $row) {
+                    $row['driftstopp_status'] = ($row['status'] ?? '') === 'start' ? 1 : 0;
+                    $driftstopp_events[] = $row;
+                }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics driftstopp: ' . $e->getMessage()); }
 
             // Beräkna runtime
@@ -1320,11 +1323,8 @@ class TvattlinjeController {
             $rows = [];
             try {
                 $stmt = $this->pdo->prepare("
-                    SELECT
-                        sr.*,
-                        u.username as op1_name
+                    SELECT sr.*
                     FROM tvattlinje_skiftrapport sr
-                    LEFT JOIN users u ON sr.op1 = u.operator_id AND u.operator_id IS NOT NULL
                     WHERE sr.datum >= :start AND sr.datum <= :end
                     ORDER BY sr.datum DESC, sr.id DESC
                 ");
@@ -1332,43 +1332,59 @@ class TvattlinjeController {
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getSkiftrapportStatistik rows: ' . $e->getMessage());
-                // Försök utan JOIN
-                try {
-                    $stmt = $this->pdo->prepare("
-                        SELECT * FROM tvattlinje_skiftrapport
-                        WHERE datum >= :start AND datum <= :end
-                        ORDER BY datum DESC, id DESC
-                    ");
-                    $stmt->execute(['start' => $start, 'end' => $end]);
-                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                } catch (\Throwable $e2) {
-                    error_log('TvattlinjeController::getSkiftrapportStatistik fallback: ' . $e2->getMessage());
-                }
             }
 
-            // Beräkna summerade KPI:er
-            $totalOk     = 0;
-            $totalEjOk   = 0;
-            $totalOmtvatt = 0;
+            // Beräkna summerade KPI:er + bästa dag + godkänd % per rad
+            $totalOk       = 0;
+            $totalEjOk     = 0;
             $totalDrifttid = 0;
-            foreach ($rows as $r) {
-                $totalOk     += (int)($r['antal_ok']   ?? 0);
-                $totalEjOk   += (int)($r['antal_ej_ok'] ?? 0);
-                $totalOmtvatt+= (int)($r['omtvaatt']   ?? 0);
-                $totalDrifttid+= (int)($r['drifttid']  ?? 0);
+            $bastaDag      = null;
+            $bastaDagIbc   = 0;
+
+            // Daglig aggregering för bästa dag
+            $dagMap = [];
+            foreach ($rows as &$r) {
+                $ok    = (int)($r['antal_ok']   ?? 0);
+                $ejOk  = (int)($r['antal_ej_ok'] ?? 0);
+                $tot   = $ok + $ejOk;
+
+                $totalOk     += $ok;
+                $totalEjOk   += $ejOk;
+                $totalDrifttid += (int)($r['drifttid'] ?? 0);
+
+                // Godkänd % per rad
+                $r['godkand_pct'] = $tot > 0 ? round($ok / $tot * 100, 1) : null;
+
+                // Samla per dag för bästa dag
+                $dag = substr($r['datum'] ?? '', 0, 10);
+                if ($dag) {
+                    $dagMap[$dag] = ($dagMap[$dag] ?? 0) + $tot;
+                }
             }
-            $totalIbc = $totalOk + $totalEjOk + $totalOmtvatt;
+            unset($r);
+
+            $totalIbc = $totalOk + $totalEjOk;
+            $avgGodkandPct = $totalIbc > 0 ? round($totalOk / $totalIbc * 100, 1) : null;
+
+            // Bästa dag = dag med flest totala IBC
+            if (!empty($dagMap)) {
+                arsort($dagMap);
+                $bastaDag    = array_key_first($dagMap);
+                $bastaDagIbc = $dagMap[$bastaDag];
+            }
 
             echo json_encode([
                 'success' => true,
                 'data'    => $rows,
                 'summary' => [
-                    'total_ibc'      => $totalIbc,
-                    'total_ok'       => $totalOk,
-                    'total_ej_ok'    => $totalEjOk,
-                    'total_omtvaatt' => $totalOmtvatt,
-                    'total_drifttid' => $totalDrifttid,
-                    'skift_count'    => count($rows),
+                    'total_ibc'       => $totalIbc,
+                    'total_ok'        => $totalOk,
+                    'total_ej_ok'     => $totalEjOk,
+                    'total_drifttid'  => $totalDrifttid,
+                    'skift_count'     => count($rows),
+                    'avg_godkand_pct' => $avgGodkandPct,
+                    'basta_dag'       => $bastaDag,
+                    'basta_dag_ibc'   => $bastaDagIbc,
                 ],
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
@@ -1565,15 +1581,16 @@ class TvattlinjeController {
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream rast: ' . $e->getMessage()); }
 
-            // tvattlinje_driftstopp
+            // tvattlinje_driftstopp (status='start'/'slut' matchar PLC-backend)
             try {
                 $stmt = $this->pdo->prepare(
-                    "SELECT id, datum, driftstopp_status FROM tvattlinje_driftstopp WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
+                    "SELECT id, datum, status FROM tvattlinje_driftstopp WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
                 );
                 $stmt->execute([':date' => $date]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'driftstopp';
-                    $row['event_type'] = intval($row['driftstopp_status'] ?? 0) === 1 ? 'DRIFTSTOPP_START' : 'DRIFTSTOPP_SLUT';
+                    $row['driftstopp_status'] = ($row['status'] ?? '') === 'start' ? 1 : 0;
+                    $row['event_type'] = ($row['status'] ?? '') === 'start' ? 'DRIFTSTOPP_START' : 'DRIFTSTOPP_SLUT';
                     $events[] = $row;
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream driftstopp: ' . $e->getMessage()); }

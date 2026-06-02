@@ -432,13 +432,13 @@
   <div *ngIf="activeTab === 'produktion'" class="tab-content-area">
     <div class="container-fluid py-4">
 
-      <!-- Datumfilter -->
+      <!-- Datumfilter + sök + export -->
       <div class="dark-card mb-4">
         <div class="card-header">
           <h5 class="mb-0"><i class="fas fa-filter me-2 text-primary"></i>Filtrera skiftrapporter</h5>
         </div>
         <div class="card-body">
-          <div class="row g-3 align-items-end">
+          <div class="row g-3 align-items-end flex-wrap">
             <div class="col-auto">
               <label class="form-label text-muted small">Från</label>
               <input type="date" class="form-control form-control-sm" style="background:#2d3748; color:#e2e8f0; border-color:#4a5568;"
@@ -454,6 +454,17 @@
                 <i class="fas fa-search me-1" *ngIf="!skiftStatLoading"></i>
                 <i class="fas fa-spinner fa-spin me-1" *ngIf="skiftStatLoading"></i>
                 Hämta
+              </button>
+            </div>
+            <div class="col-auto ms-auto d-flex gap-2 align-items-end" *ngIf="skiftStatData.length > 0">
+              <div>
+                <label class="form-label text-muted small">Sök</label>
+                <input type="text" class="form-control form-control-sm" placeholder="Datum eller kommentar..."
+                  style="background:#2d3748; color:#e2e8f0; border-color:#4a5568; min-width:200px;"
+                  [(ngModel)]="skiftStatSearch" (ngModelChange)="applySkiftSearch()">
+              </div>
+              <button class="btn btn-outline-danger btn-sm" (click)="exportPdfSkift()" title="Exportera PDF">
+                <i class="fas fa-file-pdf me-1"></i>PDF
               </button>
             </div>
           </div>
@@ -473,44 +484,60 @@
         <p class="text-muted">Tryck på "Hämta" för att söka eller välj ett annat datumintervall.</p>
       </div>
 
-      <!-- KPI-sammanfattning -->
+      <!-- 6 KPI-kort -->
       <div *ngIf="!skiftStatLoading && skiftStatSummary !== null" class="row g-3 mb-4">
-        <div class="col-6 col-md-2">
-          <div class="mini-kpi">
-            <div class="mini-kpi-val">{{ skiftStatSummary.skift_count }}</div>
-            <div class="mini-kpi-lbl">Antal skift</div>
-          </div>
-        </div>
+        <!-- Totalt IBC -->
         <div class="col-6 col-md-2">
           <div class="mini-kpi">
             <div class="mini-kpi-val text-primary">{{ skiftStatSummary.total_ibc | number }}</div>
             <div class="mini-kpi-lbl">Totalt IBC</div>
           </div>
         </div>
+        <!-- Godkända % -->
         <div class="col-6 col-md-2">
           <div class="mini-kpi">
-            <div class="mini-kpi-val text-success">{{ skiftStatSummary.total_ok | number }}</div>
-            <div class="mini-kpi-lbl">Godkända</div>
+            <div class="mini-kpi-val"
+                 [class.text-success]="skiftStatSummary.avg_godkand_pct !== null && skiftStatSummary.avg_godkand_pct >= 90"
+                 [class.text-warning]="skiftStatSummary.avg_godkand_pct !== null && skiftStatSummary.avg_godkand_pct >= 70 && skiftStatSummary.avg_godkand_pct < 90"
+                 [class.text-danger]="skiftStatSummary.avg_godkand_pct !== null && skiftStatSummary.avg_godkand_pct < 70">
+              {{ skiftStatSummary.avg_godkand_pct !== null ? (skiftStatSummary.avg_godkand_pct | number:'1.1-1') + '%' : '–' }}
+            </div>
+            <div class="mini-kpi-lbl">Godkända %</div>
           </div>
         </div>
+        <!-- Genomsnittlig cykeltid — ej tillgänglig från skiftrapporter, visas som – -->
         <div class="col-6 col-md-2">
           <div class="mini-kpi">
-            <div class="mini-kpi-val text-danger">{{ skiftStatSummary.total_ej_ok | number }}</div>
-            <div class="mini-kpi-lbl">Ej godkända</div>
+            <div class="mini-kpi-val text-muted">–</div>
+            <div class="mini-kpi-lbl">Avg cykeltid</div>
           </div>
         </div>
-        <div class="col-6 col-md-2">
-          <div class="mini-kpi">
-            <div class="mini-kpi-val text-warning">{{ skiftStatSummary.total_omtvaatt | number }}</div>
-            <div class="mini-kpi-lbl">Omtvätt</div>
-          </div>
-        </div>
+        <!-- Total drifttid -->
         <div class="col-6 col-md-2">
           <div class="mini-kpi">
             <div class="mini-kpi-val">
-              {{ skiftStatSummary.total_ibc > 0 ? ((skiftStatSummary.total_ok / skiftStatSummary.total_ibc * 100) | number:'1.1-1') + '%' : '–' }}
+              {{ skiftStatSummary.total_drifttid > 0 ? (skiftStatSummary.total_drifttid | number) + ' min' : '–' }}
             </div>
-            <div class="mini-kpi-lbl">Kvalitet %</div>
+            <div class="mini-kpi-lbl">Total drifttid</div>
+          </div>
+        </div>
+        <!-- Antal skift -->
+        <div class="col-6 col-md-2">
+          <div class="mini-kpi">
+            <div class="mini-kpi-val">{{ skiftStatSummary.skift_count }}</div>
+            <div class="mini-kpi-lbl">Antal rapporter</div>
+          </div>
+        </div>
+        <!-- Bästa dag -->
+        <div class="col-6 col-md-2">
+          <div class="mini-kpi">
+            <div class="mini-kpi-val text-warning" style="font-size:1rem;">
+              {{ skiftStatSummary.basta_dag ? skiftStatSummary.basta_dag.substring(5) : '–' }}
+            </div>
+            <div class="mini-kpi-lbl">
+              Bästa dag
+              <span *ngIf="skiftStatSummary.basta_dag_ibc > 0" class="text-muted"> · {{ skiftStatSummary.basta_dag_ibc }} IBC</span>
+            </div>
           </div>
         </div>
       </div>
@@ -530,9 +557,13 @@
 
       <!-- Tabell med skiftrapporter -->
       <div *ngIf="!skiftStatLoading && skiftStatData.length > 0" class="dark-card">
-        <div class="card-header">
-          <h5 class="mb-0"><i class="fas fa-list me-2"></i>Skiftrapporter</h5>
-          <small class="text-muted">{{ skiftStatData.length }} rapport(er)</small>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Skiftrapporter</h5>
+            <small class="text-muted">
+              {{ skiftStatFilteredData.length }} av {{ skiftStatData.length }} rapport(er)
+            </small>
+          </div>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -540,29 +571,32 @@
               <thead>
                 <tr>
                   <th scope="col">Datum</th>
-                  <th class="text-end" scope="col">OK</th>
-                  <th class="text-end" scope="col">Ej OK</th>
-                  <th class="text-end" scope="col">Omtvätt</th>
+                  <th class="text-end" scope="col">IBC OK</th>
+                  <th class="text-end" scope="col">IBC Ej OK</th>
                   <th class="text-end" scope="col">Totalt</th>
-                  <th class="text-end" scope="col">Kvalitet</th>
+                  <th class="text-end" scope="col">Godkänd %</th>
                   <th scope="col">Kommentar</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let r of skiftStatData; trackBy: trackByIndex">
-                  <td>{{ (r.datum || '').substring(0, 10) }}</td>
+                <tr *ngFor="let r of skiftStatFilteredData; trackBy: trackByIndex">
+                  <td><strong>{{ (r.datum || '').substring(0, 10) }}</strong></td>
                   <td class="text-end text-success"><strong>{{ r.antal_ok || 0 }}</strong></td>
                   <td class="text-end text-danger">{{ r.antal_ej_ok || 0 }}</td>
-                  <td class="text-end text-warning">{{ r.omtvaatt || 0 }}</td>
-                  <td class="text-end"><strong>{{ (r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0) }}</strong></td>
+                  <td class="text-end"><strong>{{ (r.antal_ok || 0) + (r.antal_ej_ok || 0) }}</strong></td>
                   <td class="text-end">
-                    <span *ngIf="(r.antal_ok + r.antal_ej_ok + r.omtvaatt) > 0"
-                          [ngClass]="((r.antal_ok / ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0))) * 100) >= 90 ? 'text-success' : ((r.antal_ok / ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0))) * 100) >= 70 ? 'text-warning' : 'text-danger'">
-                      {{ ((r.antal_ok / ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0))) * 100) | number:'1.1-1' }}%
+                    <span *ngIf="r.godkand_pct !== null && r.godkand_pct !== undefined"
+                          [class.text-success]="r.godkand_pct >= 90"
+                          [class.text-warning]="r.godkand_pct >= 70 && r.godkand_pct < 90"
+                          [class.text-danger]="r.godkand_pct < 70">
+                      {{ r.godkand_pct | number:'1.1-1' }}%
                     </span>
-                    <span *ngIf="(r.antal_ok + r.antal_ej_ok + r.omtvaatt) === 0" class="text-muted">–</span>
+                    <span *ngIf="r.godkand_pct === null || r.godkand_pct === undefined" class="text-muted">–</span>
                   </td>
                   <td class="text-muted small">{{ r.kommentar || '' }}</td>
+                </tr>
+                <tr *ngIf="skiftStatFilteredData.length === 0">
+                  <td colspan="6" class="text-center text-muted py-3">Inga rader matchar sökningen.</td>
                 </tr>
               </tbody>
             </table>

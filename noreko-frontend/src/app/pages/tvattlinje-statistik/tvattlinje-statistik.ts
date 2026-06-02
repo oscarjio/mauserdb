@@ -6,6 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { TvattlinjeService, OeeTrendDay, OeeTrendSummary } from '../../services/tvattlinje.service';
+import { PdfExportService } from '../../services/pdf-export.service';
 
 Chart.register(...registerables);
 
@@ -134,7 +135,18 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   // ---- Skiftrapport statistik (produktions-tab) ----
   skiftStatLoading: boolean = false;
   skiftStatData: any[] = [];
-  skiftStatSummary: { total_ibc: number; total_ok: number; total_ej_ok: number; total_omtvaatt: number; total_drifttid: number; skift_count: number } | null = null;
+  skiftStatFilteredData: any[] = [];
+  skiftStatSearch: string = '';
+  skiftStatSummary: {
+    total_ibc: number;
+    total_ok: number;
+    total_ej_ok: number;
+    total_drifttid: number;
+    skift_count: number;
+    avg_godkand_pct: number | null;
+    basta_dag: string | null;
+    basta_dag_ibc: number;
+  } | null = null;
   skiftStatFrom: string = '';
   skiftStatTo: string = '';
   private skiftStatChartRef: Chart | null = null;
@@ -147,7 +159,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   constructor(
     private tvattlinjeService: TvattlinjeService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private pdfExportService: PdfExportService
   ) {}
 
   @HostListener('document:mouseup')
@@ -867,10 +880,54 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
           if (res?.success) {
             this.skiftStatData = res.data || [];
             this.skiftStatSummary = res.summary || null;
+            this.applySkiftSearch();
             setTimeout(() => this.renderSkiftStatChart(), 150);
           }
         }
       });
+  }
+
+  applySkiftSearch() {
+    const q = (this.skiftStatSearch || '').toLowerCase().trim();
+    if (!q) {
+      this.skiftStatFilteredData = [...this.skiftStatData];
+      return;
+    }
+    this.skiftStatFilteredData = this.skiftStatData.filter((r: any) => {
+      const datum = (r.datum || '').toLowerCase();
+      const kommentar = (r.kommentar || '').toLowerCase();
+      return datum.includes(q) || kommentar.includes(q);
+    });
+  }
+
+  exportPdfSkift() {
+    if (this.skiftStatFilteredData.length === 0) return;
+    const columns = [
+      { key: 'datum',       header: 'Datum',      width: 28 },
+      { key: 'antal_ok',    header: 'IBC OK',     width: 20 },
+      { key: 'antal_ej_ok', header: 'IBC Ej OK',  width: 22 },
+      { key: 'totalt',      header: 'Totalt',      width: 18 },
+      { key: 'godkand_pct', header: 'Godkänd %',  width: 24 },
+      { key: 'kommentar',   header: 'Kommentar',   width: 135 },
+    ];
+    const data = this.skiftStatFilteredData.map((r: any) => {
+      const ok = r.antal_ok || 0;
+      const ejOk = r.antal_ej_ok || 0;
+      return {
+        datum:       (r.datum || '').substring(0, 10),
+        antal_ok:    ok,
+        antal_ej_ok: ejOk,
+        totalt:      ok + ejOk,
+        godkand_pct: r.godkand_pct != null ? r.godkand_pct + '%' : '–',
+        kommentar:   r.kommentar || '',
+      };
+    }) as Record<string, unknown>[];
+    this.pdfExportService.exportTableToPdf(
+      data,
+      columns,
+      `tvattlinje-skiftrapport-${this.skiftStatFrom}-${this.skiftStatTo}`,
+      `Tvättlinje Skiftrapporter ${this.skiftStatFrom} – ${this.skiftStatTo}`
+    );
   }
 
   renderSkiftStatChart() {
