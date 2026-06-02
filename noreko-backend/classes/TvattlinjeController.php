@@ -1531,27 +1531,28 @@ class TvattlinjeController {
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream ibc: ' . $e->getMessage()); }
 
-            // tvattlinje_rast + tvattlinje_runtime (prod-plcbackend kan skriva till runtime)
-            $seenRastDatums = [];
-            foreach (['tvattlinje_rast', 'tvattlinje_runtime'] as $rastTbl) {
-                try {
-                    $sql = "SELECT id, datum, rast_status FROM {$rastTbl} WHERE DATE(datum) = :date";
-                    $params = [':date' => $date];
-                    if ($sinceRast > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceRast; }
-                    $sql .= " ORDER BY datum DESC LIMIT " . $limit;
-                    $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute($params);
-                    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                        $key = $row['datum'] . '_' . $row['rast_status'];
-                        if (isset($seenRastDatums[$key])) continue; // dedup cross-table
-                        $seenRastDatums[$key] = true;
-                        $row['source'] = 'rast';
-                        $row['event_type'] = intval($row['rast_status'] ?? 0) === 1 ? 'RAST_START' : 'RAST_END';
-                        if (intval($row['id']) > $maxIds['rast']) $maxIds['rast'] = intval($row['id']);
-                        $events[] = $row;
-                    }
-                } catch (\Throwable $e) { error_log("TvattlinjeController::plcDiagnostikStream {$rastTbl}: " . $e->getMessage()); }
-            }
+            // Välj EN rasttabell: tvattlinje_rast om den har data idag, annars tvattlinje_runtime
+            // Undviker dubbletter när plcbackend skriver till båda tabellerna med marginellt olika timestamps
+            $rastTable = 'tvattlinje_runtime';
+            try {
+                $chk = $this->pdo->prepare("SELECT COUNT(*) FROM tvattlinje_rast WHERE DATE(datum) = :date");
+                $chk->execute([':date' => $date]);
+                if ($chk->fetchColumn() > 0) $rastTable = 'tvattlinje_rast';
+            } catch (\Throwable $e) {}
+            try {
+                $sql = "SELECT id, datum, rast_status FROM {$rastTable} WHERE DATE(datum) = :date";
+                $params = [':date' => $date];
+                if ($sinceRast > 0) { $sql .= " AND id > :since_id"; $params[':since_id'] = $sinceRast; }
+                $sql .= " ORDER BY datum DESC LIMIT " . $limit;
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $row['source'] = 'rast';
+                    $row['event_type'] = intval($row['rast_status'] ?? 0) === 1 ? 'RAST_START' : 'RAST_END';
+                    if (intval($row['id']) > $maxIds['rast']) $maxIds['rast'] = intval($row['id']);
+                    $events[] = $row;
+                }
+            } catch (\Throwable $e) { error_log("TvattlinjeController::plcDiagnostikStream {$rastTable}: " . $e->getMessage()); }
 
             // tvattlinje_driftstopp
             try {

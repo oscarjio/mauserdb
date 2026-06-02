@@ -144,9 +144,12 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
 
         if (incremental) {
           if (res.data.events.length > 0) {
-            const newEvents = res.data.events.reverse();
-            this.events = [...this.events, ...newEvents];
-            this.shouldScrollToBottom = true;
+            const existing = new Set(this.events.map(e => e.source + '-' + String(e.id)));
+            const newEvents = res.data.events.reverse().filter(e => !existing.has(e.source + '-' + String(e.id)));
+            if (newEvents.length > 0) {
+              this.events = [...this.events, ...newEvents];
+              this.shouldScrollToBottom = true;
+            }
           }
         } else {
           this.events = res.data.events.reverse();
