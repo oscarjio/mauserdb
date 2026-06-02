@@ -71,7 +71,6 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
   // ---- Today-snapshot ----
   todaySnapshot: any = null;
   todaySnapshotLoading = false;
-  private todaySnapshotInterval: any = null;
   private isFetchingSnapshot = false;
 
   // ---- Alert-trösklar ----
@@ -85,6 +84,12 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
   alertThresholdsSaved   = false;
   alertThresholdsError   = '';
   showAlertPanel         = false;
+
+  // ---- Produkthantering ----
+  products: any[] = [];
+  productsLoading = false;
+  newProduct = { name: '', cycle_time_minutes: null as number | null };
+  showAddProductForm = false;
 
   // ---- Feedback ----
   showSuccessMessage = false;
@@ -111,6 +116,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
     this.loadSystemStatus();
     this.loadTodaySnapshot();
     this.loadAlertThresholds();
+    this.loadProducts();
     this.startPollingTimers();
   }
 
@@ -442,6 +448,107 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
           this.alertThresholdsSaving = false;
         }
       });
+  }
+
+  // ---- Produkthantering ----
+
+  loadProducts() {
+    this.productsLoading = true;
+    this.http.get<any>(`${environment.apiUrl}?action=tvattlinjeproduct`, { withCredentials: true })
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.productsLoading = false;
+          if (response?.success) {
+            this.products = response.data.map((p: any) => ({
+              ...p,
+              editing: false,
+              originalName: p.name,
+              originalCycleTime: p.cycle_time_minutes
+            }));
+          }
+        },
+        error: () => { this.productsLoading = false; }
+      });
+  }
+
+  addProduct() {
+    if (!this.newProduct.name || !this.newProduct.cycle_time_minutes) return;
+    this.productsLoading = true;
+    this.http.post<any>(`${environment.apiUrl}?action=tvattlinjeproduct`, this.newProduct, { withCredentials: true })
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.productsLoading = false;
+          if (response?.success) {
+            this.loadProducts();
+            this.newProduct = { name: '', cycle_time_minutes: null };
+            this.showAddProductForm = false;
+            this.showSuccess('Produkt tillagd!');
+          }
+        },
+        error: () => { this.productsLoading = false; }
+      });
+  }
+
+  editProduct(product: any) {
+    this.products.forEach(p => {
+      if (p.id !== product.id) {
+        p.editing = false;
+        p.name = p.originalName;
+        p.cycle_time_minutes = p.originalCycleTime;
+      }
+    });
+    product.editing = true;
+    product.originalName = product.name;
+    product.originalCycleTime = product.cycle_time_minutes;
+  }
+
+  saveProduct(product: any) {
+    if (!product.name || !product.cycle_time_minutes) return;
+    this.productsLoading = true;
+    const updateData = { id: product.id, name: product.name, cycle_time_minutes: product.cycle_time_minutes };
+    this.http.put<any>(`${environment.apiUrl}?action=tvattlinjeproduct`, updateData, { withCredentials: true })
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.productsLoading = false;
+          if (response?.success) {
+            product.editing = false;
+            product.originalName = product.name;
+            product.originalCycleTime = product.cycle_time_minutes;
+            this.showSuccess('Produkt uppdaterad!');
+          }
+        },
+        error: () => { this.productsLoading = false; }
+      });
+  }
+
+  cancelEditProduct(product: any) {
+    product.editing = false;
+    product.name = product.originalName;
+    product.cycle_time_minutes = product.originalCycleTime;
+  }
+
+  deleteProduct(product: any) {
+    if (!confirm(`Är du säker på att du vill ta bort produkten "${product.name}"?`)) return;
+    this.productsLoading = true;
+    this.http.post<any>(`${environment.apiUrl}?action=tvattlinjeproduct&run=delete`, { id: product.id }, { withCredentials: true })
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.productsLoading = false;
+          if (response?.success) {
+            this.loadProducts();
+            this.showSuccess('Produkt borttagen!');
+          }
+        },
+        error: () => { this.productsLoading = false; }
+      });
+  }
+
+  trackByProductId(_index: number, product: any): number {
+    return product.id;
   }
 
   // ---- Hjälpmetoder ----

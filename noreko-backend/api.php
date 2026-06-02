@@ -189,6 +189,7 @@ $action = $_GET['action'] ?? '';
 $classNameMap = [
     'rebotling' => 'RebotlingController',
     'rebotlingproduct' => 'RebotlingProductController',
+    'tvattlinjeproduct' => 'TvattlinjeProductController',
     'tvattlinje' => 'TvattlinjeController',
     'saglinje' => 'SaglinjeController',
     'klassificeringslinje' => 'KlassificeringslinjeController',

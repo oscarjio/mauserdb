@@ -128,9 +128,9 @@ class LineSkiftrapportController {
 
     private function ensureTable($table) {
         try {
-            $stmt = $this->pdo->prepare("SHOW TABLES LIKE ?");
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
             $stmt->execute([$table]);
-            if ($stmt->rowCount() === 0) {
+            if ((int)$stmt->fetchColumn() === 0) {
                 $sql = "CREATE TABLE IF NOT EXISTS `$table` (
                     `id`         INT NOT NULL AUTO_INCREMENT,
                     `datum`      DATE NOT NULL,
