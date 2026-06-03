@@ -764,7 +764,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       if (!c.skiftraknare) return;
       if (!map.has(c.skiftraknare)) map.set(c.skiftraknare, { ibcCount: 0, times: [] });
       const s = map.get(c.skiftraknare)!;
-      s.ibcCount += (c.ibc_count || 1);
+      s.ibcCount += (c.ibc_ok != null ? (c.ibc_ok as number) : 1);
       if (c.cycle_time != null && c.cycle_time > 0 && c.cycle_time <= 30) s.times.push(parseFloat(c.cycle_time));
     });
     this.shiftSummaries = Array.from(map.entries())
@@ -914,15 +914,29 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   applySkiftSearch() {
     const q = (this.skiftStatSearch || '').toLowerCase().trim();
+    // Always filter out empty rows (0 IBC OK and 0 IBC ej OK)
+    let base = this.skiftStatData.filter((r: any) => (r.antal_ok || 0) > 0 || (r.antal_ej_ok || 0) > 0);
     if (!q) {
-      this.skiftStatFilteredData = [...this.skiftStatData];
+      this.skiftStatFilteredData = base;
       return;
     }
-    this.skiftStatFilteredData = this.skiftStatData.filter((r: any) => {
+    this.skiftStatFilteredData = base.filter((r: any) => {
       const datum = (r.datum || '').toLowerCase();
       const kommentar = (r.kommentar || '').toLowerCase();
       return datum.includes(q) || kommentar.includes(q);
     });
+  }
+
+  getSkiftStatUniqueDates(): number {
+    return new Set(this.skiftStatData.map((r: any) => (r.datum || '').substring(0, 10)).filter(Boolean)).size;
+  }
+
+  getSkiftStatTid(r: any): string {
+    if (r.created_at) {
+      const d = new Date(String(r.created_at).replace(' ', 'T'));
+      if (!isNaN(d.getTime())) return d.toTimeString().substring(0, 5);
+    }
+    return (r.datum || '').substring(0, 10);
   }
 
   exportPdfSkift() {

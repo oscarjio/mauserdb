@@ -107,7 +107,8 @@
             <div class="kpi-hero-icon"><i class="fas fa-cubes"></i></div>
             <div class="kpi-hero-value">{{ totalCycles }}</div>
             <div class="kpi-hero-label">IBC Producerade</div>
-            <div class="kpi-hero-sub" style="color:#f6ad55" *ngIf="missedWebhooks > 0" title="Pucken räknade fler cykler än vi fick webhooks — {{ missedWebhooks }} signaler förlorade">
+            <div class="kpi-hero-sub" style="color:#f6ad55;cursor:help;" *ngIf="missedWebhooks > 0"
+              [title]="'PLC räknade ' + totalCycles + ' cykler totalt men vi tog emot ' + (totalCycles - missedWebhooks) + ' webhooks. ' + missedWebhooks + ' IBC-händelser saknas i statistiken — troligen nätverksavbrott eller PLC-reset.'">
               <i class="fas fa-exclamation-triangle me-1"></i>{{ missedWebhooks }} förlorade signaler
             </div>
             <div class="kpi-hero-sub" *ngIf="missedWebhooks === 0 && viewMode !== 'day' && oeeTrendSummary.snitt_per_dag > 0">
@@ -179,7 +180,7 @@
                [class.kpi-hero-neutral]="bastaDagIbc === 0"
                [class.kpi-hero-gold]="bastaDagIbc > 0">
             <div class="kpi-hero-icon kpi-icon-gold"><i class="fas fa-trophy"></i></div>
-            <div class="kpi-hero-value kpi-value-gold">{{ bastaDagIbc > 0 ? bastaDagIbc : (avgCycleTime + '') }}</div>
+            <div class="kpi-hero-value kpi-value-gold">{{ bastaDagIbc > 0 ? bastaDagIbc : (avgCycleTime + '') }}<span *ngIf="bastaDagIbc > 0" style="font-size:0.55em;font-weight:400;margin-left:3px;opacity:.8;">IBC</span></div>
             <div class="kpi-hero-label">{{ bastaDagIbc > 0 ? 'Bästa Dag' : 'Snitt Cykeltid' }}</div>
             <div class="kpi-hero-sub">
               <span *ngIf="bastaDagIbc > 0">{{ bastaDagLabel }}</span>
@@ -375,6 +376,8 @@
                       <th class="text-end" scope="col">Snitt Cykeltid</th>
                       <th class="text-end" scope="col">Effektivitet</th>
                       <th class="text-end" scope="col">Körtid (min)</th>
+                      <th class="text-end" scope="col" *ngIf="viewMode === 'day'">Rast (min)</th>
+                      <th class="text-end" scope="col" *ngIf="viewMode === 'day'">Driftstopp (min)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -392,6 +395,8 @@
                         <strong>{{ row.efficiency | number:'1.1-1' }}%</strong>
                       </td>
                       <td class="text-end">{{ row.runtime | number:'1.0-0' }}</td>
+                      <td class="text-end" *ngIf="viewMode === 'day'" style="color:#ffc107">{{ row.rastMinutes > 0 ? (row.rastMinutes | number:'1.0-1') : '–' }}</td>
+                      <td class="text-end" *ngIf="viewMode === 'day'" style="color:#e74c3c">{{ row.driftstoppMinutes > 0 ? (row.driftstoppMinutes | number:'1.0-1') : '–' }}</td>
                     </tr>
                   </tbody>
                   <tfoot *ngIf="tableData.length > 1">
@@ -403,6 +408,8 @@
                         <strong>{{ avgEfficiency | number:'1.1-1' }}%</strong>
                       </td>
                       <td class="text-end"><strong>{{ (totalRuntimeHours * 60) | number:'1.0-0' }}</strong></td>
+                      <td *ngIf="viewMode === 'day'"></td>
+                      <td *ngIf="viewMode === 'day'"></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -543,7 +550,7 @@
       </div>
 
       <!-- Graf: IBC per dag -->
-      <div *ngIf="!skiftStatLoading && skiftStatData.length > 0" class="dark-card mb-4">
+      <div *ngIf="!skiftStatLoading && skiftStatData.length > 0 && getSkiftStatUniqueDates() > 1" class="dark-card mb-4">
         <div class="card-header">
           <h5 class="mb-0"><i class="fas fa-chart-bar me-2 text-primary"></i>IBC per dag (skiftrapporter)</h5>
           <small class="text-muted">Grön = godkända, röd = ej godkända</small>
@@ -570,7 +577,7 @@
             <table class="stats-table">
               <thead>
                 <tr>
-                  <th scope="col">Datum</th>
+                  <th scope="col">Tid</th>
                   <th class="text-end" scope="col">IBC OK</th>
                   <th class="text-end" scope="col">IBC Ej OK</th>
                   <th class="text-end" scope="col">Totalt</th>
@@ -580,7 +587,7 @@
               </thead>
               <tbody>
                 <tr *ngFor="let r of skiftStatFilteredData; trackBy: trackByIndex">
-                  <td><strong>{{ (r.datum || '').substring(0, 10) }}</strong></td>
+                  <td><strong>{{ getSkiftStatTid(r) }}</strong></td>
                   <td class="text-end text-success"><strong>{{ r.antal_ok || 0 }}</strong></td>
                   <td class="text-end text-danger">{{ r.antal_ej_ok || 0 }}</td>
                   <td class="text-end"><strong>{{ (r.antal_ok || 0) + (r.antal_ej_ok || 0) }}</strong></td>
