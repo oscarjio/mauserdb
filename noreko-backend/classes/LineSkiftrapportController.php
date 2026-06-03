@@ -173,14 +173,18 @@ class LineSkiftrapportController {
     // ========== CRUD ==========
 
     private function getReports($table) {
-        // Derive the _ibc table name (e.g. tvattlinje_ibc) for PLC start/end time lookup
         $ibcTable = str_replace('_skiftrapport', '_ibc', $table);
+        // Check if the _ibc table exists before adding correlated subqueries
+        $ibcExists = $this->pdo->query("SHOW TABLES LIKE '$ibcTable'")->rowCount() > 0;
+        $plcCols = $ibcExists
+            ? "(SELECT MIN(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare) AS plc_start,
+                    (SELECT MAX(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare) AS plc_end"
+            : "NULL AS plc_start, NULL AS plc_end";
         try {
             $stmt = $this->pdo->prepare("
                 SELECT r.*, u.username AS user_name,
                     o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name,
-                    (SELECT MIN(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare) AS plc_start,
-                    (SELECT MAX(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare) AS plc_end
+                    $plcCols
                 FROM `$table` r
                 LEFT JOIN users u ON r.user_id = u.id
                 LEFT JOIN operators o1 ON r.op1 IS NOT NULL AND (o1.number = r.op1)
