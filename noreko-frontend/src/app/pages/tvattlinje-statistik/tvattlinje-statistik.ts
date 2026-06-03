@@ -1109,7 +1109,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
       const periodCycles = grouped.get(key) || [];
       cell.hasData = periodCycles.length > 0;
-      cell.cyclesCount = periodCycles.length;
+      const ibcNums = periodCycles.map((c: any) => Number(c.ibc_count)).filter((n: number) => n > 0);
+      cell.cyclesCount = ibcNums.length ? Math.max(...ibcNums) - Math.min(...ibcNums) + 1 : 0;
 
       if (periodCycles.length > 0) {
         // Filtrera bort NULL och 0 värden när vi beräknar genomsnitt
@@ -1392,7 +1393,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const cycleCountArr: number[] = [];
     const target = this.targetCycleTime || 3;
     slicedEntries.forEach(([, value]) => {
-      const count = value.cycles.length;
+      const ibcs = value.cycles.map((c: any) => Number(c.ibc_count)).filter((n: number) => n > 0);
+      const count = ibcs.length ? Math.max(...ibcs) - Math.min(...ibcs) + 1 : 0;
       cycleCountArr.push(count);
       if (count > 0) {
         const validTimes: number[] = value.cycleTime;
