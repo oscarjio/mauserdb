@@ -168,21 +168,21 @@
           <label class="form-label">Op1 (Påsatt)</label>
           <select aria-label="Välj op1" class="form-control" [(ngModel)]="newReport.op1">
             <option [ngValue]="null">—</option>
-            <option *ngFor="let op of operators" [ngValue]="op.number || op.id">{{ op.name }}</option>
+            <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
           </select>
         </div>
         <div class="col-md-2" *ngIf="operators.length > 0">
           <label class="form-label">Op2 (Spolplattform)</label>
           <select aria-label="Välj op2" class="form-control" [(ngModel)]="newReport.op2">
             <option [ngValue]="null">—</option>
-            <option *ngFor="let op of operators" [ngValue]="op.number || op.id">{{ op.name }}</option>
+            <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
           </select>
         </div>
         <div class="col-md-2" *ngIf="operators.length > 0">
           <label class="form-label">Op3 (Kontroll)</label>
           <select aria-label="Välj op3" class="form-control" [(ngModel)]="newReport.op3">
             <option [ngValue]="null">—</option>
-            <option *ngFor="let op of operators" [ngValue]="op.number || op.id">{{ op.name }}</option>
+            <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
           </select>
         </div>
         <div class="col-md-2">

@@ -724,31 +724,35 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   getShiftTid(report: any): string {
     const drifttidMs = (report.drifttid ?? 0) * 60 * 1000;
-    // Prefer datum when it includes time (rebotling style: full datetime)
+    const fmt = (raw: string) => {
+      const d = new Date(raw.replace(' ', 'T'));
+      return isNaN(d.getTime()) ? null : d.toTimeString().substring(0, 5);
+    };
+    // PLC real times (from tvattlinje_ibc correlated subquery in backend)
+    if (report.plc_start && report.plc_end) {
+      const s = fmt(String(report.plc_start));
+      const e = fmt(String(report.plc_end));
+      if (s && e && s !== e) return `${s}→${e}`;
+      if (s) return s;
+    }
+    // Datum with time component (rebotling style)
     if (report.datum) {
       const raw = String(report.datum);
       if (raw.length > 10) {
-        const d = new Date(raw.replace(' ', 'T'));
-        if (!isNaN(d.getTime())) {
-          const s = d.toTimeString().substring(0, 5);
+        const s = fmt(raw);
+        if (s) {
           if (drifttidMs > 0) {
+            const d = new Date(raw.replace(' ', 'T'));
             return `${s}→${new Date(d.getTime() + drifttidMs).toTimeString().substring(0, 5)}`;
           }
           return s;
         }
       }
     }
-    // Fallback: derive from created_at (tvattlinje style: date-only datum)
+    // Last resort: created_at (only time, not as range since created_at is submit time)
     if (report.created_at) {
-      const endD = new Date(String(report.created_at).replace(' ', 'T'));
-      if (!isNaN(endD.getTime())) {
-        const endStr = endD.toTimeString().substring(0, 5);
-        if (drifttidMs > 0) {
-          const startStr = new Date(endD.getTime() - drifttidMs).toTimeString().substring(0, 5);
-          return `${startStr}→${endStr}`;
-        }
-        return endStr;
-      }
+      const s = fmt(String(report.created_at));
+      if (s) return s;
     }
     return '–';
   }
