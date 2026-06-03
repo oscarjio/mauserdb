@@ -248,8 +248,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   getOpName(num: number | null): string {
     if (!num) return '';
     const n = Number(num);
-    const op = this.operators.find(o => Number(o.number) === n)
-            || this.operators.find(o => Number(o.id) === n);
+    const op = this.operators.find(o => Number(o.number) === n);
     return op?.name || `#${num}`;
   }
 

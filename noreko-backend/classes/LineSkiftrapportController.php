@@ -183,9 +183,9 @@ class LineSkiftrapportController {
                     (SELECT MAX(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare) AS plc_end
                 FROM `$table` r
                 LEFT JOIN users u ON r.user_id = u.id
-                LEFT JOIN operators o1 ON r.op1 IS NOT NULL AND (o1.number = r.op1 OR o1.id = r.op1)
-                LEFT JOIN operators o2 ON r.op2 IS NOT NULL AND (o2.number = r.op2 OR o2.id = r.op2)
-                LEFT JOIN operators o3 ON r.op3 IS NOT NULL AND (o3.number = r.op3 OR o3.id = r.op3)
+                LEFT JOIN operators o1 ON r.op1 IS NOT NULL AND (o1.number = r.op1)
+                LEFT JOIN operators o2 ON r.op2 IS NOT NULL AND (o2.number = r.op2)
+                LEFT JOIN operators o3 ON r.op3 IS NOT NULL AND (o3.number = r.op3)
                 ORDER BY r.datum DESC, r.id DESC
                 LIMIT 1000
             ");
