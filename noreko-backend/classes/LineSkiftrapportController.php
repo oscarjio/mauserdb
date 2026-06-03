@@ -500,9 +500,9 @@ class LineSkiftrapportController {
                         i.effektivitet,
                         o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name
                  FROM `$ibcTable` i
-                 LEFT JOIN operators o1 ON i.op1 IS NOT NULL AND (o1.number = i.op1 OR o1.id = i.op1)
-                 LEFT JOIN operators o2 ON i.op2 IS NOT NULL AND (o2.number = i.op2 OR o2.id = i.op2)
-                 LEFT JOIN operators o3 ON i.op3 IS NOT NULL AND (o3.number = i.op3 OR o3.id = i.op3)
+                 LEFT JOIN operators o1 ON i.op1 IS NOT NULL AND (o1.number = i.op1)
+                 LEFT JOIN operators o2 ON i.op2 IS NOT NULL AND (o2.number = i.op2)
+                 LEFT JOIN operators o3 ON i.op3 IS NOT NULL AND (o3.number = i.op3)
                  WHERE i.skiftraknare = ?
                  ORDER BY i.datum ASC"
             );
