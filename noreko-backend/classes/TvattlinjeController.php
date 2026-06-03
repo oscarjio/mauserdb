@@ -604,9 +604,8 @@ class TvattlinjeController {
             }
 
             $productionPercentage = 0;
-            if ($totalRuntimeMinutes > 0 && $ibcToday > 0 && $hourlyTarget > 0) {
-                $actualProductionPerHour = ($ibcToday * 60) / $totalRuntimeMinutes;
-                $productionPercentage = round(($actualProductionPerHour / $hourlyTarget) * 100, 1);
+            if ($ibcToday > 0 && $ibcTarget > 0) {
+                $productionPercentage = round(($ibcToday / $ibcTarget) * 100, 1);
             }
 
             $utetemperatur = null;
@@ -1281,10 +1280,10 @@ class TvattlinjeController {
                 $avg_cycle_time = array_sum($cycle_times) / count($cycle_times);
             }
 
-            // Effektivitet: (total_cycles * target_cycle_time) / net_runtime_minutes * 100
+            // Effektivitet: target_cycle_time / avg_cycle_time * 100
             $avg_production_percent = 0;
-            if ($netRuntimeMinutes > 0 && $total_cycles > 0 && $target_cycle_time > 0) {
-                $avg_production_percent = round(($total_cycles * $target_cycle_time) / $netRuntimeMinutes * 100, 1);
+            if ($avg_cycle_time > 0 && $target_cycle_time > 0) {
+                $avg_production_percent = round(($target_cycle_time / $avg_cycle_time) * 100, 1);
             }
 
             $unique_dates = array_unique(array_map(fn($c) => date('Y-m-d', strtotime($c['datum'])), $cycles));
@@ -1797,11 +1796,11 @@ class TvattlinjeController {
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        DATE(datum)               AS dag,
-                        COUNT(*)                  AS total_ibc,
-                        SUM(COALESCE(ibc_ok, 0)) AS total_ok,
-                        SUM(COALESCE(ibc_ej_ok, 0)) AS total_ej_ok,
-                        COUNT(DISTINCT skiftraknare) AS skift_count
+                        DATE(datum)                                                  AS dag,
+                        SUM(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0))          AS total_ibc,
+                        SUM(COALESCE(ibc_ok, 0))                                    AS total_ok,
+                        SUM(COALESCE(ibc_ej_ok, 0))                                 AS total_ej_ok,
+                        COUNT(DISTINCT skiftraknare)                                 AS skift_count
                     FROM tvattlinje_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
                     GROUP BY DATE(datum)
@@ -1830,36 +1829,38 @@ class TvattlinjeController {
                 return;
             }
 
-            // Bygg daglig OEE (här: kvalitet som OEE-proxy eftersom linjen saknar runtime-data)
-            $dagData = [];
+            $dagData     = [];
             $totalIbcSum = 0;
+            $totalOkSum  = 0;
             $bestaDag    = null;
             $bestaIbc    = 0;
-            $oeeSum      = 0;
 
             foreach ($rows as $r) {
                 $tot = (int)$r['total_ibc'];
                 $ok  = (int)$r['total_ok'];
-                $oee = ($tot > 0) ? round(($ok / $tot) * 100, 1) : 0;
+                // Kvalitet = godkända / (godkända + underkända), ej COUNT(*) av PLC-rader
+                $kvalitet = ($tot > 0) ? round(($ok / $tot) * 100, 1) : 0;
                 $totalIbcSum += $tot;
-                $oeeSum      += $oee;
-                if ($ok > $bestaIbc) {
-                    $bestaIbc = $ok;
+                $totalOkSum  += $ok;
+                // Bästa dag = högst volym (total IBCer tvättade)
+                if ($tot > $bestaIbc) {
+                    $bestaIbc = $tot;
                     $bestaDag = $r['dag'];
                 }
                 $dagData[] = [
-                    'dag'        => $r['dag'],
-                    'total_ibc'  => $tot,
-                    'total_ok'   => $ok,
-                    'total_ej_ok'=> (int)$r['total_ej_ok'],
-                    'oee_pct'    => $oee,
-                    'skift_count'=> (int)$r['skift_count'],
+                    'dag'         => $r['dag'],
+                    'total_ibc'   => $tot,
+                    'total_ok'    => $ok,
+                    'total_ej_ok' => (int)$r['total_ej_ok'],
+                    'oee_pct'     => $kvalitet,
+                    'skift_count' => (int)$r['skift_count'],
                 ];
             }
 
-            $antalDagar = count($dagData);
+            $antalDagar  = count($dagData);
             $snittPerDag = $antalDagar > 0 ? round($totalIbcSum / $antalDagar, 1) : 0;
-            $snittOee    = $antalDagar > 0 ? round($oeeSum / $antalDagar, 1)      : 0;
+            // Viktad snittOEE = totalOk / totalIbc (ej ovägt dag-medel)
+            $snittOee    = $totalIbcSum > 0 ? round(($totalOkSum / $totalIbcSum) * 100, 1) : 0;
 
             echo json_encode([
                 'success' => true,
