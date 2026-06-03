@@ -151,12 +151,17 @@ class LineSkiftrapportController {
                 $sql = "CREATE TABLE IF NOT EXISTS `$table` (
                     `id`         INT NOT NULL AUTO_INCREMENT,
                     `datum`      DATE NOT NULL,
+                    `skiftraknare` INT DEFAULT NULL,
                     `antal_ok`   INT NOT NULL DEFAULT 0,
                     `antal_ej_ok` INT NOT NULL DEFAULT 0,
                     `totalt`     INT NOT NULL DEFAULT 0,
                     `kommentar`  TEXT DEFAULT NULL,
                     `inlagd`     TINYINT(1) NOT NULL DEFAULT 0,
                     `user_id`    INT DEFAULT NULL,
+                    `op1`        INT DEFAULT NULL,
+                    `op2`        INT DEFAULT NULL,
+                    `op3`        INT DEFAULT NULL,
+                    `product_id` INT DEFAULT NULL,
                     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     PRIMARY KEY (`id`),
@@ -164,6 +169,14 @@ class LineSkiftrapportController {
                     KEY `idx_user_id` (`user_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
                 $this->pdo->exec($sql);
+            }
+            // Add missing columns to existing tables (schema migration)
+            $cols = ['skiftraknare' => 'INT DEFAULT NULL', 'op1' => 'INT DEFAULT NULL', 'op2' => 'INT DEFAULT NULL', 'op3' => 'INT DEFAULT NULL', 'product_id' => 'INT DEFAULT NULL'];
+            foreach ($cols as $col => $def) {
+                $exists = $this->pdo->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$table' AND COLUMN_NAME = '$col'")->fetchColumn();
+                if (!$exists) {
+                    $this->pdo->exec("ALTER TABLE `$table` ADD COLUMN `$col` $def");
+                }
             }
         } catch (PDOException $e) {
             error_log("LineSkiftrapportController::ensureTable($table): " . $e->getMessage());
