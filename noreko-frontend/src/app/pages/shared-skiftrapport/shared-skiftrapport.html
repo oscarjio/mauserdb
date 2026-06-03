@@ -11,7 +11,7 @@
     </div>
   </div>
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <div class="d-flex align-items-center gap-3">
       <a *ngIf="config.liveUrl" [href]="config.liveUrl" class="btn btn-outline-secondary btn-sm">
         <i class="fas fa-arrow-left me-1"></i>Live
@@ -24,15 +24,20 @@
         {{ config.lineName }} Skiftrapport
       </h1>
     </div>
-    <button *ngIf="loggedIn" class="btn"
-      [class.btn-primary]="config.themeColor === 'primary'"
-      [class.btn-warning]="config.themeColor === 'warning'"
-      [class.btn-success]="config.themeColor === 'success'"
-      [class.text-dark]="config.themeColor === 'warning'"
-      (click)="toggleAddForm()">
-      <i class="fas" [class.fa-minus]="showAddForm" [class.fa-plus]="!showAddForm"></i>
-      {{ showAddForm ? 'Dölj' : 'Lägg till rapport' }}
-    </button>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <button class="btn btn-sm btn-outline-warning" (click)="exportHandoverPDF()" [disabled]="filteredReports.length === 0">
+        <i class="fas fa-file-pdf me-1"></i>Skiftöverlämnings-PDF
+      </button>
+      <button *ngIf="loggedIn" class="btn btn-sm"
+        [class.btn-primary]="config.themeColor === 'primary'"
+        [class.btn-warning]="config.themeColor === 'warning'"
+        [class.btn-success]="config.themeColor === 'success'"
+        [class.text-dark]="config.themeColor === 'warning'"
+        (click)="toggleAddForm()">
+        <i class="fas" [class.fa-minus]="showAddForm" [class.fa-plus]="!showAddForm"></i>
+        {{ showAddForm ? 'Dölj' : 'Ny skiftrapport' }}
+      </button>
+    </div>
   </div>
 
   <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
@@ -40,68 +45,76 @@
     <button type="button" class="btn-close float-end" aria-label="Stäng" (click)="errorMessage=''"></button>
   </div>
 
-  <!-- Sammanfattningskort (6 KPI-kort) -->
+  <!-- Sammanfattningskort -->
   <div class="row g-3 mb-4" *ngIf="filteredReports.length > 0">
     <div class="col-6 col-md-2">
       <div class="summary-card">
-        <div class="summary-icon"><i class="fas fa-clipboard-list"></i></div>
-        <div class="summary-value">{{ filteredReports.length }}</div>
-        <div class="summary-label">Skift totalt</div>
-      </div>
-    </div>
-    <div class="col-6 col-md-2">
-      <div class="summary-card">
         <div class="summary-icon text-info"><i class="fas fa-boxes"></i></div>
-        <div class="summary-value text-info">{{ cachedTotalIbc }}</div>
+        <div class="summary-value text-info">{{ summaryTotalIbc }}</div>
         <div class="summary-label">Total IBC</div>
       </div>
     </div>
     <div class="col-6 col-md-2">
       <div class="summary-card">
-        <div class="summary-icon text-success"><i class="fas fa-check-circle"></i></div>
-        <div class="summary-value text-success">{{ cachedTotalOk }}</div>
-        <div class="summary-label">Totalt OK</div>
-      </div>
-    </div>
-    <div class="col-6 col-md-2">
-      <div class="summary-card">
-        <div class="summary-icon text-danger"><i class="fas fa-times-circle"></i></div>
-        <div class="summary-value text-danger">{{ cachedTotalEjOk }}</div>
-        <div class="summary-label">Totalt ej OK</div>
+        <div class="summary-icon text-warning"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="summary-value text-warning">
+          {{ summaryAvgIbcH != null ? summaryAvgIbcH : '–' }}
+        </div>
+        <div class="summary-label">Snitt IBC/h</div>
       </div>
     </div>
     <div class="col-6 col-md-2">
       <div class="summary-card">
         <div class="summary-icon"
-          [class.text-success]="cachedAvgQuality >= 90"
-          [class.text-warning]="cachedAvgQuality >= 70 && cachedAvgQuality < 90"
-          [class.text-danger]="cachedAvgQuality < 70">
-          <i class="fas fa-star"></i>
+          [class.text-success]="(summaryAvgEfficiency ?? -1) >= 80"
+          [class.text-warning]="(summaryAvgEfficiency ?? -1) >= 60 && (summaryAvgEfficiency ?? -1) < 80"
+          [class.text-danger]="(summaryAvgEfficiency ?? -1) >= 0 && (summaryAvgEfficiency ?? -1) < 60"
+          [class.text-muted]="summaryAvgEfficiency == null">
+          <i class="fas fa-bolt"></i>
         </div>
         <div class="summary-value"
-          [class.text-success]="cachedAvgQuality >= 90"
-          [class.text-warning]="cachedAvgQuality >= 70 && cachedAvgQuality < 90"
-          [class.text-danger]="cachedAvgQuality < 70">
-          {{ cachedAvgQuality | number:'1.1-1' }}%
+          [class.text-success]="(summaryAvgEfficiency ?? -1) >= 80"
+          [class.text-warning]="(summaryAvgEfficiency ?? -1) >= 60 && (summaryAvgEfficiency ?? -1) < 80"
+          [class.text-danger]="(summaryAvgEfficiency ?? -1) >= 0 && (summaryAvgEfficiency ?? -1) < 60"
+          [class.text-muted]="summaryAvgEfficiency == null">
+          {{ summaryAvgEfficiency != null ? (summaryAvgEfficiency + '%') : '–' }}
         </div>
-        <div class="summary-label">Snitt kvalitet</div>
+        <div class="summary-label">Tillgänglighet</div>
       </div>
     </div>
     <div class="col-6 col-md-2">
       <div class="summary-card">
         <div class="summary-icon"
-          [class.text-primary]="config.themeColor === 'primary'"
-          [class.text-warning]="config.themeColor === 'warning'"
-          [class.text-success]="config.themeColor === 'success'">
-          <i class="fas fa-tachometer-alt"></i>
+          [class.text-success]="(summaryAvgOee ?? -1) >= 75"
+          [class.text-warning]="(summaryAvgOee ?? -1) >= 50 && (summaryAvgOee ?? -1) < 75"
+          [class.text-danger]="(summaryAvgOee ?? -1) >= 0 && (summaryAvgOee ?? -1) < 50"
+          [class.text-muted]="summaryAvgOee == null">
+          <i class="fas fa-chart-line"></i>
         </div>
         <div class="summary-value"
-          [class.text-primary]="config.themeColor === 'primary'"
-          [class.text-warning]="config.themeColor === 'warning'"
-          [class.text-success]="config.themeColor === 'success'">
-          {{ cachedAvgIbcPerSkift | number:'1.0-0' }}
+          [class.text-success]="(summaryAvgOee ?? -1) >= 75"
+          [class.text-warning]="(summaryAvgOee ?? -1) >= 50 && (summaryAvgOee ?? -1) < 75"
+          [class.text-danger]="(summaryAvgOee ?? -1) >= 0 && (summaryAvgOee ?? -1) < 50"
+          [class.text-muted]="summaryAvgOee == null">
+          {{ summaryAvgOee != null ? (summaryAvgOee + '%') : '–' }}
         </div>
-        <div class="summary-label">Snitt IBC / skift</div>
+        <div class="summary-label">OEE</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
+        <div class="summary-icon text-success"><i class="fas fa-clock"></i></div>
+        <div class="summary-value text-success">
+          {{ summaryTotalDrift > 0 ? formatDrifttid(summaryTotalDrift) : '–' }}
+        </div>
+        <div class="summary-label">Drifttid total</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
+        <div class="summary-icon text-warning"><i class="fas fa-redo"></i></div>
+        <div class="summary-value text-warning">{{ cachedTotalOmtvaatt }}</div>
+        <div class="summary-label">Omtvätt total</div>
       </div>
     </div>
   </div>
@@ -136,15 +149,43 @@
           <label class="form-label">Datum</label>
           <input type="date" class="form-control" [(ngModel)]="newReport.datum" required />
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2" *ngIf="products.length > 0">
+          <label class="form-label">Produkt</label>
+          <select aria-label="Välj produkt" class="form-control" [(ngModel)]="newReport.product_id">
+            <option [ngValue]="null">— Välj produkt —</option>
+            <option *ngFor="let p of products" [ngValue]="p.id">{{ p.name }}</option>
+          </select>
+        </div>
+        <div class="col-md-1">
           <label class="form-label">Antal OK</label>
           <input type="number" class="form-control" [(ngModel)]="newReport.antal_ok" min="0" max="9999" required />
         </div>
-        <div class="col-md-2">
-          <label class="form-label">Antal ej OK</label>
+        <div class="col-md-1">
+          <label class="form-label">Ej OK</label>
           <input type="number" class="form-control" [(ngModel)]="newReport.antal_ej_ok" min="0" max="9999" required />
         </div>
-        <div class="col-md-5">
+        <div class="col-md-2" *ngIf="operators.length > 0">
+          <label class="form-label">Op1 (Påsatt)</label>
+          <select aria-label="Välj op1" class="form-control" [(ngModel)]="newReport.op1">
+            <option [ngValue]="null">—</option>
+            <option *ngFor="let op of operators" [ngValue]="op.number || op.id">{{ op.name }}</option>
+          </select>
+        </div>
+        <div class="col-md-2" *ngIf="operators.length > 0">
+          <label class="form-label">Op2 (Spolplattform)</label>
+          <select aria-label="Välj op2" class="form-control" [(ngModel)]="newReport.op2">
+            <option [ngValue]="null">—</option>
+            <option *ngFor="let op of operators" [ngValue]="op.number || op.id">{{ op.name }}</option>
+          </select>
+        </div>
+        <div class="col-md-2" *ngIf="operators.length > 0">
+          <label class="form-label">Op3 (Kontroll)</label>
+          <select aria-label="Välj op3" class="form-control" [(ngModel)]="newReport.op3">
+            <option [ngValue]="null">—</option>
+            <option *ngFor="let op of operators" [ngValue]="op.number || op.id">{{ op.name }}</option>
+          </select>
+        </div>
+        <div class="col-md-2">
           <label class="form-label">Kommentar</label>
           <input type="text" class="form-control" [(ngModel)]="newReport.kommentar" placeholder="Valfri kommentar..." maxlength="500" />
         </div>
@@ -163,7 +204,7 @@
     </div>
   </div>
 
-  <!-- Date filter -->
+  <!-- Filter bar -->
   <div class="d-flex gap-2 align-items-end mb-3 flex-wrap">
     <div>
       <label class="form-label small mb-1">Från datum</label>
@@ -173,10 +214,24 @@
       <label class="form-label small mb-1">Till datum</label>
       <input type="date" class="form-control form-control-sm" [(ngModel)]="filterTo" (ngModelChange)="applyFilter()" style="max-width:150px; width:100%;" />
     </div>
-    <button class="btn btn-sm btn-outline-secondary" (click)="clearFilter()" *ngIf="filterFrom || filterTo">
+    <div>
+      <label class="form-label small mb-1">Sök</label>
+      <input type="text" class="form-control form-control-sm" [(ngModel)]="searchText"
+        (ngModelChange)="onSearchInput()" placeholder="Produkt, operatör..." style="max-width:180px; width:100%;" />
+    </div>
+    <div *ngIf="operators.length > 0">
+      <label class="form-label small mb-1">Filtrera på operatör</label>
+      <select aria-label="Välj operatör" class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="max-width:180px; width:100%;">
+        <option [ngValue]="null">— Alla operatörer —</option>
+        <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
+      </select>
+    </div>
+    <button class="btn btn-sm btn-outline-secondary"
+      (click)="clearFilter(); searchText = ''; selectedOperatorId = null; onOperatorFilterChange()"
+      *ngIf="filterFrom || filterTo || searchText || selectedOperatorId !== null">
       <i class="fas fa-times me-1"></i>Rensa
     </button>
-    <span class="text-muted small align-self-end pb-1" *ngIf="reports.length > 0">
+    <span class="text-muted small align-self-end pb-1" *ngIf="reports.length > 0 && (filterFrom || filterTo || searchText || selectedOperatorId !== null)">
       {{ filteredReports.length }} av {{ reports.length }} skift
     </span>
   </div>
@@ -239,176 +294,447 @@
         <p class="small">Välj ett annat datum eller kontrollera att data skickats från PLC.</p>
       </div>
 
+      <!-- DAG-GRUPPERAD TABELL -->
       <div class="table-responsive" *ngIf="!loading && filteredReports.length > 0">
-        <table class="table table-striped table-hover">
-          <thead class="table-dark" scope="col">
+        <table class="table table-hover">
+          <thead class="table-dark">
             <tr>
-              <th width="40" *ngIf="isAdmin" scope="col">
+              <th width="40" *ngIf="isAdmin">
                 <input type="checkbox"
                   [checked]="selectedIds.size === filteredReports.length && filteredReports.length > 0"
                   (change)="toggleSelectAll()" />
               </th>
-              <th scope="col">ID</th>
-              <th scope="col">Datum</th>
-              <th scope="col">Antal OK</th>
-              <th scope="col">Antal ej OK</th>
-              <th scope="col">Totalt</th>
-              <th scope="col">Kvalitet</th>
-              <th scope="col">Kommentar</th>
-              <th scope="col">Användare</th>
-              <th scope="col">Inlagd</th>
-              <th scope="col">Åtgärder</th>
+              <th>DATUM</th>
+              <th class="text-center">SKIFT</th>
+              <th class="text-center">IBC</th>
+              <th class="text-center">EFF%</th>
+              <th class="d-none d-lg-table-cell">DRIFTTID</th>
+              <th class="d-none d-md-table-cell">OPERATÖRER</th>
+              <th class="d-none d-md-table-cell">PRODUKTER</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            <ng-container *ngFor="let report of filteredReports; trackBy: trackByIndex">
-              <tr [class.inlagd-row]="report.inlagd == 1">
-                <td *ngIf="isAdmin">
-                  <input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" />
+            <ng-container *ngFor="let day of groupedDays; trackBy: trackByDate">
+
+              <!-- DAG-SAMMANFATTNINGSRAD -->
+              <tr class="day-summary-row" (click)="toggleDay(day.date)">
+                <td *ngIf="isAdmin" (click)="$event.stopPropagation()">
+                  <input type="checkbox"
+                    [checked]="isDayAllSelected(day.reports)"
+                    (change)="toggleDaySelect(day.reports)" />
                 </td>
-                <td>{{ report.id }}</td>
-                <td>{{ report.datum | date:'yyyy-MM-dd' }}</td>
-                <td><span class="text-success fw-semibold">{{ report.antal_ok }}</span></td>
-                <td><span class="text-danger fw-semibold">{{ report.antal_ej_ok }}</span></td>
-                <td><strong>{{ report.totalt }}</strong></td>
-                <td>
+                <td class="fw-semibold text-info">
+                  <i class="fas fa-calendar-day me-2 text-muted" style="font-size:.8rem;"></i>{{ day.date }}
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-secondary">{{ day.reports.length }} skift</span>
+                </td>
+                <td class="text-center fw-semibold text-success">{{ day.totalIbc }}</td>
+                <td class="text-center">
                   <span class="badge"
-                    [class.bg-success]="(getQualityPct(report) ?? 0) >= 90"
-                    [class.bg-warning]="(getQualityPct(report) ?? 101) >= 70 && (getQualityPct(report) ?? 101) < 90"
-                    [class.bg-danger]="(getQualityPct(report) ?? 101) < 70 && getQualityPct(report) != null"
-                    [class.bg-secondary]="getQualityPct(report) == null">
-                    {{ getQualityPct(report) != null ? ((getQualityPct(report) | number:'1.1-1') + '%') : '\u2013' }}
+                    [class.bg-success]="(day.avgEff ?? -1) >= 80"
+                    [class.bg-warning]="(day.avgEff ?? -1) >= 60 && (day.avgEff ?? -1) < 80"
+                    [class.bg-danger]="(day.avgEff ?? -1) >= 0 && (day.avgEff ?? -1) < 60"
+                    [class.bg-secondary]="day.avgEff == null">
+                    {{ day.avgEff != null ? (day.avgEff + '%') : '–' }}
                   </span>
                 </td>
-                <td class="text-truncate" style="max-width:150px;" [title]="report.kommentar">{{ report.kommentar || '\u2013' }}</td>
-                <td><span class="badge bg-secondary">{{ report.user_name || '-' }}</span></td>
-                <td>
-                  <div class="form-check form-switch" *ngIf="isAdmin">
-                    <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1" (change)="toggleInlagd(report)" />
-                    <label class="form-check-label">{{ report.inlagd == 1 ? 'Ja' : 'Nej' }}</label>
-                  </div>
-                  <span *ngIf="!isAdmin" class="badge" [class.bg-success]="report.inlagd == 1" [class.bg-secondary]="!report.inlagd">
-                    {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
-                  </span>
+                <td class="d-none d-lg-table-cell text-success small">
+                  {{ day.totalDrift > 0 ? formatDrifttid(day.totalDrift) : '–' }}
                 </td>
-                <td>
-                  <div class="btn-group btn-group-sm">
-                    <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"
-                      [title]="expanded[report.id] ? 'Dölj' : 'Visa detaljer'">
-                      <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
-                    </button>
-                    <button *ngIf="loggedIn" class="btn btn-outline-danger" (click)="exportPDF(report)" title="Ladda ner PDF">
-                      <i class="fas fa-file-pdf"></i>
-                    </button>
-                    <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)">
-                      <i class="fas fa-trash"></i>
-                    </button>
+                <td class="d-none d-md-table-cell">
+                  <span *ngFor="let op of day.operators" class="badge bg-dark me-1">{{ op }}</span>
+                  <span *ngIf="day.operators.length === 0" class="text-muted">–</span>
+                </td>
+                <td class="d-none d-md-table-cell">
+                  <span *ngFor="let prod of day.products" class="badge bg-secondary me-1">{{ prod }}</span>
+                  <span *ngIf="day.products.length === 0" class="text-muted">–</span>
+                </td>
+                <td class="text-end pe-3">
+                  <i class="fas"
+                    [class.fa-chevron-down]="!isDayExpanded(day.date)"
+                    [class.fa-chevron-up]="isDayExpanded(day.date)"
+                    style="color:#8fa3b8;"></i>
+                </td>
+              </tr>
+
+              <!-- EXPANDERADE SUB-SKIFT -->
+              <tr *ngIf="isDayExpanded(day.date)" class="day-expanded-row">
+                <td [attr.colspan]="isAdmin ? 9 : 8" class="p-0">
+                  <div class="day-shift-panel p-3">
+                    <table class="table shift-detail-table">
+                      <thead>
+                        <tr>
+                          <th>TID</th>
+                          <th>PRODUKT</th>
+                          <th>OPERATÖR</th>
+                          <th>IBC</th>
+                          <th class="d-none d-md-table-cell">IBC/H</th>
+                          <th>TILLG%</th>
+                          <th class="d-none d-md-table-cell">DRIFTTID</th>
+                          <th>INLAGD</th>
+                          <th>ÅTGÄRDER</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <ng-container *ngFor="let report of day.reports; let si = index; trackBy: trackByIndex">
+
+                          <!-- SKIFT-RAD -->
+                          <tr [class.inlagd-row]="report.inlagd == 1"
+                              [style.opacity]="(report.antal_ok == 0 && report.antal_ej_ok == 0) ? '0.45' : '1'">
+                            <td class="text-nowrap small">
+                              <span class="me-1" [class.text-info]="getShiftTid(report) !== '–'" [class.text-muted]="getShiftTid(report) === '–'">
+                                {{ getShiftTid(report) !== '–' ? getShiftTid(report) : '–' }}
+                              </span>
+                              <span class="badge bg-secondary" style="font-size:.65em;">#{{ si + 1 }}</span>
+                            </td>
+                            <td>
+                              <span class="badge bg-secondary">{{ getProductName(report.product_id) || '–' }}</span>
+                            </td>
+                            <td>
+                              <span *ngIf="report.op1" class="badge bg-dark me-1">{{ resolveOpName(report.op1_name, report.op1) }}</span>
+                              <span *ngIf="report.op2" class="badge bg-dark me-1">{{ resolveOpName(report.op2_name, report.op2) }}</span>
+                              <span *ngIf="report.op3" class="badge bg-dark me-1">{{ resolveOpName(report.op3_name, report.op3) }}</span>
+                              <span *ngIf="!report.op1 && !report.op2 && !report.op3" class="text-muted">–</span>
+                            </td>
+                            <td class="text-success fw-semibold">{{ report.antal_ok }}</td>
+                            <td class="d-none d-md-table-cell">{{ ibcPerHour(report) }}</td>
+                            <td>
+                              <span class="badge"
+                                [class.bg-success]="(getEfficiencyPct(report) ?? -1) >= 80"
+                                [class.bg-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
+                                [class.bg-danger]="(getEfficiencyPct(report) ?? -1) >= 0 && (getEfficiencyPct(report) ?? -1) < 60"
+                                [class.bg-secondary]="getEfficiencyPct(report) == null">
+                                {{ getEfficiencyPct(report) != null ? (getEfficiencyPct(report) + '%') : '–' }}
+                              </span>
+                            </td>
+                            <td class="d-none d-md-table-cell small">
+                              <span *ngIf="report.drifttid" class="text-success">{{ formatDrifttid(report.drifttid) }}</span>
+                              <span *ngIf="!report.drifttid" class="text-muted">–</span>
+                            </td>
+                            <td>
+                              <div class="form-check form-switch" *ngIf="isAdmin">
+                                <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1" (change)="toggleInlagd(report)" />
+                                <label class="form-check-label small">{{ report.inlagd == 1 ? 'Ja' : 'Nej' }}</label>
+                              </div>
+                              <span *ngIf="!isAdmin" class="badge" [class.bg-success]="report.inlagd == 1" [class.bg-secondary]="!report.inlagd">
+                                {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
+                              </span>
+                            </td>
+                            <td>
+                              <div class="btn-group btn-group-sm">
+                                <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"
+                                  [title]="expanded[report.id] ? 'Dölj' : 'Visa detaljer'">
+                                  <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
+                                </button>
+                                <button *ngIf="loggedIn" class="btn btn-outline-secondary" (click)="exportPDF(report)" title="Ladda ner PDF">
+                                  <i class="fas fa-file-pdf"></i>
+                                </button>
+                                <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)">
+                                  <i class="fas fa-trash"></i>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+
+                          <!-- EXPANDERAD DETALJ -->
+                          <tr *ngIf="expanded[report.id]">
+                            <td colspan="9" class="p-0">
+                              <div class="expand-panel p-0">
+
+                                <!-- HERO ROW -->
+                                <div class="detail-hero px-4 py-3">
+                                  <div class="d-flex align-items-center gap-4 flex-wrap">
+                                    <div class="hero-stat">
+                                      <span class="hero-num text-success">{{ report.antal_ok }}</span>
+                                      <span class="hero-lbl">IBC OK</span>
+                                    </div>
+                                    <div class="hero-divider d-none d-sm-block" *ngIf="getEfficiencyPct(report) != null"></div>
+                                    <div class="hero-stat" *ngIf="getEfficiencyPct(report) != null">
+                                      <span class="hero-num"
+                                        [class.text-success]="(getEfficiencyPct(report) ?? -1) >= 80"
+                                        [class.text-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
+                                        [class.text-danger]="(getEfficiencyPct(report) ?? -1) < 60">
+                                        {{ getEfficiencyPct(report) }}%
+                                      </span>
+                                      <span class="hero-lbl">Effektivitet</span>
+                                    </div>
+                                    <div class="hero-divider d-none d-sm-block" *ngIf="getIbcPerHour(report) != null"></div>
+                                    <div class="hero-stat" *ngIf="getIbcPerHour(report) != null">
+                                      <span class="hero-num text-warning">{{ getIbcPerHour(report) }}</span>
+                                      <span class="hero-lbl">IBC/h</span>
+                                    </div>
+                                    <div class="hero-divider d-none d-sm-block" *ngIf="report.drifttid > 0"></div>
+                                    <div class="hero-stat" *ngIf="report.drifttid > 0">
+                                      <span class="hero-num text-info">{{ formatDrifttid(report.drifttid) }}</span>
+                                      <span class="hero-lbl">Drifttid</span>
+                                    </div>
+                                    <div class="ms-auto d-flex gap-2 align-items-center" *ngIf="report.op1 || report.op2 || report.op3">
+                                      <span class="hero-lbl me-1">Op</span>
+                                      <div *ngIf="report.op1" class="op-avatar" [style.background]="opAvatarColor(report.op1)" [title]="getOpName(report.op1)">{{ getOpInitials(report.op1) }}</div>
+                                      <div *ngIf="report.op2" class="op-avatar" [style.background]="opAvatarColor(report.op2)" [title]="getOpName(report.op2)">{{ getOpInitials(report.op2) }}</div>
+                                      <div *ngIf="report.op3" class="op-avatar" [style.background]="opAvatarColor(report.op3)" [title]="getOpName(report.op3)">{{ getOpInitials(report.op3) }}</div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <!-- TABS -->
+                                <ul class="nav detail-tabs px-2">
+                                  <li class="nav-item">
+                                    <button type="button" class="nav-link" [class.active]="getTab(report.id)==='oversikt'" (click)="setTab(report.id,'oversikt')">
+                                      <i class="fas fa-chart-bar me-1"></i>Översikt
+                                    </button>
+                                  </li>
+                                  <li class="nav-item" *ngIf="report.op1 || report.op2 || report.op3">
+                                    <button type="button" class="nav-link" [class.active]="getTab(report.id)==='operatorer'" (click)="setTab(report.id,'operatorer')">
+                                      <i class="fas fa-users me-1"></i>Operatörer
+                                    </button>
+                                  </li>
+                                  <li class="nav-item" *ngIf="report.skiftraknare != null">
+                                    <button type="button" class="nav-link" [class.active]="getTab(report.id)==='plcdata'" (click)="setTab(report.id,'plcdata')">
+                                      <i class="fas fa-microchip me-1"></i>PLC-data
+                                    </button>
+                                  </li>
+                                  <li class="nav-item">
+                                    <button type="button" class="nav-link" [class.active]="getTab(report.id)==='kommentar'" (click)="setTab(report.id,'kommentar')">
+                                      <i class="fas fa-comment me-1"></i>Kommentar
+                                    </button>
+                                  </li>
+                                  <li class="nav-item" *ngIf="canEdit(report)">
+                                    <button type="button" class="nav-link" [class.active]="getTab(report.id)==='redigera'" (click)="setTab(report.id,'redigera')">
+                                      <i class="fas fa-edit me-1"></i>Redigera
+                                    </button>
+                                  </li>
+                                </ul>
+
+                                <!-- TAB CONTENT -->
+                                <div class="detail-tab-content px-4 py-3">
+
+                                  <!-- ÖVERSIKT -->
+                                  <ng-container *ngIf="getTab(report.id)==='oversikt'">
+                                    <div class="row g-2 mb-3">
+                                      <div class="col-6 col-md-2">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">IBC OK</div>
+                                          <div class="kpi-value text-success">{{ report.antal_ok }}</div>
+                                        </div>
+                                      </div>
+                                      <div class="col-6 col-md-2">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">IBC ej OK</div>
+                                          <div class="kpi-value text-danger">{{ report.antal_ej_ok }}</div>
+                                        </div>
+                                      </div>
+                                      <div class="col-6 col-md-2" *ngIf="report.omtvaatt != null">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">Omtvätt</div>
+                                          <div class="kpi-value text-warning">{{ report.omtvaatt }}</div>
+                                        </div>
+                                      </div>
+                                      <div class="col-6 col-md-2">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">Totalt</div>
+                                          <div class="kpi-value text-info">{{ report.totalt }}</div>
+                                        </div>
+                                      </div>
+                                      <div class="col-6 col-md-2" *ngIf="getIbcPerHour(report) != null">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">IBC/h</div>
+                                          <div class="kpi-value text-warning">{{ getIbcPerHour(report) }}</div>
+                                        </div>
+                                      </div>
+                                      <div class="col-6 col-md-2" *ngIf="minPerIbc(report) !== '–'">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">Min/IBC</div>
+                                          <div class="kpi-value text-info">{{ minPerIbc(report) }}</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div *ngIf="report.skiftraknare != null" class="mt-2">
+                                      <p class="text-muted small mb-2"><i class="fas fa-stream me-1"></i>IBC-cykler detta skift</p>
+                                      <div *ngIf="subShiftsLoading[report.id]" class="text-muted small"><i class="fas fa-spinner fa-spin me-1"></i>Hämtar...</div>
+                                      <div *ngIf="!subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) === 0" class="text-muted small">Inga cykler registrerade.</div>
+                                      <div *ngIf="!subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0" class="table-responsive">
+                                        <table class="table table-sm table-dark table-hover mb-0" style="font-size:.85rem;">
+                                          <thead><tr><th>TID</th><th>PRODUKT</th><th>OPERATÖR</th><th>IBC</th><th>IBC/H</th><th>EFF</th><th>DRIFTTID</th></tr></thead>
+                                          <tbody>
+                                            <tr *ngFor="let sub of visibleSubShifts(report.id); let subI = index">
+                                              <td class="text-nowrap">{{ sub.datum | date:'HH:mm' }}</td>
+                                              <td>{{ getProductName(sub.produkt) || '–' }}</td>
+                                              <td>
+                                                <span *ngIf="sub.op1" class="badge bg-secondary me-1">{{ resolveOpName(sub.op1_name, sub.op1) }}</span>
+                                                <span *ngIf="sub.op2" class="badge bg-secondary me-1">{{ resolveOpName(sub.op2_name, sub.op2) }}</span>
+                                                <span *ngIf="sub.op3" class="badge bg-secondary me-1">{{ resolveOpName(sub.op3_name, sub.op3) }}</span>
+                                                <span *ngIf="!sub.op1 && !sub.op2 && !sub.op3" class="text-muted">–</span>
+                                              </td>
+                                              <td class="text-success fw-semibold">{{ sub.ibc_ok }}</td>
+                                              <td>{{ getSubIbcPerHour(sub) }}</td>
+                                              <td>
+                                                <ng-container *ngIf="getSubCycleEff(subShiftsMap[report.id], subI, report.product_id) as cycleEff; else noEff">
+                                                  <span class="badge"
+                                                    [class.bg-success]="cycleEff >= 80"
+                                                    [class.bg-warning]="cycleEff >= 60 && cycleEff < 80"
+                                                    [class.bg-danger]="cycleEff < 60">
+                                                    {{ cycleEff }}%
+                                                  </span>
+                                                </ng-container>
+                                                <ng-template #noEff><span class="text-muted">–</span></ng-template>
+                                              </td>
+                                              <td>{{ formatDrifttid(sub.runtime_plc) }}</td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                        <div *ngIf="(subShiftsMap[report.id]?.length ?? 0) > SUB_PAGE" class="mt-2 text-center">
+                                          <button class="btn btn-sm btn-outline-secondary" (click)="subShiftsShowAll[report.id] = !subShiftsShowAll[report.id]">
+                                            <i class="fas me-1" [class.fa-expand-alt]="!subShiftsShowAll[report.id]" [class.fa-compress-alt]="subShiftsShowAll[report.id]"></i>
+                                            {{ subShiftsShowAll[report.id] ? 'Dölj' : ('Visa alla ' + subShiftsMap[report.id].length + ' rader') }}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </ng-container>
+
+                                  <!-- OPERATÖRER -->
+                                  <ng-container *ngIf="getTab(report.id)==='operatorer'">
+                                    <div class="row g-3">
+                                      <div class="col-md-4" *ngIf="report.op1">
+                                        <div class="kpi-card d-flex align-items-center gap-3 py-3 px-3" style="text-align:left;">
+                                          <div class="op-avatar flex-shrink-0" [style.background]="opAvatarColor(report.op1)">{{ getOpInitials(report.op1) }}</div>
+                                          <div>
+                                            <div class="fw-semibold" style="font-size:.95rem;">{{ getOpName(report.op1) }}</div>
+                                            <div class="text-muted small">Op1 — Påsatt</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div class="col-md-4" *ngIf="report.op2">
+                                        <div class="kpi-card d-flex align-items-center gap-3 py-3 px-3" style="text-align:left;">
+                                          <div class="op-avatar flex-shrink-0" [style.background]="opAvatarColor(report.op2)">{{ getOpInitials(report.op2) }}</div>
+                                          <div>
+                                            <div class="fw-semibold" style="font-size:.95rem;">{{ getOpName(report.op2) }}</div>
+                                            <div class="text-muted small">Op2 — Spolplattform</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div class="col-md-4" *ngIf="report.op3">
+                                        <div class="kpi-card d-flex align-items-center gap-3 py-3 px-3" style="text-align:left;">
+                                          <div class="op-avatar flex-shrink-0" [style.background]="opAvatarColor(report.op3)">{{ getOpInitials(report.op3) }}</div>
+                                          <div>
+                                            <div class="fw-semibold" style="font-size:.95rem;">{{ getOpName(report.op3) }}</div>
+                                            <div class="text-muted small">Op3 — Kontroll</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div class="col-12" *ngIf="!report.op1 && !report.op2 && !report.op3">
+                                        <p class="text-muted mb-0">Inga operatörer registrerade för detta skift.</p>
+                                      </div>
+                                    </div>
+                                  </ng-container>
+
+                                  <!-- PLC-DATA -->
+                                  <ng-container *ngIf="getTab(report.id)==='plcdata'">
+                                    <div class="row g-2 mb-3">
+                                      <div class="col-6 col-md-2" *ngIf="report.drifttid > 0">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">Drifttid (D4007)</div>
+                                          <div class="kpi-value text-success">{{ formatMinutes(report.drifttid) }}</div>
+                                        </div>
+                                      </div>
+                                      <div class="col-6 col-md-2" *ngIf="report.rasttime != null">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">Rasttid (D4008)</div>
+                                          <div class="kpi-value text-warning">{{ formatMinutes(report.rasttime) }}</div>
+                                        </div>
+                                      </div>
+                                      <div class="col-6 col-md-2" *ngIf="report.driftstopptime != null">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">Driftstopp</div>
+                                          <div class="kpi-value text-danger">{{ formatMinutes(report.driftstopptime) }}</div>
+                                        </div>
+                                      </div>
+                                      <div class="col-6 col-md-2" *ngIf="report.skiftraknare != null">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">Skiftnr</div>
+                                          <div class="kpi-value">#{{ report.skiftraknare }}</div>
+                                        </div>
+                                      </div>
+                                      <div class="col-6 col-md-2" *ngIf="report.product_id != null">
+                                        <div class="kpi-card">
+                                          <div class="kpi-label">Produkt</div>
+                                          <div class="kpi-value" style="font-size:1rem;">{{ getProductName(report.product_id) || report.product_id }}</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div *ngIf="report.skiftraknare != null" class="mt-1">
+                                      <p class="text-muted small mb-2"><i class="fas fa-list-ol me-1"></i>Löpnummer detta skift (D4009)</p>
+                                      <div *ngIf="lopnummerLoading[report.id]" class="text-muted small"><i class="fas fa-spinner fa-spin me-1"></i>Hämtar...</div>
+                                      <div *ngIf="!lopnummerLoading[report.id]">
+                                        <ng-container *ngIf="getLopnummerPills(report.id).length > 0">
+                                          <span *ngFor="let pill of getLopnummerPills(report.id)" class="lopnr-pill">{{ pill }}</span>
+                                        </ng-container>
+                                        <span *ngIf="getLopnummerPills(report.id).length === 0" class="text-muted small">–</span>
+                                      </div>
+                                    </div>
+                                  </ng-container>
+
+                                  <!-- KOMMENTAR -->
+                                  <ng-container *ngIf="getTab(report.id)==='kommentar'">
+                                    <div *ngIf="report.kommentar">
+                                      <p class="mb-0" style="color:#e2e8f0; white-space:pre-wrap;">{{ report.kommentar }}</p>
+                                    </div>
+                                    <p *ngIf="!report.kommentar" class="text-muted mb-0">
+                                      <i class="fas fa-comment-slash me-1"></i>Ingen kommentar för detta skift.
+                                    </p>
+                                  </ng-container>
+
+                                  <!-- REDIGERA -->
+                                  <ng-container *ngIf="getTab(report.id)==='redigera' && canEdit(report)">
+                                    <form #formRef="ngForm" (ngSubmit)="saveReport(report)">
+                                      <div class="row g-2 align-items-end">
+                                        <div class="col-md-2">
+                                          <label class="form-label small">Datum</label>
+                                          <input type="date" class="form-control form-control-sm"
+                                            [value]="report.datum" (input)="report.datum = $any($event.target).value"
+                                            name="datum-{{report.id}}" />
+                                        </div>
+                                        <div class="col-md-2">
+                                          <label class="form-label small">Antal OK</label>
+                                          <input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ok" name="ok-{{report.id}}" min="0" max="99999" />
+                                        </div>
+                                        <div class="col-md-2">
+                                          <label class="form-label small">Antal ej OK</label>
+                                          <input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ej_ok" name="ejok-{{report.id}}" min="0" max="99999" />
+                                        </div>
+                                        <div class="col-md-4">
+                                          <label class="form-label small">Kommentar</label>
+                                          <input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="kom-{{report.id}}" maxlength="500" />
+                                        </div>
+                                        <div class="col-md-2">
+                                          <button class="btn btn-sm w-100" type="submit"
+                                            [class.btn-primary]="config.themeColor === 'primary'"
+                                            [class.btn-warning]="config.themeColor === 'warning'"
+                                            [class.btn-success]="config.themeColor === 'success'"
+                                            [class.text-dark]="config.themeColor === 'warning'" [disabled]="formRef.invalid">
+                                            <i class="fas fa-save me-1"></i>Spara
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </form>
+                                  </ng-container>
+
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+
+                        </ng-container>
+                      </tbody>
+                    </table>
                   </div>
                 </td>
               </tr>
 
-              <!-- Expanderad rad -->
-              <tr *ngIf="expanded[report.id]" class="expand-row">
-                <td [attr.colspan]="isAdmin ? 11 : 10" class="p-0">
-                  <div class="expand-panel p-3">
-                    <!-- KPI -->
-                    <div class="row g-2 mb-3">
-                      <div class="col-6 col-md-3">
-                        <div class="kpi-card">
-                          <div class="kpi-label">Kvalitet</div>
-                          <div class="kpi-value"
-                            [class.text-success]="(getQualityPct(report) ?? 0) >= 90"
-                            [class.text-warning]="(getQualityPct(report) ?? 101) >= 70 && (getQualityPct(report) ?? 101) < 90"
-                            [class.text-danger]="(getQualityPct(report) ?? 101) < 70 && getQualityPct(report) != null"
-                            [class.text-muted]="getQualityPct(report) == null">
-                            {{ getQualityPct(report) != null ? ((getQualityPct(report) | number:'1.1-1') + '%') : '\u2013' }}
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-3">
-                        <div class="kpi-card">
-                          <div class="kpi-label">Antal OK</div>
-                          <div class="kpi-value text-success">{{ report.antal_ok }}</div>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-3">
-                        <div class="kpi-card">
-                          <div class="kpi-label">Kassation</div>
-                          <div class="kpi-value text-danger">{{ report.antal_ej_ok }}</div>
-                        </div>
-                      </div>
-                      <div class="col-6 col-md-3">
-                        <div class="kpi-card">
-                          <div class="kpi-label">Totalt</div>
-                          <div class="kpi-value text-info">{{ report.totalt }}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Kommentar -->
-                    <div class="mb-3" *ngIf="report.kommentar">
-                      <div class="d-flex align-items-center mb-1">
-                        <i class="fas fa-comment text-muted me-2"></i>
-                        <span class="text-muted fw-semibold small">Kommentar</span>
-                      </div>
-                      <p class="mb-0 text-light">{{ report.kommentar }}</p>
-                    </div>
-
-                    <!-- Redigera -->
-                    <div *ngIf="canEdit(report)" class="border-top border-secondary pt-3">
-                      <div class="d-flex align-items-center mb-2">
-                        <i class="fas fa-edit me-2"
-                          [class.text-primary]="config.themeColor === 'primary'"
-                          [class.text-warning]="config.themeColor === 'warning'"
-                          [class.text-success]="config.themeColor === 'success'"></i>
-                        <span class="fw-semibold"
-                          [class.text-primary]="config.themeColor === 'primary'"
-                          [class.text-warning]="config.themeColor === 'warning'"
-                          [class.text-success]="config.themeColor === 'success'">Redigera</span>
-                      </div>
-                      <form #formRef="ngForm" (ngSubmit)="saveReport(report)">
-                        <div class="row g-2 align-items-end">
-                          <div class="col-md-2">
-                            <label class="form-label small">Datum</label>
-                            <input type="date" class="form-control form-control-sm"
-                              [value]="report.datum" (input)="report.datum = $any($event.target).value"
-                              name="datum-{{report.id}}" />
-                          </div>
-                          <div class="col-md-2">
-                            <label class="form-label small">Antal OK</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ok" name="ok-{{report.id}}" min="0"  max="99999" />
-                          </div>
-                          <div class="col-md-2">
-                            <label class="form-label small">Antal ej OK</label>
-                            <input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ej_ok" name="ejok-{{report.id}}" min="0"  max="99999" />
-                          </div>
-                          <div class="col-md-4">
-                            <label class="form-label small">Kommentar</label>
-                            <input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="kom-{{report.id}}" maxlength="500" />
-                          </div>
-                          <div class="col-md-2">
-                            <button class="btn btn-sm w-100" type="submit"
-                              [class.btn-primary]="config.themeColor === 'primary'"
-                              [class.btn-warning]="config.themeColor === 'warning'"
-                              [class.btn-success]="config.themeColor === 'success'"
-                              [class.text-dark]="config.themeColor === 'warning'" [disabled]="formRef.invalid">
-                              <i class="fas fa-save me-1"></i>Spara
-                            </button>
-                          </div>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </td>
-              </tr>
             </ng-container>
-
-            <tr *ngIf="filteredReports.length === 0 && !loading">
-              <td [attr.colspan]="isAdmin ? 11 : 10" class="text-center text-muted py-4">
-                <i class="fas fa-inbox fa-2x d-block mb-2 text-muted"></i>
-                {{ reports.length === 0 ? 'Inga rapporter hittades.' : 'Inga skift matchar det valda datumintervallet.' }}
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>

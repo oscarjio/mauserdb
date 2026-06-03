@@ -34,6 +34,23 @@ class LineSkiftrapportController {
         $this->ensureTable($table);
 
         if ($method === 'GET') {
+            $run = $_GET['run'] ?? '';
+            if ($run === 'lopnummer') {
+                $this->getLopnummer($line);
+                return;
+            }
+            if ($run === 'operators') {
+                $this->getOperators();
+                return;
+            }
+            if ($run === 'products') {
+                $this->getProducts($line);
+                return;
+            }
+            if ($run === 'subshifts') {
+                $this->getSubShifts($line);
+                return;
+            }
             $this->getReports($table);
             return;
         }
@@ -158,11 +175,13 @@ class LineSkiftrapportController {
     private function getReports($table) {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT r.id, r.datum, r.antal_ok, r.antal_ej_ok, r.totalt,
-                       r.kommentar, r.inlagd, r.user_id, r.created_at, r.updated_at,
-                       u.username AS user_name
+                SELECT r.*, u.username AS user_name,
+                    o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name
                 FROM `$table` r
                 LEFT JOIN users u ON r.user_id = u.id
+                LEFT JOIN operators o1 ON r.op1 IS NOT NULL AND (o1.number = r.op1 OR o1.id = r.op1)
+                LEFT JOIN operators o2 ON r.op2 IS NOT NULL AND (o2.number = r.op2 OR o2.id = r.op2)
+                LEFT JOIN operators o3 ON r.op3 IS NOT NULL AND (o3.number = r.op3 OR o3.id = r.op3)
                 ORDER BY r.datum DESC, r.id DESC
                 LIMIT 1000
             ");
@@ -192,13 +211,17 @@ class LineSkiftrapportController {
                 $kommentar = mb_substr($kommentar, 0, 2000);
             }
             $user_id     = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
+            $op1         = isset($data['op1']) && $data['op1'] !== '' && $data['op1'] !== null ? max(0, intval($data['op1'])) : null;
+            $op2         = isset($data['op2']) && $data['op2'] !== '' && $data['op2'] !== null ? max(0, intval($data['op2'])) : null;
+            $op3         = isset($data['op3']) && $data['op3'] !== '' && $data['op3'] !== null ? max(0, intval($data['op3'])) : null;
+            $product_id  = isset($data['product_id']) && $data['product_id'] !== '' && $data['product_id'] !== null ? intval($data['product_id']) : null;
 
             $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("
-                INSERT INTO `$table` (datum, antal_ok, antal_ej_ok, totalt, kommentar, user_id)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO `$table` (datum, antal_ok, antal_ej_ok, totalt, kommentar, user_id, op1, op2, op3, product_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->execute([$datum, $antal_ok, $antal_ej_ok, $totalt, $kommentar, $user_id]);
+            $stmt->execute([$datum, $antal_ok, $antal_ej_ok, $totalt, $kommentar, $user_id, $op1, $op2, $op3, $product_id]);
             $newId = (int)$this->pdo->lastInsertId();
             AuditLogger::log($this->pdo, 'create_rapport', $table, $newId,
                 "Skapad: datum=$datum, antal_ok=$antal_ok, totalt=$totalt");
@@ -408,5 +431,100 @@ class LineSkiftrapportController {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera status'], JSON_UNESCAPED_UNICODE);
         }
+    }
+
+    private function getOperators(): void {
+        try {
+            $stmt = $this->pdo->query("SELECT id, number, name FROM operators ORDER BY name");
+            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
+        } catch (\PDOException $e) {
+            error_log("LineSkiftrapportController::getOperators: " . $e->getMessage());
+            echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getProducts(string $line): void {
+        $productsTable = $line . '_products';
+        try {
+            $stmt = $this->pdo->query("SELECT id, name, cycle_time_minutes FROM `$productsTable` ORDER BY name");
+            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
+        } catch (\PDOException $e) {
+            error_log("LineSkiftrapportController::getProducts($line): " . $e->getMessage());
+            echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getLopnummer(string $line): void {
+        $skiftraknare = isset($_GET['skiftraknare']) ? intval($_GET['skiftraknare']) : 0;
+        if ($skiftraknare <= 0) {
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt skiftraknare'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        $ibcTable = $line . '_ibc';
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT DISTINCT lopnummer FROM `$ibcTable`
+                 WHERE skiftraknare = ? AND lopnummer > 0 AND lopnummer < 9998
+                 ORDER BY lopnummer"
+            );
+            $stmt->execute([$skiftraknare]);
+            $nums = array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'lopnummer');
+            echo json_encode([
+                'success' => true,
+                'ranges'  => $this->buildLopnummerRanges(array_map('intval', $nums)),
+                'count'   => count($nums),
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\PDOException $e) {
+            error_log("LineSkiftrapportController::getLopnummer($line): " . $e->getMessage());
+            echo json_encode(['success' => false, 'ranges' => '–', 'count' => 0], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function getSubShifts(string $line): void {
+        $skiftraknare = isset($_GET['skiftraknare']) ? intval($_GET['skiftraknare']) : 0;
+        if ($skiftraknare <= 0) {
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt skiftraknare'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        $ibcTable = $line . '_ibc';
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT i.id, i.datum, i.ibc_count, i.s_count, i.skiftraknare,
+                        i.op1, i.op2, i.op3, i.produkt,
+                        i.ibc_ok, i.ibc_ej_ok, i.omtvaatt,
+                        i.runtime_plc, i.rasttime, i.driftstopptime, i.lopnummer,
+                        i.effektivitet,
+                        o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name
+                 FROM `$ibcTable` i
+                 LEFT JOIN operators o1 ON i.op1 IS NOT NULL AND (o1.number = i.op1 OR o1.id = i.op1)
+                 LEFT JOIN operators o2 ON i.op2 IS NOT NULL AND (o2.number = i.op2 OR o2.id = i.op2)
+                 LEFT JOIN operators o3 ON i.op3 IS NOT NULL AND (o3.number = i.op3 OR o3.id = i.op3)
+                 WHERE i.skiftraknare = ?
+                 ORDER BY i.datum ASC"
+            );
+            $stmt->execute([$skiftraknare]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
+        } catch (\PDOException $e) {
+            error_log("LineSkiftrapportController::getSubShifts($line): " . $e->getMessage());
+            echo json_encode(['success' => false, 'data' => []], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    private function buildLopnummerRanges(array $nums): string {
+        if (empty($nums)) return '–';
+        sort($nums);
+        $ranges = [];
+        $start = $prev = $nums[0];
+        for ($i = 1; $i < count($nums); $i++) {
+            if ($nums[$i] === $prev + 1) {
+                $prev = $nums[$i];
+            } else {
+                $ranges[] = $start === $prev ? (string)$start : $start . '–' . $prev;
+                $start = $prev = $nums[$i];
+            }
+        }
+        $ranges[] = $start === $prev ? (string)$start : $start . '–' . $prev;
+        return implode(', ', $ranges);
     }
 }

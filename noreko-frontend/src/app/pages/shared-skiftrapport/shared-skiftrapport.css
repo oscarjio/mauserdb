@@ -62,3 +62,26 @@
 .kpi-card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 10px 14px; text-align: center; }
 .kpi-label { font-size: 0.68rem; color: #8fa3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
 .kpi-value { font-size: 1.4rem; font-weight: 700; line-height: 1.2; }
+
+/* ---- Detail hero + tabs ---- */
+.detail-hero { background: linear-gradient(135deg, #1a202c 0%, #252e3f 100%); border-bottom: 1px solid rgba(255,255,255,0.07); }
+.hero-stat { display: flex; flex-direction: column; align-items: center; min-width: 70px; }
+.hero-num { font-size: 2rem; font-weight: 800; line-height: 1; }
+.hero-lbl { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8fa3b8; margin-top: 3px; }
+.hero-divider { width: 1px; height: 44px; background: rgba(255,255,255,0.1); align-self: center; }
+.op-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.detail-tabs { background: #161d2b; border-bottom: 1px solid rgba(255,255,255,0.08); gap: 0; overflow-x: auto; flex-wrap: nowrap; }
+.detail-tabs .nav-link { color: #8fa3b8; border: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 0.55rem 1rem; font-size: 0.78rem; white-space: nowrap; transition: color .15s, border-color .15s; }
+.detail-tabs .nav-link:hover { color: #e2e8f0; background: transparent; }
+.detail-tabs .nav-link.active { color: #63b3ed; border-bottom-color: #63b3ed; background: transparent; font-weight: 600; }
+.detail-tab-content { min-height: 80px; }
+.lopnr-pill { display: inline-block; background: #2a3347; border: 1px solid #3d4f6b; border-radius: 20px; padding: 2px 11px; font-size: 0.78rem; font-weight: 600; color: #e2e8f0; margin: 2px; letter-spacing: 0.02em; }
+
+/* ---- Day-grouped rows ---- */
+.day-summary-row { background-color: #1e2a3a !important; border-bottom: 2px solid #3182ce; cursor: pointer; }
+.day-summary-row:hover { background-color: rgba(49,130,206,0.18) !important; }
+.day-expanded-row > td { background-color: #1a202c !important; padding: 0 !important; }
+.day-shift-panel { background: #1a202c; border-left: 3px solid #3182ce; }
+.shift-detail-table { background: #2d3748; margin-bottom: 0; }
+.shift-detail-table thead th { background-color: #2d3748 !important; color: #a0aec0; font-size: 0.75rem; text-transform: uppercase; border-color: #4a5568; }
+.shift-detail-table tbody td { background-color: #2d3748 !important; color: #e2e8f0; font-size: 0.88rem; border-color: #4a5568; vertical-align: middle; }

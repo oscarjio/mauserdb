@@ -30,6 +30,8 @@ interface TableRow {
   avgCycleTime: number;
   efficiency: number;
   runtime: number;
+  rastMinutes: number;
+  driftstoppMinutes: number;
   clickable: boolean;
 }
 
@@ -216,24 +218,23 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   }
 
   /** Uppdatera URL med nuvarande vy, år, månad och valda datum (ersätter inte history). */
-  private syncStateToUrl() {
-    const params: Record<string, string> = {
+  private syncStateToUrl(replace = true) {
+    const params: Record<string, string | null> = {
       view: this.viewMode,
       year: String(this.currentYear),
-      month: String(this.currentMonth)
+      month: this.viewMode === 'year' ? null : String(this.currentMonth),
+      dates: null
     };
-    if (this.selectedPeriods.length > 0) {
+    if (this.viewMode === 'day' && this.selectedPeriods.length > 0) {
       params['dates'] = this.selectedPeriods
         .map(d => this.formatDate(d))
         .join(',');
-    } else {
-      delete params['dates'];
     }
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: params,
       queryParamsHandling: 'merge',
-      replaceUrl: true
+      replaceUrl: replace
     });
   }
 
@@ -609,6 +610,19 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
     this.totalRastMinutes = data.summary?.total_rast_minutes || 0;
     this.totalDriftstoppMinutes = data.summary?.total_driftstopp_minutes || 0;
+    // Fallback: beräkna driftstopptid i frontend om backend returnerade 0
+    if (this.totalDriftstoppMinutes === 0 && (data.driftstopp_events || []).length > 0) {
+      const toMs = (d: string) => new Date(d.replace(' ', 'T')).getTime();
+      let dsStart = 0;
+      for (const e of (data.driftstopp_events || [])) {
+        const isStart = e.status === 'start' || e.driftstopp_status == 1;
+        if (isStart && !dsStart) { dsStart = toMs(e.datum); }
+        else if (!isStart && dsStart) {
+          this.totalDriftstoppMinutes += (toMs(e.datum) - dsStart) / 60000;
+          dsStart = 0;
+        }
+      }
+    }
     this.buildTimelineSegments(data);
     this.buildShiftSummaries(data.cycles || []);
     this.computeDayMetrics(data);
@@ -633,22 +647,27 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.selectedPeriods[0].getMonth() === now.getMonth() &&
       this.selectedPeriods[0].getDate() === now.getDate();
 
+    // Extrahera HH:MM direkt från MySQL-strängen ('YYYY-MM-DD HH:MM:SS')
+    // Undviker new Date() timezone-problem med space-separator
+    const toMin = (datum: string): number => {
+      const m = datum ? datum.match(/(\d{2}):(\d{2})(?::\d{2})?$/) : null;
+      return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
+    };
+
+    // Normalisera driftstopp — backend kan returnera 'status' eller 'driftstopp_status'
+    const isDsStart = (e: any): boolean =>
+      e.status === 'start' || e.driftstopp_status == 1;
+
     type EvType = 'run_start' | 'run_end' | 'rast_start' | 'rast_end' | 'ds_start' | 'ds_end';
     const events: { min: number; type: EvType }[] = [];
     onoff.forEach((e: any) => {
-      const d = new Date(e.datum);
-      const min = d.getHours() * 60 + d.getMinutes();
-      events.push({ min, type: e.running ? 'run_start' : 'run_end' });
+      events.push({ min: toMin(e.datum), type: e.running == 1 ? 'run_start' : 'run_end' });
     });
     rast.forEach((e: any) => {
-      const d = new Date(e.datum);
-      const min = d.getHours() * 60 + d.getMinutes();
-      events.push({ min, type: e.rast_status == 1 ? 'rast_start' : 'rast_end' });
+      events.push({ min: toMin(e.datum), type: e.rast_status == 1 ? 'rast_start' : 'rast_end' });
     });
     driftstopp.forEach((e: any) => {
-      const d = new Date(e.datum);
-      const min = d.getHours() * 60 + d.getMinutes();
-      events.push({ min, type: e.driftstopp_status == 1 ? 'ds_start' : 'ds_end' });
+      events.push({ min: toMin(e.datum), type: isDsStart(e) ? 'ds_start' : 'ds_end' });
     });
     events.sort((a, b) => a.min - b.min);
 
@@ -806,6 +825,12 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   setTab(tab: 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag') {
     this.activeTab = tab;
+    if (tab === 'analys' && this.oeeTrendLoaded && !this.oeeTrendEmpty) {
+      clearTimeout(this.oeeTrendChartTimer);
+      this.oeeTrendChartTimer = setTimeout(() => {
+        if (!this.destroy$.closed) this.renderOeeTrendChart();
+      }, 80);
+    }
     if (tab === 'produktion' && this.skiftStatData.length === 0 && !this.skiftStatLoading) {
       this.loadSkiftrapportStatistik();
     }
@@ -1833,6 +1858,31 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.tableData = [];
     const grouped = new Map<string, any[]>();
 
+    // Extrahera minuter från MySQL datetime-sträng (undviker new Date() timezone-problem)
+    const toMinFromStr = (datum: string): number => {
+      const m = datum ? datum.match(/(\d{2}):(\d{2})(?::\d{2})?$/) : null;
+      return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
+    };
+
+    // Bygg rast- och driftstoppperioder som [startMin, endMin]-par för överlapsberäkning
+    const buildPeriods = (events: any[], isStart: (e: any) => boolean): [number, number][] => {
+      const periods: [number, number][] = [];
+      let start: number | null = null;
+      for (const e of (events || [])) {
+        const min = toMinFromStr(e.datum);
+        if (isStart(e) && start === null) { start = min; }
+        else if (!isStart(e) && start !== null) { periods.push([start, min]); start = null; }
+      }
+      return periods;
+    };
+    const rastPeriods = buildPeriods(data.rast_events || [],
+      e => e.rast_status == 1);
+    const dsPeriods = buildPeriods(data.driftstopp_events || [],
+      e => e.status === 'start' || e.driftstopp_status == 1);
+
+    const overlapMin = (periods: [number, number][], winStart: number, winEnd: number): number =>
+      periods.reduce((sum, [a, b]) => sum + Math.max(0, Math.min(b, winEnd) - Math.max(a, winStart)), 0);
+
     data.cycles.forEach((cycle: any) => {
       const date = new Date(cycle.datum);
       let key: string;
@@ -1842,67 +1892,62 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       } else if (this.viewMode === 'month') {
         key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
       } else {
-        // Group by 10-minute intervals for day view
         const hour = date.getHours();
         const minute = Math.floor(date.getMinutes() / 10) * 10;
 
-        // Om användaren har markerat ett intervall i dag-vyn, filtrera bort cykler utanför
-        if (
-          this.chartSelectionStartIndex !== null &&
-          this.chartSelectionEndIndex !== null
-        ) {
+        if (this.chartSelectionStartIndex !== null && this.chartSelectionEndIndex !== null) {
           const bucketIndex = hour * 6 + minute / 10;
           const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
           const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
-          if (bucketIndex < minSel || bucketIndex > maxSel) {
-            return;
-          }
+          if (bucketIndex < minSel || bucketIndex > maxSel) return;
         }
 
         key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${hour}-${minute}`;
       }
 
-      if (!grouped.has(key)) {
-        grouped.set(key, []);
-      }
+      if (!grouped.has(key)) grouped.set(key, []);
       grouped.get(key)!.push(cycle);
     });
 
     grouped.forEach((cycles, _key) => {
       const date = new Date(cycles[0].datum);
       let period: string;
+      let rastMin = 0;
+      let dsMin = 0;
 
       if (this.viewMode === 'year') {
         period = this.monthNames[date.getMonth()];
       } else if (this.viewMode === 'month') {
         period = `${date.getDate()} ${this.monthNames[date.getMonth()].substring(0, 3)}`;
       } else {
-        // Show 10-minute intervals for day view
         const hour = date.getHours();
         const minute = Math.floor(date.getMinutes() / 10) * 10;
-        const endMinute = minute + 10;
-        period = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} - ${hour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+        const winStart = hour * 60 + minute;
+        const winEnd = winStart + 10;
+        // Fix: 07:50 - 08:00 (inte 07:60)
+        const endTotalMin = winEnd;
+        const endH = Math.floor(endTotalMin / 60);
+        const endM = endTotalMin % 60;
+        period = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} - ${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+        rastMin = Math.round(overlapMin(rastPeriods, winStart, winEnd) * 10) / 10;
+        dsMin   = Math.round(overlapMin(dsPeriods, winStart, winEnd) * 10) / 10;
       }
 
-      // Filtrera bort NULL cycle_time värden för korrekt genomsnitt
-      const validCycleTimes = cycles
-        .map(c => c.cycle_time)
-        .filter(t => t !== null && t !== undefined && t > 0);
-
+      const validCycleTimes = cycles.map(c => c.cycle_time).filter(t => t !== null && t !== undefined && t > 0);
       const avgCycleTime = validCycleTimes.length > 0
-        ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
-        : 0;
-
+        ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length : 0;
       const taktMal = this.targetCycleTime || 3;
       const efficiency = avgCycleTime > 0 ? Math.round((taktMal / avgCycleTime) * 100) : 0;
 
       this.tableData.push({
-        period: period,
-        date: date,
+        period,
+        date,
         cycles: cycles.length,
         avgCycleTime: Math.round(avgCycleTime * 10) / 10,
-        efficiency: efficiency,
+        efficiency,
         runtime: Math.round(cycles.length * avgCycleTime * 10) / 10,
+        rastMinutes: rastMin,
+        driftstoppMinutes: dsMin,
         clickable: this.viewMode !== 'day'
       });
     });
