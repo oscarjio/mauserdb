@@ -118,22 +118,29 @@ class WeeklyReportController {
         $shiftSeconds = 28800;
 
         // runtime_plc är i MINUTER (PLC-enhet). Konvertera till sekunder för OEE-beräkning.
+        // ibc_ok är ett kumulativt PLC-räknerverk — korrekt delta beräknas med LAG() per dag.
         $sql = "
-            SELECT DATE(datum) AS dag,
-                   SUM(delta_ok)              AS ibc_ok,
-                   SUM(delta_ok + delta_ej)   AS ibc_total,
-                   SUM(runtime_min)           AS runtime_min,
-                   COUNT(DISTINCT skiftraknare) AS num_shifts
+            SELECT dag,
+                   SUM(GREATEST(0, delta_ok))              AS ibc_ok,
+                   SUM(GREATEST(0, delta_ok + delta_ej))   AS ibc_total,
+                   SUM(runtime_min)                        AS runtime_min,
+                   COUNT(*) AS num_shifts
             FROM (
-                SELECT DATE(datum) AS datum, skiftraknare,
-                       MAX(ibc_ok)      - MIN(ibc_ok)      AS delta_ok,
-                       MAX(ibc_ej_ok)   - MIN(ibc_ej_ok)   AS delta_ej,
-                       MAX(runtime_plc)                     AS runtime_min
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                GROUP BY DATE(datum), skiftraknare
-            ) x
-            GROUP BY DATE(datum)
+                SELECT dag, skiftraknare,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end)   OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej,
+                       runtime_min
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end,
+                           MAX(COALESCE(runtime_plc,0)) AS runtime_min
+                    FROM rebotling_ibc
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ) shifts
+            ) deltas
+            GROUP BY dag
             ORDER BY dag
         ";
         $stmt = $this->pdo->prepare($sql);
@@ -199,35 +206,43 @@ class WeeklyReportController {
      */
     private function getOperatorOfWeek(string $fromDate, string $toDate): ?array {
         // runtime_plc är i MINUTER — dividera med 60 för timmar (inte 3600)
+        // ibc_ok är kumulativt PLC-räknerverk — LAG()-delta per (dag, skiftraknare) ger korrekt produktion
         $sqlOp = "
             SELECT op_id, o.name,
-                   SUM(delta_ok)                              AS total_ibc,
-                   SUM(delta_ok) / NULLIF(SUM(runtime_h), 0) AS avg_ibc_per_h,
-                   SUM(delta_ok) / NULLIF(SUM(delta_ok + delta_ej), 0) * 100 AS avg_quality_pct
+                   SUM(GREATEST(0, delta_ok))                                    AS total_ibc,
+                   SUM(GREATEST(0, delta_ok)) / NULLIF(SUM(runtime_h), 0)        AS avg_ibc_per_h,
+                   SUM(GREATEST(0, delta_ok))
+                       / NULLIF(SUM(GREATEST(0, delta_ok + delta_ej)), 0) * 100  AS avg_quality_pct
             FROM (
-                SELECT op1 AS op_id, DATE(datum) AS datum, skiftraknare,
-                       MAX(ibc_ok)-MIN(ibc_ok)     AS delta_ok,
-                       MAX(ibc_ej_ok)-MIN(ibc_ej_ok) AS delta_ej,
-                       MAX(runtime_plc)/60.0        AS runtime_h
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL
-                GROUP BY DATE(datum), skiftraknare, op1
-                UNION ALL
-                SELECT op2, DATE(datum), skiftraknare,
-                       MAX(ibc_ok)-MIN(ibc_ok),
-                       MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                       MAX(runtime_plc)/60.0
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL
-                GROUP BY DATE(datum), skiftraknare, op2
-                UNION ALL
-                SELECT op3, DATE(datum), skiftraknare,
-                       MAX(ibc_ok)-MIN(ibc_ok),
-                       MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                       MAX(runtime_plc)/60.0
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL
-                GROUP BY DATE(datum), skiftraknare, op3
+                SELECT op_num AS op_id, dag, skiftraknare,
+                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY op_num, dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                       GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY op_num, dag ORDER BY skiftraknare), 0)) AS delta_ej,
+                       runtime_h
+                FROM (
+                    SELECT op1 AS op_num, DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end,
+                           MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                    FROM rebotling_ibc
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare, op1
+                    UNION ALL
+                    SELECT op2, DATE(datum), skiftraknare,
+                           MAX(COALESCE(ibc_ok,    0)),
+                           MAX(COALESCE(ibc_ej_ok, 0)),
+                           MAX(COALESCE(runtime_plc, 0)) / 60.0
+                    FROM rebotling_ibc
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare, op2
+                    UNION ALL
+                    SELECT op3, DATE(datum), skiftraknare,
+                           MAX(COALESCE(ibc_ok,    0)),
+                           MAX(COALESCE(ibc_ej_ok, 0)),
+                           MAX(COALESCE(runtime_plc, 0)) / 60.0
+                    FROM rebotling_ibc
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare, op3
+                ) base
             ) raw
             JOIN operators o ON o.number = raw.op_id
             GROUP BY op_id
@@ -300,25 +315,32 @@ class WeeklyReportController {
                 error_log("WeeklyReportController::getSummary: kunde ej hämta dagmal: " . $e->getMessage());
             }
 
-            // Daglig aggregering
+            // Daglig aggregering — ibc_ok är kumulativt PLC-räknerverk; LAG()-delta ger korrekt per-skift-produktion
             $sqlDaily = "
-                SELECT DATE(datum) AS dag,
-                       SUM(delta_ok) AS ibc_ok,
-                       SUM(delta_ej) AS ibc_ej,
-                       SUM(delta_ok + delta_ej) AS ibc_total,
-                       SUM(delta_ok) / NULLIF(SUM(delta_ok + delta_ej), 0) * 100 AS kvalitet_pct,
-                       SUM(runtime_h) AS drifttid_h,
-                       SUM(delta_ok) / NULLIF(SUM(runtime_h), 0) AS ibc_per_h
+                SELECT dag,
+                       SUM(GREATEST(0, delta_ok))              AS ibc_ok,
+                       SUM(GREATEST(0, delta_ej))              AS ibc_ej,
+                       SUM(GREATEST(0, delta_ok + delta_ej))   AS ibc_total,
+                       SUM(GREATEST(0, delta_ok))
+                           / NULLIF(SUM(GREATEST(0, delta_ok + delta_ej)), 0) * 100 AS kvalitet_pct,
+                       SUM(runtime_h)                          AS drifttid_h,
+                       SUM(GREATEST(0, delta_ok)) / NULLIF(SUM(runtime_h), 0) AS ibc_per_h
                 FROM (
-                    SELECT DATE(datum) AS datum, skiftraknare,
-                           MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok,
-                           MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS delta_ej,
-                           MAX(runtime_plc) / 60.0 AS runtime_h
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
-                ) x
-                GROUP BY DATE(datum)
+                    SELECT dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej,
+                           runtime_h
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end,
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) shifts
+                ) deltas
+                GROUP BY dag
                 ORDER BY dag
             ";
             $stmtDaily = $this->pdo->prepare($sqlDaily);
@@ -385,37 +407,44 @@ class WeeklyReportController {
                 }
             }
 
-            // Operatörsranking för veckan
+            // Operatörsranking för veckan — ibc_ok är kumulativt; LAG()-delta ger korrekt per-skift-produktion
             $sqlOp = "
                 SELECT op_id, o.name,
-                       SUM(delta_ok) AS ibc_ok_vecka,
-                       SUM(delta_ok) / NULLIF(SUM(runtime_h), 0) AS snitt_ibc_per_h,
-                       SUM(delta_ok) / NULLIF(SUM(delta_ok + delta_ej), 0) * 100 AS kvalitet_pct,
-                       COUNT(DISTINCT CONCAT(datum, '-', skiftraknare)) AS antal_skift
+                       SUM(GREATEST(0, delta_ok))                                    AS ibc_ok_vecka,
+                       SUM(GREATEST(0, delta_ok)) / NULLIF(SUM(runtime_h), 0)        AS snitt_ibc_per_h,
+                       SUM(GREATEST(0, delta_ok))
+                           / NULLIF(SUM(GREATEST(0, delta_ok + delta_ej)), 0) * 100  AS kvalitet_pct,
+                       COUNT(*) AS antal_skift
                 FROM (
-                    SELECT op1 AS op_id, DATE(datum) AS datum, skiftraknare,
-                           MAX(ibc_ok)-MIN(ibc_ok) AS delta_ok,
-                           MAX(ibc_ej_ok)-MIN(ibc_ej_ok) AS delta_ej,
-                           MAX(runtime_plc)/60.0 AS runtime_h
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare, op1
-                    UNION ALL
-                    SELECT op2, DATE(datum), skiftraknare,
-                           MAX(ibc_ok)-MIN(ibc_ok),
-                           MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                           MAX(runtime_plc)/60.0
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare, op2
-                    UNION ALL
-                    SELECT op3, DATE(datum), skiftraknare,
-                           MAX(ibc_ok)-MIN(ibc_ok),
-                           MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                           MAX(runtime_plc)/60.0
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare, op3
+                    SELECT op_num AS op_id, dag, skiftraknare,
+                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY op_num, dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY op_num, dag ORDER BY skiftraknare), 0)) AS delta_ej,
+                           runtime_h
+                    FROM (
+                        SELECT op1 AS op_num, DATE(datum) AS dag, skiftraknare,
+                               MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end,
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare, op1
+                        UNION ALL
+                        SELECT op2, DATE(datum), skiftraknare,
+                               MAX(COALESCE(ibc_ok,    0)),
+                               MAX(COALESCE(ibc_ej_ok, 0)),
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare, op2
+                        UNION ALL
+                        SELECT op3, DATE(datum), skiftraknare,
+                               MAX(COALESCE(ibc_ok,    0)),
+                               MAX(COALESCE(ibc_ej_ok, 0)),
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare, op3
+                    ) base
                 ) raw
                 JOIN operators o ON o.number = raw.op_id
                 GROUP BY op_id

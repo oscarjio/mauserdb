@@ -1215,17 +1215,21 @@ class TvattlinjeController {
                 }
             }
 
-            // Verkligt antal cykler via MAX(ibc_count) per dag, summerat — fångar missade webhooks
+            // Verkligt antal cykler via LAG-delta på MAX(ibc_count) per dag — fångar missade webhooks
+            // ibc_count är kumulativt; SUM(MAX per dag) räknar fel. Korrekt: SUM av dagliga delta.
             $total_cycles_true = 0;
             try {
                 $stmtTrue = $this->pdo->prepare('
-                    SELECT COALESCE(SUM(max_per_dag), 0)
+                    SELECT COALESCE(SUM(GREATEST(0, ibc_delta)), 0)
                     FROM (
-                        SELECT MAX(ibc_count) as max_per_dag
-                        FROM tvattlinje_ibc
-                        WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
-                        GROUP BY DATE(datum)
-                    ) sub
+                        SELECT day_end - COALESCE(LAG(day_end) OVER (ORDER BY dag), 0) AS ibc_delta
+                        FROM (
+                            SELECT DATE(datum) AS dag, MAX(ibc_count) AS day_end
+                            FROM tvattlinje_ibc
+                            WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                            GROUP BY DATE(datum)
+                        ) daily_max
+                    ) deltas
                 ');
                 $stmtTrue->execute(['start' => $start, 'end' => $end]);
                 $total_cycles_true = (int)$stmtTrue->fetchColumn();
@@ -1673,8 +1677,19 @@ class TvattlinjeController {
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::getPlcDiagnostikStream: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av PLC-diagnostik.'], JSON_UNESCAPED_UNICODE);
+            // Returnera 200 med tom data — förhindrar att klienten tolkar det som ett permanent fel
+            // och triggar retries som kan orsaka PHP-FPM-köbildning (upplevd 503).
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'events'       => [],
+                    'max_id'       => 0,
+                    'stats'        => ['running' => false, 'skiftraknare' => 0, 'last_event' => null, 'ibc_today' => 0],
+                    'date'         => date('Y-m-d'),
+                    'event_count'  => 0,
+                ],
+                '_error' => 'Tillfälligt fel — försök igen',
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1800,17 +1815,26 @@ class TvattlinjeController {
             $rows = [];
 
             // Hämta daglig data från tvattlinje_ibc (PLC-tabell — konsekvent med översiktssidan)
+            // ibc_count är ett kumulativt räknerverk som INTE nollställs dagligen.
+            // Korrekt daglig produktion = MAX(ibc_count) denna dag − MAX(ibc_count) föregående dag (LAG-delta).
             try {
                 $stmt = $this->pdo->prepare("
-                    SELECT
-                        DATE(datum)                                                  AS dag,
-                        MAX(COALESCE(ibc_count, 0))                                 AS total_ibc,
-                        MAX(COALESCE(ibc_ok, 0))                                    AS total_ok,
-                        MAX(COALESCE(ibc_ej_ok, 0))                                 AS total_ej_ok,
-                        COUNT(DISTINCT skiftraknare)                                 AS skift_count
-                    FROM tvattlinje_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
-                    GROUP BY DATE(datum)
+                    SELECT dag,
+                           GREATEST(0, day_end - COALESCE(LAG(day_end) OVER (ORDER BY dag), 0)) AS total_ibc,
+                           GREATEST(0, ok_end  - COALESCE(LAG(ok_end)  OVER (ORDER BY dag), 0)) AS total_ok,
+                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (ORDER BY dag), 0)) AS total_ej_ok,
+                           skift_count
+                    FROM (
+                        SELECT
+                            DATE(datum)                     AS dag,
+                            MAX(COALESCE(ibc_count, 0))     AS day_end,
+                            MAX(COALESCE(ibc_ok, 0))        AS ok_end,
+                            MAX(COALESCE(ibc_ej_ok, 0))     AS ej_end,
+                            COUNT(DISTINCT skiftraknare)    AS skift_count
+                        FROM tvattlinje_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                        GROUP BY DATE(datum)
+                    ) daily_max
                     ORDER BY dag ASC
                 ");
                 $stmt->execute(['dagar' => $dagar]);
