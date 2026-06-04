@@ -640,9 +640,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             const ibcEjOk  = cumulDelta(ls?.ibc_ej_ok,  fs?.ibc_ej_ok);
             const drifttid = cumulDelta(ls?.runtime_plc, fs?.runtime_plc);
             const rasttime = cumulDelta(ls?.rasttime,    fs?.rasttime);
-            // Fallback: om ibc_ok saknas i DB, räkna cykelrader som preliminärt antal
+            // Fallback: om ibc_ok är fruset/noll — försök räkna unika lopnummer-värden
+            // (varje IBC har ett unikt lopnummer; flera cykler per IBC = stationspassager)
             const ibcEstimated = ibcOkRaw === 0 && pass.subs.length > 0;
-            const ibcOk = ibcEstimated ? pass.subs.length : ibcOkRaw;
+            let ibcOk = ibcOkRaw;
+            if (ibcEstimated) {
+              const lopSet = new Set(pass.subs.filter((s: any) => s.lopnummer > 0 && s.lopnummer < 9998).map((s: any) => s.lopnummer));
+              ibcOk = lopSet.size > 0 ? lopSet.size : pass.subs.length;
+            }
             const firstT = pass.times[0];
             const lastT  = pass.times[pass.times.length - 1];
             const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);

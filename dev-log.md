@@ -1,4 +1,7 @@
 # MauserDB Dev Log
+2026-06-04 | feat(lopnummer syntrader): getLopnummer i service stöder from/to; toggleExpand laddar nu lopnummer för preliminära och ej-inskickade pass via plc_start/plc_end. Commit c938d054.
+2026-06-04 | fix(4 buggar shared-skiftrapport): Operatörsfilter använde find(o.id===selectedOperatorId) men ngValue binder op.number → filter matchade aldrig — fixat till direkt Number-jämförelse. getSelectedOperatorName hade samma bugg. onSearchInput/onOperatorFilterChange var no-ops → KPI-sammanfattningen uppdaterades inte vid sökning/operatörsfilter — nu kallar de recomputeKpis(). isDayAllSelected/toggleDaySelect inkluderade syntetiska rader (id<0) → bulk-delete skickade negativa IDs till backend — nu exkluderas syntrader. Commit 46e317f7.
+2026-06-04: Agent A — full PLC-översikt i shared-skiftrapport: Chart.js timvis stapel med målreferenslinje, cykeltidskort (snitt/median/min/max, gap≤30min), stopplista (röd≥10min/gul<10min), rådata collapse, KPI-rad 8 mätvärden (Totalt IBC/OK-EjOK/Kvalitet/IBC-h/Snitt cykeltid/Drifttid D4007/Rast D4008/Stoppid), summaryTotalIbc=antal_ok. Commit f983b12f.
 2026-06-04: Agent Bug — TID plc_start/end filter (AND i.datum <= r.created_at) — cycles after report submission now excluded; verified quality cap LEAST(100.0) OK (already present); verified v22 ibc_ok IS NOT NULL filter OK (already present); verified BÄSTA DAG uses skiftrapport antal_ok (correct source); OEE waterfall perf formula fixed (ibcOk→ibcTotalt — total processed not only good units for performance rate)
 2026-06-04: Agent B — plcbackend nu skriver op1-3, ibc_ok, ibc_ej_ok, runtime_plc, rasttime, lopnummer, driftstopptime, effektivitet till tvattlinje_ibc. Fix: modbusOk sätts till true omedelbart när Modbus lyckas — validering loggar bara varning utan att blockera skrivningen (tidigare bug: validation-throw satte modbusOk=false → NULLs skrevs trots att PLC-data lästes OK).
 2026-06-04: Agent C — v22 IBC=0 fix (AND ibc_ok IS NOT NULL i aggregateWeekStats + getSummary), SNITT KVALITET capped 100% (LEAST+min i getOperatorOfWeek), operator total > monthly total fix (ibc_ok IS NOT NULL i rankSQL getMonthCompare), OEE avail×perf×qual redan fixad (8dd5947b). Commit 2f4e8c5d.
@@ -6764,3 +6767,21 @@ Systematisk granskning av 164 HTML-filer och 170 TS-filer.
 2026-04-30 | scenarioanalys | deployed | Scenarioanalys (/rebotling/scenarioanalys): vad-händer-om-kalkylator för IBC-förbättringspotential med tre oberoende scenarier och interaktiva sliders. Scenario 1 — Kassationsminskning: slider 0..nuvarande kass_rate, beräknar extra IBC som total_produced × (currentKass - targetKass). Scenario 2 — Stopptidsminskning: slider 0..nuvarande stoppgrad, extra IBC = (stoppDelta × avail_h) × team_ibc_h. Scenario 3 — Prestationslyft: slider 70-100% av lagsnitt, summerar gap × drifttimmar för alla underpresterande operatörer. Summerings-box: nuvarande IBC, potentiell ökning, projekterat IBC, projekterat IBC/h (kompenserar för extra drifttimmar). Operatörstabell med below-thresh-markering kopplad till valt prestandatröskel. Periodnivå: månad (YYYY-MM). Backend: getScenarioAnalys() i RebotlingController — LAG()-korrigerad ibc_ok (3-nivå: skiftnivå → LAG-delta → yttre aggregering), SUM/SUM för team_ibc_h, per-operatör breakdown med vs_team%. All scenario-matematik client-side (inga extra API-anrop vid slider-dragning). withCredentials ✓, destroy$ ✓, timeout 15s ✓. Nås via operator-prestation hub under Bonus & Planering. Build 0 errors.
 2026-05-18 | fix(BUG-092 del2): tab-switching i årsvy — CSS-överlapp fixad | .stats-tab-bar (sticky top:0 z-index:10) täcktes av .header (sticky top:0 z-index:100) när användaren scrollade ~250px. ngAfterViewInit() mäter nu .header-elementets höjd och sätter CSS-variabeln --app-header-h på :root. @HostListener('window:resize') håller variabeln aktuell. Tab-bar CSS: top: var(--app-header-h, 0px) istf. top:0. Tab-baren sticker nu precis under headern. Commit d2207583. Deployat.
 2026-05-18 | fix(BUG-089+BUG-090): Status-tidslinje dagvy — trunkerad tidslinje + oplanerad tid | BUG-089: capMin för historiska dagar sattes till sista events tid istf. 1440 → tidslinjen visade bara t.ex. 00:00–14:45. Fix: historiska dagar alltid capMin=1440; idag capMin=nu. BUG-090: segment "stopped" utanför aktivt produktionsfönster (innan första run_start / efter sista run_end) visades som röd "Stopp". Fix: dessa klassificeras nu som 'unplanned' — visar "Ingen produktion planerad" i grått (CSS seg-unplanned/tl-dot.unplanned tillagda). Ingen databasändring krävs. Build OK, deployat till dev.
+
+## 2026-06-04 — DAGVY-design skiftrapport + robusthetsfixar
+
+### DAGVY-design (ny)
+- Alla pass för en dag i samma dag-grupp: Inskickad (grön) / Pågående (gul+puls) / Ej inskickad (röd)
+- Multi-pass detection: loadPreliminaryShift grupperar oreporterade cykler på 60-min gap
+- Pass < 60 min sedan = Pågående, pass ≥ 60 min sedan utan rapport = Ej inskickad
+- "Skicka in"-knapp öppnar förfyllt formulär för ej inskickade pass
+- Dagsgrupp auto-expanderas för today
+
+### Robusthetsfixar
+- TID använder aldrig plc_start/plc_end — alltid firstCycleTime/lastCycleTime från plcStatsCache
+- toggleExpand laddar PLC-data om created_at finns (ej krav på prev_created_at)
+- computePlcStats hittar syntetiska pass (id < 0) i unreportedPasses
+- sentInskickad tillagd i plcStatsCache-typen (TypeScript-fel löst)
+- "Sent inskickad"-badge om submitted > 2h efter sista cykeln
+
+Commit: 3555a2a4 | Deployed to dev.mauserdb.com
