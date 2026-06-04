@@ -632,7 +632,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           const ACTIVE_MIN = 60;
           const cumulDelta = (last: any, first: any): number => {
             const l = +(last ?? 0); const f = +(first ?? 0);
-            return (!isFinite(l) || !isFinite(f)) ? 0 : (l >= f ? l - f : l);
+            return (!isFinite(l) || !isFinite(f)) ? 0 : (l >= f ? l - f : 0);
           };
           const buildSynth = (pass: { subs: any[]; times: number[] }, id: number, isPreliminary: boolean): any => {
             const fs = pass.subs[0]; const ls = pass.subs[pass.subs.length - 1];

@@ -537,7 +537,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     ).subscribe({
       next: (response) => {
         if (!response) return;
-        if (response.success) {
+        if (response.success && response.data) {
           // Spara senaste data så vi kan zooma/markera i grafen
           this.lastStatisticsData = response.data;
           this.updateStatistics(response.data);
