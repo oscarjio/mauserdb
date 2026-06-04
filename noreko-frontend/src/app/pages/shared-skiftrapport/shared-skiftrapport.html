@@ -129,7 +129,7 @@
         <div class="summary-label">Drifttid total</div>
       </div>
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 col-md-2" *ngIf="cachedTotalOmtvaatt > 0">
       <div class="summary-card">
         <div class="summary-icon text-warning"><i class="fas fa-redo"></i></div>
         <div class="summary-value text-warning">{{ cachedTotalOmtvaatt }}</div>

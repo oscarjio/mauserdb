@@ -19,8 +19,9 @@ import {
   UnderhallsStats
 } from '../../services/underhallslogg.service';
 import { localToday } from '../../utils/date-utils';
+import { Chart, registerables } from 'chart.js';
 
-declare const Chart: any;
+Chart.register(...registerables);
 
 @Component({
   standalone: true,
@@ -222,13 +223,13 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
 
   private renderChart(): void {
     if (!this.chartRef?.nativeElement || !this.chartData) return;
-    if (typeof Chart === 'undefined') return;
 
     if (this.chartInstance) {
       this.chartInstance.destroy();
     }
 
     const ctx = this.chartRef.nativeElement.getContext('2d');
+    if (!ctx) return;
     this.chartInstance = new Chart(ctx, {
       type: 'bar',
       data: {

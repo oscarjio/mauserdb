@@ -1301,12 +1301,18 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   /** Öppnar formuläret förfyllt med data från ett syntetiskt pass (ej inskickad eller pågående). */
   openAddFormPrefilled(pass: any): void {
+    // Hämta operatörer från första cykelraden (subs[0]) om tillgänglig
+    const subs = this.subShiftsMap[pass.id] || [];
+    const firstSub = subs.length > 0 ? subs[0] : null;
+    const op1 = firstSub?.op1 ? Number(firstSub.op1) : null;
+    const op2 = firstSub?.op2 ? Number(firstSub.op2) : null;
+    const op3 = firstSub?.op3 ? Number(firstSub.op3) : null;
     this.newReport = {
       datum: pass.datum || localToday(),
       antal_ok: pass.antal_ok || 0,
       antal_ej_ok: pass.antal_ej_ok || 0,
       kommentar: '',
-      op1: null, op2: null, op3: null,
+      op1, op2, op3,
       product_id: pass.product_id ?? null,
     };
     this.errorMessage = '';
