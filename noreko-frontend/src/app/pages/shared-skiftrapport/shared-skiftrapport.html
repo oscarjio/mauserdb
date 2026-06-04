@@ -545,7 +545,7 @@
                                       <i class="fas fa-comment me-1"></i>Kommentar
                                     </button>
                                   </li>
-                                  <li class="nav-item" *ngIf="canEdit(report)">
+                                  <li class="nav-item" *ngIf="canEdit(report) && !report.isPreliminary && !report.isUnreported">
                                     <button type="button" class="nav-link" [class.active]="getTab(report.id)==='redigera'" (click)="setTab(report.id,'redigera')">
                                       <i class="fas fa-edit me-1"></i>Redigera
                                     </button>
