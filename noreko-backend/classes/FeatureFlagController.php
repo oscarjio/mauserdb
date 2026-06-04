@@ -15,7 +15,6 @@ class FeatureFlagController {
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
-        $this->ensureTableExists();
     }
 
     public function handle() {

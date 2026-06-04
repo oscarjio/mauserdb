@@ -57,6 +57,12 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "watch": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "tsConfig": "tsconfig.watch.json"
             }
           },
           "defaultConfiguration": "production"

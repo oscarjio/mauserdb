@@ -1430,7 +1430,7 @@ class RebotlingController {
                     MAX(runtime_plc) AS runtime_plc,
                     MAX(rasttime) AS rasttime,
                     MAX(produktion_procent) AS produktion_procent,
-                    MAX(effektivitet) AS effektivitet,
+                    LEAST(100, COALESCE(MAX(effektivitet), 0)) AS effektivitet,
                     MAX(produkt) AS produkt
                 FROM rebotling_ibc
                 WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)

@@ -10,7 +10,6 @@ import { LineSkiftrapportService } from '../services/line-skiftrapport.service';
 import { AuthService, AuthUser } from '../services/auth.service';
 import { FavoriterService, Favorit } from '../services/favoriter.service';
 import { localToday } from '../utils/date-utils';
-import { ProduktionspulsWidget } from '../pages/rebotling/produktionspuls/produktionspuls-widget';
 import { environment } from '../../environments/environment';
 
 interface LineSkiftrapportReport {
@@ -47,7 +46,7 @@ export type NewsCategory = 'alla' | 'produktion' | 'bonus' | 'system' | 'info' |
 @Component({
   selector: 'app-news',
   standalone: true,
-  imports: [CommonModule, RouterModule, ProduktionspulsWidget],
+  imports: [CommonModule, RouterModule],
   templateUrl: './news.html',
   styleUrl: './news.css'
 })

@@ -185,7 +185,35 @@ curl "http://SERVER/noreko-plcbackend/v1.php?type=command&line=rebotling"
 
 ---
 
-## 8. Buggar fixade inför driftsättning
+## 8. Cron-jobb på PLCbackend-servern
+
+Dessa cron-jobb måste sättas upp manuellt vid ominstallation. Kör `crontab -e` som den användare som kör PHP-scripten (t.ex. `www-data` eller `root`).
+
+### Tvättlinje – D4013 = 1 (fika/lunchsignal till PLC)
+
+Sätter register D4013 till 1 på tvättlinje-PLC varje vardag kl. 10:15.
+
+**Script:** `/var/www/mauserdb-dev/noreko-plcbackend/set_tvattlinje_d4013.php`
+
+```
+15 10 * * 1-5 /usr/bin/php /var/www/mauserdb-dev/noreko-plcbackend/set_tvattlinje_d4013.php >> /var/log/noreko/tvattlinje_d4013.log 2>&1
+```
+
+Skapa logg-katalogen om den saknas:
+```bash
+mkdir -p /var/log/noreko
+```
+
+Testa manuellt:
+```bash
+php /var/www/mauserdb-dev/noreko-plcbackend/set_tvattlinje_d4013.php
+```
+
+Förväntat utskrift: `[2026-xx-xx 10:15:00] OK — D4013 = 1 skrivet till 192.168.10.23`
+
+---
+
+## 9. Buggar fixade inför driftsättning
 
 - `$res` null-check i handleCycle – krasch om ingen rad med ibc_count=1 finns i DB
 - `$_GET['count']` castas nu explicit till `int` (förhindrar eventuella typkonverteringsproblem)
