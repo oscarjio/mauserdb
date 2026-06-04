@@ -435,3 +435,75 @@
 **Rotorsak (del 2 — kvarstående bugg trots del 1):** CSS-överlapp mellan `.stats-tab-bar` (`position: sticky; top: 0; z-index: 10`) och `.header` (`position: sticky; top: 0; z-index: 100`). När användaren scrollar ~250px (förbi stats-page-header) hamnar tab-baren bakom app-headern — klick på flik-knappar fångades upp av headern istf. tab-knapparna. Effekten noterades tydligast i årsvy eftersom användare typiskt scrollar längre ner för att se period-celler och årsdiagram.
 **Fix (del 2, commit TBD):** `ngAfterViewInit()` mäter `.header`-elementets faktiska höjd och sätter CSS-variabeln `--app-header-h` på `:root`. `@HostListener('window:resize')` uppdaterar variabeln vid resize. Tab-bar CSS: `top: var(--app-header-h, 0px)` — tab-baren sticker nu rätt under headern istf. att överlappa den.
 **Filer:** `rebotling-statistik.ts` (ngAfterViewInit + updateTabBarStickyOffset), `rebotling-statistik.css` (.stats-tab-bar top)
+
+---
+
+## BUG-114: Rebotling skiftrapport EFF > 100% (FIXAD)
+**Rapporterad:** 2026-06-04  
+**Status:** FIXAD — commit 712dfa82  
+**Symptom:** EFF-kolumnen i rebotling skiftrapport visade >100% (t.ex. 115% 2/6, 135% 29/4).  
+**Rotorsak:** Kolumnen beräknade (ibc_ok × target_cycle) / drifttid utan cap.  
+**Fix:** Bytte kolumnnamn till "TILLG%" och bindning till `getEfficiencyPct(report)` som alltid returnerar ≤100%.
+
+---
+
+## BUG-116: Månadsrapport maj SNITT KVALITET 169.2% (FIXAD)
+**Rapporterad:** 2026-06-04  
+**Status:** FIXAD — commit 2b179e7f  
+**Symptom:** Operatör-rankingen i månadsrapporten visade "Snitt Kvalitet" 169.2% (borde max vara 100%).  
+**Rotorsak:** Historisk data i `rebotling_skiftrapport.totalt` beräknades med fel formel (ibc_ok - ibc_ej_ok istf. ibc_ok + ibc_ej_ok) → nämnaren < täljaren → procent > 100%. Ingen cap på kvalitetsprocenten.  
+**Fix:** `min(100.0, ...)` i PHP och `LEAST(100.0, ...)` i SQL för getMonthlyReport och getMonthCompare.
+
+---
+
+## BUG-6: /oversikt Tvättlinje EJ IGÅNG trots 136 IBC / Eligijus 165 IBC/h på 0.4h (FIXAD)
+**Rapporterad:** 2026-06-04  
+**Status:** FIXAD — commit 2b179e7f  
+**Symptom:** Tvättlinje visades som "EJ IGÅNG" trots 136 IBC idag. Eligijus visade 165 IBC/h på 0.4h drifttid (borde ~4h).  
+**Rotorsak:** StatusController satte `ej_i_drift=true` statiskt. MAX(runtime_plc WHERE op1=X) fångade bara den tid operatören var i position 1, inte hela skiftets drifttid.  
+**Fix:** StatusController läser från tvattlinje_ibc för faktisk status. Shift-level MAX(runtime_plc) hämtas separat och används för alla operatörer i samma skift.
+
+---
+
+## BUG-1: Månadsrapport ranking ej sorterad på POÄNG / Olof 963 IBC > total 677 (FIXAD)
+**Rapporterad:** 2026-06-04  
+**Status:** FIXAD — commit 712dfa82  
+**Symptom:** Operatör-ranking sorterades ej på poäng (desc). Olof visade 963 IBC mot total 677.  
+**Rotorsak:** Sorteringsdirektionen inverterades (en/ett-bokstavsfel). Dubbletträkned operatörer (op1=op2=op3 → 3× IBC) utan deduplicering per op_num + skiftraknare.  
+**Fix:** Sorteringsfix + DISTINCT → GROUP BY op_num, skiftraknare + MAX() aggregater för korrekt dedup.
+
+---
+
+## BUG-NEWS-LAG: NewsController fel LAG-delta-formel (FIXAD)
+**Rapporterad:** 2026-06-04  
+**Status:** FIXAD — commit a390ff6c  
+**Symptom:** Rekordag-event 395 IBC 14/5 medan dagrekord var 249 (395 = V20 veckostotal). Produktionshändelser visade veckosummor som dagssummor.  
+**Rotorsak:** Sektioner 1,2,5,6,7 i NewsController använde LAG-delta med PARTITION BY datum ORDER BY skiftraknare — beräknade delta mellan SKIFT inom samma dag istf. varje skifts totala IBC.  
+**Fix:** Korrekt SUM(MAX(ibc_ok) per skiftraknare per dag) via per_shift CTE.
+
+---
+
+## BUG-TVATT-BASTA: Tvättlinje BÄSTA DAG 3563 IBC ökade live (FIXAD)
+**Rapporterad:** 2026-06-04  
+**Status:** FIXAD — commit f7fbf8fa  
+**Symptom:** BÄSTA DAG visade 3563 IBC och ökade kontinuerligt live (omöjligt värde).  
+**Rotorsak:** `ibc_count` i tvattlinje_ibc är monotont stigande (nollställs aldrig). MAX(ibc_count) för idag fortsatte växa per ny PLC-tick. BÄSTA DAG inkluderade idag vars delta ökade i realtid.  
+**Fix:** Exkluderar CURDATE() från BÄSTA DAG-jämförelsen.
+
+---
+
+## BUG-VECKORAPPORT-IBC0: Veckorapport v22 IBC=0 men OEE=24% (FIXAD)
+**Rapporterad:** 2026-06-04  
+**Status:** FIXAD — commit a3a91c9b  
+**Symptom:** Veckorapport vecka 22 visade 0 IBC men OEE=24%.  
+**Rotorsak:** VeckorapportController använde LAG-delta med PARTITION BY dag ORDER BY skiftraknare + HAVING COUNT(*) > 1. Om skift N hade lägre max(ibc_ok) än skift N-1 (ny skiftraknare, reset), gav GREATEST(0, negativ) = 0. HAVING COUNT>1 uteslöt dessutom enskilda rader.  
+**Fix:** Ersatt med SUM(MAX(ibc_ok) per skiftraknare) i getProductionData, getEfficiencyData, getTotalRuntimeHours, getQualityData.
+
+---
+
+## BUG-BONUS-IDAG0: /rebotling/bonus KPI-kort "IBC Godkända" visar 0 trots veckoranking 173/198/181 (FIXAD)
+**Rapporterad:** 2026-06-04  
+**Status:** FIXAD — commit a3a91c9b  
+**Symptom:** Bonus-dashboardens KPI-kort visade 0 IBC medan rankingen (period=week) visade 173/198/181 IBC per operatör.  
+**Rotorsak:** getDailySummary() hårdkodade CURDATE() (alltid idag) oavsett vald period. Ranking använde selectedPeriod. Diskrepans: KPI=idag (0 om inget arbete gjort idag), ranking=vecka.  
+**Fix:** getDailySummary() accepterar &period=, frontend skickar selectedPeriod.
