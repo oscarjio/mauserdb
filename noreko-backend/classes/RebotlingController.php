@@ -12617,8 +12617,9 @@ class RebotlingController {
                 $mAvail = $b['scheduled']   > 0 ? round($b['drifttid']   / $b['scheduled']   * 100, 1) : null;
                 $mQual  = $b['processed']   > 0 ? round($b['good']       / $b['processed']   * 100, 1) : null;
                 $mPerf  = $b['theoretical'] > 0 ? round(min($b['processedP'] / $b['theoretical'], 1.5) * 100, 1) : null;
+                // OEE = A × P × Q — prestanda cappas vid 100% för OEE-beräkning
                 $mOEE   = ($mAvail !== null && $mPerf !== null && $mQual !== null)
-                          ? round($mAvail/100 * $mPerf/100 * $mQual/100 * 100, 1) : null;
+                          ? round($mAvail/100 * min($mPerf/100, 1.0) * $mQual/100 * 100, 1) : null;
                 $monthly[] = [
                     'month' => $mon,
                     'avail' => $mAvail,
@@ -12634,8 +12635,9 @@ class RebotlingController {
             $kpiAvail = $totalScheduled   > 0 ? round(($totalHours * 60.0) / $totalScheduled * 100, 1) : null;
             $kpiQual  = ($totalIbc + $totalIbcEjOk) > 0 ? round($totalIbc / ($totalIbc + $totalIbcEjOk) * 100, 1) : null;
             $kpiPerf  = $totalTheoreticalP > 0 ? round(min($totalProcessedP / $totalTheoreticalP, 1.5) * 100, 1) : null;
+            // OEE = A × P × Q — prestanda cappas vid 100% för OEE-beräkning (kan annars överstiga A och Q)
             $kpiOEE   = ($kpiAvail !== null && $kpiPerf !== null && $kpiQual !== null)
-                        ? round($kpiAvail/100 * $kpiPerf/100 * $kpiQual/100 * 100, 1) : null;
+                        ? round($kpiAvail/100 * min($kpiPerf/100, 1.0) * $kpiQual/100 * 100, 1) : null;
             $kpiIbcH  = $totalHours > 0 ? round($totalIbc / $totalHours, 2) : null;
             $kpiKass  = ($totalIbc + $totalIbcEjOk) > 0
                         ? round($totalIbcEjOk / ($totalIbc + $totalIbcEjOk) * 100, 1) : null;

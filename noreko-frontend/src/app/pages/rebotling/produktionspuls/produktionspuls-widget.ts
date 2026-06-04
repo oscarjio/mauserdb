@@ -45,18 +45,6 @@ import { ProduktionspulsService, PulsItem } from '../../../services/produktionsp
               <span class="pw-badge" *ngIf="item.kasserad">K</span>
             </div>
           </ng-container>
-          <ng-container *ngFor="let item of items; trackBy: trackByIndex">
-            <div class="pw-item" [ngClass]="{
-              'pw-ok': !item.kasserad && !item.over_target,
-              'pw-kasserad': item.kasserad,
-              'pw-over': !item.kasserad && item.over_target
-            }">
-              <span class="pw-op">{{ item.operator }}</span>
-              <span class="pw-cykel" *ngIf="item.cykeltid !== null">{{ item.cykeltid }}m</span>
-              <span class="pw-cykel pw-na" *ngIf="item.cykeltid === null">--</span>
-              <span class="pw-badge" *ngIf="item.kasserad">K</span>
-            </div>
-          </ng-container>
         </div>
       </div>
     </div>

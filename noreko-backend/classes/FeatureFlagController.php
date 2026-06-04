@@ -96,9 +96,10 @@ class FeatureFlagController {
             $flags = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             echo json_encode(['success' => true, 'data' => $flags], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
+            // Tabellen kan saknas i ny miljö — returnera tom lista med 200 OK
+            // så att frontend-appen inte blockeras vid initiering (APP_INITIALIZER).
             error_log('FeatureFlagController::getList: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta feature flags'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
         }
     }
 
