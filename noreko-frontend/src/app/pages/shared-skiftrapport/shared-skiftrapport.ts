@@ -224,12 +224,30 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   getOeePct(r: any): number | null {
-    const q = r.totalt > 0 ? r.antal_ok / r.totalt : null;
-    if (q == null) return null;
-    const tot = (r.drifttid || 0) + (r.rasttime || 0);
-    const avail = tot > 0 ? Math.min(r.drifttid / tot, 1) : null;
-    if (avail == null) return null;
-    return Math.round(q * avail * 100);
+    const totalIbc = r.totalt ?? 0;
+    const okIbc = r.antal_ok ?? 0;
+    if (totalIbc <= 0) return null;
+
+    // Kvalitet (Q)
+    const kvalitet = okIbc / totalIbc;
+
+    // Tillgänglighet (A) = drifttid / (drifttid + rasttime)
+    // drifttid är i minuter
+    const drifttidMin = r.drifttid ?? 0;
+    const rasttimeMin = r.rasttime ?? 0;
+    const schemaMin = drifttidMin + rasttimeMin;
+    const tillganglighet = schemaMin > 0 ? Math.min(drifttidMin / schemaMin, 1) : null;
+    if (tillganglighet == null) return null;
+
+    // Prestanda (P) = (totalIbc × 120s) / drifttid_sek, cap 1.0
+    // drifttid i minuter → sekunder
+    const drifttidSek = drifttidMin * 60;
+    const IDEAL_CYCLE_SEK = 120;
+    const prestanda = drifttidSek > 0
+      ? Math.min((totalIbc * IDEAL_CYCLE_SEK) / drifttidSek, 1)
+      : 1.0;
+
+    return Math.round(tillganglighet * prestanda * kvalitet * 100);
   }
 
   formatDrifttid(min: number): string {
