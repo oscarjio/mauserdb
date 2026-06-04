@@ -199,14 +199,57 @@ class StatusController {
             }
 
             // --- Tvattlinje ---
-            $lines[] = [
-                'id'           => 'tvattlinje',
-                'namn'         => 'Tvattlinje',
-                'status'       => 'not_started',
-                'status_label' => 'Ej igang',
-                'kor'          => false,
-                'ej_i_drift'   => true
-            ];
+            try {
+                $tvRow = $pdo->query(
+                    "SELECT MAX(datum) as last_ping FROM tvattlinje_ibc"
+                )->fetch(PDO::FETCH_ASSOC);
+
+                $tvStatus      = 'not_started';
+                $tvStatusLabel = 'Ej igang';
+                $tvSenaste     = null;
+
+                if ($tvRow && $tvRow['last_ping'] !== null) {
+                    $lastPing = new \DateTime($tvRow['last_ping']);
+                    $now      = new \DateTime();
+                    $tvSenaste = round(($now->getTimestamp() - $lastPing->getTimestamp()) / 60, 1);
+
+                    if ($tvSenaste < 15) {
+                        $tvStatus      = 'running';
+                        $tvStatusLabel = 'Kor';
+                    } elseif ($tvSenaste <= 60) {
+                        $tvStatus      = 'idle';
+                        $tvStatusLabel = 'Vila';
+                    } else {
+                        $tvStatus      = 'offline';
+                        $tvStatusLabel = 'Offline';
+                    }
+                }
+
+                $tvIbcIdag = (int)$pdo->query(
+                    "SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
+                )->fetchColumn();
+
+                $lines[] = [
+                    'id'               => 'tvattlinje',
+                    'namn'             => 'Tvattlinje',
+                    'status'           => $tvStatus,
+                    'status_label'     => $tvStatusLabel,
+                    'kor'              => ($tvStatus === 'running'),
+                    'senaste_data_min' => $tvSenaste,
+                    'ibc_idag'         => $tvIbcIdag,
+                    'ej_i_drift'       => true
+                ];
+            } catch (\Throwable $e) {
+                error_log('StatusController::all-lines tvattlinje: ' . $e->getMessage());
+                $lines[] = [
+                    'id'           => 'tvattlinje',
+                    'namn'         => 'Tvattlinje',
+                    'status'       => 'not_started',
+                    'status_label' => 'Ej igang',
+                    'kor'          => false,
+                    'ej_i_drift'   => true
+                ];
+            }
 
             // --- Saglinje ---
             $lines[] = [
