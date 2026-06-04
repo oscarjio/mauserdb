@@ -532,46 +532,115 @@
 
                                   <!-- ÖVERSIKT -->
                                   <ng-container *ngIf="getTab(report.id)==='oversikt'">
-                                    <div class="row g-2 mb-3">
-                                      <div class="col-6 col-md-2">
-                                        <div class="kpi-card">
-                                          <div class="kpi-label">IBC OK</div>
-                                          <div class="kpi-value text-success">{{ report.antal_ok }}</div>
+
+                                    <!-- SEKTION 1: KPI-RAD (8 kort) när PLC-data finns -->
+                                    <ng-container *ngIf="report.skiftraknare != null && !subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0">
+                                      <div class="row g-2 mb-3">
+                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Totalt IBC</div>
+                                            <div class="kpi-value text-success">{{ report.antal_ok }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">OK / Ej OK</div>
+                                            <div class="kpi-value"><span class="text-success">{{ report.antal_ok }}</span><span class="text-muted mx-1">/</span><span class="text-danger">{{ report.antal_ej_ok }}</span></div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Kvalitet</div>
+                                            <div class="kpi-value"
+                                              [class.text-success]="(getQualityPct(report) ?? 0) >= 95"
+                                              [class.text-warning]="(getQualityPct(report) ?? 0) >= 80 && (getQualityPct(report) ?? 0) < 95"
+                                              [class.text-danger]="(getQualityPct(report) ?? 0) > 0 && (getQualityPct(report) ?? 0) < 80">
+                                              {{ getQualityPct(report) != null ? ((getQualityPct(report) | number:'1.0-1') + '%') : '–' }}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">IBC/h</div>
+                                            <div class="kpi-value text-warning">{{ getIbcPerHour(report) ?? '–' }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Snitt cykeltid</div>
+                                            <div class="kpi-value text-info">{{ getPlcKpi(report.id).avgCycleMin > 0 ? (getPlcKpi(report.id).avgCycleMin + ' min') : '–' }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Drifttid D4007</div>
+                                            <div class="kpi-value text-success">{{ report.drifttid > 0 ? formatDrifttid(report.drifttid) : '–' }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Rast D4008</div>
+                                            <div class="kpi-value text-warning">{{ report.rasttime > 0 ? formatDrifttid(report.rasttime) : '0m' }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Stoppid</div>
+                                            <div class="kpi-value"
+                                              [class.text-danger]="getPlcKpi(report.id).totalStopMin >= 10"
+                                              [class.text-warning]="getPlcKpi(report.id).totalStopMin > 0 && getPlcKpi(report.id).totalStopMin < 10"
+                                              [class.text-success]="getPlcKpi(report.id).totalStopMin === 0">
+                                              {{ getPlcKpi(report.id).totalStopMin > 0 ? (getPlcKpi(report.id).totalStopMin + ' min') : '0 min' }}
+                                            </div>
+                                          </div>
                                         </div>
                                       </div>
-                                      <div class="col-6 col-md-2">
-                                        <div class="kpi-card">
-                                          <div class="kpi-label">IBC ej OK</div>
-                                          <div class="kpi-value text-danger">{{ report.antal_ej_ok }}</div>
+                                    </ng-container>
+
+                                    <!-- Fallback KPI-rad utan PLC-data -->
+                                    <ng-container *ngIf="!(report.skiftraknare != null && !subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0)">
+                                      <div class="row g-2 mb-3">
+                                        <div class="col-6 col-md-2">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">IBC OK</div>
+                                            <div class="kpi-value text-success">{{ report.antal_ok }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-2">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">IBC ej OK</div>
+                                            <div class="kpi-value text-danger">{{ report.antal_ej_ok }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-2" *ngIf="report.omtvaatt != null">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Omtvätt</div>
+                                            <div class="kpi-value text-warning">{{ report.omtvaatt }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-2">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Totalt</div>
+                                            <div class="kpi-value text-info">{{ report.totalt }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-2" *ngIf="getIbcPerHour(report) != null">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">IBC/h</div>
+                                            <div class="kpi-value text-warning">{{ getIbcPerHour(report) }}</div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-2" *ngIf="minPerIbc(report) !== '–'">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Min/IBC</div>
+                                            <div class="kpi-value text-info">{{ minPerIbc(report) }}</div>
+                                          </div>
                                         </div>
                                       </div>
-                                      <div class="col-6 col-md-2" *ngIf="report.omtvaatt != null">
-                                        <div class="kpi-card">
-                                          <div class="kpi-label">Omtvätt</div>
-                                          <div class="kpi-value text-warning">{{ report.omtvaatt }}</div>
-                                        </div>
-                                      </div>
-                                      <div class="col-6 col-md-2">
-                                        <div class="kpi-card">
-                                          <div class="kpi-label">Totalt</div>
-                                          <div class="kpi-value text-info">{{ report.totalt }}</div>
-                                        </div>
-                                      </div>
-                                      <div class="col-6 col-md-2" *ngIf="getIbcPerHour(report) != null">
-                                        <div class="kpi-card">
-                                          <div class="kpi-label">IBC/h</div>
-                                          <div class="kpi-value text-warning">{{ getIbcPerHour(report) }}</div>
-                                        </div>
-                                      </div>
-                                      <div class="col-6 col-md-2" *ngIf="minPerIbc(report) !== '–'">
-                                        <div class="kpi-card">
-                                          <div class="kpi-label">Min/IBC</div>
-                                          <div class="kpi-value text-info">{{ minPerIbc(report) }}</div>
-                                        </div>
-                                      </div>
-                                    </div>
+                                    </ng-container>
+
                                     <!-- PLC-ÖVERSIKT (cykler) -->
-                                    <div *ngIf="report.skiftraknare != null" class="mt-3">
+                                    <div *ngIf="report.skiftraknare != null" class="mt-2">
                                       <div *ngIf="subShiftsLoading[report.id]" class="text-muted small py-2">
                                         <i class="fas fa-spinner fa-spin me-1"></i>Hämtar PLC-data...
                                       </div>
@@ -580,52 +649,47 @@
                                       </div>
 
                                       <ng-container *ngIf="!subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0">
-                                        <!-- KPI-KORT -->
-                                        <div class="row g-2 mb-3">
-                                          <div class="col-6 col-md-3">
-                                            <div class="kpi-card">
-                                              <div class="kpi-label">Cykler</div>
-                                              <div class="kpi-value text-info">{{ getPlcKpi(report.id).totalCycles }}</div>
-                                            </div>
+
+                                        <!-- SEKTION 2: TIMVIS STAPELDIAGRAM (Chart.js 4) -->
+                                        <div class="mb-4" *ngIf="getHourlyBuckets(report.id).length > 0">
+                                          <p class="text-muted small mb-2"><i class="fas fa-chart-bar me-1"></i>Timvis produktion (IBC/timme)</p>
+                                          <div style="position:relative; height:180px;">
+                                            <canvas [id]="'plc-hourly-' + report.id"></canvas>
                                           </div>
-                                          <div class="col-6 col-md-3">
-                                            <div class="kpi-card">
-                                              <div class="kpi-label">Snitt cykeltid</div>
-                                              <div class="kpi-value text-warning">{{ getPlcKpi(report.id).avgCycleMin > 0 ? (getPlcKpi(report.id).avgCycleMin + ' min') : '–' }}</div>
+                                        </div>
+
+                                        <!-- SEKTION 3: CYKELTIDSKORT -->
+                                        <div class="mb-3" *ngIf="getCycleStats(report.id).avg != null">
+                                          <p class="text-muted small mb-2"><i class="fas fa-stopwatch me-1"></i>Cykeltidsstatistik (gap ≤ 30 min)</p>
+                                          <div class="row g-2">
+                                            <div class="col-6 col-md-3">
+                                              <div class="kpi-card">
+                                                <div class="kpi-label">Snitt</div>
+                                                <div class="kpi-value text-info">{{ getCycleStats(report.id).avg != null ? (getCycleStats(report.id).avg + ' min') : '–' }}</div>
+                                              </div>
                                             </div>
-                                          </div>
-                                          <div class="col-6 col-md-3">
-                                            <div class="kpi-card">
-                                              <div class="kpi-label">Median cykeltid</div>
-                                              <div class="kpi-value">{{ getPlcKpi(report.id).medianCycleMin > 0 ? (getPlcKpi(report.id).medianCycleMin + ' min') : '–' }}</div>
+                                            <div class="col-6 col-md-3">
+                                              <div class="kpi-card">
+                                                <div class="kpi-label">Median</div>
+                                                <div class="kpi-value text-warning">{{ getCycleStats(report.id).median != null ? (getCycleStats(report.id).median + ' min') : '–' }}</div>
+                                              </div>
                                             </div>
-                                          </div>
-                                          <div class="col-6 col-md-3">
-                                            <div class="kpi-card">
-                                              <div class="kpi-label">Stoppid (detekterat)</div>
-                                              <div class="kpi-value" [class.text-danger]="getPlcKpi(report.id).totalStopMin > 10" [class.text-success]="getPlcKpi(report.id).totalStopMin <= 10">
-                                                {{ getPlcKpi(report.id).totalStopMin > 0 ? (getPlcKpi(report.id).totalStopMin + ' min') : '0 min' }}
+                                            <div class="col-6 col-md-3">
+                                              <div class="kpi-card">
+                                                <div class="kpi-label">Min</div>
+                                                <div class="kpi-value text-success">{{ getCycleStats(report.id).min != null ? (getCycleStats(report.id).min + ' min') : '–' }}</div>
+                                              </div>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                              <div class="kpi-card">
+                                                <div class="kpi-label">Max</div>
+                                                <div class="kpi-value text-danger">{{ getCycleStats(report.id).max != null ? (getCycleStats(report.id).max + ' min') : '–' }}</div>
                                               </div>
                                             </div>
                                           </div>
                                         </div>
 
-                                        <!-- TIMVIS PRODUKTION (CSS-staplar) -->
-                                        <div class="mb-3" *ngIf="getHourlyBuckets(report.id).length > 0">
-                                          <p class="text-muted small mb-2"><i class="fas fa-chart-bar me-1"></i>Timvis produktion (cykler)</p>
-                                          <div class="d-flex align-items-flex-end gap-1" style="height:60px; align-items:flex-end;">
-                                            <ng-container *ngFor="let b of getHourlyBuckets(report.id)">
-                                              <div class="d-flex flex-column align-items-center" style="min-width:28px;">
-                                                <span style="font-size:.6rem; color:#8fa3b8; margin-bottom:2px;">{{ b.count }}</span>
-                                                <div style="width:20px; background:#3182ce; border-radius:2px 2px 0 0;"
-                                                     [style.height.px]="(b.count / getHourlyMax(report.id)) * 44"></div>
-                                                <span style="font-size:.6rem; color:#718096; margin-top:2px;">{{ b.hour }}h</span>
-                                              </div>
-                                            </ng-container>
-                                          </div>
-                                        </div>
-
-                                        <!-- DETEKTERADE STOPP -->
+                                        <!-- SEKTION 4: STOPPLISTA -->
                                         <div class="mb-3" *ngIf="getDetectedStops(report.id).length > 0">
                                           <p class="text-muted small mb-2"><i class="fas fa-pause-circle me-1 text-danger"></i>Detekterade stopp (gap &gt; 2× mediancykeltid)</p>
                                           <div class="d-flex flex-wrap gap-2">
@@ -634,7 +698,7 @@
                                                   [class.bg-danger]="stop.durationMin >= 10"
                                                   [class.bg-warning]="stop.durationMin < 10"
                                                   style="font-size:.8rem; padding:.35em .6em;">
-                                              {{ stop.start }}–{{ stop.end }} ({{ stop.durationMin }} min)
+                                              {{ stop.start }} → {{ stop.end }} ({{ stop.durationMin }} min)
                                             </span>
                                           </div>
                                         </div>
@@ -642,7 +706,7 @@
                                           <p class="text-muted small mb-0"><i class="fas fa-check-circle me-1 text-success"></i>Inga detekterade stopp</p>
                                         </div>
 
-                                        <!-- RÅDATA COLLAPSE -->
+                                        <!-- SEKTION 5: RÅDATA COLLAPSE -->
                                         <div>
                                           <button class="btn btn-sm btn-outline-secondary mb-2" type="button"
                                                   (click)="showRawSubShifts[report.id] = !showRawSubShifts[report.id]">

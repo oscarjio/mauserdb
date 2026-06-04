@@ -6,6 +6,9 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
 import { localToday } from '../../utils/date-utils';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 /**
  * Konfiguration per linje — skickas in via wrapper-komponenten.
@@ -83,6 +86,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   private fetchSub: Subscription | null = null;
   private updateInterval: any = null;
   private successTimerId: any = null;
+  private plcCharts = new Map<number, { hourly: Chart }>();
 
   constructor(
     private service: LineSkiftrapportService,
@@ -106,6 +110,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     clearInterval(this.updateInterval);
     clearTimeout(this.successTimerId);
     this.fetchSub?.unsubscribe();
+    this.plcCharts.forEach(c => { try { c.hourly.destroy(); } catch (_e) { /* ignore */ } });
+    this.plcCharts.clear();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -186,7 +192,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // ========== KPI getters (computed per change-detection) ==========
 
   get summaryTotalIbc(): number {
-    return this.filteredReports.reduce((s, r) => s + (r.totalt || 0), 0);
+    return this.filteredReports.reduce((s, r) => s + (r.antal_ok || 0), 0);
   }
 
   get summaryAvgIbcH(): number | null {
@@ -321,19 +327,29 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   isOwner(r: any) { return this.user && r.user_id === this.user.id; }
   canEdit(r: any) { return this.isAdmin || this.isOwner(r); }
   toggleExpand(id: number) {
-    this.expanded[id] = !this.expanded[id];
+    const wasExpanded = !!this.expanded[id];
+    this.expanded[id] = !wasExpanded;
     if (this.expanded[id]) {
       const report = this.reports.find(r => r.id === id);
       if (report?.skiftraknare && this.lopnummerMap[id] === undefined) {
         this.loadLopnummer(report);
       }
       if (report?.skiftraknare && this.subShiftsMap[id] === undefined) {
-        this.loadSubShifts(report);
+        this.loadSubShifts(report, () => this.renderHourlyChart(id, report));
+      } else if (this.subShiftsMap[id]?.length > 0) {
+        setTimeout(() => this.renderHourlyChart(id, report), 50);
+      }
+    } else {
+      // Destroy chart when collapsing
+      const existing = this.plcCharts.get(id);
+      if (existing) {
+        try { existing.hourly.destroy(); } catch (_e) { /* ignore */ }
+        this.plcCharts.delete(id);
       }
     }
   }
 
-  private loadSubShifts(report: any): void {
+  private loadSubShifts(report: any, onLoaded?: () => void): void {
     const id = report.id;
     this.subShiftsLoading[id] = true;
     this.service.getSubShifts(this.config.line, report.skiftraknare)
@@ -341,6 +357,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       .subscribe(res => {
         this.subShiftsLoading[id] = false;
         this.subShiftsMap[id] = res?.success ? (res.data || []) : [];
+        if (onLoaded) setTimeout(onLoaded, 50);
       });
   }
 
@@ -856,5 +873,109 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   getHourlyMax(reportId: number): number {
     return Math.max(...this.getHourlyBuckets(reportId).map(b => b.count), 1);
+  }
+
+  /** Returnerar alla cykeltidsgap (i min) filtrerade: exkluderar gap > 30 min (stopp) */
+  getCycleTimes(reportId: number): number[] {
+    const gaps = this._cycleGapsMin(reportId);
+    return gaps.filter(g => g > 0 && g <= 30);
+  }
+
+  /** Snitt, Median, Min, Max cykeltid (exkl gap > 30 min) */
+  getCycleStats(reportId: number): { avg: number | null; median: number | null; min: number | null; max: number | null } {
+    const times = this.getCycleTimes(reportId);
+    if (!times.length) return { avg: null, median: null, min: null, max: null };
+    const sorted = [...times].sort((a, b) => a - b);
+    const avg = Math.round(times.reduce((s, v) => s + v, 0) / times.length * 10) / 10;
+    const midIdx = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 === 0
+      ? Math.round((sorted[midIdx - 1] + sorted[midIdx]) / 2 * 10) / 10
+      : Math.round(sorted[midIdx] * 10) / 10;
+    const min = Math.round(sorted[0] * 10) / 10;
+    const max = Math.round(sorted[sorted.length - 1] * 10) / 10;
+    return { avg, median, min, max };
+  }
+
+  /** Skapar Chart.js timvis stapeldiagram för givet report-id */
+  private renderHourlyChart(id: number, report: any): void {
+    if (this.destroy$.closed) return;
+    // Destroy existing
+    const existing = this.plcCharts.get(id);
+    if (existing) {
+      try { existing.hourly.destroy(); } catch (_e) { /* ignore */ }
+      this.plcCharts.delete(id);
+    }
+
+    const canvas = document.getElementById(`plc-hourly-${id}`) as HTMLCanvasElement | null;
+    if (!canvas) return;
+
+    const buckets = this.getHourlyBuckets(id);
+    if (!buckets.length) return;
+
+    const product = this.products.find(p => p.id === (report?.product_id ?? null));
+    const cycleTimeMin = product?.cycle_time_minutes ?? 3.0;
+    const targetPerHour = Math.round((60 / cycleTimeMin) * 10) / 10;
+
+    const labels = buckets.map(b => `${b.hour}:00`);
+    const data = buckets.map(b => b.count);
+
+    const chart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'IBC/timme',
+            data,
+            backgroundColor: 'rgba(49,130,206,0.8)',
+            borderColor: '#3182ce',
+            borderWidth: 1,
+            borderRadius: 3,
+          },
+          {
+            label: `Mål (${targetPerHour} IBC/h)`,
+            data: labels.map(() => targetPerHour),
+            type: 'line' as const,
+            borderColor: 'rgba(72,187,120,0.85)',
+            borderWidth: 2,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false,
+            backgroundColor: 'transparent',
+          } as any,
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: '#e2e8f0', font: { size: 11 }, boxWidth: 14 },
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15,17,23,0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#3182ce',
+            borderWidth: 1,
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#e2e8f0', font: { size: 11 } },
+            grid: { color: '#4a5568' },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#e2e8f0', font: { size: 11 }, stepSize: 1 },
+            grid: { color: '#4a5568' },
+            title: { display: true, text: 'Antal IBC', color: '#e2e8f0', font: { size: 11 } },
+          },
+        },
+      },
+    });
+
+    this.plcCharts.set(id, { hourly: chart });
   }
 }
