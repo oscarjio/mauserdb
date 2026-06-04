@@ -2262,6 +2262,9 @@ class RebotlingAnalyticsController {
                 // ibc_ok/ibc_ej_ok are daily running counters — MAX() per skiftraknare deduplicates.
                 // DEDUP: same operator can appear as op1+op2+op3 on the same shift — use DISTINCT
                 // on (op_id, skiftraknare) so each shift counts only once per operator.
+                // AND ibc_ok IS NOT NULL: exkludera skift utan PLC-data så operator-totaler
+                // matchar manadstotalen (fetchMonthData har samma filter). Annars kan
+                // operatörens SUM avvika från team-totalen (Olof 963 vs. total 677).
                 $rankSQL = "
                     WITH per_shift AS (
                         SELECT skiftraknare,
@@ -2274,6 +2277,7 @@ class RebotlingAnalyticsController {
                                MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < ?
+                          AND ibc_ok IS NOT NULL
                         GROUP BY skiftraknare
                     ),
                     all_ops AS (

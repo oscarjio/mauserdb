@@ -120,6 +120,8 @@ class WeeklyReportController {
         // runtime_plc är i MINUTER (PLC-enhet). Konvertera till sekunder för OEE-beräkning.
         // ibc_ok nollställs vid varje skiftstart — MAX(ibc_ok) per skiftraknare är redan korrekt skifttotal.
         // Ingen LAG behövs; summera MAX-värdena direkt per dag.
+        // AND ibc_ok IS NOT NULL: exkludera rader där PLC inte hade data — annars räknas
+        // tomma skift som produktionsdagar med IBC=0 (v22-felet: IBC=0 trots produktion).
         $sql = "
             SELECT dag,
                    SUM(ibc_end)              AS ibc_ok,
@@ -133,6 +135,7 @@ class WeeklyReportController {
                        MAX(COALESCE(runtime_plc,0)) AS runtime_min
                 FROM rebotling_ibc
                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                  AND ibc_ok IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare
             ) shifts
             GROUP BY dag
@@ -206,19 +209,26 @@ class WeeklyReportController {
     private function getOperatorOfWeek(string $fromDate, string $toDate): ?array {
         // runtime_plc är i MINUTER — dividera med 60 för timmar (inte 3600)
         // ibc_ok nollställs vid varje skiftstart — MAX(ibc_ok) per (dag, skiftraknare, op) är korrekt skifttotal.
+        // LEAST(100.0,...) på avg_quality_pct: kvalitet kan aldrig överstiga 100%
+        // (tidigare visades 169.2% när ibc_ej_ok=0 för alla skift → divisor=ibc_ok → 100%
+        //  men vid NULL-kompensation med COALESCE kan nämnaren bli lägre än täljaren).
+        // AND ibc_ok IS NOT NULL: exkludera rader utan PLC-data (se C1-fix).
         $sqlOp = "
             SELECT op_id, o.name,
-                   SUM(ibc_end)                                     AS total_ibc,
-                   SUM(ibc_end) / NULLIF(SUM(runtime_h), 0)         AS avg_ibc_per_h,
-                   SUM(ibc_end)
-                       / NULLIF(SUM(ibc_end + ej_end), 0) * 100     AS avg_quality_pct
+                   SUM(ibc_end)                                            AS total_ibc,
+                   SUM(ibc_end) / NULLIF(SUM(runtime_h), 0)               AS avg_ibc_per_h,
+                   LEAST(100.0,
+                       SUM(ibc_end)
+                       / NULLIF(SUM(ibc_end + ej_end), 0) * 100
+                   )                                                       AS avg_quality_pct
             FROM (
                 SELECT op1 AS op_id, DATE(datum) AS dag, skiftraknare,
                        MAX(COALESCE(ibc_ok,    0)) AS ibc_end,
                        MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end,
                        MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                 FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op1 IS NOT NULL
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                  AND op1 IS NOT NULL AND ibc_ok IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare, op1
                 UNION ALL
                 SELECT op2, DATE(datum), skiftraknare,
@@ -226,7 +236,8 @@ class WeeklyReportController {
                        MAX(COALESCE(ibc_ej_ok, 0)),
                        MAX(COALESCE(runtime_plc, 0)) / 60.0
                 FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op2 IS NOT NULL
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                  AND op2 IS NOT NULL AND ibc_ok IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare, op2
                 UNION ALL
                 SELECT op3, DATE(datum), skiftraknare,
@@ -234,7 +245,8 @@ class WeeklyReportController {
                        MAX(COALESCE(ibc_ej_ok, 0)),
                        MAX(COALESCE(runtime_plc, 0)) / 60.0
                 FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND op3 IS NOT NULL
+                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                  AND op3 IS NOT NULL AND ibc_ok IS NOT NULL
                 GROUP BY DATE(datum), skiftraknare, op3
             ) base
             JOIN operators o ON o.number = base.op_id
@@ -267,7 +279,7 @@ class WeeklyReportController {
             'initialer'       => $initials,
             'total_ibc'       => intval($op['total_ibc'] ?? 0),
             'avg_ibc_per_h'   => round(floatval($op['avg_ibc_per_h'] ?? 0), 1),
-            'avg_quality_pct' => round(floatval($op['avg_quality_pct'] ?? 0), 1),
+            'avg_quality_pct' => min(100.0, round(floatval($op['avg_quality_pct'] ?? 0), 1)),
         ];
     }
 
@@ -312,6 +324,8 @@ class WeeklyReportController {
 
             // Daglig aggregering — ibc_ok nollställs vid varje skiftstart.
             // MAX(ibc_ok) per skiftraknare är redan korrekt skifttotal; summera direkt per dag.
+            // AND ibc_ok IS NOT NULL: exkludera rader utan PLC-data så tomma skift
+            // inte räknas som produktionsdagar (fix: IBC=0 trots produktion).
             $sqlDaily = "
                 SELECT dag,
                        SUM(ibc_end)                              AS ibc_ok,
@@ -328,6 +342,7 @@ class WeeklyReportController {
                            MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                      AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) shifts
                 GROUP BY dag
