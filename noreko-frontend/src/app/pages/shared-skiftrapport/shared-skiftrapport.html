@@ -491,7 +491,7 @@
                                 <div class="detail-hero px-4 py-3">
                                   <div class="d-flex align-items-center gap-4 flex-wrap">
                                     <div class="hero-stat">
-                                      <span class="hero-num text-success">{{ report.antal_ok }}</span>
+                                      <span class="hero-num text-success">{{ safeDisplay(report.antal_ok) }}</span>
                                       <span class="hero-lbl">IBC OK</span>
                                     </div>
                                     <div class="hero-divider d-none d-sm-block" *ngIf="getEfficiencyPct(report) != null"></div>
@@ -564,13 +564,13 @@
                                         <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">Totalt IBC</div>
-                                            <div class="kpi-value text-success">{{ report.antal_ok }}</div>
+                                            <div class="kpi-value text-success">{{ safeDisplay(report.antal_ok) }}</div>
                                           </div>
                                         </div>
                                         <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">OK / Ej OK</div>
-                                            <div class="kpi-value"><span class="text-success">{{ report.antal_ok }}</span><span class="text-muted mx-1">/</span><span class="text-danger">{{ report.antal_ej_ok }}</span></div>
+                                            <div class="kpi-value"><span class="text-success">{{ safeDisplay(report.antal_ok) }}</span><span class="text-muted mx-1">/</span><span class="text-danger">{{ safeDisplay(report.antal_ej_ok) }}</span></div>
                                           </div>
                                         </div>
                                         <div class="col-6 col-md-3">
@@ -628,7 +628,7 @@
                                         <div class="col-6 col-md-2">
                                           <div class="kpi-card">
                                             <div class="kpi-label">IBC OK</div>
-                                            <div class="kpi-value text-success">{{ report.antal_ok }}</div>
+                                            <div class="kpi-value text-success">{{ safeDisplay(report.antal_ok) }}</div>
                                           </div>
                                         </div>
                                         <div class="col-6 col-md-2">

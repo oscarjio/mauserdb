@@ -642,7 +642,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             const rasttime = cumulDelta(ls?.rasttime,    fs?.rasttime);
             // Fallback: om ibc_ok är fruset/noll — försök räkna unika lopnummer-värden
             // (varje IBC har ett unikt lopnummer; flera cykler per IBC = stationspassager)
-            const ibcEstimated = ibcOkRaw === 0 && pass.subs.length > 0;
+            // Trigger lopnummer-fallback för: negativ (PLC-räknare wrappad/korrupt), noll (fruset),
+            // eller orimligt stor (>500 IBC i ett pass = räknarhopp)
+            const ibcEstimated = (ibcOkRaw <= 0 || ibcOkRaw > 500) && pass.subs.length > 0;
             let ibcOk = ibcOkRaw;
             if (ibcEstimated) {
               const lopSet = new Set(pass.subs.filter((s: any) => s.lopnummer > 0 && s.lopnummer < 9998).map((s: any) => s.lopnummer));
