@@ -636,19 +636,32 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           };
           const buildSynth = (pass: { subs: any[]; times: number[] }, id: number, isPreliminary: boolean): any => {
             const fs = pass.subs[0]; const ls = pass.subs[pass.subs.length - 1];
-            const ibcOkRaw = cumulDelta(ls?.ibc_ok,     fs?.ibc_ok);
             const ibcEjOk  = cumulDelta(ls?.ibc_ej_ok,  fs?.ibc_ej_ok);
             const drifttid = cumulDelta(ls?.runtime_plc, fs?.runtime_plc);
             const rasttime = cumulDelta(ls?.rasttime,    fs?.rasttime);
-            // Fallback: om ibc_ok är fruset/noll — försök räkna unika lopnummer-värden
-            // (varje IBC har ett unikt lopnummer; flera cykler per IBC = stationspassager)
-            // Trigger lopnummer-fallback för: negativ (PLC-räknare wrappad/korrupt), noll (fruset),
-            // eller orimligt stor (>500 IBC i ett pass = räknarhopp)
-            const ibcEstimated = (ibcOkRaw <= 0 || ibcOkRaw > 500) && pass.subs.length > 0;
-            let ibcOk = ibcOkRaw;
-            if (ibcEstimated) {
-              const lopSet = new Set(pass.subs.filter((s: any) => s.lopnummer > 0 && s.lopnummer < 9998).map((s: any) => s.lopnummer));
-              ibcOk = lopSet.size > 0 ? lopSet.size : pass.subs.length;
+
+            // IBC-beräkning — 3 prioritetsnivåer:
+            // P1: ibc_ok kumulativ delta (rebotling — kolumnen har data)
+            // P2: summa positiva deltan av ibc_count, 0 < d < 50 (tvattlinje — ibc_ok är NULL)
+            // P3: unika lopnummer (sista utväg — kan underskatta, märks med ~)
+            const ibcOkRaw = cumulDelta(ls?.ibc_ok, fs?.ibc_ok);
+            let ibcOk = 0;
+            let ibcEstimated = false;
+            if (ibcOkRaw > 0) {
+              ibcOk = ibcOkRaw;                        // P1
+            } else {
+              let countSum = 0;
+              for (let i = 1; i < pass.subs.length; i++) {
+                const prev = +(pass.subs[i - 1]?.ibc_count ?? NaN);
+                const curr = +(pass.subs[i]?.ibc_count ?? NaN);
+                if (isFinite(prev) && isFinite(curr)) { const d = curr - prev; if (d > 0 && d < 50) countSum += d; }
+              }
+              if (countSum > 0) { ibcOk = countSum; ibcEstimated = true; }  // P2
+              else {
+                const lopSet = new Set(pass.subs.filter((s: any) => s.lopnummer > 0 && s.lopnummer < 9998).map((s: any) => s.lopnummer));
+                ibcOk = lopSet.size > 0 ? lopSet.size : pass.subs.length;
+                ibcEstimated = true;                   // P3
+              }
             }
             const firstT = pass.times[0];
             const lastT  = pass.times[pass.times.length - 1];
