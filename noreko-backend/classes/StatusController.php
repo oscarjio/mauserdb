@@ -200,6 +200,7 @@ class StatusController {
 
             // --- Tvattlinje ---
             try {
+                $tvTz  = new \DateTimeZone('Europe/Stockholm');
                 $tvRow = $pdo->query(
                     "SELECT MAX(datum) as last_ping FROM tvattlinje_ibc"
                 )->fetch(PDO::FETCH_ASSOC);
@@ -209,8 +210,8 @@ class StatusController {
                 $tvSenaste     = null;
 
                 if ($tvRow && $tvRow['last_ping'] !== null) {
-                    $lastPing = new \DateTime($tvRow['last_ping']);
-                    $now      = new \DateTime();
+                    $lastPing  = new \DateTime($tvRow['last_ping'], $tvTz);
+                    $now       = new \DateTime('now', $tvTz);
                     $tvSenaste = round(($now->getTimestamp() - $lastPing->getTimestamp()) / 60, 1);
 
                     if ($tvSenaste < 15) {
@@ -225,9 +226,26 @@ class StatusController {
                     }
                 }
 
-                $tvIbcIdag = (int)$pdo->query(
-                    "SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
-                )->fetchColumn();
+                // IBC idag — LAG-delta på MAX(ibc_count) (kumulativt räknerverk) för att få
+                // korrekt daglig produktion. Fallback till MAX(ibc_count) om delta ej går att beräkna.
+                $tvIbcIdag = 0;
+                try {
+                    $tvIbcIdag = (int)$pdo->query("
+                        SELECT GREATEST(0, COALESCE(
+                            (SELECT MAX(ibc_count) FROM tvattlinje_ibc
+                             WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY)
+                            -
+                            (SELECT MAX(ibc_count) FROM tvattlinje_ibc
+                             WHERE datum >= CURDATE() - INTERVAL 1 DAY AND datum < CURDATE()),
+                            (SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc
+                             WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY)
+                        ))
+                    ")->fetchColumn();
+                } catch (\Throwable $e) {
+                    $tvIbcIdag = (int)$pdo->query(
+                        "SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
+                    )->fetchColumn();
+                }
 
                 // Om status ännu är not_started men det finns IBC-data idag → linjen kör men
                 // datum-kolumnen saknas eller är NULL i PLC-data. Visa som offline istället.

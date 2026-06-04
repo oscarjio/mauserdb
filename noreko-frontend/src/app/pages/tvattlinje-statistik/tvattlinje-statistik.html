@@ -73,19 +73,19 @@
   <div class="stats-tab-bar">
     <div class="container-fluid">
       <nav class="stats-tabs">
-        <button [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
+        <button type="button" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
           <i class="fas fa-tachometer-alt"></i><span>Översikt</span>
         </button>
-        <button [class.active]="activeTab === 'produktion'" (click)="setTab('produktion')">
+        <button type="button" [class.active]="activeTab === 'produktion'" (click)="setTab('produktion')">
           <i class="fas fa-industry"></i><span>Skiftrapporter</span>
         </button>
-        <button [class.active]="activeTab === 'analys'" (click)="setTab('analys')">
+        <button type="button" [class.active]="activeTab === 'analys'" (click)="setTab('analys')">
           <i class="fas fa-chart-line"></i><span>OEE-trend</span>
         </button>
-        <button [class.active]="activeTab === 'avancerat'" (click)="setTab('avancerat')">
+        <button type="button" [class.active]="activeTab === 'avancerat'" (click)="setTab('avancerat')">
           <i class="fas fa-database"></i><span>Avancerat</span>
         </button>
-        <button [class.active]="activeTab === 'plc-diag'" (click)="setTab('plc-diag')">
+        <button type="button" [class.active]="activeTab === 'plc-diag'" (click)="setTab('plc-diag')">
           <i class="fas fa-stethoscope"></i><span>PLC Diagnostik</span>
         </button>
       </nav>

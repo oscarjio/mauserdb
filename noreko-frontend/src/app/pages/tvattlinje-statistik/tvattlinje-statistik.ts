@@ -843,10 +843,12 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.loadSkiftrapportStatistik();
     }
     if (tab === 'plc-diag') {
-      this.loadPlcDiagnostics();
       clearInterval(this.plcDiagRefreshInterval);
+      try { this.loadPlcDiagnostics(); } catch (e) { /* noop */ }
       this.plcDiagRefreshInterval = setInterval(() => {
-        if (this.activeTab === 'plc-diag') this.loadPlcDiagnostics();
+        if (this.activeTab === 'plc-diag') {
+          try { this.loadPlcDiagnostics(); } catch (e) { /* noop */ }
+        }
       }, 30000);
     } else {
       clearInterval(this.plcDiagRefreshInterval);
