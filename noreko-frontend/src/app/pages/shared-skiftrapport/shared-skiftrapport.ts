@@ -1236,6 +1236,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     }).sort((a, b) => b.date.localeCompare(a.date));
   }
 
+  get hasSynthRows(): boolean {
+    return !!(this.preliminaryReport || this.unreportedPasses.length > 0);
+  }
+
   toggleDay(date: string): void { this.expandedDays[date] = !this.expandedDays[date]; }
   isDayExpanded(date: string): boolean { return !!this.expandedDays[date]; }
   isDayAllSelected(reports: any[]): boolean {

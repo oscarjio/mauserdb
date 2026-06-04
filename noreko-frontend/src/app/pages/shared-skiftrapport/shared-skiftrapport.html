@@ -307,14 +307,14 @@
         <p class="text-muted mt-2">Laddar skiftdata...</p>
       </div>
 
-      <div *ngIf="!loading && filteredReports.length === 0 && reports.length > 0" class="text-center py-5 text-muted">
+      <div *ngIf="!loading && filteredReports.length === 0 && reports.length > 0 && !hasSynthRows" class="text-center py-5 text-muted">
         <i class="fas fa-clipboard-list mb-3" style="font-size:2.5rem;opacity:.4"></i>
         <p class="mb-1">Ingen skiftrapport registrerad för vald period.</p>
         <p class="small">Välj ett annat datum eller kontrollera att data skickats från PLC.</p>
       </div>
 
       <!-- DAG-GRUPPERAD TABELL -->
-      <div class="table-responsive" *ngIf="!loading && filteredReports.length > 0">
+      <div class="table-responsive" *ngIf="!loading && (filteredReports.length > 0 || hasSynthRows)">
         <table class="table table-hover">
           <thead class="table-dark">
             <tr>
