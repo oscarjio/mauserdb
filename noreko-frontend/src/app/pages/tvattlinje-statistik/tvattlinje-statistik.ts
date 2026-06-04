@@ -772,7 +772,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       if (!c.skiftraknare) return;
       if (!map.has(c.skiftraknare)) map.set(c.skiftraknare, { ibcCount: 0, times: [] });
       const s = map.get(c.skiftraknare)!;
-      s.ibcCount += (c.ibc_ok != null ? (c.ibc_ok as number) : 1);
+      s.ibcCount = Math.max(s.ibcCount, c.ibc_ok != null ? (c.ibc_ok as number) : 0);
       if (c.cycle_time != null && c.cycle_time > 0 && c.cycle_time <= 30) s.times.push(parseFloat(c.cycle_time));
     });
     this.shiftSummaries = Array.from(map.entries())
@@ -1038,12 +1038,30 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     return periods;
   }
 
+  /** Bygg av-perioder (maskin OFF) från onoff_events */
+  private buildOffPeriods(onoff_events: any[]): Array<{start: number; end: number}> {
+    const periods: Array<{start: number; end: number}> = [];
+    let offStart: number | null = null;
+    for (const evt of onoff_events) {
+      const t = new Date(evt.datum).getTime();
+      const isRunning = evt.running == 1 || evt.running === true || evt.running === '1';
+      if (!isRunning && offStart === null) {
+        offStart = t;
+      } else if (isRunning && offStart !== null) {
+        periods.push({ start: offStart, end: t });
+        offStart = null;
+      }
+    }
+    return periods;
+  }
+
   /** Beräkna rullande 30-min effektivitet per cykel */
-  private calcRollingEfficiency(cycles: any[], rast_events: any[], targetMin: number): number[] {
+  private calcRollingEfficiency(cycles: any[], rast_events: any[], targetMin: number, onoff_events?: any[]): number[] {
     if (cycles.length === 0) return [];
     const WINDOW_MS = 30 * 60 * 1000;
     const WINDOW_MINUTES = 30;
     const pausePeriods = this.buildPausePeriods(rast_events || []);
+    const offPeriods = onoff_events ? this.buildOffPeriods(onoff_events) : [];
     const result: number[] = [];
 
     for (let i = 0; i < cycles.length; i++) {
@@ -1059,7 +1077,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         if (!isNaN(wct) && wct > 0 && wct <= 30) windowCount++;
       }
 
-      // Beräkna pausminuter i fönstret
+      // Beräkna pausminuter i fönstret (rast)
       let pauseMinInWindow = 0;
       for (const p of pausePeriods) {
         const overlapStart = Math.max(p.start, windowStart);
@@ -1069,7 +1087,20 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         }
       }
 
-      const netWindowMin = Math.max(1, WINDOW_MINUTES - pauseMinInWindow);
+      // Beräkna av-tid (maskin OFF) i fönstret
+      let offMinInWindow = 0;
+      for (const p of offPeriods) {
+        const overlapStart = Math.max(p.start, windowStart);
+        const overlapEnd   = Math.min(p.end, cycleMs);
+        if (overlapEnd > overlapStart) {
+          offMinInWindow += (overlapEnd - overlapStart) / 60000;
+        }
+      }
+
+      // Om fönstret börjar innan första ON-event, räkna den inledande av-perioden
+      // (hanteras av offPeriods om första eventet är ON — ingen separat hantering behövs)
+
+      const netWindowMin = Math.max(1, WINDOW_MINUTES - pauseMinInWindow - offMinInWindow);
       const pp = windowCount > 0
         ? Math.round((windowCount * targetMin / netWindowMin) * 100)
         : 0;
@@ -1427,6 +1458,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       return !isNaN(ct) && ct > 0 && ct <= 30;
     });
     const rast_events = data.rast_events || [];
+    const onoff_events = data.onoff_events || [];
     const target = this.targetCycleTime || 3;
 
     // Tillämpa ev. graf-markering
@@ -1444,7 +1476,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
     const cycleTimeData: number[] = displayCycles.map((c: any) => parseFloat(c.cycle_time));
     const targetLine: number[] = displayCycles.map(() => target);
-    const effData = this.calcRollingEfficiency(displayCycles, rast_events, target);
+    const effData = this.calcRollingEfficiency(displayCycles, rast_events, target, onoff_events);
 
     // Körperioder för bakgrundsfärg
     const pausePeriods = this.buildPausePeriods(rast_events);
@@ -1463,7 +1495,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     });
     if (cur) runningPeriods.push(cur);
 
-    return { labels, cycleTime: cycleTimeData, targetCycleTime: targetLine, efficiency: effData, runningPeriods, isPerCycle: true };
+    const validTimes = cycleTimeData.filter(t => !isNaN(t) && t > 0 && t <= 30);
+    const overallAvg = validTimes.length > 0
+      ? Math.round(validTimes.reduce((a, b) => a + b, 0) / validTimes.length * 10) / 10
+      : 0;
+    const avgCycleTime = displayCycles.map(() => overallAvg > 0 ? overallAvg : null);
+
+    return { labels, cycleTime: cycleTimeData, avgCycleTime, targetCycleTime: targetLine, efficiency: effData, runningPeriods, isPerCycle: true };
   }
 
   createChart(ctx: CanvasRenderingContext2D, chartData: any) {
