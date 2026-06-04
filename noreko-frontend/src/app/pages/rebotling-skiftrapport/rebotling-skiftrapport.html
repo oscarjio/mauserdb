@@ -324,7 +324,7 @@
                   <th scope="col" class="d-none d-md-table-cell">Produkter</th>
                   <th scope="col" class="d-none d-md-table-cell">Operatörer</th>
                   <th scope="col">IBC</th>
-                  <th scope="col">Eff.</th>
+                  <th scope="col">TILLG%</th>
                   <th scope="col" class="d-none d-lg-table-cell">Drifttid</th>
                   <th scope="col">Skift</th>
                 </tr>
@@ -358,9 +358,9 @@
                     <td>
                       <span *ngIf="day.avgEfficiency != null"
                         class="badge"
-                        [class.bg-success]="day.avgEfficiency >= 90"
-                        [class.bg-warning]="day.avgEfficiency >= 70 && day.avgEfficiency < 90"
-                        [class.bg-danger]="day.avgEfficiency < 70">
+                        [class.bg-success]="day.avgEfficiency >= 80"
+                        [class.bg-warning]="day.avgEfficiency >= 60 && day.avgEfficiency < 80"
+                        [class.bg-danger]="day.avgEfficiency < 60">
                         {{ day.avgEfficiency }}%
                       </span>
                       <span *ngIf="day.avgEfficiency == null" class="text-muted">–</span>
@@ -395,7 +395,7 @@
                                 <th scope="col" class="text-nowrap">Operatör</th>
                                 <th scope="col" class="text-nowrap">IBC</th>
                                 <th scope="col" class="text-nowrap">IBC/h</th>
-                                <th scope="col" class="text-nowrap">Eff.</th>
+                                <th scope="col" class="text-nowrap">TILLG%</th>
                                 <th scope="col" class="text-nowrap">Drifttid</th>
                                 <th scope="col" class="text-nowrap">Inlagd</th>
                                 <th scope="col" class="text-nowrap"></th>
@@ -430,14 +430,14 @@
                                     <span *ngIf="getIbcPerHour(report) == null" class="text-muted">–</span>
                                   </td>
                                   <td>
-                                    <span *ngIf="getEfficiency(report) != null"
+                                    <span *ngIf="getEfficiencyPct(report) != null"
                                       class="badge"
-                                      [class.bg-success]="(getEfficiency(report) ?? 0) >= 90"
-                                      [class.bg-warning]="(getEfficiency(report) ?? 0) >= 70 && (getEfficiency(report) ?? 0) < 90"
-                                      [class.bg-danger]="(getEfficiency(report) ?? 0) < 70">
-                                      {{ getEfficiency(report) }}%
+                                      [class.bg-success]="(getEfficiencyPct(report) ?? -1) >= 80"
+                                      [class.bg-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
+                                      [class.bg-danger]="(getEfficiencyPct(report) ?? -1) >= 0 && (getEfficiencyPct(report) ?? -1) < 60">
+                                      {{ getEfficiencyPct(report) }}%
                                     </span>
-                                    <span *ngIf="getEfficiency(report) == null" class="text-muted">–</span>
+                                    <span *ngIf="getEfficiencyPct(report) == null" class="text-muted">–</span>
                                   </td>
                                   <td class="text-nowrap">
                                     <span *ngIf="report.drifttid" class="text-success small">{{ report.drifttid }} min</span>

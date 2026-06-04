@@ -299,9 +299,9 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         if (r.op3_name) opSet.add(r.op3_name);
       });
 
-      const effReports = dayReports.filter(r => this.getEfficiency(r) != null);
+      const effReports = dayReports.filter(r => this.getEfficiencyPct(r) != null);
       const avgEfficiency = effReports.length > 0
-        ? Math.round(effReports.reduce((s, r) => s + (this.getEfficiency(r) ?? 0), 0) / effReports.length)
+        ? Math.round(effReports.reduce((s, r) => s + (this.getEfficiencyPct(r) ?? 0), 0) / effReports.length)
         : null;
 
       return {
