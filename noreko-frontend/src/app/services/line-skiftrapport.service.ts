@@ -51,8 +51,15 @@ export class LineSkiftrapportService {
       .pipe(timeout(15000), catchError(err => { console.error('bulkUpdateInlagd failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
 
-  getLopnummer(line: LineName, skiftraknare: number): Observable<any> {
-    return this.http.get<any>(`${this.url(line)}&run=lopnummer&skiftraknare=${skiftraknare}`, { withCredentials: true })
+  getLopnummer(line: LineName, skiftraknare: number, from?: string, to?: string): Observable<any> {
+    let url = `${this.url(line)}&run=lopnummer`;
+    if (from) {
+      url += `&from=${encodeURIComponent(from)}`;
+      if (to) url += `&to=${encodeURIComponent(to)}`;
+    } else {
+      url += `&skiftraknare=${skiftraknare}`;
+    }
+    return this.http.get<any>(url, { withCredentials: true })
       .pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
@@ -66,8 +73,17 @@ export class LineSkiftrapportService {
       .pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getSubShifts(line: LineName, skiftraknare: number): Observable<any> {
-    return this.http.get<any>(`${this.url(line)}&run=subshifts&skiftraknare=${skiftraknare}`, { withCredentials: true })
-      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  getSubShifts(line: LineName, from: string, to: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.url(line)}&run=subshifts&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  }
+
+  getUnreportedCycles(line: LineName, from: string): Observable<any> {
+    return this.http.get<any>(
+      `${this.url(line)}&run=subshifts&from=${encodeURIComponent(from)}`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 }

@@ -493,6 +493,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           ? this.preliminaryReport
           : this.unreportedPasses.find(u => u.id === id);
         if (!this.plcStatsCache.has(id) && synth) this.computePlcStats(id);
+        if (synth?.plc_start && this.lopnummerMap[id] === undefined) this.loadLopnummer(synth);
         setTimeout(() => this.renderHourlyChart(id, synth), 50);
         return;
       }
@@ -840,8 +841,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   private loadLopnummer(report: any): void {
     const id = report.id;
     this.lopnummerLoading[id] = true;
-    this.service.getLopnummer(this.config.line, report.skiftraknare)
-      .pipe(takeUntil(this.destroy$))
+    // Syntetiska rader har plc_start/plc_end — använd from/to istf skiftraknare
+    const obs = report.plc_start
+      ? this.service.getLopnummer(this.config.line, 0, report.plc_start, report.plc_end || '')
+      : this.service.getLopnummer(this.config.line, report.skiftraknare);
+    obs.pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         this.lopnummerLoading[id] = false;
         this.lopnummerMap[id] = res?.success ? res.ranges : '–';
