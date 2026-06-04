@@ -1,9 +1,4 @@
 /*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19  Distrib 10.11.14-MariaDB, for debian-linux-gnu (x86_64)
---
--- Host: 127.0.0.1    Database: mauserdb
--- ------------------------------------------------------
--- Server version	10.11.14-MariaDB-0+deb12u2
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -15,11 +10,6 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
---
--- Table structure for table `alert_settings`
---
-
 DROP TABLE IF EXISTS `alert_settings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -32,13 +22,8 @@ CREATE TABLE `alert_settings` (
   `updated_by` int(10) unsigned DEFAULT NULL COMMENT 'user_id som senast ändrade',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_type` (`type`)
-) ENGINE=InnoDB AUTO_INCREMENT=1132 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=111790 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `alerts`
---
-
 DROP TABLE IF EXISTS `alerts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -59,11 +44,6 @@ CREATE TABLE `alerts` (
   KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `audit_log`
---
-
 DROP TABLE IF EXISTS `audit_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -83,13 +63,8 @@ CREATE TABLE `audit_log` (
   KEY `idx_entity` (`entity_type`,`entity_id`),
   KEY `idx_user` (`user`),
   KEY `idx_created_at` (`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=108 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=417 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `avvikelselarm`
---
-
 DROP TABLE IF EXISTS `avvikelselarm`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -113,11 +88,6 @@ CREATE TABLE `avvikelselarm` (
   KEY `idx_tidsstampel` (`tidsstampel`)
 ) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Automatiska avvikelselarm for produktionen';
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `batch_ibc`
---
-
 DROP TABLE IF EXISTS `batch_ibc`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -136,11 +106,6 @@ CREATE TABLE `batch_ibc` (
   CONSTRAINT `fk_batch_ibc_batch` FOREIGN KEY (`batch_id`) REFERENCES `batch_order` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `batch_order`
---
-
 DROP TABLE IF EXISTS `batch_order`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -158,11 +123,6 @@ CREATE TABLE `batch_order` (
   KEY `idx_batch_skapad` (`skapad_datum`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `bonus_audit_log`
---
-
 DROP TABLE IF EXISTS `bonus_audit_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -179,11 +139,6 @@ CREATE TABLE `bonus_audit_log` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `bonus_config`
---
-
 DROP TABLE IF EXISTS `bonus_config`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -205,11 +160,6 @@ CREATE TABLE `bonus_config` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `bonus_konfiguration`
---
-
 DROP TABLE IF EXISTS `bonus_konfiguration`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -226,11 +176,6 @@ CREATE TABLE `bonus_konfiguration` (
   UNIQUE KEY `uq_faktor` (`faktor`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `bonus_level_amounts`
---
-
 DROP TABLE IF EXISTS `bonus_level_amounts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -242,13 +187,8 @@ CREATE TABLE `bonus_level_amounts` (
   `updated_by` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `level_name` (`level_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `bonus_payouts`
---
-
 DROP TABLE IF EXISTS `bonus_payouts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -276,11 +216,6 @@ CREATE TABLE `bonus_payouts` (
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `bonus_utbetalning`
---
-
 DROP TABLE IF EXISTS `bonus_utbetalning`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -305,11 +240,6 @@ CREATE TABLE `bonus_utbetalning` (
   KEY `idx_period` (`period_start`,`period_slut`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `dashboard_layouts`
---
-
 DROP TABLE IF EXISTS `dashboard_layouts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -322,11 +252,6 @@ CREATE TABLE `dashboard_layouts` (
   UNIQUE KEY `uq_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `feature_flags`
---
-
 DROP TABLE IF EXISTS `feature_flags`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -343,11 +268,6 @@ CREATE TABLE `feature_flags` (
   UNIQUE KEY `feature_key` (`feature_key`)
 ) ENGINE=InnoDB AUTO_INCREMENT=130 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `gamification_badges`
---
-
 DROP TABLE IF EXISTS `gamification_badges`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -363,11 +283,6 @@ CREATE TABLE `gamification_badges` (
   KEY `idx_badge_id` (`badge_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Sparade badges/utmarkelser for gamification-systemet';
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `gamification_milstolpar`
---
-
 DROP TABLE IF EXISTS `gamification_milstolpar`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -382,11 +297,6 @@ CREATE TABLE `gamification_milstolpar` (
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Uppnadda milstolpar for operatorer';
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `kapacitet_config`
---
-
 DROP TABLE IF EXISTS `kapacitet_config`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -404,11 +314,6 @@ CREATE TABLE `kapacitet_config` (
   UNIQUE KEY `uk_station_id` (`station_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `kassationsorsak_typer`
---
-
 DROP TABLE IF EXISTS `kassationsorsak_typer`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -421,11 +326,6 @@ CREATE TABLE `kassationsorsak_typer` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=100 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `kassationsregistrering`
---
-
 DROP TABLE IF EXISTS `kassationsregistrering`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -447,11 +347,6 @@ CREATE TABLE `kassationsregistrering` (
   CONSTRAINT `kassationsregistrering_ibfk_1` FOREIGN KEY (`orsak_id`) REFERENCES `kassationsorsak_typer` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `klassificeringslinje_settings`
---
-
 DROP TABLE IF EXISTS `klassificeringslinje_settings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -462,13 +357,8 @@ CREATE TABLE `klassificeringslinje_settings` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `setting` (`setting`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `klassificeringslinje_skiftrapport`
---
-
 DROP TABLE IF EXISTS `klassificeringslinje_skiftrapport`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -483,16 +373,16 @@ CREATE TABLE `klassificeringslinje_skiftrapport` (
   `user_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `skiftraknare` int(11) DEFAULT NULL,
+  `op1` int(11) DEFAULT NULL,
+  `op2` int(11) DEFAULT NULL,
+  `op3` int(11) DEFAULT NULL,
+  `product_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_datum` (`datum`),
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `klassificeringslinje_weekday_goals`
---
-
 DROP TABLE IF EXISTS `klassificeringslinje_weekday_goals`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -503,13 +393,8 @@ CREATE TABLE `klassificeringslinje_weekday_goals` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `weekday` (`weekday`)
-) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `kundordrar`
---
-
 DROP TABLE IF EXISTS `kundordrar`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -525,14 +410,11 @@ CREATE TABLE `kundordrar` (
   `notering` text DEFAULT NULL,
   `skapad_datum` datetime NOT NULL DEFAULT current_timestamp(),
   `uppdaterad_datum` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_onskat_leverans` (`onskat_leveransdatum`)
 ) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `kvalitetscertifikat`
---
-
 DROP TABLE IF EXISTS `kvalitetscertifikat`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -559,11 +441,6 @@ CREATE TABLE `kvalitetscertifikat` (
   KEY `idx_kc_operator` (`operator_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `kvalitetskriterier`
---
-
 DROP TABLE IF EXISTS `kvalitetskriterier`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -579,11 +456,6 @@ CREATE TABLE `kvalitetskriterier` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `larmregler`
---
-
 DROP TABLE IF EXISTS `larmregler`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -600,11 +472,6 @@ CREATE TABLE `larmregler` (
   UNIQUE KEY `uq_typ` (`typ`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Konfigurerbara larmregler med troeskelvarden';
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `login_attempts`
---
-
 DROP TABLE IF EXISTS `login_attempts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -618,13 +485,8 @@ CREATE TABLE `login_attempts` (
   KEY `idx_ip_created` (`ip_address`,`created_at`),
   KEY `idx_created` (`created_at`),
   KEY `idx_username_created` (`username`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=82 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=341 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `maintenance_equipment`
---
-
 DROP TABLE IF EXISTS `maintenance_equipment`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -637,11 +499,6 @@ CREATE TABLE `maintenance_equipment` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `maintenance_log`
---
-
 DROP TABLE IF EXISTS `maintenance_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -663,13 +520,8 @@ CREATE TABLE `maintenance_log` (
   `resolved` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_line_date` (`line`,`start_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `maskin_oee_config`
---
-
 DROP TABLE IF EXISTS `maskin_oee_config`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -684,13 +536,8 @@ CREATE TABLE `maskin_oee_config` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_maskin_id` (`maskin_id`),
   KEY `idx_maskin_id` (`maskin_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `maskin_oee_daglig`
---
-
 DROP TABLE IF EXISTS `maskin_oee_daglig`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -713,14 +560,10 @@ CREATE TABLE `maskin_oee_daglig` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_maskin_datum` (`maskin_id`,`datum`),
   KEY `idx_datum` (`datum`),
-  KEY `idx_maskin_id` (`maskin_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=256 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  KEY `idx_maskin_id` (`maskin_id`),
+  KEY `idx_datum_maskin_oee` (`datum`,`maskin_id`,`oee_pct`)
+) ENGINE=InnoDB AUTO_INCREMENT=181 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `maskin_register`
---
-
 DROP TABLE IF EXISTS `maskin_register`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -734,11 +577,6 @@ CREATE TABLE `maskin_register` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `maskin_service_logg`
---
-
 DROP TABLE IF EXISTS `maskin_service_logg`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -757,11 +595,6 @@ CREATE TABLE `maskin_service_logg` (
   CONSTRAINT `maskin_service_logg_ibfk_1` FOREIGN KEY (`maskin_id`) REFERENCES `maskin_register` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `maskin_stopptid`
---
-
 DROP TABLE IF EXISTS `maskin_stopptid`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -784,11 +617,6 @@ CREATE TABLE `maskin_stopptid` (
   KEY `idx_avslutad_at` (`avslutad_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Maskin-specifika stopptider för rebotling-linjen';
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `news`
---
-
 DROP TABLE IF EXISTS `news`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -810,13 +638,8 @@ CREATE TABLE `news` (
   KEY `idx_priority` (`priority`),
   KEY `idx_published` (`published`),
   KEY `idx_arkiverad` (`arkiverad`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `operator_certifications`
---
-
 DROP TABLE IF EXISTS `operator_certifications`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -836,11 +659,6 @@ CREATE TABLE `operator_certifications` (
   KEY `idx_expires` (`expires_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `operator_feedback`
---
-
 DROP TABLE IF EXISTS `operator_feedback`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -859,11 +677,6 @@ CREATE TABLE `operator_feedback` (
   KEY `idx_skapad_at` (`skapad_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `operators`
---
-
 DROP TABLE IF EXISTS `operators`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -875,13 +688,8 @@ CREATE TABLE `operators` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_operators_number` (`number`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `production_events`
---
-
 DROP TABLE IF EXISTS `production_events`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -897,11 +705,6 @@ CREATE TABLE `production_events` (
   KEY `idx_date` (`event_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `produktions_mal`
---
-
 DROP TABLE IF EXISTS `produktions_mal`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -919,11 +722,6 @@ CREATE TABLE `produktions_mal` (
   KEY `idx_mal_giltig` (`giltig_from`,`giltig_tom`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `produktionskapacitet_config`
---
-
 DROP TABLE IF EXISTS `produktionskapacitet_config`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -936,11 +734,6 @@ CREATE TABLE `produktionskapacitet_config` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `produktionskostnad_config`
---
-
 DROP TABLE IF EXISTS `produktionskostnad_config`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -955,11 +748,6 @@ CREATE TABLE `produktionskostnad_config` (
   UNIQUE KEY `uk_faktor` (`faktor`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `produktionsmal_undantag`
---
-
 DROP TABLE IF EXISTS `produktionsmal_undantag`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -973,11 +761,6 @@ CREATE TABLE `produktionsmal_undantag` (
   PRIMARY KEY (`datum`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `produktionstakt_target`
---
-
 DROP TABLE IF EXISTS `produktionstakt_target`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -989,11 +772,6 @@ CREATE TABLE `produktionstakt_target` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_annotations`
---
-
 DROP TABLE IF EXISTS `rebotling_annotations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1009,11 +787,6 @@ CREATE TABLE `rebotling_annotations` (
   KEY `idx_typ` (`typ`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_driftstopp`
---
-
 DROP TABLE IF EXISTS `rebotling_driftstopp`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1025,13 +798,8 @@ CREATE TABLE `rebotling_driftstopp` (
   PRIMARY KEY (`id`),
   KEY `idx_datum` (`datum`),
   KEY `idx_skiftraknare` (`skiftraknare`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_goal_history`
---
-
 DROP TABLE IF EXISTS `rebotling_goal_history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1047,11 +815,6 @@ CREATE TABLE `rebotling_goal_history` (
   KEY `idx_changed_by` (`changed_by`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_ibc`
---
-
 DROP TABLE IF EXISTS `rebotling_ibc`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1092,14 +855,17 @@ CREATE TABLE `rebotling_ibc` (
   KEY `idx_rebotling_ibc_datum` (`datum`),
   KEY `idx_datum` (`datum`),
   KEY `idx_rebotling_ibc_datum_skift` (`datum`,`skiftraknare`),
-  KEY `idx_ibc_skift_datum` (`skiftraknare`,`datum`)
-) ENGINE=InnoDB AUTO_INCREMENT=4920 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `idx_ibc_skift_datum` (`skiftraknare`,`datum`),
+  KEY `idx_ibc_covering_datum_skift` (`datum`,`skiftraknare`,`ibc_ok`,`ibc_ej_ok`,`runtime_plc`,`op1`),
+  KEY `idx_ibc_bench_covering` (`datum`,`skiftraknare`,`ibc_ok`,`ibc_ej_ok`,`runtime_plc`,`rasttime`),
+  KEY `idx_ibc_op2_covering` (`datum`,`op2`,`skiftraknare`,`ibc_ok`,`ibc_ej_ok`,`runtime_plc`),
+  KEY `idx_ibc_op3_covering` (`datum`,`op3`,`skiftraknare`,`ibc_ok`,`ibc_ej_ok`,`runtime_plc`),
+  KEY `idx_datum_skift_ibc_cover` (`datum`,`skiftraknare`,`ibc_ok`,`ibc_ej_ok`),
+  KEY `idx_op1_datum_cover` (`op1`,`datum`,`skiftraknare`),
+  KEY `idx_op2_datum_cover` (`op2`,`datum`,`skiftraknare`),
+  KEY `idx_op3_datum_cover` (`op3`,`datum`,`skiftraknare`)
+) ENGINE=InnoDB AUTO_INCREMENT=7506 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_kassationsalarminst`
---
-
 DROP TABLE IF EXISTS `rebotling_kassationsalarminst`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1113,11 +879,16 @@ CREATE TABLE `rebotling_kassationsalarminst` (
   KEY `idx_skapad_datum` (`skapad_datum`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_lopnummer_current`
---
-
+DROP TABLE IF EXISTS `rebotling_kv_settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `rebotling_kv_settings` (
+  `key` varchar(100) NOT NULL,
+  `value` text DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `rebotling_lopnummer_current`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1128,11 +899,19 @@ CREATE TABLE `rebotling_lopnummer_current` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_onoff`
---
-
+DROP TABLE IF EXISTS `rebotling_maintenance_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `rebotling_maintenance_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `action_text` text NOT NULL,
+  `logged_by_user_id` int(11) DEFAULT NULL,
+  `logged_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_logged_at` (`logged_at`),
+  KEY `idx_user_id` (`logged_by_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `rebotling_onoff`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1153,14 +932,10 @@ CREATE TABLE `rebotling_onoff` (
   `skiftraknare` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_skiftraknare_onoff` (`skiftraknare`),
-  KEY `idx_onoff_skift_datum_running` (`skiftraknare`,`datum`,`running`)
-) ENGINE=InnoDB AUTO_INCREMENT=1099 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `idx_onoff_skift_datum_running` (`skiftraknare`,`datum`,`running`),
+  KEY `idx_onoff_datum_running` (`datum`,`running`)
+) ENGINE=InnoDB AUTO_INCREMENT=1549 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_production_goals`
---
-
 DROP TABLE IF EXISTS `rebotling_production_goals`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1176,11 +951,6 @@ CREATE TABLE `rebotling_production_goals` (
   KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_products`
---
-
 DROP TABLE IF EXISTS `rebotling_products`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1192,13 +962,8 @@ CREATE TABLE `rebotling_products` (
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `has_lopnummer` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_produktionsmal`
---
-
 DROP TABLE IF EXISTS `rebotling_produktionsmal`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1216,11 +981,6 @@ CREATE TABLE `rebotling_produktionsmal` (
   KEY `idx_aktiv` (`typ`,`slut_datum`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_rast`
---
-
 DROP TABLE IF EXISTS `rebotling_rast`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1231,13 +991,8 @@ CREATE TABLE `rebotling_rast` (
   `rast_today` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Total rasttid idag i minuter',
   PRIMARY KEY (`id`),
   KEY `idx_datum` (`datum`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_runtime`
---
-
 DROP TABLE IF EXISTS `rebotling_runtime`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1247,13 +1002,8 @@ CREATE TABLE `rebotling_runtime` (
   `rast_status` tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_datum` (`datum`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_settings`
---
-
 DROP TABLE IF EXISTS `rebotling_settings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1273,26 +1023,6 @@ CREATE TABLE `rebotling_settings` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_kv_settings`
---
-
-DROP TABLE IF EXISTS `rebotling_kv_settings`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `rebotling_kv_settings` (
-  `key` varchar(100) NOT NULL,
-  `value` text DEFAULT NULL,
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`key`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_shift_times`
---
-
 DROP TABLE IF EXISTS `rebotling_shift_times`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1305,13 +1035,8 @@ CREATE TABLE `rebotling_shift_times` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_shift_name` (`shift_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3452 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_skift_kommentar`
---
-
 DROP TABLE IF EXISTS `rebotling_skift_kommentar`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1326,11 +1051,6 @@ CREATE TABLE `rebotling_skift_kommentar` (
   UNIQUE KEY `uniq_skift` (`datum`,`skift_nr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_skiftoverlamning`
---
-
 DROP TABLE IF EXISTS `rebotling_skiftoverlamning`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1360,11 +1080,6 @@ CREATE TABLE `rebotling_skiftoverlamning` (
   KEY `idx_operator` (`operator_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_skiftrapport`
---
-
 DROP TABLE IF EXISTS `rebotling_skiftrapport`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1393,13 +1108,8 @@ CREATE TABLE `rebotling_skiftrapport` (
   KEY `idx_product_id` (`product_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_skiftraknare` (`skiftraknare`)
-) ENGINE=MyISAM AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=90 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_underhallslogg`
---
-
 DROP TABLE IF EXISTS `rebotling_underhallslogg`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1420,11 +1130,6 @@ CREATE TABLE `rebotling_underhallslogg` (
   KEY `idx_skapad` (`skapad`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `rebotling_weekday_goals`
---
-
 DROP TABLE IF EXISTS `rebotling_weekday_goals`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1436,13 +1141,8 @@ CREATE TABLE `rebotling_weekday_goals` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_weekday` (`weekday`)
-) ENGINE=InnoDB AUTO_INCREMENT=72 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=198 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `saglinje_settings`
---
-
 DROP TABLE IF EXISTS `saglinje_settings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1453,13 +1153,8 @@ CREATE TABLE `saglinje_settings` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `setting` (`setting`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=434 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `saglinje_skiftrapport`
---
-
 DROP TABLE IF EXISTS `saglinje_skiftrapport`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1474,16 +1169,16 @@ CREATE TABLE `saglinje_skiftrapport` (
   `user_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `skiftraknare` int(11) DEFAULT NULL,
+  `op1` int(11) DEFAULT NULL,
+  `op2` int(11) DEFAULT NULL,
+  `op3` int(11) DEFAULT NULL,
+  `product_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_datum` (`datum`),
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `saglinje_weekday_goals`
---
-
 DROP TABLE IF EXISTS `saglinje_weekday_goals`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1494,13 +1189,8 @@ CREATE TABLE `saglinje_weekday_goals` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `weekday` (`weekday`)
-) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `service_intervals`
---
-
 DROP TABLE IF EXISTS `service_intervals`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1515,11 +1205,6 @@ CREATE TABLE `service_intervals` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `shift_handover`
---
-
 DROP TABLE IF EXISTS `shift_handover`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1542,11 +1227,6 @@ CREATE TABLE `shift_handover` (
   KEY `idx_ack` (`acknowledged_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `shift_plan`
---
-
 DROP TABLE IF EXISTS `shift_plan`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1564,11 +1244,6 @@ CREATE TABLE `shift_plan` (
   KEY `idx_op` (`op_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `skift_konfiguration`
---
-
 DROP TABLE IF EXISTS `skift_konfiguration`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1584,11 +1259,6 @@ CREATE TABLE `skift_konfiguration` (
   UNIQUE KEY `skift_typ` (`skift_typ`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `skift_schema`
---
-
 DROP TABLE IF EXISTS `skift_schema`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1603,13 +1273,8 @@ CREATE TABLE `skift_schema` (
   KEY `idx_datum_skift` (`datum`,`skift_typ`),
   KEY `fk_skift_typ` (`skift_typ`),
   CONSTRAINT `fk_skift_typ` FOREIGN KEY (`skift_typ`) REFERENCES `skift_konfiguration` (`skift_typ`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `skiftoverlamning_logg`
---
-
 DROP TABLE IF EXISTS `skiftoverlamning_logg`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1640,11 +1305,6 @@ CREATE TABLE `skiftoverlamning_logg` (
   KEY `idx_skapad` (`skapad`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `skiftoverlamning_notes`
---
-
 DROP TABLE IF EXISTS `skiftoverlamning_notes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1660,11 +1320,6 @@ CREATE TABLE `skiftoverlamning_notes` (
   KEY `idx_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stoppage_log`
---
-
 DROP TABLE IF EXISTS `stoppage_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1683,14 +1338,11 @@ CREATE TABLE `stoppage_log` (
   KEY `idx_line` (`line`),
   KEY `idx_reason` (`reason_id`),
   KEY `idx_start` (`start_time`),
-  KEY `idx_user` (`user_id`)
+  KEY `idx_user` (`user_id`),
+  KEY `idx_stoppage_start_duration` (`start_time`,`duration_minutes`),
+  KEY `idx_start_duration` (`start_time`,`duration_minutes`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stoppage_reasons`
---
-
 DROP TABLE IF EXISTS `stoppage_reasons`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1706,11 +1358,6 @@ CREATE TABLE `stoppage_reasons` (
   UNIQUE KEY `uk_code` (`code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stopporsak_kategorier`
---
-
 DROP TABLE IF EXISTS `stopporsak_kategorier`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1724,11 +1371,6 @@ CREATE TABLE `stopporsak_kategorier` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `stopporsak_registreringar`
---
-
 DROP TABLE IF EXISTS `stopporsak_registreringar`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1745,14 +1387,22 @@ CREATE TABLE `stopporsak_registreringar` (
   KEY `idx_kategori` (`kategori_id`),
   KEY `idx_linje` (`linje`),
   KEY `idx_user` (`user_id`),
-  KEY `idx_start` (`start_time`)
+  KEY `idx_start` (`start_time`),
+  KEY `idx_linje_start_end` (`linje`,`start_time`,`end_time`,`kategori_id`),
+  KEY `idx_linje_start` (`linje`,`start_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tvattlinje_ibc`
---
-
+DROP TABLE IF EXISTS `tvattlinje_driftstopp`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tvattlinje_driftstopp` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `datum` datetime NOT NULL DEFAULT current_timestamp(),
+  `driftstopp_status` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_datum` (`datum`)
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `tvattlinje_ibc`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1762,14 +1412,24 @@ CREATE TABLE `tvattlinje_ibc` (
   `ibc_count` int(11) NOT NULL,
   `datum` datetime NOT NULL DEFAULT current_timestamp(),
   `other` varchar(200) NOT NULL DEFAULT '',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6862 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `op1` int(11) DEFAULT NULL COMMENT 'D4000 - Op1 Påsatt (PLC operator_id)',
+  `op2` int(11) DEFAULT NULL COMMENT 'D4001 - Op2 Spolplatform (PLC operator_id)',
+  `op3` int(11) DEFAULT NULL COMMENT 'D4002 - Op3 Kontrollstation (PLC operator_id)',
+  `produkt` int(11) DEFAULT NULL COMMENT 'D4003 - Produkt-ID',
+  `ibc_ok` int(11) DEFAULT NULL COMMENT 'D4004 - Antal IBC OK (kumulativt i skift)',
+  `ibc_ej_ok` int(11) DEFAULT NULL COMMENT 'D4005 - Antal IBC Ej OK (kumulativt i skift)',
+  `omtvaatt` int(11) DEFAULT NULL COMMENT 'D4006 - Antal Omtvätt (kumulativt i skift)',
+  `runtime_plc` int(11) DEFAULT NULL COMMENT 'D4007 - Körtid PLC exkl rast (minuter)',
+  `rasttime` int(11) DEFAULT NULL COMMENT 'D4008 - Rasttid PLC (minuter)',
+  `lopnummer` int(11) DEFAULT NULL COMMENT 'D4009 - Löpnummer (max i skift)',
+  `driftstopptime` int(11) DEFAULT NULL,
+  `skiftraknare` int(11) DEFAULT NULL COMMENT 'Skiftindex (ökande counter)',
+  `effektivitet` decimal(5,2) DEFAULT NULL COMMENT 'Effektivitet % (beräknad)',
+  PRIMARY KEY (`id`),
+  KEY `idx_tvattlinje_ibc_datum` (`datum`),
+  KEY `idx_tvattlinje_ibc_skift` (`skiftraknare`)
+) ENGINE=InnoDB AUTO_INCREMENT=12010 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tvattlinje_onoff`
---
-
 DROP TABLE IF EXISTS `tvattlinje_onoff`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1779,15 +1439,23 @@ CREATE TABLE `tvattlinje_onoff` (
   `s_count_l` bigint(20) NOT NULL,
   `datum` datetime NOT NULL DEFAULT current_timestamp(),
   `running` tinyint(1) NOT NULL DEFAULT 0,
-  `runtime_today` int(11) NOT NULL DEFAULT 0,
+  `runtime_today` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `skiftraknare` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=278 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=432 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tvattlinje_rast`
---
-
+DROP TABLE IF EXISTS `tvattlinje_products`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tvattlinje_products` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `cycle_time_minutes` decimal(8,2) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `tvattlinje_rast`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1798,13 +1466,19 @@ CREATE TABLE `tvattlinje_rast` (
   `rast_today` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Total rasttid idag i minuter',
   PRIMARY KEY (`id`),
   KEY `idx_datum` (`datum`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tvattlinje_settings`
---
-
+DROP TABLE IF EXISTS `tvattlinje_runtime`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tvattlinje_runtime` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `datum` datetime NOT NULL DEFAULT current_timestamp(),
+  `rast_status` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_datum` (`datum`)
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `tvattlinje_settings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1818,13 +1492,8 @@ CREATE TABLE `tvattlinje_settings` (
   `setting` varchar(100) DEFAULT NULL,
   `value` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=4030886 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tvattlinje_skiftrapport`
---
-
 DROP TABLE IF EXISTS `tvattlinje_skiftrapport`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1836,19 +1505,25 @@ CREATE TABLE `tvattlinje_skiftrapport` (
   `totalt` int(11) NOT NULL DEFAULT 0,
   `kommentar` text DEFAULT NULL,
   `inlagd` tinyint(1) NOT NULL DEFAULT 0,
+  `sent_inskickad` tinyint(1) NOT NULL DEFAULT 0,
   `user_id` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `op1` int(11) DEFAULT NULL COMMENT 'D4000 - Op1 Påsatt (PLC operator_id)',
+  `op2` int(11) DEFAULT NULL COMMENT 'D4001 - Op2 Spolplatform (PLC operator_id)',
+  `op3` int(11) DEFAULT NULL COMMENT 'D4002 - Op3 Kontrollstation (PLC operator_id)',
+  `omtvaatt` int(11) NOT NULL DEFAULT 0 COMMENT 'D4006 - Omtvätt-antal',
+  `drifttid` int(11) NOT NULL DEFAULT 0 COMMENT 'D4007 - Körtid PLC exkl rast (minuter)',
+  `rasttime` int(11) DEFAULT NULL COMMENT 'D4008 - Rasttid PLC (minuter)',
+  `driftstopptime` int(11) DEFAULT NULL COMMENT 'Driftstopptid (minuter)',
+  `lopnummer` int(11) DEFAULT NULL COMMENT 'D4009 - Löpnummer',
+  `skiftraknare` int(11) DEFAULT NULL COMMENT 'Skiftindex',
+  `product_id` int(11) DEFAULT NULL COMMENT 'Produkt-ID',
   PRIMARY KEY (`id`),
   KEY `idx_datum` (`datum`),
   KEY `idx_user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `tvattlinje_weekday_goals`
---
-
 DROP TABLE IF EXISTS `tvattlinje_weekday_goals`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1859,13 +1534,8 @@ CREATE TABLE `tvattlinje_weekday_goals` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `weekday` (`weekday`)
-) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=520 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `underhall_kategorier`
---
-
 DROP TABLE IF EXISTS `underhall_kategorier`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1876,11 +1546,6 @@ CREATE TABLE `underhall_kategorier` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `underhall_komponenter`
---
-
 DROP TABLE IF EXISTS `underhall_komponenter`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1897,11 +1562,6 @@ CREATE TABLE `underhall_komponenter` (
   KEY `idx_aktiv` (`aktiv`)
 ) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `underhall_scheman`
---
-
 DROP TABLE IF EXISTS `underhall_scheman`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1921,11 +1581,6 @@ CREATE TABLE `underhall_scheman` (
   KEY `idx_senaste_underhall` (`senaste_underhall`)
 ) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `underhallslogg`
---
-
 DROP TABLE IF EXISTS `underhallslogg`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1945,11 +1600,6 @@ CREATE TABLE `underhallslogg` (
   KEY `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `user_favoriter`
---
-
 DROP TABLE IF EXISTS `user_favoriter`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1967,11 +1617,6 @@ CREATE TABLE `user_favoriter` (
   KEY `idx_user_favoriter_user` (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `users`
---
-
 DROP TABLE IF EXISTS `users`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -1991,13 +1636,8 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   KEY `idx_users_operator_id` (`operator_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `vader_data`
---
-
 DROP TABLE IF EXISTS `vader_data`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -2007,7 +1647,7 @@ CREATE TABLE `vader_data` (
   `datum` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_datum` (`datum`)
-) ENGINE=InnoDB AUTO_INCREMENT=3143 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4739 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -2019,20 +1659,3 @@ CREATE TABLE `vader_data` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
---
--- Table structure for table `rebotling_maintenance_log`
--- Added: 2026-03-28 session #373 Worker A
---
-
-DROP TABLE IF EXISTS `rebotling_maintenance_log`;
-CREATE TABLE `rebotling_maintenance_log` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `action_text` text NOT NULL,
-  `logged_by_user_id` int(11) DEFAULT NULL,
-  `logged_at` datetime NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_logged_at` (`logged_at`),
-  KEY `idx_user_id` (`logged_by_user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Dump completed on 2026-03-28 (updated by session #373 Worker A)
