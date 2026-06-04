@@ -710,27 +710,59 @@ class NewsController {
             $events = array_values($events);
         }
 
-        // Sortera: pinned först, sedan nyast datetime
-        usort($events, function($a, $b) {
-            $pinnedDiff = (int)($b['pinned'] ?? 0) - (int)($a['pinned'] ?? 0);
-            if ($pinnedDiff !== 0) return $pinnedDiff;
-            return strcmp($b['datetime'] ?? $b['datum'], $a['datetime'] ?? $a['datum']);
-        });
+        // Ta bort dubbletter.
+        // Produktionshändelser (rekordag, produktionsrekord, hog_oee, oee_milstolpe, produktion)
+        // beskriver alla SAMMA dag — visa bara den mest specifika per datum.
+        // Prioritetsordning (högst först): rekordag > produktionsrekord > hog_oee > oee_milstolpe > produktion
+        $produktionTypPrio = [
+            'rekordag'          => 5,
+            'produktionsrekord' => 4,
+            'hog_oee'           => 3,
+            'oee_milstolpe'     => 2,
+            'produktion'        => 1,
+        ];
+        // Välj bästa produktionshändelse per datum
+        $bestProduktion = []; // datum => event
+        $ovriga = [];
+        foreach ($events as $e) {
+            if (!empty($e['pinned'])) {
+                $ovriga[] = $e;
+                continue;
+            }
+            $typ = $e['typ'] ?? '';
+            if (isset($produktionTypPrio[$typ])) {
+                $datum = $e['datum'];
+                if (!isset($bestProduktion[$datum]) ||
+                    $produktionTypPrio[$typ] > $produktionTypPrio[$bestProduktion[$datum]['typ']]) {
+                    $bestProduktion[$datum] = $e;
+                }
+            } else {
+                $ovriga[] = $e;
+            }
+        }
 
-        // Ta bort dubbletter (samma typ och datum), men behåll alla pinned
+        // Slå ihop och ta bort kvarvarande dubbletter (samma typ och datum)
+        $all = array_merge($ovriga, array_values($bestProduktion));
         $seen = [];
         $unique = [];
-        foreach ($events as $e) {
+        foreach ($all as $e) {
             if (!empty($e['pinned'])) {
                 $unique[] = $e;
                 continue;
             }
-            $key = $e['typ'] . '|' . $e['datum'];
+            $key = ($e['typ'] ?? '') . '|' . ($e['datum'] ?? '');
             if (!isset($seen[$key])) {
                 $seen[$key] = true;
                 $unique[] = $e;
             }
         }
+
+        // Sortera igen efter att produktionsdubbletter har tagits bort
+        usort($unique, function($a, $b) {
+            $pinnedDiff = (int)($b['pinned'] ?? 0) - (int)($a['pinned'] ?? 0);
+            if ($pinnedDiff !== 0) return $pinnedDiff;
+            return strcmp($b['datetime'] ?? $b['datum'], $a['datetime'] ?? $a['datum']);
+        });
 
         $events = array_slice($unique, 0, $antal);
 

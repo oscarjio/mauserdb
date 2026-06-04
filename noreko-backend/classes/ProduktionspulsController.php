@@ -190,37 +190,6 @@ class ProduktionspulsController {
             error_log('ProduktionspulsController::getPulse (stopporsak): ' . $e->getMessage());
         }
 
-        // 4. Fran stoppage_log ocksa
-        try {
-            $check = $this->pdo->query("SHOW TABLES LIKE 'stoppage_log'");
-            if ($check && $check->rowCount() > 0) {
-                $stmt = $this->pdo->prepare("
-                    SELECT sl.start_time, sl.end_time, COALESCE(sr.name, 'Okand orsak') AS reason, sl.duration_minutes
-                    FROM stoppage_log sl
-                    LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
-                    WHERE sl.duration_minutes > 0
-                    ORDER BY sl.start_time DESC
-                    LIMIT :lim
-                ");
-                $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
-                $stmt->execute();
-                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-                foreach ($rows as $row) {
-                    $events[] = [
-                        'type'   => 'stopp',
-                        'time'   => $row['start_time'],
-                        'label'  => 'Driftstopp',
-                        'detail' => ($row['reason'] ?? 'Okand orsak') . ' (' . (int)$row['duration_minutes'] . ' min)',
-                        'color'  => 'danger',
-                        'icon'   => 'fas fa-exclamation-triangle',
-                    ];
-                }
-            }
-        } catch (\PDOException $e) {
-            error_log('ProduktionspulsController::getPulse (stoppage_log): ' . $e->getMessage());
-        }
-
         // Sortera kronologiskt (nyast forst) och begransar
         usort($events, function ($a, $b) {
             return strcmp($b['time'] ?? '', $a['time'] ?? '');
