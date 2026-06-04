@@ -730,7 +730,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const diffMin = (t1 - t0) / 60000;
     if (diffMin <= 0 || diffMin > 30) return null;
     const target = this.products.find(p => p.id === productId)?.cycle_time_minutes ?? 3.0;
-    return Math.min(150, Math.round((target / diffMin) * 100));
+    return Math.min(100, Math.round((target / diffMin) * 100));
   }
 
   visibleSubShifts(reportId: number): any[] {
