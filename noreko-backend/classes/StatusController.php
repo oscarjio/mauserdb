@@ -229,6 +229,17 @@ class StatusController {
                     "SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
                 )->fetchColumn();
 
+                // Om status ännu är not_started men det finns IBC-data idag → linjen kör men
+                // datum-kolumnen saknas eller är NULL i PLC-data. Visa som offline istället.
+                if ($tvStatus === 'not_started' && $tvIbcIdag > 0) {
+                    $tvStatus      = 'offline';
+                    $tvStatusLabel = 'Offline';
+                }
+
+                // ej_i_drift = true bara om linjen ALDRIG haft data (not_started = ingen historik alls).
+                // Om det finns data (idag eller historiskt) visas riktig status.
+                $tvEjIDrift = ($tvStatus === 'not_started');
+
                 $lines[] = [
                     'id'               => 'tvattlinje',
                     'namn'             => 'Tvattlinje',
@@ -237,7 +248,7 @@ class StatusController {
                     'kor'              => ($tvStatus === 'running'),
                     'senaste_data_min' => $tvSenaste,
                     'ibc_idag'         => $tvIbcIdag,
-                    'ej_i_drift'       => true
+                    'ej_i_drift'       => $tvEjIDrift
                 ];
             } catch (\Throwable $e) {
                 error_log('StatusController::all-lines tvattlinje: ' . $e->getMessage());

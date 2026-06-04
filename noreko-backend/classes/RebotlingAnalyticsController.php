@@ -903,29 +903,41 @@ class RebotlingAnalyticsController {
 
                 if ($lastShiftRow) {
                     $lastShift = (int)$lastShiftRow['skiftraknare'];
-                    // Hämta alla operatörer i skiftet (pos 1,2,3)
+                    // Hämta alla operatörer i skiftet (pos 1,2,3) — EN rad per operatör
+                    // ROW_NUMBER() PARTITION BY operator_id eliminerar dubbletter när samma person
+                    // arbetar flera positioner (visas bara en gång med sin primärposition).
                     $opRows = $this->pdo->prepare("
-                        SELECT
-                            pos,
-                            operator_id,
-                            MAX(ibc_ok)      AS ibc_ok,
-                            MAX(ibc_ej_ok)   AS ibc_ej_ok,
-                            MAX(runtime_plc) AS runtime_min,
-                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS bonus
+                        SELECT pos, operator_id, ibc_ok, ibc_ej_ok, runtime_min, bonus
                         FROM (
-                            SELECT 'op1' AS pos, op1 AS operator_id, ibc_ok, ibc_ej_ok, runtime_plc, bonus_poang, datum
-                            FROM rebotling_ibc
-                            WHERE skiftraknare = ? AND op1 IS NOT NULL AND op1 > 0
-                            UNION ALL
-                            SELECT 'op2', op2, ibc_ok, ibc_ej_ok, runtime_plc, bonus_poang, datum
-                            FROM rebotling_ibc
-                            WHERE skiftraknare = ? AND op2 IS NOT NULL AND op2 > 0
-                            UNION ALL
-                            SELECT 'op3', op3, ibc_ok, ibc_ej_ok, runtime_plc, bonus_poang, datum
-                            FROM rebotling_ibc
-                            WHERE skiftraknare = ? AND op3 IS NOT NULL AND op3 > 0
-                        ) AS all_ops
-                        GROUP BY pos, operator_id
+                            SELECT
+                                pos, operator_id, ibc_ok, ibc_ej_ok, runtime_min, bonus,
+                                ROW_NUMBER() OVER (PARTITION BY operator_id ORDER BY pos_order ASC) AS rn
+                            FROM (
+                                SELECT 'op1' AS pos, 1 AS pos_order, op1 AS operator_id,
+                                       MAX(ibc_ok)      AS ibc_ok,
+                                       MAX(ibc_ej_ok)   AS ibc_ej_ok,
+                                       MAX(runtime_plc) AS runtime_min,
+                                       SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS bonus
+                                FROM rebotling_ibc
+                                WHERE skiftraknare = ? AND op1 IS NOT NULL AND op1 > 0
+                                GROUP BY op1
+                                UNION ALL
+                                SELECT 'op2', 2, op2,
+                                       MAX(ibc_ok), MAX(ibc_ej_ok), MAX(runtime_plc),
+                                       SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0
+                                FROM rebotling_ibc
+                                WHERE skiftraknare = ? AND op2 IS NOT NULL AND op2 > 0
+                                GROUP BY op2
+                                UNION ALL
+                                SELECT 'op3', 3, op3,
+                                       MAX(ibc_ok), MAX(ibc_ej_ok), MAX(runtime_plc),
+                                       SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0
+                                FROM rebotling_ibc
+                                WHERE skiftraknare = ? AND op3 IS NOT NULL AND op3 > 0
+                                GROUP BY op3
+                            ) unioned
+                        ) deduped
+                        WHERE rn = 1
                     ");
                     $opRows->execute([$lastShift, $lastShift, $lastShift]);
                     $opData = $opRows->fetchAll(PDO::FETCH_ASSOC);
@@ -2113,20 +2125,35 @@ class RebotlingAnalyticsController {
                 $nextMonth = date('Y-m-01', strtotime($firstDay . ' +1 month'));
 
                 // En enda query med CTE: hämtar daglig aggregering (summary + OEE per dag)
-                // ibc_count = daglig räknare → GROUP BY DATE, MAX(ibc_count) för korrekt dagstotal
+                // ibc_ok/ibc_ej_ok är kumulativa per skift (återställs varje nytt skift).
+                // Korrekt aggregering: MAX per skiftraknare → SUM per dag.
                 $stmt = $this->pdo->prepare("
-                    WITH per_dag AS (
+                    WITH per_shift AS (
                         SELECT
-                            DATE(datum)                                                        AS dag,
-                            COALESCE(MAX(ibc_ok), 0)                                           AS shift_ibc,
-                            GREATEST(0, COALESCE(MAX(ibc_count),0) - COALESCE(MAX(ibc_ok),0)) AS shift_ej_ok,
-                            ROUND(COALESCE(MAX(ibc_ok),0)*100.0 /
-                                NULLIF(COALESCE(MAX(ibc_count),0),0),1)                       AS shift_quality,
-                            MAX(COALESCE(runtime_plc, 0))                                     AS shift_runtime,
-                            MAX(COALESCE(rasttime, 0))                                        AS shift_rast
+                            DATE(datum)                          AS dag,
+                            skiftraknare,
+                            COALESCE(MAX(ibc_ok), 0)             AS shift_ibc,
+                            COALESCE(MAX(ibc_ej_ok), 0)          AS shift_ej_ok,
+                            MAX(COALESCE(runtime_plc, 0))        AS shift_runtime,
+                            MAX(COALESCE(rasttime, 0))           AS shift_rast
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < ?
-                        GROUP BY DATE(datum)
+                          AND ibc_ok IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare
+                    ),
+                    per_dag AS (
+                        SELECT
+                            dag,
+                            SUM(shift_ibc)                       AS shift_ibc,
+                            SUM(shift_ej_ok)                     AS shift_ej_ok,
+                            LEAST(100.0, ROUND(
+                                SUM(shift_ibc)*100.0 /
+                                NULLIF(SUM(shift_ibc) + SUM(shift_ej_ok), 0)
+                            ,1))                                 AS shift_quality,
+                            SUM(shift_runtime)                   AS shift_runtime,
+                            SUM(shift_rast)                      AS shift_rast
+                        FROM per_shift
+                        GROUP BY dag
                     )
                     SELECT
                         dag,
@@ -2142,7 +2169,8 @@ class RebotlingAnalyticsController {
 
                 $idealRatePerMin = 15.0 / 60.0;
                 $ibcTotal = 0;
-                $qualitySum = 0.0;
+                $ibcTotalOk  = 0.0;   // viktad kvalitetsackumulator (täljare)
+                $ibcTotalAll = 0.0;   // viktad kvalitetsackumulator (nämnare)
                 $oeeSum = 0.0;
                 $oeeDays = 0;
                 $bestDay  = null;
@@ -2153,7 +2181,8 @@ class RebotlingAnalyticsController {
                     $ibcEjOk = (float)$r['ibc_ej_ok'];
                     $total   = $ibcOk + $ibcEjOk;
                     $ibcTotal += (int)$ibcOk;
-                    $qualitySum += (float)$r['avg_quality'];
+                    $ibcTotalOk  += $ibcOk;
+                    $ibcTotalAll += $total;
 
                     $opMin   = max((float)$r['runtime_min'], 1);
                     $planMin = max($opMin + (float)$r['rast_min'], 1);
@@ -2174,7 +2203,10 @@ class RebotlingAnalyticsController {
                     }
                 }
                 $prodDays   = count($dayRows);
-                $avgQuality = $prodDays > 0 ? round($qualitySum / $prodDays, 1) : 0;
+                // Viktad genomsnittskvalitet: SUM(ok)/SUM(totalt) — inte aritmetiskt snitt av dagliga %
+                $avgQuality = $ibcTotalAll > 0
+                    ? min(100.0, round($ibcTotalOk / $ibcTotalAll * 100, 1))
+                    : 0.0;
                 $avgOee     = $oeeDays > 0 ? round($oeeSum / $oeeDays, 1) : 0;
                 $avgIbcPerDay = $prodDays > 0 ? round($ibcTotal / $prodDays, 1) : 0;
 
@@ -2212,8 +2244,9 @@ class RebotlingAnalyticsController {
             try {
                 $firstDay = $monthParam . '-01';
                 $nextMonthOp = date('Y-m-01', strtotime($firstDay . ' +1 month'));
-                // ibc_ok/ibc_ej_ok are daily running counters — LAG() computes per-shift delta.
-                // Single CTE (2 params) replaces old 3× UNION ALL with 6 positional params.
+                // ibc_ok/ibc_ej_ok are daily running counters — MAX() per skiftraknare deduplicates.
+                // DEDUP: same operator can appear as op1+op2+op3 on the same shift — use DISTINCT
+                // on (op_id, skiftraknare) so each shift counts only once per operator.
                 $rankSQL = "
                     WITH per_shift AS (
                         SELECT skiftraknare,
@@ -2227,19 +2260,24 @@ class RebotlingAnalyticsController {
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < ?
                         GROUP BY skiftraknare
-                    )
-                    SELECT op_id,
-                           COUNT(DISTINCT skiftraknare) AS shifts,
-                           SUM(ibc_ok)                                                        AS total_ibc,
-                           SUM(ibc_ok)        / NULLIF(SUM(runtime_h), 0)                    AS avg_ibc_per_h,
-                           SUM(ibc_ok)*100.0  / NULLIF(SUM(ibc_ok + ibc_ej_ok), 0)           AS avg_quality_pct
-                    FROM (
+                    ),
+                    all_ops AS (
                         SELECT skiftraknare, op1 AS op_id, ibc_ok, ibc_ej_ok, runtime_h FROM per_shift WHERE op1 > 0
                         UNION ALL
                         SELECT skiftraknare, op2,           ibc_ok, ibc_ej_ok, runtime_h FROM per_shift WHERE op2 > 0
                         UNION ALL
                         SELECT skiftraknare, op3,           ibc_ok, ibc_ej_ok, runtime_h FROM per_shift WHERE op3 > 0
-                    ) t
+                    ),
+                    deduped AS (
+                        SELECT DISTINCT op_id, skiftraknare, ibc_ok, ibc_ej_ok, runtime_h
+                        FROM all_ops
+                    )
+                    SELECT op_id,
+                           COUNT(DISTINCT skiftraknare)                                        AS shifts,
+                           SUM(ibc_ok)                                                         AS total_ibc,
+                           SUM(ibc_ok)       / NULLIF(SUM(runtime_h), 0)                      AS avg_ibc_per_h,
+                           SUM(ibc_ok)*100.0 / NULLIF(SUM(ibc_ok + ibc_ej_ok), 0)             AS avg_quality_pct
+                    FROM deduped
                     GROUP BY op_id
                     ORDER BY (SUM(ibc_ok) * 0.6 + SUM(ibc_ok) / NULLIF(SUM(runtime_h), 0) * 0.4) DESC
                     LIMIT 10
@@ -2396,8 +2434,8 @@ class RebotlingAnalyticsController {
             // ---- Per-skift-subquery som bas (range scan istf DATE_FORMAT) ----
             $firstDay = $month . '-01';
             $nextMonth = date('Y-m-01', strtotime($firstDay . ' +1 month'));
-            // Använder ibc_ok + ibc_ej_ok som täljare/nämnare — dessa uppdateras alltid
-            // i par och ger korrekt kvot (ibc_count kan komma från annan rad och ge >100%).
+            // ibc_ok/ibc_ej_ok är kumulativa per skifträknare (återställs varje nytt skift).
+            // Korrekt: MAX per (dag, skiftraknare) → en rad per skift, aggregeras korrekt uppåt.
             $perShiftSQL = "
                 SELECT
                     DATE(datum)                                                              AS dag,
@@ -2411,7 +2449,8 @@ class RebotlingAnalyticsController {
                     MAX(COALESCE(rasttime, 0))                                             AS shift_rast
                 FROM rebotling_ibc
                 WHERE datum >= ? AND datum < ?
-                GROUP BY DATE(datum)
+                  AND ibc_ok IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare
             ";
 
             // ---- Summary ----
@@ -2436,7 +2475,7 @@ class RebotlingAnalyticsController {
 
             $ibcTotal          = (int)($sumRow['ibc_total'] ?? 0);
             $productionDays    = (int)($sumRow['production_days'] ?? 0);
-            $avgQuality        = (float)($sumRow['avg_quality'] ?? 0);
+            $avgQuality        = min(100.0, (float)($sumRow['avg_quality'] ?? 0));  // säkerhetsgräns
             $totalRuntimeHours = (float)($sumRow['total_runtime_hours'] ?? 0);
             $totalStoppageHours= (float)($sumRow['total_stoppage_hours'] ?? 0);
             $goalPct           = $monthGoal > 0 ? round($ibcTotal * 100.0 / $monthGoal, 1) : 0;
@@ -2532,6 +2571,8 @@ class RebotlingAnalyticsController {
             // ---- Operatörsranking för månaden ----
             // ibc_ok is a daily running counter — deduplicate snapshot rows per skiftraknare
             // with MAX(), then apply LAG() per-shift delta before attributing to operators.
+            // DEDUP: same operator can be op1+op2+op3 on same shift — use DISTINCT to count
+            // each (op_id, skiftraknare) combination only once to avoid 3× inflation.
             $opSQL = "
                 WITH lag_base AS (
                     SELECT skiftraknare,
@@ -2550,24 +2591,33 @@ class RebotlingAnalyticsController {
                     SELECT skiftraknare, datum, op1, op2, op3, totalt_end AS totalt, drifttid,
                            ibc_ok
                     FROM lag_base
-                )
-                SELECT
-                    o.number AS number,
-                    o.name   AS name,
-                    SUM(t.ibc_ok)         AS ibc_ok,
-                    SUM(t.totalt)         AS totalt,
-                    SUM(t.drifttid)       AS drifttid,
-                    COUNT(t.skiftraknare) AS shifts
-                FROM (
+                ),
+                all_ops AS (
                     SELECT skiftraknare, op1 AS op_num, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op1 > 0
                     UNION ALL
                     SELECT skiftraknare, op2 AS op_num, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op2 > 0
                     UNION ALL
                     SELECT skiftraknare, op3 AS op_num, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op3 > 0
-                ) t
+                ),
+                deduped AS (
+                    SELECT DISTINCT op_num, skiftraknare, ibc_ok, totalt, drifttid
+                    FROM all_ops
+                )
+                SELECT
+                    o.number AS number,
+                    o.name   AS name,
+                    SUM(t.ibc_ok)              AS ibc_ok,
+                    SUM(t.totalt)              AS totalt,
+                    SUM(t.drifttid)            AS drifttid,
+                    COUNT(DISTINCT t.skiftraknare) AS shifts
+                FROM deduped t
                 JOIN operators o ON o.number = t.op_num
                 GROUP BY o.number, o.name
-                ORDER BY (SUM(t.ibc_ok) / GREATEST(SUM(t.drifttid)/60.0, 0.01)) DESC
+                ORDER BY (
+                    SUM(t.ibc_ok) * 0.6
+                    + (SUM(t.ibc_ok) / NULLIF(SUM(t.drifttid)/60.0, 0)) * 100 * 0.25
+                    + (SUM(t.ibc_ok)*100.0 / NULLIF(SUM(t.totalt), 0)) * 0.15
+                ) DESC
                 LIMIT 20
             ";
             $stmt = $this->pdo->prepare($opSQL);
@@ -2581,6 +2631,7 @@ class RebotlingAnalyticsController {
                 $drMin   = (int)($row['drifttid'] ?? 0);
                 $ibcPerH = $drMin > 0 ? round($ibcOk / ($drMin / 60.0), 1) : null;
                 $qualPct = $totalt > 0 ? round($ibcOk / $totalt * 100, 1) : null;
+                $score   = round($ibcOk * 0.6 + ($ibcPerH ?? 0) * 100 * 0.25 + ($qualPct ?? 0) * 0.15, 1);
                 $operatorRanking[] = [
                     'name'             => $row['name'],
                     'number'           => (int)$row['number'],
@@ -2588,6 +2639,7 @@ class RebotlingAnalyticsController {
                     'ibc_ok'           => $ibcOk,
                     'avg_ibc_per_hour' => $ibcPerH,
                     'avg_quality'      => $qualPct,
+                    'score'            => $score,
                 ];
             }
 
