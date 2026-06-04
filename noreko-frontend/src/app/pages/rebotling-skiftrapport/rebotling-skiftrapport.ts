@@ -368,7 +368,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     return { start: startTime, stop: stopTime };
   }
 
-  trackByDate(index: number, day: any): string {
+  trackByDate(_index: number, day: any): string {
     return day.date;
   }
 
@@ -418,12 +418,19 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   get summaryAvgOee(): number | null {
     const reports = this.filteredReports.filter(r => (r.drifttid || 0) + (r.rasttime || 0) > 0 && r.totalt > 0);
     if (!reports.length) return null;
-    // OEE simplified: (quality * efficiency) average over reports with PLC data
+    // OEE = Availability × Performance × Quality (alla tre faktorer krävs).
+    // Utan Performance-faktorn kan OEE överstiga EFFEKTIVITET (omöjligt per definition).
     const oeeSum = reports.reduce((s, r) => {
-      const q = r.totalt > 0 ? (r.ibc_ok / r.totalt) : 0;
+      const q      = r.totalt > 0 ? (r.ibc_ok / r.totalt) : 0;
       const planned = (r.drifttid || 0) + (r.rasttime || 0);
       const avail   = planned > 0 ? Math.min((r.drifttid || 0) / planned, 1) : 0;
-      return s + q * avail * 100;
+      // Performance = faktisk IBC/h / mål IBC/h (cappas vid 1.0)
+      const product      = this.products?.find((p: any) => p.id === r.product_id);
+      const targetCycleMin = product?.cycle_time_minutes || 3;
+      const targetIbcH   = 60 / targetCycleMin;
+      const ibcH         = r.drifttid > 0 ? (r.ibc_ok / (r.drifttid / 60)) : 0;
+      const perf         = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
+      return s + avail * perf * q * 100;
     }, 0);
     return Math.round(oeeSum / reports.length);
   }
@@ -501,7 +508,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     return Math.round((r.drifttid / r.ibc_ok) * 10) / 10;
   }
 
-  getStopCount(r: any): number {
+  getStopCount(_r: any): number {
     // PLC data not available per row, return 0 unless we have it
     return 0;
   }
@@ -2318,11 +2325,11 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   // ======== trackBy-funktioner ========
 
-  trackByReportId(index: number, report: any): number {
+  trackByReportId(_index: number, report: any): number {
     return report.id;
   }
 
-  trackByProductId(index: number, product: any): number {
+  trackByProductId(_index: number, product: any): number {
     return product.id;
   }
 
@@ -2330,7 +2337,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     return item?.id ?? index;
   }
 
-  trackByOpName(index: number, op: { name: string }): string {
+  trackByOpName(_index: number, op: { name: string }): string {
     return op.name;
   }
 
