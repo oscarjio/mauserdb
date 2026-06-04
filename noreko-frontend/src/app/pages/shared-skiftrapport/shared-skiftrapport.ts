@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, NgZone } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, of } from 'rxjs';
@@ -41,6 +41,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   subShiftsLoading: { [reportId: number]: boolean } = {};
   subShiftsShowAll: { [reportId: number]: boolean } = {};
   showRawSubShifts: { [reportId: number]: boolean } = {};
+  readonly PRELIMINARY_ID = -1;
+  preliminaryReport: any | null = null;
+  unreportedPasses: any[] = [];
   readonly SUB_PAGE = 30;
   activeTab: { [id: number]: string } = {};
   expandedDays: { [date: string]: boolean } = {};
@@ -87,10 +90,35 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   private updateInterval: any = null;
   private successTimerId: any = null;
   private plcCharts = new Map<number, { hourly: Chart }>();
+  // Namn-lookup-tabeller (O(1)) — byggs om när operators/products laddas
+  private opNameMap = new Map<number, string>();
+  private productNameMap = new Map<number, string>();
+  // Per-rapport beräknade värden — byggs om i recomputeKpis, aldrig i template
+  private reportCache = new Map<number, {
+    effPct: number | null;
+    ibcH: number | null;
+    qualPct: number | null;
+    oeePct: number | null;
+    minIbc: string;
+    tid: string;
+  }>();
+  // Beräknas EN gång i loadSubShifts — aldrig i template
+  plcStatsCache = new Map<number, {
+    kpi: { totalCycles: number; medianCycleMin: number; totalStopMin: number; avgCycleMin: number };
+    stops: Array<{ start: string; end: string; durationMin: number }>;
+    hourlyBuckets: Array<{ hour: number; count: number }>;
+    hourlyMax: number;
+    cycleStats: { avg: number | null; median: number | null; min: number | null; max: number | null };
+    anomalyCount: number;
+    firstCycleTime: number | null;
+    lastCycleTime: number | null;
+    sentInskickad: boolean;
+  }>();
 
   constructor(
     private service: LineSkiftrapportService,
-    private auth: AuthService
+    private auth: AuthService,
+    private zone: NgZone
   ) {}
 
   ngOnInit() {
@@ -153,6 +181,109 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.cachedTotalIbc = totalIbc;
     this.cachedAvgQuality = totalIbc === 0 ? 0 : Math.round((this.cachedTotalOk / totalIbc) * 1000) / 10;
     this.cachedAvgIbcPerSkift = filtered.length === 0 ? 0 : Math.round((totalIbc / filtered.length) * 10) / 10;
+    this.rebuildReportCache();
+    // Expandera dagens grupp automatiskt
+    const today = new Date().toISOString().substring(0, 10);
+    if (this.expandedDays[today] === undefined) this.expandedDays[today] = true;
+  }
+
+  /** Bygger om cachen med per-rapport beräknade värden — kallas EN gång per datahändelse. */
+  private rebuildReportCache(): void {
+    this.reportCache.clear();
+    const synthRows = [
+      ...(this.preliminaryReport ? [this.preliminaryReport] : []),
+      ...this.unreportedPasses
+    ];
+    const allReports = synthRows.length > 0 ? [...this.reports, ...synthRows] : this.reports;
+    for (const r of allReports) {
+      this.reportCache.set(r.id, {
+        effPct:  this._computeEfficiencyPct(r),
+        ibcH:    this._computeIbcPerHour(r),
+        qualPct: this._computeQualityPct(r),
+        oeePct:  this._computeOeePct(r),
+        minIbc:  this._computeMinPerIbc(r),
+        tid:     this._computeShiftTid(r),
+      });
+    }
+  }
+
+  // ===== Privata compute-metoder (kallas ALDRIG från template) =====
+
+  private _computeEfficiencyPct(r: any): number | null {
+    const tot = (r.drifttid || 0) + (r.rasttime || 0);
+    if (!tot) return null;
+    const v = Math.round((r.drifttid / tot) * 100);
+    return isFinite(v) ? v : null;
+  }
+
+  private _computeIbcPerHour(r: any): number | null {
+    if (!(r.drifttid > 0) || !(r.antal_ok > 0)) return null;
+    const v = Math.round(r.antal_ok / (r.drifttid / 60) * 10) / 10;
+    return isFinite(v) ? v : null;
+  }
+
+  private _computeQualityPct(r: any): number | null {
+    if (!r.totalt) return null;
+    const v = Math.round((r.antal_ok / r.totalt) * 1000) / 10;
+    return isFinite(v) ? v : null;
+  }
+
+  private _computeOeePct(r: any): number | null {
+    try {
+      const totalIbc = r.totalt ?? 0;
+      const okIbc = r.antal_ok ?? 0;
+      if (totalIbc <= 0) return null;
+      const kvalitet = okIbc / totalIbc;
+      const drifttidMin = r.drifttid ?? 0;
+      const rasttimeMin = r.rasttime ?? 0;
+      const schemaMin = drifttidMin + rasttimeMin;
+      const tillganglighet = schemaMin > 0 ? Math.min(drifttidMin / schemaMin, 1) : null;
+      if (tillganglighet == null) return null;
+      const drifttidSek = drifttidMin * 60;
+      const product = this.productNameMap.size > 0
+        ? this.products.find(p => p.id === (r.product_id ?? null))
+        : null;
+      const IDEAL_CYCLE_SEK = ((product?.cycle_time_minutes ?? 3.0) * 60);
+      const prestanda = drifttidSek > 0
+        ? Math.min((totalIbc * IDEAL_CYCLE_SEK) / drifttidSek, 1)
+        : 1.0;
+      const v = Math.round(tillganglighet * prestanda * kvalitet * 100);
+      return isFinite(v) ? v : null;
+    } catch { return null; }
+  }
+
+  private _computeMinPerIbc(r: any): string {
+    const ok = r.antal_ok ?? 0;
+    const dt = r.drifttid ?? 0;
+    if (ok <= 0 || dt <= 0) return '–';
+    const v = dt / ok;
+    return isFinite(v) ? v.toFixed(1) : '–';
+  }
+
+  private _computeShiftTid(report: any): string {
+    const fmt = (d: Date) => d.toTimeString().substring(0, 5);
+    try {
+      if (report?.datum) {
+        const raw = String(report.datum);
+        if (raw.length > 10) {
+          const d = new Date(raw.replace(' ', 'T'));
+          if (!isNaN(d.getTime())) {
+            const s = fmt(d);
+            const drifttidMs = (report.drifttid ?? 0) * 60 * 1000;
+            if (drifttidMs > 0) {
+              const end = new Date(d.getTime() + drifttidMs);
+              if (isFinite(end.getTime())) return `${s}→${fmt(end)}`;
+            }
+            return s;
+          }
+        }
+      }
+      if (report?.created_at) {
+        const d = new Date(String(report.created_at).replace(' ', 'T'));
+        if (!isNaN(d.getTime())) return fmt(d);
+      }
+    } catch { /* ignore */ }
+    return '–';
   }
 
   toggleAddForm(): void {
@@ -223,42 +354,21 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // ========== Per-rad helpers ==========
 
   getIbcPerHour(r: any): number | null {
-    if (!(r.drifttid > 0) || !(r.antal_ok > 0)) return null;
-    return Math.round(r.antal_ok / (r.drifttid / 60) * 10) / 10;
+    if (!r) return null;
+    const c = this.reportCache.get(r.id);
+    return c !== undefined ? c.ibcH : this._computeIbcPerHour(r);
   }
 
   getEfficiencyPct(r: any): number | null {
-    const tot = (r.drifttid || 0) + (r.rasttime || 0);
-    if (!tot) return null;
-    return Math.round((r.drifttid / tot) * 100);
+    if (!r) return null;
+    const c = this.reportCache.get(r.id);
+    return c !== undefined ? c.effPct : this._computeEfficiencyPct(r);
   }
 
   getOeePct(r: any): number | null {
-    const totalIbc = r.totalt ?? 0;
-    const okIbc = r.antal_ok ?? 0;
-    if (totalIbc <= 0) return null;
-
-    // Kvalitet (Q)
-    const kvalitet = okIbc / totalIbc;
-
-    // Tillgänglighet (A) = drifttid / (drifttid + rasttime)
-    // drifttid är i minuter
-    const drifttidMin = r.drifttid ?? 0;
-    const rasttimeMin = r.rasttime ?? 0;
-    const schemaMin = drifttidMin + rasttimeMin;
-    const tillganglighet = schemaMin > 0 ? Math.min(drifttidMin / schemaMin, 1) : null;
-    if (tillganglighet == null) return null;
-
-    // Prestanda (P) = (totalIbc × ideal_cycle_sek) / drifttid_sek, cap 1.0
-    // drifttid i minuter → sekunder
-    const drifttidSek = drifttidMin * 60;
-    const product = this.products.find(p => p.id === (r.product_id ?? null));
-    const IDEAL_CYCLE_SEK = ((product?.cycle_time_minutes ?? 3.0) * 60);
-    const prestanda = drifttidSek > 0
-      ? Math.min((totalIbc * IDEAL_CYCLE_SEK) / drifttidSek, 1)
-      : 1.0;
-
-    return Math.round(tillganglighet * prestanda * kvalitet * 100);
+    if (!r) return null;
+    const c = this.reportCache.get(r.id);
+    return c !== undefined ? c.oeePct : this._computeOeePct(r);
   }
 
   formatDrifttid(min: number): string {
@@ -270,36 +380,69 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   getProductName(productId: number | null): string {
     if (!productId) return '';
-    const p = this.products.find(p => p.id === productId);
-    return p?.name || `#${productId}`;
+    return this.productNameMap.get(Number(productId)) ?? this.products.find(p => p.id === productId)?.name ?? `#${productId}`;
   }
 
   getOpName(num: number | null): string {
     if (!num) return '';
     const n = Number(num);
-    const op = this.operators.find(o => Number(o.number) === n);
-    return op?.name || `#${num}`;
+    return this.opNameMap.get(n) ?? this.operators.find(o => Number(o.number) === n)?.name ?? `#${num}`;
   }
 
   private loadOperatorsAndProducts(): void {
     this.service.getOperators(this.config.line)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => { if (res?.success) this.operators = res.data || []; });
+      .subscribe(res => {
+        if (res?.success) {
+          this.operators = res.data || [];
+          this.opNameMap.clear();
+          this.operators.forEach((o: any) => this.opNameMap.set(Number(o.number), o.name));
+          this.rebuildReportCache();
+        }
+      });
     this.service.getProducts(this.config.line)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => { if (res?.success) this.products = res.data || []; });
+      .subscribe(res => {
+        if (res?.success) {
+          this.products = res.data || [];
+          this.productNameMap.clear();
+          this.products.forEach((p: any) => this.productNameMap.set(Number(p.id), p.name));
+          this.rebuildReportCache();
+        }
+      });
   }
 
   getQualityPct(r: any): number | null {
-    if (!r.totalt) return null;
-    return Math.round((r.antal_ok / r.totalt) * 1000) / 10;
+    if (!r) return null;
+    const c = this.reportCache.get(r.id);
+    return c !== undefined ? c.qualPct : this._computeQualityPct(r);
+  }
+
+  /** Säker visning: returnerar '–' för NaN, Infinity, null, negativa tal. */
+  safeDisplay(v: any, decimals = 0): string {
+    if (v == null) return '–';
+    const n = Number(v);
+    if (!isFinite(n) || isNaN(n) || n < 0) return '–';
+    return decimals > 0 ? n.toFixed(decimals) : String(Math.round(n));
+  }
+
+  getAnomalyCount(reportId: number): number {
+    return this.plcStatsCache.get(reportId)?.anomalyCount ?? 0;
+  }
+
+  /** Formaterar ett datum-fält till HH:MM med fallback '–' (säker mot ogiltiga timestamps). */
+  formatSubTime(datum: any): string {
+    if (!datum) return '–';
+    try {
+      const d = new Date(String(datum).replace(' ', 'T'));
+      return isNaN(d.getTime()) ? '–' : d.toTimeString().substring(0, 5);
+    } catch { return '–'; }
   }
 
   minPerIbc(r: any): string {
-    const ok = r.antal_ok ?? 0;
-    const dt = r.drifttid ?? 0;
-    if (ok <= 0 || dt <= 0) return '–';
-    return (dt / ok).toFixed(1);
+    if (!r) return '–';
+    const c = this.reportCache.get(r.id);
+    return c !== undefined ? c.minIbc : this._computeMinPerIbc(r);
   }
 
   /** @deprecated Använd cachedTotalIbc direkt i templaten */
@@ -330,17 +473,27 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const wasExpanded = !!this.expanded[id];
     this.expanded[id] = !wasExpanded;
     if (this.expanded[id]) {
+      // Syntetiska rader (id < 0): preliminary + ej inskickade pass
+      if (id < 0) {
+        const synth = id === this.PRELIMINARY_ID
+          ? this.preliminaryReport
+          : this.unreportedPasses.find(u => u.id === id);
+        if (!this.plcStatsCache.has(id) && synth) this.computePlcStats(id);
+        setTimeout(() => this.renderHourlyChart(id, synth), 50);
+        return;
+      }
       const report = this.reports.find(r => r.id === id);
       if (report?.skiftraknare && this.lopnummerMap[id] === undefined) {
         this.loadLopnummer(report);
       }
-      if (report?.skiftraknare && this.subShiftsMap[id] === undefined) {
+      // Ladda PLC-data om created_at finns (fönster kan beräknas)
+      if (report?.created_at && this.subShiftsMap[id] === undefined) {
         this.loadSubShifts(report, () => this.renderHourlyChart(id, report));
       } else if (this.subShiftsMap[id]?.length > 0) {
+        if (!this.plcStatsCache.has(id)) this.computePlcStats(id);
         setTimeout(() => this.renderHourlyChart(id, report), 50);
       }
     } else {
-      // Destroy chart when collapsing
       const existing = this.plcCharts.get(id);
       if (existing) {
         try { existing.hourly.destroy(); } catch (_e) { /* ignore */ }
@@ -352,13 +505,315 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   private loadSubShifts(report: any, onLoaded?: () => void): void {
     const id = report.id;
     this.subShiftsLoading[id] = true;
-    this.service.getSubShifts(this.config.line, report.skiftraknare)
+
+    // Fönsterlogik (spec C): start = max(prev_created_at, created_at − 12h) så natt aldrig läcker
+    const createdAtMs = report.created_at
+      ? new Date(String(report.created_at).replace(' ', 'T')).getTime() : null;
+    const prevCAtMs = report.prev_created_at
+      ? new Date(String(report.prev_created_at).replace(' ', 'T')).getTime() : null;
+
+    let from: string;
+    let to: string;
+    if (createdAtMs && !isNaN(createdAtMs)) {
+      const cap12h = createdAtMs - 12 * 3600000;
+      const fromMs = (prevCAtMs && !isNaN(prevCAtMs)) ? Math.max(prevCAtMs, cap12h) : cap12h;
+      from = new Date(fromMs).toISOString().replace('T', ' ').substring(0, 19);
+      to   = new Date(createdAtMs).toISOString().replace('T', ' ').substring(0, 19);
+    } else {
+      from = String(report.prev_created_at ?? '');
+      to   = String(report.created_at ?? '');
+    }
+
+    this.service.getSubShifts(this.config.line, from, to)
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         this.subShiftsLoading[id] = false;
         this.subShiftsMap[id] = res?.success ? (res.data || []) : [];
+        this.computePlcStats(id);
         if (onLoaded) setTimeout(onLoaded, 50);
       });
+  }
+
+  private loadPreliminaryShift(): void {
+    // Gräns = senaste rapport med innehåll (antal_ok > 0), annars senaste rapport, annars dagens midnatt
+    let from: string;
+    const contentful = this.reports.filter((r: any) => (r.antal_ok || 0) > 0 || (r.antal_ej_ok || 0) > 0);
+    const base = contentful.length ? contentful : this.reports;
+    if (base.length) {
+      const latest = base.reduce((best: any, r: any) =>
+        (!best || new Date(String(r.created_at).replace(' ', 'T')) > new Date(String(best.created_at).replace(' ', 'T'))) ? r : best
+      , null as any);
+      from = String(latest.created_at);
+    } else {
+      const midnight = new Date();
+      midnight.setHours(0, 0, 0, 0);
+      from = midnight.toISOString().replace('T', ' ').substring(0, 19);
+    }
+
+    this.service.getUnreportedCycles(this.config.line, from)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        try {
+          const subs: any[] = res?.success ? (res.data || []) : [];
+
+          // Rensa gamla syntetiska rader
+          const existingChart = this.plcCharts.get(this.PRELIMINARY_ID);
+          if (existingChart) { try { existingChart.hourly.destroy(); } catch (_e) { /* ignore */ } this.plcCharts.delete(this.PRELIMINARY_ID); }
+          this.plcStatsCache.delete(this.PRELIMINARY_ID);
+          for (const up of this.unreportedPasses) {
+            const c = this.plcCharts.get(up.id);
+            if (c) { try { c.hourly.destroy(); } catch (_e) { /* ignore */ } this.plcCharts.delete(up.id); }
+            this.plcStatsCache.delete(up.id);
+          }
+          this.unreportedPasses = [];
+
+          if (!subs.length) {
+            this.preliminaryReport = null;
+            this.subShiftsMap[this.PRELIMINARY_ID] = [];
+            this.rebuildReportCache();
+            return;
+          }
+
+          // Validera och sortera tidsstämplar
+          const now = Date.now();
+          const MIN_TS = new Date('2020-01-01T00:00:00').getTime();
+          const validSubs = subs.filter((s: any) => {
+            if (!s.datum) return false;
+            const t = new Date(String(s.datum).replace(' ', 'T')).getTime();
+            return !isNaN(t) && t >= MIN_TS && t <= now + 60000;
+          }).sort((a: any, b: any) =>
+            new Date(String(a.datum).replace(' ', 'T')).getTime() -
+            new Date(String(b.datum).replace(' ', 'T')).getTime()
+          );
+
+          if (!validSubs.length) {
+            this.preliminaryReport = null;
+            this.subShiftsMap[this.PRELIMINARY_ID] = [];
+            this.rebuildReportCache();
+            return;
+          }
+
+          // Gruppera cykler i pass via 60-min gap
+          const PASS_GAP_MIN = 60;
+          const passes: Array<{ subs: any[]; times: number[] }> = [];
+          let curSubs: any[] = [validSubs[0]];
+          let curTimes: number[] = [new Date(String(validSubs[0].datum).replace(' ', 'T')).getTime()];
+
+          for (let i = 1; i < validSubs.length; i++) {
+            const t = new Date(String(validSubs[i].datum).replace(' ', 'T')).getTime();
+            const gapMin = (t - curTimes[curTimes.length - 1]) / 60000;
+            if (gapMin > PASS_GAP_MIN) {
+              passes.push({ subs: curSubs, times: curTimes });
+              curSubs = [validSubs[i]];
+              curTimes = [t];
+            } else {
+              curSubs.push(validSubs[i]);
+              curTimes.push(t);
+            }
+          }
+          passes.push({ subs: curSubs, times: curTimes });
+
+          // Klassificera pass: senaste cykel < 60 min sen = pågående, annars = ej inskickad
+          const ACTIVE_MIN = 60;
+          const cumulDelta = (last: any, first: any): number => {
+            const l = +(last ?? 0); const f = +(first ?? 0);
+            return (!isFinite(l) || !isFinite(f)) ? 0 : (l >= f ? l - f : l);
+          };
+          const buildSynth = (pass: { subs: any[]; times: number[] }, id: number, isPreliminary: boolean): any => {
+            const fs = pass.subs[0]; const ls = pass.subs[pass.subs.length - 1];
+            const ibcOk    = cumulDelta(ls?.ibc_ok,     fs?.ibc_ok);
+            const ibcEjOk  = cumulDelta(ls?.ibc_ej_ok,  fs?.ibc_ej_ok);
+            const drifttid = cumulDelta(ls?.runtime_plc, fs?.runtime_plc);
+            const rasttime = cumulDelta(ls?.rasttime,    fs?.rasttime);
+            const firstT = pass.times[0];
+            const lastT  = pass.times[pass.times.length - 1];
+            const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+            return {
+              id, datum: new Date(firstT).toISOString().substring(0, 10),
+              antal_ok: ibcOk, antal_ej_ok: ibcEjOk, totalt: ibcOk + ibcEjOk,
+              drifttid, rasttime,
+              isPreliminary, isUnreported: !isPreliminary,
+              prev_created_at: from,
+              created_at: isPreliminary ? nowStr : new Date(lastT).toISOString().replace('T', ' ').substring(0, 19),
+              _firstTime: firstT, _lastTime: lastT,
+              skiftraknare: fs?.skiftraknare ?? null,
+              product_id: fs?.produkt ?? null,
+            };
+          };
+
+          let prelimIdx = -1;
+          const unreportedIdxs: number[] = [];
+          for (let i = passes.length - 1; i >= 0; i--) {
+            const lastT = passes[i].times[passes[i].times.length - 1];
+            if ((now - lastT) / 60000 < ACTIVE_MIN && prelimIdx === -1) {
+              prelimIdx = i;
+            } else {
+              unreportedIdxs.push(i);
+            }
+          }
+
+          // Bygg pågående pass
+          if (prelimIdx >= 0) {
+            this.preliminaryReport = buildSynth(passes[prelimIdx], this.PRELIMINARY_ID, true);
+            this.subShiftsMap[this.PRELIMINARY_ID] = passes[prelimIdx].subs;
+            this.computePlcStats(this.PRELIMINARY_ID);
+          } else {
+            this.preliminaryReport = null;
+            this.subShiftsMap[this.PRELIMINARY_ID] = [];
+          }
+
+          // Bygg ej inskickade pass (id -2, -3, ...)
+          let nextId = -2;
+          this.unreportedPasses = unreportedIdxs.map(idx => {
+            const id = nextId--;
+            const synth = buildSynth(passes[idx], id, false);
+            this.subShiftsMap[id] = passes[idx].subs;
+            this.computePlcStats(id);
+            return synth;
+          });
+
+          this.rebuildReportCache();
+          if (this.expanded[this.PRELIMINARY_ID] && this.preliminaryReport) {
+            setTimeout(() => this.renderHourlyChart(this.PRELIMINARY_ID, this.preliminaryReport), 50);
+          }
+          for (const up of this.unreportedPasses) {
+            if (this.expanded[up.id]) setTimeout(() => this.renderHourlyChart(up.id, up), 50);
+          }
+        } catch (e) {
+          console.error('loadPreliminaryShift misslyckades', e);
+          this.preliminaryReport = null;
+          this.unreportedPasses = [];
+        }
+      });
+  }
+
+  private computePlcStats(reportId: number): void {
+    const emptyResult = {
+      kpi: { totalCycles: 0, medianCycleMin: 0, totalStopMin: 0, avgCycleMin: 0 },
+      stops: [] as Array<{ start: string; end: string; durationMin: number }>,
+      hourlyBuckets: [] as Array<{ hour: number; count: number }>,
+      hourlyMax: 1,
+      cycleStats: { avg: null, median: null, min: null, max: null } as { avg: number | null; median: number | null; min: number | null; max: number | null },
+      anomalyCount: 0,
+      firstCycleTime: null as number | null,
+      lastCycleTime: null as number | null,
+      sentInskickad: false,
+    };
+    try {
+      const subs = this.subShiftsMap[reportId] || [];
+      const report = reportId === this.PRELIMINARY_ID
+        ? this.preliminaryReport
+        : reportId < 0
+          ? this.unreportedPasses.find(u => u.id === reportId)
+          : this.reports.find(r => r.id === reportId);
+
+      // Fönstergränser: spec C — max(prev_created_at, created_at−12h) → created_at
+      const createdAtMs = report?.created_at
+        ? new Date(String(report.created_at).replace(' ', 'T')).getTime() : null;
+      const prevCAtMs = report?.prev_created_at
+        ? new Date(String(report.prev_created_at).replace(' ', 'T')).getTime() : null;
+      const wsMs = (createdAtMs && !isNaN(createdAtMs))
+        ? ((prevCAtMs && !isNaN(prevCAtMs)) ? Math.max(prevCAtMs, createdAtMs - 12 * 3600000) : createdAtMs - 12 * 3600000)
+        : null;
+      const weMs = (createdAtMs && !isNaN(createdAtMs)) ? createdAtMs : null;
+
+      const windowSubs = (wsMs && weMs)
+        ? subs.filter((s: any) => { const t = new Date(String(s.datum).replace(' ', 'T')).getTime(); return !isNaN(t) && t > wsMs && t <= weMs; })
+        : subs;
+
+      // Validera tidsstämplar — exkludera framtida, uråldriga och ogiltiga
+      const now = Date.now();
+      const MIN_VALID_TS = new Date('2020-01-01T00:00:00').getTime();
+      let anomalyCount = 0;
+      const allTimes: number[] = [];
+      for (const s of windowSubs) {
+        if (!s.datum) { anomalyCount++; continue; }
+        const t = new Date(String(s.datum).replace(' ', 'T')).getTime();
+        if (isNaN(t) || t < MIN_VALID_TS || t > now + 60000) { anomalyCount++; continue; }
+        allTimes.push(t);
+      }
+
+      // Spec C: gap-baserad skiftdetektering — isolera det senaste skiftet i fönstret
+      // Stopp > 60 min eller dygngräns = nytt pass, börja från slutet bakåt
+      const SHIFT_GAP_MIN = 60;
+      let shiftStartIdx = 0;
+      for (let i = allTimes.length - 2; i >= 0; i--) {
+        const gapMin = (allTimes[i + 1] - allTimes[i]) / 60000;
+        if (gapMin > SHIFT_GAP_MIN) { shiftStartIdx = i + 1; break; }
+      }
+      const times = allTimes.slice(shiftStartIdx);
+
+      const firstCycleTime = times.length > 0 ? times[0] : null;
+      const lastCycleTime  = times.length > 0 ? times[times.length - 1] : null;
+
+      // Spec D: Sent inskickad — sista cykeln och created_at skiljer sig mer än 2h
+      const sentInskickad = !!(lastCycleTime && createdAtMs && (createdAtMs - lastCycleTime) > 2 * 3600000);
+
+      // Gaps för nuvarande skift (times — redan isolerat)
+      const gaps: number[] = [];
+      for (let i = 1; i < times.length; i++) {
+        const g = (times[i] - times[i - 1]) / 60000;
+        if (g > 0) gaps.push(g);
+      }
+
+      const sorted = [...gaps].sort((a, b) => a - b);
+      const median = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+      // Spec B: stopp = gap > max(2×median, 10 min)
+      const threshold = Math.max(median * 2, 10);
+      const stopGaps = gaps.filter(g => g > threshold);
+      const cycleGaps = gaps.filter(g => g <= threshold);
+
+      const kpi = {
+        totalCycles: times.length,
+        medianCycleMin: Math.round(median * 10) / 10,
+        totalStopMin: Math.round(stopGaps.reduce((s, g) => s + g, 0)),
+        avgCycleMin: cycleGaps.length
+          ? Math.round(cycleGaps.reduce((s, g) => s + g, 0) / cycleGaps.length * 10) / 10 : 0
+      };
+
+      const stops: Array<{ start: string; end: string; durationMin: number }> = [];
+      for (let i = 1; i < times.length; i++) {
+        const gapMin = (times[i] - times[i - 1]) / 60000;
+        if (gapMin > threshold) {
+          stops.push({
+            start: new Date(times[i - 1]).toTimeString().substring(0, 5),
+            end: new Date(times[i]).toTimeString().substring(0, 5),
+            durationMin: Math.round(gapMin)
+          });
+        }
+      }
+
+      const bucketMap: Record<number, number> = {};
+      for (const t of times) {
+        const h = new Date(t).getHours();
+        if (h >= 0 && h <= 23) bucketMap[h] = (bucketMap[h] || 0) + 1;
+      }
+      const hourlyBuckets = Object.entries(bucketMap)
+        .map(([h, c]) => ({ hour: +h, count: c as number }))
+        .sort((a, b) => a.hour - b.hour);
+      const hourlyMax = hourlyBuckets.reduce((m, b) => b.count > m ? b.count : m, 1);
+
+      const filteredGaps = cycleGaps.filter(g => g > 0);
+      let cycleStats: { avg: number | null; median: number | null; min: number | null; max: number | null } =
+        { avg: null, median: null, min: null, max: null };
+      if (filteredGaps.length) {
+        const fs = [...filteredGaps].sort((a, b) => a - b);
+        const mid = Math.floor(fs.length / 2);
+        cycleStats = {
+          avg: Math.round(filteredGaps.reduce((s, v) => s + v, 0) / filteredGaps.length * 10) / 10,
+          median: fs.length % 2 === 0
+            ? Math.round((fs[mid - 1] + fs[mid]) / 2 * 10) / 10
+            : Math.round(fs[mid] * 10) / 10,
+          min: Math.round(fs[0] * 10) / 10,
+          max: Math.round(fs[fs.length - 1] * 10) / 10
+        };
+      }
+
+      this.plcStatsCache.set(reportId, { kpi, stops, hourlyBuckets, hourlyMax, cycleStats, anomalyCount, firstCycleTime, lastCycleTime, sentInskickad });
+    } catch (e) {
+      console.error('computePlcStats misslyckades', reportId, e);
+      this.plcStatsCache.set(reportId, emptyResult);
+    }
   }
 
   private loadLopnummer(report: any): void {
@@ -399,6 +854,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
               this.reports = nr;
             }
             this.recomputeKpis();
+            this.loadPreliminaryShift();
           } else {
             this.errorMessage = res.error || 'Kunde inte hämta rapporter';
           }
@@ -690,10 +1146,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   ibcPerHour(report: any): string {
-    const ok = report.antal_ok ?? 0;
-    const dt = report.drifttid ?? 0;
-    if (dt <= 0 || ok <= 0) return '–';
-    return (ok / (dt / 60)).toFixed(1);
+    if (!report) return '–';
+    const c = this.reportCache.get(report.id);
+    const v = c !== undefined ? c.ibcH : this._computeIbcPerHour(report);
+    return v != null ? v.toFixed(1) : '–';
   }
 
   getSubIbcPerHour(sub: any): string {
@@ -703,23 +1159,50 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return (ok / (dt / 60)).toFixed(1);
   }
 
-  get groupedDays(): Array<{ date: string; reports: any[]; totalIbc: number; totalDrift: number; avgEff: number | null; operators: string[]; products: string[]; }> {
+  get groupedDays(): Array<{ date: string; reports: any[]; totalIbc: number; totalDrift: number; avgEff: number | null; operators: string[]; products: string[]; submittedCount: number; hasPreliminary: boolean; unreportedCount: number; }> {
     const dayMap: { [date: string]: any[] } = {};
     this.filteredReports.forEach(r => {
       const d = (r.datum || '').substring(0, 10);
       if (!dayMap[d]) dayMap[d] = [];
       dayMap[d].push(r);
     });
+
+    // Inkludera syntetiska rader i dagens grupp
+    const today = new Date().toISOString().substring(0, 10);
+    const synthRows = [
+      ...(this.preliminaryReport ? [this.preliminaryReport] : []),
+      ...this.unreportedPasses
+    ];
+    if (synthRows.length) {
+      if (!dayMap[today]) dayMap[today] = [];
+      synthRows.forEach(s => { if (!dayMap[today].find((r: any) => r.id === s.id)) dayMap[today].push(s); });
+    }
+
     return Object.entries(dayMap).map(([date, reports]) => {
-      const totalIbc = reports.reduce((s, r) => s + (r.antal_ok || 0), 0);
-      const totalDrift = reports.reduce((s, r) => s + (r.drifttid || 0), 0);
-      const effVals = reports.map(r => this.getEfficiencyPct(r)).filter((v): v is number => v != null);
+      const submittedOnly = reports.filter((r: any) => !r.isPreliminary && !r.isUnreported);
+      // Sortera: inskickade chronologiskt (created_at), sedan ej inskickade, sist pågående
+      const sorted = [...reports].sort((a: any, b: any) => {
+        const order = (r: any) => r.isPreliminary ? 2 : r.isUnreported ? 1 : 0;
+        if (order(a) !== order(b)) return order(a) - order(b);
+        const ta = a._firstTime ?? new Date(String(a.created_at || '').replace(' ', 'T')).getTime() ?? 0;
+        const tb = b._firstTime ?? new Date(String(b.created_at || '').replace(' ', 'T')).getTime() ?? 0;
+        return ta - tb;
+      });
+      const totalIbc = submittedOnly.reduce((s, r) => s + (r.antal_ok || 0), 0);
+      const totalDrift = submittedOnly.reduce((s, r) => s + (r.drifttid || 0), 0);
+      const effVals = submittedOnly.map(r => this.getEfficiencyPct(r)).filter((v): v is number => v != null);
       const avgEff = effVals.length ? Math.round(effVals.reduce((s, v) => s + v, 0) / effVals.length) : null;
       const opSet = new Set<string>();
-      reports.forEach(r => { [r.op1, r.op2, r.op3].forEach((n: number | null) => { if (n) { const name = this.getOpName(n); if (name) opSet.add(name); } }); });
+      submittedOnly.forEach(r => { [r.op1, r.op2, r.op3].forEach((n: number | null) => { if (n) { const name = this.getOpName(n); if (name) opSet.add(name); } }); });
       const prodSet = new Set<string>();
-      reports.forEach(r => { if (r.product_id) { const name = this.getProductName(r.product_id); if (name) prodSet.add(name); } });
-      return { date, reports, totalIbc, totalDrift, avgEff, operators: Array.from(opSet), products: Array.from(prodSet) };
+      submittedOnly.forEach(r => { if (r.product_id) { const name = this.getProductName(r.product_id); if (name) prodSet.add(name); } });
+      return {
+        date, reports: sorted, totalIbc, totalDrift, avgEff,
+        operators: Array.from(opSet), products: Array.from(prodSet),
+        submittedCount: submittedOnly.length,
+        hasPreliminary: reports.some((r: any) => r.isPreliminary),
+        unreportedCount: reports.filter((r: any) => r.isUnreported).length,
+      };
     }).sort((a, b) => b.date.localeCompare(a.date));
   }
 
@@ -762,38 +1245,34 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   getShiftTid(report: any): string {
-    const drifttidMs = (report.drifttid ?? 0) * 60 * 1000;
-    const fmt = (raw: string) => {
-      const d = new Date(raw.replace(' ', 'T'));
-      return isNaN(d.getTime()) ? null : d.toTimeString().substring(0, 5);
+    if (!report) return '–';
+    // Prioritera faktiska cykeltider från PLC-cache (spec C) framför rapportfält
+    const plcStats = this.plcStatsCache.get(report.id);
+    if (plcStats?.firstCycleTime && plcStats?.lastCycleTime) {
+      const s = new Date(plcStats.firstCycleTime).toTimeString().substring(0, 5);
+      const e = new Date(plcStats.lastCycleTime).toTimeString().substring(0, 5);
+      if (s && e) return s !== e ? `${s}→${e}` : s;
+    }
+    const c = this.reportCache.get(report.id);
+    return c !== undefined ? c.tid : this._computeShiftTid(report);
+  }
+
+  isLateSubmission(reportId: number): boolean {
+    return this.plcStatsCache.get(reportId)?.sentInskickad ?? false;
+  }
+
+  /** Öppnar formuläret förfyllt med data från ett syntetiskt pass (ej inskickad eller pågående). */
+  openAddFormPrefilled(pass: any): void {
+    this.newReport = {
+      datum: pass.datum || localToday(),
+      antal_ok: pass.antal_ok || 0,
+      antal_ej_ok: pass.antal_ej_ok || 0,
+      kommentar: '',
+      op1: null, op2: null, op3: null,
+      product_id: pass.product_id ?? null,
     };
-    // PLC real times (from tvattlinje_ibc correlated subquery in backend)
-    if (report.plc_start && report.plc_end) {
-      const s = fmt(String(report.plc_start));
-      const e = fmt(String(report.plc_end));
-      if (s && e && s !== e) return `${s}→${e}`;
-      if (s) return s;
-    }
-    // Datum with time component (rebotling style)
-    if (report.datum) {
-      const raw = String(report.datum);
-      if (raw.length > 10) {
-        const s = fmt(raw);
-        if (s) {
-          if (drifttidMs > 0) {
-            const d = new Date(raw.replace(' ', 'T'));
-            return `${s}→${new Date(d.getTime() + drifttidMs).toTimeString().substring(0, 5)}`;
-          }
-          return s;
-        }
-      }
-    }
-    // Last resort: created_at (only time, not as range since created_at is submit time)
-    if (report.created_at) {
-      const s = fmt(String(report.created_at));
-      if (s) return s;
-    }
-    return '–';
+    this.errorMessage = '';
+    this.showAddForm = true;
   }
 
   getOpInitials(num: number | null): string {
@@ -807,93 +1286,24 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return colors[((num ?? 0) % colors.length)];
   }
 
-  private _subTimes(reportId: number): number[] {
-    return (this.subShiftsMap[reportId] || [])
-      .map((s: any) => new Date(String(s.datum).replace(' ', 'T')).getTime())
-      .filter((t: number) => !isNaN(t));
-  }
-
-  private _cycleGapsMin(reportId: number): number[] {
-    const t = this._subTimes(reportId);
-    const gaps: number[] = [];
-    for (let i = 1; i < t.length; i++) gaps.push((t[i] - t[i - 1]) / 60000);
-    return gaps;
-  }
-
   getPlcKpi(reportId: number): { totalCycles: number; medianCycleMin: number; totalStopMin: number; avgCycleMin: number } {
-    const subs = this.subShiftsMap[reportId] || [];
-    if (subs.length < 2) return { totalCycles: subs.length, medianCycleMin: 0, totalStopMin: 0, avgCycleMin: 0 };
-    const gaps = this._cycleGapsMin(reportId);
-    if (!gaps.length) return { totalCycles: subs.length, medianCycleMin: 0, totalStopMin: 0, avgCycleMin: 0 };
-    const sorted = [...gaps].sort((a, b) => a - b);
-    const median = sorted[Math.floor(sorted.length / 2)];
-    const threshold = median * 2;
-    const stopGaps = gaps.filter(g => g > threshold);
-    const workGaps = gaps.filter(g => g <= threshold);
-    return {
-      totalCycles: subs.length,
-      medianCycleMin: Math.round(median * 10) / 10,
-      totalStopMin: Math.round(stopGaps.reduce((s, g) => s + g, 0)),
-      avgCycleMin: workGaps.length ? Math.round(workGaps.reduce((s, g) => s + g, 0) / workGaps.length * 10) / 10 : 0
-    };
+    return this.plcStatsCache.get(reportId)?.kpi ?? { totalCycles: 0, medianCycleMin: 0, totalStopMin: 0, avgCycleMin: 0 };
   }
 
   getDetectedStops(reportId: number): Array<{ start: string; end: string; durationMin: number }> {
-    const times = this._subTimes(reportId);
-    if (times.length < 2) return [];
-    const gaps = this._cycleGapsMin(reportId);
-    const sorted = [...gaps].sort((a, b) => a - b);
-    const median = sorted[Math.floor(sorted.length / 2)];
-    const threshold = median * 2;
-    const stops: Array<{ start: string; end: string; durationMin: number }> = [];
-    for (let i = 1; i < times.length; i++) {
-      const gapMin = (times[i] - times[i - 1]) / 60000;
-      if (gapMin > threshold) {
-        stops.push({
-          start: new Date(times[i - 1]).toTimeString().substring(0, 5),
-          end: new Date(times[i]).toTimeString().substring(0, 5),
-          durationMin: Math.round(gapMin)
-        });
-      }
-    }
-    return stops;
+    return this.plcStatsCache.get(reportId)?.stops ?? [];
   }
 
   getHourlyBuckets(reportId: number): Array<{ hour: number; count: number }> {
-    const buckets: Record<number, number> = {};
-    for (const s of (this.subShiftsMap[reportId] || [])) {
-      if (!s.datum) continue;
-      const h = new Date(String(s.datum).replace(' ', 'T')).getHours();
-      buckets[h] = (buckets[h] || 0) + 1;
-    }
-    return Object.entries(buckets)
-      .map(([h, c]) => ({ hour: +h, count: c as number }))
-      .sort((a, b) => a.hour - b.hour);
+    return this.plcStatsCache.get(reportId)?.hourlyBuckets ?? [];
   }
 
   getHourlyMax(reportId: number): number {
-    return Math.max(...this.getHourlyBuckets(reportId).map(b => b.count), 1);
+    return this.plcStatsCache.get(reportId)?.hourlyMax ?? 1;
   }
 
-  /** Returnerar alla cykeltidsgap (i min) filtrerade: exkluderar gap > 30 min (stopp) */
-  getCycleTimes(reportId: number): number[] {
-    const gaps = this._cycleGapsMin(reportId);
-    return gaps.filter(g => g > 0 && g <= 30);
-  }
-
-  /** Snitt, Median, Min, Max cykeltid (exkl gap > 30 min) */
   getCycleStats(reportId: number): { avg: number | null; median: number | null; min: number | null; max: number | null } {
-    const times = this.getCycleTimes(reportId);
-    if (!times.length) return { avg: null, median: null, min: null, max: null };
-    const sorted = [...times].sort((a, b) => a - b);
-    const avg = Math.round(times.reduce((s, v) => s + v, 0) / times.length * 10) / 10;
-    const midIdx = Math.floor(sorted.length / 2);
-    const median = sorted.length % 2 === 0
-      ? Math.round((sorted[midIdx - 1] + sorted[midIdx]) / 2 * 10) / 10
-      : Math.round(sorted[midIdx] * 10) / 10;
-    const min = Math.round(sorted[0] * 10) / 10;
-    const max = Math.round(sorted[sorted.length - 1] * 10) / 10;
-    return { avg, median, min, max };
+    return this.plcStatsCache.get(reportId)?.cycleStats ?? { avg: null, median: null, min: null, max: null };
   }
 
   /** Skapar Chart.js timvis stapeldiagram för givet report-id */
@@ -909,7 +1319,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const canvas = document.getElementById(`plc-hourly-${id}`) as HTMLCanvasElement | null;
     if (!canvas) return;
 
-    const buckets = this.getHourlyBuckets(id);
+    const buckets = this.plcStatsCache.get(id)?.hourlyBuckets ?? [];
     if (!buckets.length) return;
 
     const product = this.products.find(p => p.id === (report?.product_id ?? null));
@@ -919,61 +1329,65 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const labels = buckets.map(b => `${b.hour}:00`);
     const data = buckets.map(b => b.count);
 
-    const chart = new Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'IBC/timme',
-            data,
-            backgroundColor: 'rgba(49,130,206,0.8)',
-            borderColor: '#3182ce',
-            borderWidth: 1,
-            borderRadius: 3,
+    let chart!: Chart;
+    this.zone.runOutsideAngular(() => {
+      chart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'IBC/timme',
+              data,
+              backgroundColor: 'rgba(49,130,206,0.8)',
+              borderColor: '#3182ce',
+              borderWidth: 1,
+              borderRadius: 3,
+            },
+            {
+              label: `Mål (${targetPerHour} IBC/h)`,
+              data: labels.map(() => targetPerHour),
+              type: 'line' as const,
+              borderColor: 'rgba(72,187,120,0.85)',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false,
+              backgroundColor: 'transparent',
+            } as any,
+          ],
+        },
+        options: {
+          animation: false,
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              labels: { color: '#e2e8f0', font: { size: 11 }, boxWidth: 14 },
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15,17,23,0.95)',
+              titleColor: '#fff',
+              bodyColor: '#e0e0e0',
+              borderColor: '#3182ce',
+              borderWidth: 1,
+            },
           },
-          {
-            label: `Mål (${targetPerHour} IBC/h)`,
-            data: labels.map(() => targetPerHour),
-            type: 'line' as const,
-            borderColor: 'rgba(72,187,120,0.85)',
-            borderWidth: 2,
-            borderDash: [6, 4],
-            pointRadius: 0,
-            fill: false,
-            backgroundColor: 'transparent',
-          } as any,
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true,
-            labels: { color: '#e2e8f0', font: { size: 11 }, boxWidth: 14 },
-          },
-          tooltip: {
-            backgroundColor: 'rgba(15,17,23,0.95)',
-            titleColor: '#fff',
-            bodyColor: '#e0e0e0',
-            borderColor: '#3182ce',
-            borderWidth: 1,
+          scales: {
+            x: {
+              ticks: { color: '#e2e8f0', font: { size: 11 } },
+              grid: { color: '#4a5568' },
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#e2e8f0', font: { size: 11 }, stepSize: 1 },
+              grid: { color: '#4a5568' },
+              title: { display: true, text: 'Antal IBC', color: '#e2e8f0', font: { size: 11 } },
+            },
           },
         },
-        scales: {
-          x: {
-            ticks: { color: '#e2e8f0', font: { size: 11 } },
-            grid: { color: '#4a5568' },
-          },
-          y: {
-            beginAtZero: true,
-            ticks: { color: '#e2e8f0', font: { size: 11 }, stepSize: 1 },
-            grid: { color: '#4a5568' },
-            title: { display: true, text: 'Antal IBC', color: '#e2e8f0', font: { size: 11 } },
-          },
-        },
-      },
+      });
     });
 
     this.plcCharts.set(id, { hourly: chart });

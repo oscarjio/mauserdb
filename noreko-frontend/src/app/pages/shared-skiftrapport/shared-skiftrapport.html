@@ -347,7 +347,13 @@
                   <i class="fas fa-calendar-day me-2 text-muted" style="font-size:.8rem;"></i>{{ day.date }}
                 </td>
                 <td class="text-center">
-                  <span class="badge bg-secondary">{{ day.reports.length }} skift</span>
+                  <span class="badge bg-secondary">{{ day.submittedCount }} skift</span>
+                  <span *ngIf="day.hasPreliminary" class="badge bg-warning text-dark ms-1" style="font-size:.72rem;">
+                    <i class="fas fa-circle fa-beat me-1" style="font-size:.6rem;"></i>Pågående
+                  </span>
+                  <span *ngIf="day.unreportedCount > 0" class="badge bg-danger ms-1" style="font-size:.72rem;">
+                    {{ day.unreportedCount }} ej inskickad{{ day.unreportedCount > 1 ? 'a' : '' }}
+                  </span>
                 </td>
                 <td class="text-center fw-semibold text-success">{{ day.totalIbc }}</td>
                 <td class="text-center">
@@ -401,12 +407,26 @@
 
                           <!-- SKIFT-RAD -->
                           <tr [class.inlagd-row]="report.inlagd == 1"
-                              [style.opacity]="(report.antal_ok == 0 && report.antal_ej_ok == 0) ? '0.45' : '1'">
+                              [style.border-left]="report.isPreliminary ? '3px solid #d69e2e' : report.isUnreported ? '3px solid #e53e3e' : '3px solid #38a169'"
+                              [style.opacity]="(!report.isPreliminary && !report.isUnreported && report.antal_ok == 0 && report.antal_ej_ok == 0) ? '0.45' : '1'">
                             <td class="text-nowrap small">
+                              <!-- Status-badge -->
+                              <div class="mb-1">
+                                <span *ngIf="report.isPreliminary" class="badge bg-warning text-dark" style="font-size:.7rem;">
+                                  <i class="fas fa-circle fa-beat me-1" style="font-size:.6rem;"></i>Pågående
+                                </span>
+                                <span *ngIf="report.isUnreported" class="badge bg-danger" style="font-size:.7rem;">
+                                  <i class="fas fa-exclamation-triangle me-1" style="font-size:.6rem;"></i>Ej inskickad
+                                </span>
+                                <span *ngIf="!report.isPreliminary && !report.isUnreported" class="badge bg-success" style="font-size:.7rem;">
+                                  <i class="fas fa-check me-1" style="font-size:.6rem;"></i>Inskickad
+                                </span>
+                              </div>
                               <span class="me-1" [class.text-info]="getShiftTid(report) !== '–'" [class.text-muted]="getShiftTid(report) === '–'">
                                 {{ getShiftTid(report) !== '–' ? getShiftTid(report) : '–' }}
                               </span>
-                              <span class="badge bg-secondary" style="font-size:.65em;">#{{ si + 1 }}</span>
+                              <span *ngIf="!report.isPreliminary && !report.isUnreported" class="badge bg-secondary" style="font-size:.65em;">#{{ si + 1 }}</span>
+                              <span *ngIf="isLateSubmission(report.id)" class="badge bg-secondary ms-1" style="font-size:.65em;" title="Rapporten skickades in mer än 2h efter sista cykeln">Sent</span>
                             </td>
                             <td>
                               <span class="badge bg-secondary">{{ getProductName(report.product_id) || '–' }}</span>
@@ -417,7 +437,7 @@
                               <span *ngIf="report.op3" class="badge bg-dark me-1">{{ resolveOpName(report.op3_name, report.op3) }}</span>
                               <span *ngIf="!report.op1 && !report.op2 && !report.op3" class="text-muted">–</span>
                             </td>
-                            <td class="text-success fw-semibold">{{ report.antal_ok }}</td>
+                            <td class="text-success fw-semibold">{{ safeDisplay(report.antal_ok) }}</td>
                             <td class="d-none d-md-table-cell">{{ ibcPerHour(report) }}</td>
                             <td>
                               <span class="badge"
@@ -433,13 +453,16 @@
                               <span *ngIf="!report.drifttid" class="text-muted">–</span>
                             </td>
                             <td>
-                              <div class="form-check form-switch" *ngIf="isAdmin">
-                                <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1" (change)="toggleInlagd(report)" />
-                                <label class="form-check-label small">{{ report.inlagd == 1 ? 'Ja' : 'Nej' }}</label>
-                              </div>
-                              <span *ngIf="!isAdmin" class="badge" [class.bg-success]="report.inlagd == 1" [class.bg-secondary]="!report.inlagd">
-                                {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
-                              </span>
+                              <ng-container *ngIf="!report.isPreliminary && !report.isUnreported">
+                                <div class="form-check form-switch" *ngIf="isAdmin">
+                                  <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1" (change)="toggleInlagd(report)" />
+                                  <label class="form-check-label small">{{ report.inlagd == 1 ? 'Ja' : 'Nej' }}</label>
+                                </div>
+                                <span *ngIf="!isAdmin" class="badge" [class.bg-success]="report.inlagd == 1" [class.bg-secondary]="!report.inlagd">
+                                  {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
+                                </span>
+                              </ng-container>
+                              <span *ngIf="report.isPreliminary || report.isUnreported" class="text-muted small">–</span>
                             </td>
                             <td>
                               <div class="btn-group btn-group-sm">
@@ -447,10 +470,13 @@
                                   [title]="expanded[report.id] ? 'Dölj' : 'Visa detaljer'">
                                   <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
                                 </button>
-                                <button *ngIf="loggedIn" class="btn btn-outline-secondary" (click)="exportPDF(report)" title="Ladda ner PDF">
+                                <button *ngIf="loggedIn && !report.isPreliminary && !report.isUnreported" class="btn btn-outline-secondary" (click)="exportPDF(report)" title="Ladda ner PDF">
                                   <i class="fas fa-file-pdf"></i>
                                 </button>
-                                <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)">
+                                <button *ngIf="loggedIn && (report.isPreliminary || report.isUnreported)" class="btn btn-outline-warning" (click)="openAddFormPrefilled(report)" title="Skicka in skiftrapport">
+                                  <i class="fas fa-paper-plane me-1"></i>Skicka in
+                                </button>
+                                <button *ngIf="canEdit(report) && !report.isPreliminary && !report.isUnreported" class="btn btn-outline-danger" (click)="deleteReport(report.id)">
                                   <i class="fas fa-trash"></i>
                                 </button>
                               </div>
@@ -510,7 +536,7 @@
                                       <i class="fas fa-users me-1"></i>Operatörer
                                     </button>
                                   </li>
-                                  <li class="nav-item" *ngIf="report.skiftraknare != null">
+                                  <li class="nav-item" *ngIf="report.prev_created_at != null">
                                     <button type="button" class="nav-link" [class.active]="getTab(report.id)==='plcdata'" (click)="setTab(report.id,'plcdata')">
                                       <i class="fas fa-microchip me-1"></i>PLC-data
                                     </button>
@@ -534,21 +560,21 @@
                                   <ng-container *ngIf="getTab(report.id)==='oversikt'">
 
                                     <!-- SEKTION 1: KPI-RAD (8 kort) när PLC-data finns -->
-                                    <ng-container *ngIf="report.skiftraknare != null && !subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0">
+                                    <ng-container *ngIf="report.prev_created_at != null && !subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0">
                                       <div class="row g-2 mb-3">
-                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                        <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">Totalt IBC</div>
                                             <div class="kpi-value text-success">{{ report.antal_ok }}</div>
                                           </div>
                                         </div>
-                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                        <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">OK / Ej OK</div>
                                             <div class="kpi-value"><span class="text-success">{{ report.antal_ok }}</span><span class="text-muted mx-1">/</span><span class="text-danger">{{ report.antal_ej_ok }}</span></div>
                                           </div>
                                         </div>
-                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                        <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">Kvalitet</div>
                                             <div class="kpi-value"
@@ -559,31 +585,31 @@
                                             </div>
                                           </div>
                                         </div>
-                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                        <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">IBC/h</div>
                                             <div class="kpi-value text-warning">{{ getIbcPerHour(report) ?? '–' }}</div>
                                           </div>
                                         </div>
-                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                        <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">Snitt cykeltid</div>
                                             <div class="kpi-value text-info">{{ getPlcKpi(report.id).avgCycleMin > 0 ? (getPlcKpi(report.id).avgCycleMin + ' min') : '–' }}</div>
                                           </div>
                                         </div>
-                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                        <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">Drifttid D4007</div>
                                             <div class="kpi-value text-success">{{ report.drifttid > 0 ? formatDrifttid(report.drifttid) : '–' }}</div>
                                           </div>
                                         </div>
-                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                        <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">Rast D4008</div>
                                             <div class="kpi-value text-warning">{{ report.rasttime > 0 ? formatDrifttid(report.rasttime) : '0m' }}</div>
                                           </div>
                                         </div>
-                                        <div class="col-6 col-md-3 col-lg-auto" style="min-width:120px;">
+                                        <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">Stoppid</div>
                                             <div class="kpi-value"
@@ -598,7 +624,7 @@
                                     </ng-container>
 
                                     <!-- Fallback KPI-rad utan PLC-data -->
-                                    <ng-container *ngIf="!(report.skiftraknare != null && !subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0)">
+                                    <ng-container *ngIf="!(report.prev_created_at != null && !subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0)">
                                       <div class="row g-2 mb-3">
                                         <div class="col-6 col-md-2">
                                           <div class="kpi-card">
@@ -640,7 +666,7 @@
                                     </ng-container>
 
                                     <!-- PLC-ÖVERSIKT (cykler) -->
-                                    <div *ngIf="report.skiftraknare != null" class="mt-2">
+                                    <div *ngIf="report.prev_created_at != null" class="mt-2">
                                       <div *ngIf="subShiftsLoading[report.id]" class="text-muted small py-2">
                                         <i class="fas fa-spinner fa-spin me-1"></i>Hämtar PLC-data...
                                       </div>
@@ -706,6 +732,13 @@
                                           <p class="text-muted small mb-0"><i class="fas fa-check-circle me-1 text-success"></i>Inga detekterade stopp</p>
                                         </div>
 
+                                        <!-- Avvikande data-badge -->
+                                        <div class="mb-2" *ngIf="getAnomalyCount(report.id) > 0">
+                                          <span class="badge bg-secondary" title="Cykler med ogiltig, framtida eller orimlig tidsstämpel exkluderades">
+                                            <i class="fas fa-exclamation-triangle me-1 text-warning"></i>Avvikande data {{ getAnomalyCount(report.id) }} st
+                                          </span>
+                                        </div>
+
                                         <!-- SEKTION 5: RÅDATA COLLAPSE -->
                                         <div>
                                           <button class="btn btn-sm btn-outline-secondary mb-2" type="button"
@@ -718,7 +751,7 @@
                                               <thead><tr><th>TID</th><th>PRODUKT</th><th>OPERATÖR</th><th>IBC</th><th>IBC/H</th><th>CYKL%</th><th>DRIFTTID</th></tr></thead>
                                               <tbody>
                                                 <tr *ngFor="let sub of visibleSubShifts(report.id); let subI = index">
-                                                  <td class="text-nowrap">{{ sub.datum | date:'HH:mm' }}</td>
+                                                  <td class="text-nowrap">{{ formatSubTime(sub.datum) }}</td>
                                                   <td>{{ getProductName(sub.produkt) || '–' }}</td>
                                                   <td>
                                                     <span *ngIf="sub.op1" class="badge bg-secondary me-1">{{ resolveOpName(sub.op1_name, sub.op1) }}</span>
