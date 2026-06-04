@@ -205,10 +205,10 @@ interface VeckoData {
                     <td class="text-end">{{ m.snitt_per_dag | number:'1.1-1' }}</td>
                     <td class="text-end">{{ m.basta_dag_ibc | number }}</td>
                     <td class="text-end">
-                      <span *ngIf="m.snitt_oee !== null" [class]="getOeeClass(m.snitt_oee)">
+                      <span *ngIf="m.snitt_oee != null" [class]="getOeeClass(m.snitt_oee)">
                         {{ m.snitt_oee | number:'1.1-1' }}%
                       </span>
-                      <span *ngIf="m.snitt_oee === null" class="text-muted">—</span>
+                      <span *ngIf="m.snitt_oee == null" class="text-muted">—</span>
                     </td>
                     <td class="text-end text-muted">{{ m.antal_dagar }}</td>
                     <td class="text-center">

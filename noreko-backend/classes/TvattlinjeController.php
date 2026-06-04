@@ -1664,6 +1664,24 @@ class TvattlinjeController {
                 $ibcToday = (int)$this->pdo->query("SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
             } catch (\Throwable $e) {}
 
+            // Senaste event från valfri källa (onoff, ibc, rast, driftstopp) för vald dag
+            $latestEventDatum = null;
+            try {
+                $latestEventRow = $this->pdo->prepare("
+                    SELECT MAX(datum) AS latest FROM (
+                        SELECT MAX(datum) AS datum FROM tvattlinje_onoff WHERE DATE(datum) = :date1
+                        UNION ALL
+                        SELECT MAX(datum) FROM tvattlinje_ibc WHERE DATE(datum) = :date2
+                        UNION ALL
+                        SELECT MAX(datum) FROM tvattlinje_rast WHERE DATE(datum) = :date3
+                        UNION ALL
+                        SELECT MAX(datum) FROM tvattlinje_driftstopp WHERE DATE(datum) = :date4
+                    ) sub
+                ");
+                $latestEventRow->execute([':date1' => $date, ':date2' => $date, ':date3' => $date, ':date4' => $date]);
+                $latestEventDatum = $latestEventRow->fetchColumn() ?: null;
+            } catch (\Throwable $e) {}
+
             echo json_encode([
                 'success' => true,
                 'data' => [
@@ -1672,7 +1690,7 @@ class TvattlinjeController {
                     'stats' => [
                         'running' => $latestOnoff ? intval($latestOnoff['running'] ?? 0) === 1 : false,
                         'skiftraknare' => 0,
-                        'last_event' => $latestOnoff['datum'] ?? null,
+                        'last_event' => $latestEventDatum ?? ($latestOnoff['datum'] ?? null),
                         'ibc_today' => $ibcToday,
                     ],
                     'date' => $date,
@@ -1846,13 +1864,15 @@ class TvattlinjeController {
                             day_end - LAG(day_end) OVER (ORDER BY dag) AS total_ibc,
                             ok_end  - LAG(ok_end)  OVER (ORDER BY dag) AS total_ok,
                             ej_end  - LAG(ej_end)  OVER (ORDER BY dag) AS total_ej_ok,
-                            skift_count
+                            skift_count,
+                            DATEDIFF(dag, LAG(dag) OVER (ORDER BY dag)) AS day_gap
                         FROM raw_daily
                     )
                     SELECT dag, total_ibc, total_ok, total_ej_ok, skift_count
                     FROM deltas
                     WHERE total_ibc IS NOT NULL
                       AND total_ibc > 0
+                      AND day_gap = 1
                       AND dag >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY)
                     ORDER BY dag ASC
                 ");

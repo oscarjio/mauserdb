@@ -180,6 +180,10 @@ class WeeklyReportController {
         $totalRuntimeSek = $totalRuntimeMin * 60;
         $maxRuntime    = $totalShifts * $shiftSeconds;
         $avgOee        = $maxRuntime > 0 ? round($totalRuntimeSek / $maxRuntime * 100, 1) : 0.0;
+        // OEE ska vara 0 om ingen produktion skett (IBC=0 → kvalitet=0%)
+        if ($totalIbc === 0) {
+            $avgOee = 0.0;
+        }
 
         // ISO-veckonummer för perioden (använd måndagen)
         $weekNum = intval($mondayDt->format('W'));
@@ -247,6 +251,8 @@ class WeeklyReportController {
         $op = $stmtOp->fetch(PDO::FETCH_ASSOC);
 
         if (!$op) return null;
+        // Dölj kortet om bästa operatören inte har någon produktion
+        if (intval($op['total_ibc'] ?? 0) === 0) return null;
 
         // Beräkna initialer från namn (operators-tabellen saknar initialer-kolumn)
         $words = preg_split('/\s+/', trim($op['name'] ?? ''));

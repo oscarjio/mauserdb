@@ -48,28 +48,35 @@ class HistorikController {
         $manader = isset($_GET['manader']) ? max(1, min(60, (int)$_GET['manader'])) : 24;
 
         try {
+            // ibc_ok återställs per skift (skiftraknare) — korrekt aggregering:
+            // MAX(ibc_ok) per (dag, skiftraknare) = skiftets total, sedan SUM per dag.
+            // OEE = tillgänglighet: SUM(runtime_min) / (skift_count × 480 min) × 100
             $sql = "
-                WITH lag_base AS (
-                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end
-                    FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(NOW(), INTERVAL :manader MONTH) AND ibc_ok > 0
-                    GROUP BY DATE(datum), skiftraknare
-                ),
-                lag_shifts AS (
-                    SELECT dag,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc
-                    FROM lag_base
-                )
                 SELECT
                     ar, manad,
                     DATE_FORMAT(CONCAT(ar, '-', LPAD(manad, 2, '0'), '-01'), '%Y-%m') AS period,
                     COUNT(DISTINCT dag) AS antal_dagar,
-                    SUM(daglig_ibc) AS total_ibc,
+                    SUM(daglig_ibc)     AS total_ibc,
                     ROUND(AVG(daglig_ibc), 1) AS snitt_per_dag,
-                    MAX(daglig_ibc) AS basta_dag_ibc
+                    MAX(daglig_ibc)     AS basta_dag_ibc,
+                    CASE WHEN SUM(skift_count) > 0
+                         THEN ROUND(SUM(daglig_runtime) / (SUM(skift_count) * 480.0) * 100, 1)
+                         ELSE NULL END  AS snitt_oee
                 FROM (
-                    SELECT dag, YEAR(dag) AS ar, MONTH(dag) AS manad, SUM(shift_ibc) AS daglig_ibc
-                    FROM lag_shifts
+                    SELECT dag, YEAR(dag) AS ar, MONTH(dag) AS manad,
+                           SUM(shift_ibc)     AS daglig_ibc,
+                           SUM(shift_runtime) AS daglig_runtime,
+                           COUNT(*)           AS skift_count
+                    FROM (
+                        SELECT DATE(datum)                        AS dag,
+                               skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0))           AS shift_ibc,
+                               MAX(COALESCE(runtime_plc, 0))      AS shift_runtime
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(NOW(), INTERVAL :manader MONTH)
+                          AND ibc_ok IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare
+                    ) per_shift
                     GROUP BY dag
                 ) AS dagdata
                 GROUP BY ar, manad
@@ -83,12 +90,13 @@ class HistorikController {
 
             // Konvertera numeriska strängar till rätt typ
             foreach ($monthly as &$row) {
-                $row['ar']           = (int)$row['ar'];
-                $row['manad']        = (int)$row['manad'];
-                $row['antal_dagar']  = (int)$row['antal_dagar'];
-                $row['total_ibc']    = (int)$row['total_ibc'];
+                $row['ar']            = (int)$row['ar'];
+                $row['manad']         = (int)$row['manad'];
+                $row['antal_dagar']   = (int)$row['antal_dagar'];
+                $row['total_ibc']     = (int)$row['total_ibc'];
                 $row['snitt_per_dag'] = (float)$row['snitt_per_dag'];
                 $row['basta_dag_ibc'] = (int)$row['basta_dag_ibc'];
+                $row['snitt_oee']     = $row['snitt_oee'] !== null ? (float)$row['snitt_oee'] : null;
             }
             unset($row);
 

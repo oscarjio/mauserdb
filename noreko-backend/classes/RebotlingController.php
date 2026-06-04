@@ -2885,12 +2885,17 @@ class RebotlingController {
                 return;
             }
 
-            // Hämta dagens IBC-total — MAX(ibc_ok) per dag är korrekt eftersom räknaren
-            // nollställs vid midnatt (inte per skift); SUM per skiftraknare övertäljer.
+            // Hämta dagens IBC-total — ibc_ok återställs per skift (skiftraknare),
+            // korrekt aggregering: SUM(MAX per skiftraknare).
             $stmtToday = $this->pdo->query("
-                SELECT COALESCE(MAX(ibc_ok), 0) AS idag_total
-                FROM rebotling_ibc
-                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                SELECT COALESCE(SUM(shift_ibc), 0) AS idag_total
+                FROM (
+                    SELECT MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
+                    FROM rebotling_ibc
+                    WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY skiftraknare
+                ) per_shift
             ");
             $todayRow = $stmtToday->fetch(PDO::FETCH_ASSOC);
             $ibcIdag = (int)($todayRow['idag_total'] ?? 0);
@@ -2900,14 +2905,18 @@ class RebotlingController {
                 return;
             }
 
-            // Hämta historiskt rekord (bästa dag före idag) — MAX per dag är korrekt
+            // Hämta historiskt rekord (bästa dag före idag) — SUM(MAX per skiftraknare) per dag
             $stmtRekord = $this->pdo->query("
                 SELECT MAX(dag_total) AS rekord_ibc, datum_rekord
                 FROM (
-                    SELECT DATE(datum) AS datum_rekord, MAX(COALESCE(ibc_ok, 0)) AS dag_total
-                    FROM rebotling_ibc
-                    WHERE datum < CURDATE()
-                    GROUP BY DATE(datum)
+                    SELECT datum_rekord, SUM(shift_ibc) AS dag_total
+                    FROM (
+                        SELECT DATE(datum) AS datum_rekord, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
+                        FROM rebotling_ibc
+                        WHERE datum < CURDATE() AND ibc_ok IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare
+                    ) per_shift
+                    GROUP BY datum_rekord
                 ) AS per_day
             ");
             $rekordRow = $stmtRekord->fetch(PDO::FETCH_ASSOC);
