@@ -183,6 +183,10 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
   stopSummaryLoading = false;
   printTimestamp = '';
 
+  // Sortering av operatörsranking-tabell
+  rankingSortCol: 'shifts' | 'total_ibc' | 'avg_ibc_per_h' | 'avg_quality_pct' | 'score' = 'score';
+  rankingSortDir: 'asc' | 'desc' = 'desc';
+
   /** Genererad VD-sammanfattning */
   get executiveSummary(): string {
     if (!this.report) return '';
@@ -375,6 +379,33 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     if (i === 1) return 'rank-silver';
     if (i === 2) return 'rank-bronze';
     return '';
+  }
+
+  /** Sorterad operatörsranking (compareData) */
+  get sortedCompareRanking(): CompareOperatorRank[] {
+    const rows = this.compareData?.operator_ranking ?? [];
+    if (!rows.length) return rows;
+    const col = this.rankingSortCol;
+    const dir = this.rankingSortDir === 'desc' ? -1 : 1;
+    return [...rows].sort((a, b) => {
+      const aVal = (a as any)[col] ?? 0;
+      const bVal = (b as any)[col] ?? 0;
+      return dir * (bVal - aVal);
+    });
+  }
+
+  toggleRankingSort(col: typeof this.rankingSortCol): void {
+    if (this.rankingSortCol === col) {
+      this.rankingSortDir = this.rankingSortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+      this.rankingSortCol = col;
+      this.rankingSortDir = 'desc';
+    }
+  }
+
+  rankingSortIcon(col: typeof this.rankingSortCol): string {
+    if (this.rankingSortCol !== col) return 'fas fa-sort text-muted ms-1';
+    return this.rankingSortDir === 'desc' ? 'fas fa-sort-down ms-1' : 'fas fa-sort-up ms-1';
   }
 
   exportPDF(): void {

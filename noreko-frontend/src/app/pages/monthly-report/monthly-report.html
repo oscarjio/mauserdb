@@ -444,15 +444,15 @@
             <tr>
               <th style="width:55px" scope="col">Plac.</th>
               <th scope="col">Operatör</th>
-              <th class="text-end" scope="col">Skift</th>
-              <th class="text-end" scope="col">IBC totalt</th>
-              <th class="text-end" scope="col">IBC/h</th>
-              <th class="text-end" scope="col">Kvalitet</th>
-              <th class="text-end" scope="col">Poäng</th>
+              <th class="text-end sortable-th" style="cursor:pointer;" scope="col" (click)="toggleRankingSort('shifts')" tabindex="0" (keydown.enter)="toggleRankingSort('shifts')">Skift <i [class]="rankingSortIcon('shifts')"></i></th>
+              <th class="text-end sortable-th" style="cursor:pointer;" scope="col" (click)="toggleRankingSort('total_ibc')" tabindex="0" (keydown.enter)="toggleRankingSort('total_ibc')">IBC totalt <i [class]="rankingSortIcon('total_ibc')"></i></th>
+              <th class="text-end sortable-th" style="cursor:pointer;" scope="col" (click)="toggleRankingSort('avg_ibc_per_h')" tabindex="0" (keydown.enter)="toggleRankingSort('avg_ibc_per_h')">IBC/h <i [class]="rankingSortIcon('avg_ibc_per_h')"></i></th>
+              <th class="text-end sortable-th" style="cursor:pointer;" scope="col" (click)="toggleRankingSort('avg_quality_pct')" tabindex="0" (keydown.enter)="toggleRankingSort('avg_quality_pct')">Kvalitet <i [class]="rankingSortIcon('avg_quality_pct')"></i></th>
+              <th class="text-end sortable-th" style="cursor:pointer;" scope="col" (click)="toggleRankingSort('score')" tabindex="0" (keydown.enter)="toggleRankingSort('score')">Poäng <i [class]="rankingSortIcon('score')"></i></th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of compareData!.operator_ranking; let i = index; trackBy: trackByIndex"
+            <tr *ngFor="let op of sortedCompareRanking; let i = index; trackBy: trackByIndex"
                 [class.gold-row]="i === 0"
                 [class.silver-row]="i === 1"
                 [class.bronze-row]="i === 2">

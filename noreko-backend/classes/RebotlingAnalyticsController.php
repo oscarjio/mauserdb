@@ -947,8 +947,10 @@ class RebotlingAnalyticsController {
                         $opId  = (int)$op['operator_id'];
                         $ok    = (float)$op['ibc_ok'];
                         $ej    = (float)$op['ibc_ej_ok'];
-                        $rtMin = max((float)$op['runtime_min'], 1);
-                        $ibcH  = round($ok * 60.0 / $rtMin, 1);
+                        // Kräv minst 10 minuters drifttid för meningsfull IBC/h — undviker explosion
+                        // vid korta datapunkter (BUG-op-table: operatör-ID visades som IBC/h-värde)
+                        $rtMin = max((float)$op['runtime_min'], 10);
+                        $ibcH  = round(min($ok * 60.0 / $rtMin, 99.9), 1);
                         $qual  = ($ok + $ej) > 0 ? round($ok / ($ok + $ej) * 100, 1) : 0;
                         $lastShiftOps[] = [
                             'id'       => $opId,
@@ -2394,16 +2396,17 @@ class RebotlingAnalyticsController {
             // ---- Per-skift-subquery som bas (range scan istf DATE_FORMAT) ----
             $firstDay = $month . '-01';
             $nextMonth = date('Y-m-01', strtotime($firstDay . ' +1 month'));
-            // ibc_count = daglig räknare (startar om varje dag) → GROUP BY DATE, MAX(ibc_count)
-            // shift_ibc = MAX(ibc_ok) per dag, shift_ej_ok = MAX(ibc_count) - MAX(ibc_ok)
-            // sum(shift_ibc + shift_ej_ok) = MAX(ibc_count) = korrekt dagstotal
+            // Använder ibc_ok + ibc_ej_ok som täljare/nämnare — dessa uppdateras alltid
+            // i par och ger korrekt kvot (ibc_count kan komma från annan rad och ge >100%).
             $perShiftSQL = "
                 SELECT
                     DATE(datum)                                                              AS dag,
                     MAX(COALESCE(ibc_ok, 0))                                                AS shift_ibc,
-                    GREATEST(0, COALESCE(MAX(ibc_count),0) - COALESCE(MAX(ibc_ok),0))      AS shift_ej_ok,
-                    ROUND(COALESCE(MAX(ibc_ok),0)*100.0 /
-                        NULLIF(COALESCE(MAX(ibc_count),0),0),1)                            AS shift_quality,
+                    MAX(COALESCE(ibc_ej_ok, 0))                                             AS shift_ej_ok,
+                    LEAST(100.0, ROUND(
+                        COALESCE(MAX(ibc_ok),0)*100.0 /
+                        NULLIF(COALESCE(MAX(ibc_ok),0) + COALESCE(MAX(ibc_ej_ok),0),0)
+                    ,1))                                                                     AS shift_quality,
                     MAX(COALESCE(runtime_plc, 0))                                          AS shift_runtime,
                     MAX(COALESCE(rasttime, 0))                                             AS shift_rast
                 FROM rebotling_ibc
@@ -2412,15 +2415,19 @@ class RebotlingAnalyticsController {
             ";
 
             // ---- Summary ----
+            // Viktad genomsnittlig kvalitet: SUM(ok) / SUM(ok+ej_ok) — inte AVG av dagliga %
             $summarySQL = "
                 SELECT
-                    COUNT(DISTINCT dag)                   AS production_days,
-                    SUM(shift_ibc)                        AS ibc_total,
-                    ROUND(AVG(shift_quality),1)           AS avg_quality,
-                    ROUND(SUM(shift_runtime)/60.0,1)      AS total_runtime_hours,
-                    ROUND(SUM(shift_rast)/60.0,1)         AS total_stoppage_hours,
-                    ROUND(AVG(shift_ibc),1)               AS avg_ibc_per_shift,
-                    SUM(shift_ibc+shift_ej_ok)            AS total_ibc_all
+                    COUNT(DISTINCT dag)                                                     AS production_days,
+                    SUM(shift_ibc)                                                          AS ibc_total,
+                    LEAST(100.0, ROUND(
+                        SUM(shift_ibc)*100.0 /
+                        NULLIF(SUM(shift_ibc + shift_ej_ok),0)
+                    ,1))                                                                     AS avg_quality,
+                    ROUND(SUM(shift_runtime)/60.0,1)                                       AS total_runtime_hours,
+                    ROUND(SUM(shift_rast)/60.0,1)                                          AS total_stoppage_hours,
+                    ROUND(AVG(shift_ibc),1)                                                AS avg_ibc_per_shift,
+                    SUM(shift_ibc+shift_ej_ok)                                             AS total_ibc_all
                 FROM ({$perShiftSQL}) AS per_shift
             ";
             $stmt = $this->pdo->prepare($summarySQL);

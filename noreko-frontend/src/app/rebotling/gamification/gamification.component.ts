@@ -44,6 +44,10 @@ export class GamificationPage implements OnInit, OnDestroy {
   profilData: MinProfilData | null = null;
   overviewData: OverviewData | null = null;
 
+  // Sortering av leaderboard-tabell
+  leaderboardSortCol: 'rank' | 'total_ibc' | 'kassations_rate' | 'antal_stopp' | 'total_poang' = 'total_poang';
+  leaderboardSortDir: 'asc' | 'desc' = 'desc';
+
   // Lifecycle
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
@@ -178,4 +182,37 @@ export class GamificationPage implements OnInit, OnDestroy {
     return (100 - (kassationsRate ?? 0)).toFixed(1);
   }
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }
+
+  // ---- Leaderboard sortering ----
+
+  get sortedLeaderboard(): any[] {
+    const rows = this.leaderboardData?.leaderboard ?? [];
+    if (!rows.length) return rows;
+    const col = this.leaderboardSortCol;
+    const dir = this.leaderboardSortDir === 'desc' ? -1 : 1;
+    return [...rows].sort((a, b) => {
+      const aVal = col === 'kassations_rate'
+        ? (100 - (a.kassations_rate ?? 0))
+        : (a[col] ?? 0);
+      const bVal = col === 'kassations_rate'
+        ? (100 - (b.kassations_rate ?? 0))
+        : (b[col] ?? 0);
+      return dir * ((bVal as number) - (aVal as number));
+    });
+  }
+
+  toggleLeaderboardSort(col: typeof this.leaderboardSortCol): void {
+    if (this.leaderboardSortCol === col) {
+      this.leaderboardSortDir = this.leaderboardSortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+      this.leaderboardSortCol = col;
+      // Kassation sorteras stigande (lägre = bättre), övriga fallande
+      this.leaderboardSortDir = col === 'antal_stopp' ? 'asc' : 'desc';
+    }
+  }
+
+  leaderboardSortIcon(col: typeof this.leaderboardSortCol): string {
+    if (this.leaderboardSortCol !== col) return 'fas fa-sort text-muted ms-1';
+    return this.leaderboardSortDir === 'desc' ? 'fas fa-sort-down ms-1' : 'fas fa-sort-up ms-1';
+  }
 }

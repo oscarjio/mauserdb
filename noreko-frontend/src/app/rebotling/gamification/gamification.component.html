@@ -89,17 +89,17 @@
         <table class="table table-sm mb-0 ranking-table">
           <thead>
             <tr>
-              <th scope="col">#</th>
+              <th scope="col" class="sortable-th" style="cursor:pointer;" (click)="toggleLeaderboardSort('rank')" tabindex="0" (keydown.enter)="toggleLeaderboardSort('rank')"># <i [class]="leaderboardSortIcon('rank')"></i></th>
               <th scope="col">Namn</th>
-              <th scope="col" class="text-end">IBC</th>
-              <th scope="col" class="text-end">Kvalitet</th>
-              <th scope="col" class="text-end">Stopp</th>
-              <th scope="col" class="text-end">Poäng</th>
+              <th scope="col" class="text-end sortable-th" style="cursor:pointer;" (click)="toggleLeaderboardSort('total_ibc')" tabindex="0" (keydown.enter)="toggleLeaderboardSort('total_ibc')">IBC <i [class]="leaderboardSortIcon('total_ibc')"></i></th>
+              <th scope="col" class="text-end sortable-th" style="cursor:pointer;" (click)="toggleLeaderboardSort('kassations_rate')" tabindex="0" (keydown.enter)="toggleLeaderboardSort('kassations_rate')">Kvalitet <i [class]="leaderboardSortIcon('kassations_rate')"></i></th>
+              <th scope="col" class="text-end sortable-th" style="cursor:pointer;" (click)="toggleLeaderboardSort('antal_stopp')" tabindex="0" (keydown.enter)="toggleLeaderboardSort('antal_stopp')">Stopp <i [class]="leaderboardSortIcon('antal_stopp')"></i></th>
+              <th scope="col" class="text-end sortable-th" style="cursor:pointer;" (click)="toggleLeaderboardSort('total_poang')" tabindex="0" (keydown.enter)="toggleLeaderboardSort('total_poang')">Poäng <i [class]="leaderboardSortIcon('total_poang')"></i></th>
               <th scope="col" class="text-center">Svit</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of leaderboardData?.leaderboard ?? []; trackBy: trackByIndex"
+            <tr *ngFor="let op of sortedLeaderboard; trackBy: trackByIndex"
                 [class.row-gold]="op.rank === 1"
                 [class.row-silver]="op.rank === 2"
                 [class.row-bronze]="op.rank === 3">
