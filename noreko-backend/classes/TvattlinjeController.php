@@ -1824,27 +1824,39 @@ class TvattlinjeController {
             // Hämta N+1 dagar i inner-queryn för att ge LAG ett baseline-värde för första dagen,
             // filtrera sedan bort extradag i outer-queryn.
             try {
+                // Seeded-baseline approach: fetch N+1 days so the first requested day
+                // has a proper LAG baseline. Filter first-row NULL deltas out explicitly
+                // (NOT with COALESCE(LAG,0) which would turn the full cumulative into a delta).
+                $seedDagar = $dagar + 1;
                 $stmt = $this->pdo->prepare("
-                    SELECT dag,
-                           GREATEST(0, day_end - LAG(day_end) OVER (ORDER BY dag)) AS total_ibc,
-                           GREATEST(0, ok_end  - LAG(ok_end)  OVER (ORDER BY dag)) AS total_ok,
-                           GREATEST(0, ej_end  - LAG(ej_end)  OVER (ORDER BY dag)) AS total_ej_ok,
-                           skift_count
-                    FROM (
+                    WITH raw_daily AS (
                         SELECT
                             DATE(datum)                     AS dag,
-                            MAX(COALESCE(ibc_count, 0))     AS day_end,
+                            MAX(ibc_count)                  AS day_end,
                             MAX(COALESCE(ibc_ok, 0))        AS ok_end,
                             MAX(COALESCE(ibc_ej_ok, 0))     AS ej_end,
                             COUNT(DISTINCT skiftraknare)    AS skift_count
                         FROM tvattlinje_ibc
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL (:dagar + 1) DAY)
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :seed_dagar DAY)
                         GROUP BY DATE(datum)
-                    ) daily_max
-                    WHERE dag >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY)
+                    ),
+                    deltas AS (
+                        SELECT
+                            dag,
+                            day_end - LAG(day_end) OVER (ORDER BY dag) AS total_ibc,
+                            ok_end  - LAG(ok_end)  OVER (ORDER BY dag) AS total_ok,
+                            ej_end  - LAG(ej_end)  OVER (ORDER BY dag) AS total_ej_ok,
+                            skift_count
+                        FROM raw_daily
+                    )
+                    SELECT dag, total_ibc, total_ok, total_ej_ok, skift_count
+                    FROM deltas
+                    WHERE total_ibc IS NOT NULL
+                      AND total_ibc > 0
+                      AND dag >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY)
                     ORDER BY dag ASC
                 ");
-                $stmt->execute(['dagar' => $dagar, 'dagar2' => $dagar]);
+                $stmt->execute(['seed_dagar' => $seedDagar, 'dagar2' => $dagar]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getOeeTrend: ' . $e->getMessage());

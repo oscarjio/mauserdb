@@ -386,7 +386,8 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     const rows = this.compareData?.operator_ranking ?? [];
     if (!rows.length) return rows;
     const col = this.rankingSortCol;
-    const dir = this.rankingSortDir === 'desc' ? -1 : 1;
+    // dir=1 for desc (largest first): compareFn(a,b) = aVal-bVal, positive → b before a → largest a first
+    const dir = this.rankingSortDir === 'desc' ? 1 : -1;
     return [...rows].sort((a, b) => {
       const aVal = (a as any)[col] ?? 0;
       const bVal = (b as any)[col] ?? 0;

@@ -2518,10 +2518,11 @@ class RebotlingAnalyticsController {
                 $qualPct = $total > 0 ? round($ibcOk / $total * 100, 1) : 0;
 
                 $dailyProduction[] = [
-                    'date'    => $r['dag'],
-                    'ibc'     => (int)$ibcOk,
-                    'quality' => $qualPct,
-                    'oee'     => $oee,
+                    'date'      => $r['dag'],
+                    'ibc'       => (int)$ibcOk,
+                    'ibc_ej_ok' => (int)$ibcEjOk,
+                    'quality'   => $qualPct,
+                    'oee'       => $oee,
                 ];
 
                 if ($ibcOk > 0) {
@@ -2548,11 +2549,12 @@ class RebotlingAnalyticsController {
                 $isoYear = (int)date('o', $ts);
                 $wk  = $isoYear . '-V' . (int)date('W', $ts);
                 if (!isset($weekMap[$wk])) {
-                    $weekMap[$wk] = ['ibc' => 0, 'quality_sum' => 0, 'oee_sum' => 0, 'days' => 0];
+                    $weekMap[$wk] = ['ibc' => 0, 'ibc_ok' => 0, 'ibc_total' => 0, 'oee_sum' => 0, 'days' => 0];
                 }
-                $weekMap[$wk]['ibc']         += $day['ibc'];
-                $weekMap[$wk]['quality_sum'] += $day['quality'];
-                $weekMap[$wk]['oee_sum']     += $day['oee'];
+                $weekMap[$wk]['ibc']       += $day['ibc'];
+                $weekMap[$wk]['ibc_ok']    += $day['ibc'];
+                $weekMap[$wk]['ibc_total'] += $day['ibc'] + $day['ibc_ej_ok'];
+                $weekMap[$wk]['oee_sum']   += $day['oee'];
                 $weekMap[$wk]['days']++;
             }
             $weekSummary = [];
@@ -2560,10 +2562,14 @@ class RebotlingAnalyticsController {
                 $days = max($wd['days'], 1);
                 // Visa kort etikett "V1" men behåll årskvalificerad nyckel internt
                 $shortLabel = preg_replace('/^\d{4}-/', '', $wk);
+                // Viktad genomsnittskvalitet per vecka: SUM(ok)/SUM(totalt)
+                $wkQuality = $wd['ibc_total'] > 0
+                    ? min(100.0, round($wd['ibc_ok'] / $wd['ibc_total'] * 100, 1))
+                    : 0.0;
                 $weekSummary[] = [
                     'week'        => $shortLabel,
                     'ibc'         => $wd['ibc'],
-                    'avg_quality' => round($wd['quality_sum'] / $days, 1),
+                    'avg_quality' => $wkQuality,
                     'avg_oee'     => round($wd['oee_sum'] / $days, 1),
                 ];
             }
