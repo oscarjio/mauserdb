@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { of } from 'rxjs';
-import { catchError, finalize, timeout } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { catchError, finalize, takeUntil, timeout } from 'rxjs/operators';
 import { TvattlinjeService, LineStatusResponse, TvattlinjeLiveStatsResponse, RastStatusResponse, DriftstoppStatusResponse } from '../../services/tvattlinje.service';
 
 @Component({
@@ -13,10 +13,17 @@ import { TvattlinjeService, LineStatusResponse, TvattlinjeLiveStatsResponse, Ras
 })
 export class TvattlinjeLivePage implements OnInit, OnDestroy {
   now = new Date();
-  intervalId: any;
+
+  private destroy$ = new Subject<void>();
+  private intervalId: any;
 
   private isFetchingLineStatus = false;
-  private isFetchingLiveStats = false;
+  private isFetchingLiveStats  = false;
+  private isFetchingRast       = false;
+  private isFetchingDriftstopp = false;
+
+  // Rast/driftstopp poll slower than clock (every 5s instead of 2s)
+  private slowTickCount = 0;
 
   // Data freshness
   lastDataUpdate: Date | null = null;
@@ -35,11 +42,11 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
     if (this.dataAgeSec > 15) return `Uppdaterad ${this.dataAgeSec}s sedan`;
     return 'Live';
   }
-  
+
   // Line status
   isLineRunning: boolean = false;
   statusBarClass: string = 'status-bar-off';
-  
+
   // Live stats
   ibcToday: number = 0;
   ibcTarget: number = 0;
@@ -50,28 +57,14 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   onRast: boolean = false;
   rastMinutesToday: number = 0;
   rastCountToday: number = 0;
-  private isFetchingRast = false;
-  private rastIntervalId: any;
 
   // Driftstopp
   onDriftstopp: boolean = false;
   driftstoppMinutesToday: number = 0;
   driftstoppCountToday: number = 0;
-  private isFetchingDriftstopp = false;
-  private driftstoppIntervalId: any;
 
-  get driftstoppTimeLabel(): string {
-    const h = Math.floor(this.driftstoppMinutesToday / 60);
-    const m = Math.round(this.driftstoppMinutesToday % 60);
-    return h > 0 ? `${h}h ${m}m driftstopp` : `${m}m driftstopp`;
-  }
-
-  // Speedometer properties
-  needleRotation: number = -150; // Start position
-
-  get isGoalAchieved(): boolean {
-    return this.productionPercentage >= 100;
-  }
+  // Speedometer
+  needleRotation: number = -90;
 
   get rastTimeLabel(): string {
     const h = Math.floor(this.rastMinutesToday / 60);
@@ -79,43 +72,50 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
     return h > 0 ? `${h}h ${m}m rast` : `${m}m rast`;
   }
 
-  get statusText(): string {
-    if (!this.isLineRunning) return 'Stoppad';
-    if (this.productionPercentage >= 100) return 'Bra produktion';
-    if (this.productionPercentage >= 60) return 'Under mål';
-    return 'Låg produktion';
-  }
-
-  get statusBadgeClass(): string {
-    if (!this.isLineRunning) return 'badge bg-secondary fs-3 w-100 text-center';
-    if (this.productionPercentage >= 100) return 'badge bg-success fs-3 w-100 text-center';
-    if (this.productionPercentage >= 60) return 'badge bg-warning text-dark fs-3 w-100 text-center';
-    return 'badge bg-danger fs-3 w-100 text-center';
+  get driftstoppTimeLabel(): string {
+    const h = Math.floor(this.driftstoppMinutesToday / 60);
+    const m = Math.round(this.driftstoppMinutesToday % 60);
+    return h > 0 ? `${h}h ${m}m driftstopp` : `${m}m driftstopp`;
   }
 
   constructor(private tvattlinjeService: TvattlinjeService) {}
 
   ngOnInit() {
+    // Single interval drives all polling — avoids multiple competing timers
     this.intervalId = setInterval(() => {
       this.now = new Date();
       this.updateDataAge();
       this.fetchLineStatus();
       this.fetchLiveStats();
+      // Rast + driftstopp every ~6s (every 3rd tick of the 2s interval)
+      this.slowTickCount++;
+      if (this.slowTickCount >= 3) {
+        this.slowTickCount = 0;
+        this.fetchRastStatus();
+        this.fetchDriftstoppStatus();
+      }
     }, 2000);
-    this.rastIntervalId = setInterval(() => this.fetchRastStatus(), 5000);
-    this.driftstoppIntervalId = setInterval(() => this.fetchDriftstoppStatus(), 5000);
+
+    // Initial fetches — stagger slightly to avoid hitting all 4 at once on load
     this.fetchLineStatus();
     this.fetchLiveStats();
-    this.fetchRastStatus();
-    this.fetchDriftstoppStatus();
+    setTimeout(() => { this.fetchRastStatus(); this.fetchDriftstoppStatus(); }, 500);
   }
 
   ngOnDestroy() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-    }
-    if (this.rastIntervalId) clearInterval(this.rastIntervalId);
-    if (this.driftstoppIntervalId) clearInterval(this.driftstoppIntervalId);
+    this.destroy$.next();
+    this.destroy$.complete();
+    clearInterval(this.intervalId);
+  }
+
+  private updateStatusBar() {
+    this.statusBarClass = this.onDriftstopp
+      ? 'status-bar-driftstopp'
+      : this.onRast
+        ? 'status-bar-rast'
+        : this.isLineRunning
+          ? 'status-bar-on'
+          : 'status-bar-off';
   }
 
   private updateDataAge() {
@@ -125,28 +125,44 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   }
 
   private fetchLineStatus() {
-    // Undvik parallella status-anrop om backend inte svarar
-    if (this.isFetchingLineStatus) {
-      return;
-    }
+    if (this.isFetchingLineStatus) return;
     this.isFetchingLineStatus = true;
-
     this.tvattlinjeService
       .getRunningStatus()
       .pipe(
-        timeout(15000),
-        catchError((err) => {
-          console.error('Fel vid hämtning av tvättlinje linjestatus:', err);
-          return of<LineStatusResponse | null>(null);
-        }),
-        finalize(() => {
-          this.isFetchingLineStatus = false;
-        })
+        timeout(8000),
+        catchError(() => of<LineStatusResponse | null>(null)),
+        finalize(() => { this.isFetchingLineStatus = false; }),
+        takeUntil(this.destroy$)
       )
       .subscribe((res: LineStatusResponse | null) => {
-        if (res && res.success && res.data) {
+        if (res?.success && res.data) {
           this.isLineRunning = res.data.running;
-          this.statusBarClass = this.onDriftstopp ? 'status-bar-driftstopp' : (this.onRast ? 'status-bar-rast' : (this.isLineRunning ? 'status-bar-on' : 'status-bar-off'));
+          this.updateStatusBar();
+        }
+      });
+  }
+
+  private fetchLiveStats() {
+    if (this.isFetchingLiveStats) return;
+    this.isFetchingLiveStats = true;
+    this.tvattlinjeService
+      .getLiveStats()
+      .pipe(
+        timeout(8000),
+        catchError(() => of<TvattlinjeLiveStatsResponse | null>(null)),
+        finalize(() => { this.isFetchingLiveStats = false; }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((res: TvattlinjeLiveStatsResponse | null) => {
+        if (res?.success && res.data) {
+          this.lastDataUpdate = new Date();
+          this.dataAgeSec = 0;
+          this.ibcToday = res.data.ibcToday;
+          this.ibcTarget = res.data.ibcTarget;
+          this.utetemperatur = res.data.utetemperatur;
+          this.productionPercentage = res.data.productionPercentage ?? 0;
+          this.updateSpeedometer();
         }
       });
   }
@@ -157,16 +173,17 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
     this.tvattlinjeService
       .getRastStatus()
       .pipe(
-        timeout(10000),
+        timeout(8000),
         catchError(() => of<RastStatusResponse | null>(null)),
-        finalize(() => { this.isFetchingRast = false; })
+        finalize(() => { this.isFetchingRast = false; }),
+        takeUntil(this.destroy$)
       )
       .subscribe((res: RastStatusResponse | null) => {
         if (res?.success && res.data) {
           this.onRast = res.data.on_rast;
           this.rastMinutesToday = res.data.rast_minutes_today;
           this.rastCountToday = res.data.rast_count_today;
-          this.statusBarClass = this.onDriftstopp ? 'status-bar-driftstopp' : (this.onRast ? 'status-bar-rast' : (this.isLineRunning ? 'status-bar-on' : 'status-bar-off'));
+          this.updateStatusBar();
         }
       });
   }
@@ -177,62 +194,23 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
     this.tvattlinjeService
       .getDriftstoppStatus()
       .pipe(
-        timeout(10000),
+        timeout(8000),
         catchError(() => of(null)),
-        finalize(() => { this.isFetchingDriftstopp = false; })
+        finalize(() => { this.isFetchingDriftstopp = false; }),
+        takeUntil(this.destroy$)
       )
       .subscribe((res: DriftstoppStatusResponse | null) => {
         if (res?.success && res.data) {
           this.onDriftstopp = res.data.on_driftstopp;
           this.driftstoppMinutesToday = res.data.driftstopp_minutes_today;
           this.driftstoppCountToday = res.data.driftstopp_count_today;
-          this.statusBarClass = this.onDriftstopp ? 'status-bar-driftstopp' : (this.onRast ? 'status-bar-rast' : (this.isLineRunning ? 'status-bar-on' : 'status-bar-off'));
-        }
-      });
-  }
-
-  private fetchLiveStats() {
-    // Undvik att starta flera parallella anrop om backend slutar svara
-    if (this.isFetchingLiveStats) {
-      return;
-    }
-    this.isFetchingLiveStats = true;
-
-    this.tvattlinjeService
-      .getLiveStats()
-      .pipe(
-        timeout(15000),
-        catchError((err) => {
-          console.error('Fel vid hämtning av tvättlinje live stats:', err);
-          // Fortsätt strömmen men utan att uppdatera data
-          return of<TvattlinjeLiveStatsResponse | null>(null);
-        }),
-        finalize(() => {
-          this.isFetchingLiveStats = false;
-        })
-      )
-      .subscribe((res: TvattlinjeLiveStatsResponse | null) => {
-        if (res && res.success && res.data) {
-          this.lastDataUpdate = new Date();
-          this.dataAgeSec = 0;
-          this.ibcToday = res.data.ibcToday;
-          this.ibcTarget = res.data.ibcTarget;
-          this.utetemperatur = res.data.utetemperatur;
-          // Använd produktionsprocent från backend (beräknad baserat på runtime och antal cykler)
-          // Kontrollera om productionPercentage finns i response, annars sätt till 0
-          this.productionPercentage =
-            res.data.productionPercentage !== undefined && res.data.productionPercentage !== null
-              ? res.data.productionPercentage
-              : 0;
-
-          this.updateSpeedometer();
+          this.updateStatusBar();
         }
       });
   }
 
   private updateSpeedometer() {
-    const percentage = Math.min(Math.max(this.productionPercentage, 0), 200);
-    // 0% = -90° (vänster), 100% = 0° (topp/mitten = "i fas"), 200% = +90° (höger)
-    this.needleRotation = -90 + (percentage / 200) * 180;
+    const pct = Math.min(Math.max(this.productionPercentage, 0), 200);
+    this.needleRotation = -90 + (pct / 200) * 180;
   }
 }

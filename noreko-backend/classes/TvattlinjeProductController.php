@@ -158,23 +158,18 @@ class TvattlinjeProductController {
 
         if (!isset($data['id']) || !isset($data['name']) || !isset($data['cycle_time_minutes'])) {
             http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'error' => 'ID, namn och cykeltid krävs'
-            ], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'ID, namn och cykeltid krävs'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
-        $id = (int)$data['id'];
-        $name = strip_tags(trim($data['name']));
+        $id      = (int)$data['id'];
+        $newId   = isset($data['new_id']) ? (int)$data['new_id'] : $id;
+        $name    = strip_tags(trim($data['name']));
         $cycleTime = (float)$data['cycle_time_minutes'];
 
-        if ($id <= 0 || $name === '' || $cycleTime <= 0) {
+        if ($id <= 0 || $newId <= 0 || $name === '' || $cycleTime <= 0) {
             http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'error' => 'Ogiltigt ID, tomt namn eller ogiltig cykeltid'
-            ], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt ID, tomt namn eller ogiltig cykeltid'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if (mb_strlen($name) > 100) {
@@ -189,43 +184,39 @@ class TvattlinjeProductController {
         }
 
         try {
-            $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare("UPDATE tvattlinje_products SET name = ?, cycle_time_minutes = ? WHERE id = ?");
-            $stmt->execute([$name, $cycleTime, $id]);
-
-            if ($stmt->rowCount() > 0) {
-                $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
-                $safeCycle = (float)$data['cycle_time_minutes'];
-                AuditLogger::log($this->pdo, 'product_update', 'tvattlinje_products', (int)$data['id'],
-                    "Uppdaterad: name={$safeName}, cycle_time={$safeCycle}");
-                $this->pdo->commit();
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Produkt uppdaterad',
-                    'data' => [
-                        'id' => $data['id'],
-                        'name' => $data['name'],
-                        'cycle_time_minutes' => $data['cycle_time_minutes']
-                    ]
-                ], JSON_UNESCAPED_UNICODE);
-            } else {
-                $this->pdo->rollBack();
+            // Verifiera att produkten finns
+            $check = $this->pdo->prepare("SELECT id FROM tvattlinje_products WHERE id = ?");
+            $check->execute([$id]);
+            if (!$check->fetch()) {
                 http_response_code(404);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Produkt hittades inte'
-                ], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Produkt hittades inte'], JSON_UNESCAPED_UNICODE);
+                return;
             }
+
+            $this->pdo->beginTransaction();
+            $stmt = $this->pdo->prepare("UPDATE tvattlinje_products SET id = ?, name = ?, cycle_time_minutes = ? WHERE id = ?");
+            $stmt->execute([$newId, $name, $cycleTime, $id]);
+
+            // Uppdatera referenser i tvattlinje_ibc och tvattlinje_skiftrapport om ID ändrades
+            if ($newId !== $id) {
+                $this->pdo->prepare("UPDATE tvattlinje_ibc SET produkt = ? WHERE produkt = ?")->execute([$newId, $id]);
+                $this->pdo->prepare("UPDATE tvattlinje_skiftrapport SET product_id = ? WHERE product_id = ?")->execute([$newId, $id]);
+            }
+
+            $safeName = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+            AuditLogger::log($this->pdo, 'product_update', 'tvattlinje_products', $newId,
+                "Uppdaterad: old_id={$id}, new_id={$newId}, name={$safeName}, cycle_time={$cycleTime}");
+            $this->pdo->commit();
+            echo json_encode([
+                'success' => true,
+                'message' => 'Produkt uppdaterad',
+                'data'    => ['id' => $newId, 'name' => $name, 'cycle_time_minutes' => $cycleTime]
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
-            }
+            if ($this->pdo->inTransaction()) $this->pdo->rollBack();
             error_log('TvattlinjeProductController::updateProduct: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'error' => 'Kunde inte uppdatera produkt'
-            ], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera produkt'], JSON_UNESCAPED_UNICODE);
         }
     }
 

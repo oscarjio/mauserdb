@@ -64,23 +64,15 @@
                 <feDropShadow dx="0" dy="4" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/>
               </filter>
             </defs>
-            <!-- Background arc (gray track) -->
-            <path d="M60,150 A90,90 0 0,1 240,150" stroke="#2d3748" stroke-width="24" fill="none" stroke-linecap="round"/>
-            <!-- Active arc — color reflects current status -->
-            <path d="M60,150 A90,90 0 0,1 240,150" [attr.stroke]="gaugeColor" stroke-width="24" fill="none" stroke-linecap="round"
-                  [attr.stroke-dasharray]="(productionPercentage >= 0 ? (Math.min(productionPercentage, 200) / 200) : 0) * 283 + ' 283'"
-                  stroke-dashoffset="0"/>
-            <!-- Needle -->
+            <path d="M60,160 A90,90 0 0,1 120,80" stroke="#e74c3c" stroke-width="24" fill="none" stroke-linecap="round"/>
+            <path d="M120,80 A90,90 0 0,1 180,80" stroke="#f1c40f" stroke-width="24" fill="none" stroke-linecap="round"/>
+            <path d="M180,80 A90,90 0 0,1 240,160" stroke="#27ae60" stroke-width="24" fill="none" stroke-linecap="round"/>
             <g>
-              <rect x="147" y="70" width="6" height="90" rx="3" [attr.fill]="gaugeColor" filter="url(#needleShadow)"
+              <rect x="147" y="80" width="6" height="90" rx="3" fill="#fff" filter="url(#needleShadow)"
                     [attr.transform]="'rotate(' + needleRotation + ' 150 150)'"/>
-              <circle cx="150" cy="150" r="14" fill="#1a202c" stroke="#e2e8f0" stroke-width="3"/>
-              <circle cx="150" cy="150" r="6" [attr.fill]="gaugeColor"/>
+              <circle cx="150" cy="150" r="14" fill="#222" stroke="#fff" stroke-width="4"/>
+              <circle cx="150" cy="150" r="7" fill="#fff"/>
             </g>
-            <!-- Percentage label -->
-            <text x="150" y="130" text-anchor="middle" fill="#e2e8f0" font-size="20" font-weight="bold">
-              {{ productionPercentage >= 0 ? (productionPercentage | number:'1.0-0') + '%' : '—' }}
-            </text>
           </svg>
           <div class="speedometer-status mt-3 w-100 d-flex justify-content-center">
             <span class="badge" [class]="statusBadgeClass">{{ statusText }}</span>

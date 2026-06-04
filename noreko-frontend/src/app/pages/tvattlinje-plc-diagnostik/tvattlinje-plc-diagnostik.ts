@@ -233,13 +233,26 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   }
 
   formatEventData(event: PlcEvent): string {
-    const skip = ['id', 'datum', 'source', 'event_type'];
+    const skip = new Set(['id', 'datum', 'source', 'event_type', 'created_at', 'updated_at', '_systemText', '_systemType']);
+    const labels: Record<string, string> = {
+      s_count: 'shelly', ibc_count: 'ibc#', skiftraknare: 'skift',
+      op1: 'op1', op2: 'op2', op3: 'op3',
+      produkt: 'produkt', product_id: 'produkt',
+      ibc_ok: 'ok', ibc_ej_ok: 'ejok', omtvaatt: 'omtv',
+      antal_ok: 'ok', antal_ej_ok: 'ejok', totalt: 'tot',
+      runtime_plc: 'drifttid(min)', rasttime: 'rast(min)',
+      driftstopptime: 'stopp(min)', lopnummer: 'lopnr',
+      effektivitet: 'eff%', running: 'running',
+      rast_status: 'rast', driftstopp_status: 'stopp',
+      kommentar: 'kommentar', user_id: 'user', inlagd: 'inlagd',
+    };
     const parts: string[] = [];
     for (const key of Object.keys(event)) {
-      if (skip.includes(key)) continue;
+      if (skip.has(key)) continue;
       const val = event[key];
       if (val === null || val === undefined || val === '') continue;
-      parts.push(`${key}=${val}`);
+      const label = labels[key] ?? key;
+      parts.push(`${label}=${val}`);
     }
     return parts.join('  ');
   }

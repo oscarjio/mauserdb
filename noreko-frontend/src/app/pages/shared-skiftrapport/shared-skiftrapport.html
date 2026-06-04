@@ -103,6 +103,25 @@
     </div>
     <div class="col-6 col-md-2">
       <div class="summary-card">
+        <div class="summary-icon"
+          [class.text-success]="cachedAvgQuality >= 95"
+          [class.text-warning]="cachedAvgQuality >= 80 && cachedAvgQuality < 95"
+          [class.text-danger]="cachedAvgQuality > 0 && cachedAvgQuality < 80"
+          [class.text-muted]="cachedAvgQuality === 0">
+          <i class="fas fa-medal"></i>
+        </div>
+        <div class="summary-value"
+          [class.text-success]="cachedAvgQuality >= 95"
+          [class.text-warning]="cachedAvgQuality >= 80 && cachedAvgQuality < 95"
+          [class.text-danger]="cachedAvgQuality > 0 && cachedAvgQuality < 80"
+          [class.text-muted]="cachedAvgQuality === 0">
+          {{ cachedTotalIbc > 0 ? (cachedAvgQuality | number:'1.0-1') + '%' : '–' }}
+        </div>
+        <div class="summary-label">Snitt Kvalitet</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
         <div class="summary-icon text-success"><i class="fas fa-clock"></i></div>
         <div class="summary-value text-success">
           {{ summaryTotalDrift > 0 ? formatDrifttid(summaryTotalDrift) : '–' }}
@@ -307,7 +326,7 @@
               <th>DATUM</th>
               <th class="text-center">SKIFT</th>
               <th class="text-center">IBC</th>
-              <th class="text-center">EFF%</th>
+              <th class="text-center">TILLG%</th>
               <th class="d-none d-lg-table-cell">DRIFTTID</th>
               <th class="d-none d-md-table-cell">OPERATÖRER</th>
               <th class="d-none d-md-table-cell">PRODUKTER</th>
@@ -458,7 +477,7 @@
                                         [class.text-danger]="(getEfficiencyPct(report) ?? -1) < 60">
                                         {{ getEfficiencyPct(report) }}%
                                       </span>
-                                      <span class="hero-lbl">Effektivitet</span>
+                                      <span class="hero-lbl">Tillgänglighet</span>
                                     </div>
                                     <div class="hero-divider d-none d-sm-block" *ngIf="getIbcPerHour(report) != null"></div>
                                     <div class="hero-stat" *ngIf="getIbcPerHour(report) != null">
@@ -557,7 +576,7 @@
                                       <div *ngIf="!subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) === 0" class="text-muted small">Inga cykler registrerade.</div>
                                       <div *ngIf="!subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0" class="table-responsive">
                                         <table class="table table-sm table-dark table-hover mb-0" style="font-size:.85rem;">
-                                          <thead><tr><th>TID</th><th>PRODUKT</th><th>OPERATÖR</th><th>IBC</th><th>IBC/H</th><th>EFF</th><th>DRIFTTID</th></tr></thead>
+                                          <thead><tr><th>TID</th><th>PRODUKT</th><th>OPERATÖR</th><th>IBC</th><th>IBC/H</th><th>CYKL%</th><th>DRIFTTID</th></tr></thead>
                                           <tbody>
                                             <tr *ngFor="let sub of visibleSubShifts(report.id); let subI = index">
                                               <td class="text-nowrap">{{ sub.datum | date:'HH:mm' }}</td>

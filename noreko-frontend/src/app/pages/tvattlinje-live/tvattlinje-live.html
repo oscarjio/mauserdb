@@ -1,29 +1,18 @@
 <div class="tvattlinje-live-page container-fluid">
   <div class="status-bar" [class]="statusBarClass"></div>
-  @if (onRast) {
-    <div class="rast-banner">
-      <i class="fas fa-coffee me-2"></i>
-      <span>PÅ RAST</span>
-      <span class="ms-3 rast-time-badge">{{ rastTimeLabel }} idag</span>
-    </div>
-  }
-  @if (onDriftstopp) {
-    <div class="driftstopp-banner">
-      <i class="fas fa-exclamation-triangle me-2"></i>
-      <span>DRIFTSTOPP</span>
-      <span class="ms-3 driftstopp-time-badge">{{ driftstoppTimeLabel }} idag</span>
-    </div>
-  }
+
   <div class="freshness-indicator" [class]="freshnessClass">
     <span class="freshness-dot"></span>
     <span class="freshness-text">{{ freshnessLabel }}</span>
   </div>
+
   @if (lastDataUpdate === null && !isLineRunning && !onRast) {
     <div class="not-running-banner text-center py-2" style="background: #2a3f5f; border: 1px solid #3d6b9e; border-radius: 8px; margin-bottom: 0.5rem;">
       <i class="fas fa-info-circle me-2" style="color: #90cdf4;"></i>
       <span style="color: #90cdf4;">Tvättlinjen är ej i drift — väntar på data från PLC</span>
     </div>
   }
+
   <div class="row g-0 h-100">
     <div class="col-6 d-flex align-items-stretch">
       <div class="live-card flex-fill clock-card h-100 w-100 d-flex flex-column justify-content-center align-items-center">
@@ -60,13 +49,9 @@
                 <stop offset="100%" stop-color="#27ae60"/>
               </linearGradient>
             </defs>
-            <!-- Red arc: 0-45 deg (25%) -->
             <path d="M60,160 A90,90 0 0,1 120,80" stroke="url(#speedoRed)" stroke-width="24" fill="none" stroke-linecap="round"/>
-            <!-- Yellow arc: 45-90 deg (25%) -->
             <path d="M120,80 A90,90 0 0,1 180,80" stroke="url(#speedoYellow)" stroke-width="24" fill="none" stroke-linecap="round"/>
-            <!-- Green arc: 90-180 deg (50%) -->
             <path d="M180,80 A90,90 0 0,1 240,160" stroke="url(#speedoGreen)" stroke-width="24" fill="none" stroke-linecap="round"/>
-            <!-- Modern needle -->
             <g>
               <rect x="147" y="80" width="6" height="90" rx="3" fill="#fff" filter="url(#needleShadow)" [attr.transform]="'rotate(' + needleRotation + ' 150 150)'"/>
               <circle cx="150" cy="150" r="14" fill="#222" stroke="#fff" stroke-width="4"/>
@@ -80,4 +65,23 @@
       </div>
     </div>
   </div>
+
+  <!-- RAST overlay -->
+  @if (onRast) {
+    <div class="status-overlay rast-overlay">
+      <i class="fas fa-coffee overlay-icon"></i>
+      <div class="overlay-title">PÅ RAST</div>
+      <div class="overlay-time">{{ rastTimeLabel }}</div>
+    </div>
+  }
+
+  <!-- DRIFTSTOPP overlay (visas ovanpå rast om båda aktiva) -->
+  @if (onDriftstopp) {
+    <div class="status-overlay ds-overlay">
+      <i class="fas fa-exclamation-triangle overlay-icon"></i>
+      <div class="overlay-title">DRIFTSTOPP</div>
+      <div class="overlay-time">{{ driftstoppTimeLabel }}</div>
+    </div>
+  }
+
 </div>

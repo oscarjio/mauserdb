@@ -50,4 +50,24 @@ export class LineSkiftrapportService {
     return this.http.post<any>(this.url(line), { action: 'bulkUpdateInlagd', ids, inlagd }, { withCredentials: true })
       .pipe(timeout(15000), catchError(err => { console.error('bulkUpdateInlagd failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
   }
+
+  getLopnummer(line: LineName, skiftraknare: number): Observable<any> {
+    return this.http.get<any>(`${this.url(line)}&run=lopnummer&skiftraknare=${skiftraknare}`, { withCredentials: true })
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  }
+
+  getOperators(line: LineName): Observable<any> {
+    return this.http.get<any>(`${this.url(line)}&run=operators`, { withCredentials: true })
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  }
+
+  getProducts(line: LineName): Observable<any> {
+    return this.http.get<any>(`${this.url(line)}&run=products`, { withCredentials: true })
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  }
+
+  getSubShifts(line: LineName, skiftraknare: number): Observable<any> {
+    return this.http.get<any>(`${this.url(line)}&run=subshifts&skiftraknare=${skiftraknare}`, { withCredentials: true })
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  }
 }

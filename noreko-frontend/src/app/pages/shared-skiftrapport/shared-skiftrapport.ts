@@ -189,15 +189,18 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get summaryAvgIbcH(): number | null {
-    const valid = this.filteredReports.filter(r => (r.drifttid || 0) > 0 && (r.antal_ok || 0) > 0);
-    if (!valid.length) return null;
-    return Math.round(valid.reduce((s, r) => s + r.antal_ok / (r.drifttid / 60), 0) / valid.length * 10) / 10;
+    const totalDrift = this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
+    const totalOk = this.filteredReports.reduce((s, r) => s + (r.antal_ok || 0), 0);
+    if (totalDrift <= 0 || totalOk <= 0) return null;
+    return Math.round(totalOk / (totalDrift / 60) * 10) / 10;
   }
 
   get summaryAvgEfficiency(): number | null {
-    const valid = this.filteredReports.filter(r => this.getEfficiencyPct(r) != null);
-    if (!valid.length) return null;
-    return Math.round(valid.reduce((s, r) => s + (this.getEfficiencyPct(r) ?? 0), 0) / valid.length);
+    const totalDrift = this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
+    const totalRast = this.filteredReports.reduce((s, r) => s + (r.rasttime || 0), 0);
+    const schema = totalDrift + totalRast;
+    if (schema <= 0) return null;
+    return Math.round((totalDrift / schema) * 100);
   }
 
   get summaryAvgOee(): number | null {
@@ -239,10 +242,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const tillganglighet = schemaMin > 0 ? Math.min(drifttidMin / schemaMin, 1) : null;
     if (tillganglighet == null) return null;
 
-    // Prestanda (P) = (totalIbc × 120s) / drifttid_sek, cap 1.0
+    // Prestanda (P) = (totalIbc × ideal_cycle_sek) / drifttid_sek, cap 1.0
     // drifttid i minuter → sekunder
     const drifttidSek = drifttidMin * 60;
-    const IDEAL_CYCLE_SEK = 120;
+    const product = this.products.find(p => p.id === (r.product_id ?? null));
+    const IDEAL_CYCLE_SEK = ((product?.cycle_time_minutes ?? 3.0) * 60);
     const prestanda = drifttidSek > 0
       ? Math.min((totalIbc * IDEAL_CYCLE_SEK) / drifttidSek, 1)
       : 1.0;

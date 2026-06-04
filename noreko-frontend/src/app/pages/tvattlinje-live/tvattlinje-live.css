@@ -1,4 +1,4 @@
-/* Data freshness indicator */
+/* ─── Freshness indicator ─────────────────────────────────────── */
 .freshness-indicator {
   position: fixed;
   top: 10px;
@@ -13,17 +13,13 @@
   font-size: 0.75rem;
   transition: all 0.3s ease;
 }
-
 .freshness-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   display: inline-block;
 }
-
-.freshness-text {
-  color: #a0aec0;
-}
+.freshness-text { color: #a0aec0; }
 
 .freshness-ok .freshness-dot {
   background: #27ae60;
@@ -31,35 +27,20 @@
   animation: freshnessGlow 2s ease-in-out infinite;
 }
 .freshness-ok .freshness-text { color: #27ae60; }
-
-.freshness-warning .freshness-dot {
-  background: #f1c40f;
-  box-shadow: 0 0 6px rgba(241, 196, 15, 0.6);
-}
+.freshness-warning .freshness-dot { background: #f1c40f; box-shadow: 0 0 6px rgba(241,196,15,0.6); }
 .freshness-warning .freshness-text { color: #f1c40f; }
-
 .freshness-stale .freshness-dot {
   background: #e74c3c;
-  box-shadow: 0 0 6px rgba(231, 76, 60, 0.6);
+  box-shadow: 0 0 6px rgba(231,76,60,0.6);
   animation: freshnessBlink 1s ease-in-out infinite;
 }
 .freshness-stale .freshness-text { color: #e74c3c; }
+.freshness-unknown .freshness-dot { background: #8fa3b8; }
 
-.freshness-unknown .freshness-dot {
-  background: #8fa3b8;
-}
+@keyframes freshnessGlow   { 0%,100%{opacity:1} 50%{opacity:0.5} }
+@keyframes freshnessBlink  { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-@keyframes freshnessGlow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-@keyframes freshnessBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
-
-/* Minimal placeholder for Tvattlinje Live page (standalone directory) */
+/* ─── Page shell ──────────────────────────────────────────────── */
 .tvattlinje-live-page {
   min-height: 100vh;
   height: 100vh;
@@ -70,7 +51,6 @@
   position: relative;
   overflow: hidden;
 }
-
 .tvattlinje-live-page .row {
   height: 100%;
   margin: 0;
@@ -78,127 +58,47 @@
   display: flex;
   flex-wrap: wrap;
 }
-
 .tvattlinje-live-page .row > div {
   height: 50%;
   padding: 0.5rem;
   display: flex;
 }
 
+/* ─── Status bar ──────────────────────────────────────────────── */
 .status-bar {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   height: 6px;
   z-index: 1000;
   transition: all 0.3s ease;
 }
-
 .status-bar-on {
-  background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
-  box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+  background: linear-gradient(90deg,#27ae60,#2ecc71);
+  box-shadow: 0 0 20px rgba(46,204,113,0.5);
   animation: pulse-on 2s ease-in-out infinite;
 }
-
 .status-bar-off {
-  background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
-  box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+  background: linear-gradient(90deg,#e74c3c,#c0392b);
+  box-shadow: 0 0 20px rgba(231,76,60,0.5);
   animation: pulse-off 2s ease-in-out infinite;
 }
-
 .status-bar-rast {
-  background: linear-gradient(90deg, #f1c40f 0%, #e67e22 100%);
-  box-shadow: 0 0 20px rgba(241, 196, 15, 0.6);
+  background: linear-gradient(90deg,#f1c40f,#e67e22);
+  box-shadow: 0 0 20px rgba(241,196,15,0.6);
   animation: pulse-rast 1.5s ease-in-out infinite;
 }
-
-@keyframes pulse-rast {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.65; }
-}
-
-.rast-banner {
-  position: fixed;
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1002;
-  background: rgba(241, 196, 15, 0.95);
-  color: #1a202c;
-  padding: 10px 32px;
-  border-radius: 0 0 12px 12px;
-  font-size: 2rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 16px rgba(241, 196, 15, 0.4);
-}
-
-.rast-time-badge {
-  font-size: 1.5rem;
-  font-weight: 500;
-}
-
 .status-bar-driftstopp {
-  background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
-  box-shadow: 0 0 20px rgba(231, 76, 60, 0.7);
+  background: linear-gradient(90deg,#e74c3c,#c0392b);
+  box-shadow: 0 0 20px rgba(231,76,60,0.7);
   animation: pulse-driftstopp 0.8s ease-in-out infinite;
   height: 10px;
 }
+@keyframes pulse-on          { 0%,100%{opacity:1} 50%{opacity:0.7} }
+@keyframes pulse-off         { 0%,100%{opacity:1} 50%{opacity:0.7} }
+@keyframes pulse-rast        { 0%,100%{opacity:1} 50%{opacity:0.65} }
+@keyframes pulse-driftstopp  { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
-@keyframes pulse-driftstopp {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.driftstopp-banner {
-  position: fixed;
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1003;
-  background: rgba(231, 76, 60, 0.95);
-  color: #fff;
-  padding: 10px 32px;
-  border-radius: 0 0 12px 12px;
-  font-size: 2rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.5);
-}
-
-.driftstopp-time-badge {
-  font-size: 1.5rem;
-  font-weight: 500;
-}
-
-.not-running-banner {
-  margin-top: 8px;
-}
-
-@keyframes pulse-on {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-@keyframes pulse-off {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-
+/* ─── Cards ───────────────────────────────────────────────────── */
 .live-card {
   background: #23272b;
   color: #fff;
@@ -215,38 +115,11 @@
   min-width: 0;
   height: 100%;
 }
+.live-value     { font-size: 6.8rem; font-weight: bold; letter-spacing: 0.05em; }
+.live-clock     { font-size: 15vw; margin: 0.3rem 0; font-weight: bold; letter-spacing: 0.05em; text-align: center; }
+.live-ibc-today { font-size: 15vw; font-weight: bold; letter-spacing: 0.05em; text-align: center; }
 
-.clock-card {
-  margin: 0;
-}
-
-.live-label {
-  font-size: 7rem;
-  opacity: 0.7;
-  margin-bottom: 0.5rem;
-}
-
-.live-value {
-  font-size: 6.8rem;
-  font-weight: bold;
-  letter-spacing: 0.05em;
-}
-
-.live-clock {
-  font-size: 15vw;
-  margin: 0.3rem 0 0.3rem 0;
-  font-weight: bold;
-  letter-spacing: 0.05em;
-  text-align: center;
-}
-
-.live-ibc-today {
-  font-size: 15vw;
-  font-weight: bold;
-  letter-spacing: 0.05em;
-  text-align: center;
-}
-
+/* ─── Speedometer ─────────────────────────────────────────────── */
 .speedometer-wrapper {
   display: flex;
   flex-direction: column;
@@ -255,7 +128,6 @@
   width: 100%;
   padding-bottom: 0;
 }
-
 .speedometer-modern {
   width: 100%;
   display: flex;
@@ -263,7 +135,6 @@
   align-items: center;
   justify-content: center;
 }
-
 .speedometer-modern svg {
   max-width: 100%;
   width: 100%;
@@ -272,149 +143,91 @@
   margin: 0 auto;
   max-height: 85%;
 }
-
 .live-card.speedometer-wrapper {
   padding: 1rem;
   position: relative;
   overflow: visible;
 }
 
-.goal-status-indicator {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  width: 5rem;
-  height: 5rem;
-  border-radius: 50%;
-  z-index: 10;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  animation: pulse-indicator 2s ease-in-out infinite;
+/* ─── RAST / DRIFTSTOPP overlay ───────────────────────────────── */
+.status-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  pointer-events: none;
 }
 
-.goal-status-indicator.goal-achieved {
-  background: radial-gradient(circle, #2ecc71 0%, #27ae60 100%);
-  box-shadow: 0 4px 20px rgba(46, 204, 113, 0.6), 0 0 30px rgba(46, 204, 113, 0.3);
+/* Semi-opaque so cards still faintly visible behind */
+.rast-overlay {
+  background: rgba(193, 154, 0, 0.92);
+  color: #1a1400;
+  animation: rast-breathe 1.8s ease-in-out infinite;
 }
 
-.goal-status-indicator.goal-not-achieved {
-  background: radial-gradient(circle, #e74c3c 0%, #c0392b 100%);
-  box-shadow: 0 4px 20px rgba(231, 76, 60, 0.6), 0 0 30px rgba(231, 76, 60, 0.3);
+.ds-overlay {
+  background: rgba(176, 42, 30, 0.94);
+  color: #fff;
+  animation: ds-flash 0.8s ease-in-out infinite;
 }
 
-@keyframes pulse-indicator {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.9;
-  }
+.overlay-icon {
+  font-size: 12vw;
+  line-height: 1;
+  opacity: 0.85;
 }
 
-.mini-tvattlinje-live .live-card {
-  font-size: 1.1vw !important;
+.overlay-title {
+  font-size: 12vw;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.mini-tvattlinje-live .live-label {
-  font-size: 0.9rem !important;
+.overlay-time {
+  font-size: 6vw;
+  font-weight: 600;
+  opacity: 0.9;
+  text-align: center;
+  margin-top: 0.3em;
 }
 
-.mini-tvattlinje-live .live-value {
-  font-size: 1.3rem !important;
+@keyframes rast-breathe {
+  0%,100% { background: rgba(193,154,0,0.92); }
+  50%      { background: rgba(220,175,0,0.92); }
+}
+@keyframes ds-flash {
+  0%,100% { background: rgba(176,42,30,0.94); }
+  50%      { background: rgba(220,60,45,0.94); }
 }
 
+/* ─── Mini mode (executive dashboard) ────────────────────────── */
+.mini-tvattlinje-live .live-card     { font-size: 1.1vw !important; }
+.mini-tvattlinje-live .live-value    { font-size: 1.3rem !important; }
 .mini-tvattlinje-live .live-clock,
-.mini-tvattlinje-live .live-ibc-today {
-  font-size: 2.2vw !important;
-}
+.mini-tvattlinje-live .live-ibc-today { font-size: 2.2vw !important; }
+.mini-tvattlinje-live .speedometer-modern svg { max-width: 70px !important; }
+.mini-tvattlinje-live .status-overlay { display: none !important; }
 
-.mini-tvattlinje-live .speedometer-modern svg {
-  max-width: 90px !important;
-}
-
-.mini-tvattlinje-live .goal-status-indicator {
-  width: 2rem !important;
-  height: 2rem !important;
-  top: 0.5rem !important;
-  right: 0.5rem !important;
-}
-
-.mini-tvattlinje-live .tvattlinje-live-page,
-.mini-tvattlinje-live .live-card,
-.mini-tvattlinje-live .live-label,
-.mini-tvattlinje-live .live-value,
-.mini-tvattlinje-live .live-clock,
-.mini-tvattlinje-live .live-ibc-today,
-.mini-tvattlinje-live .speedometer-status .badge {
-  font-size: 12px !important;
-  line-height: 1.1 !important;
-}
-.mini-tvattlinje-live .live-label {
-  font-size: 10px !important;
-}
-.mini-tvattlinje-live .live-value {
-  font-size: 16px !important;
-}
-.mini-tvattlinje-live .live-clock,
-.mini-tvattlinje-live .live-ibc-today {
-  font-size: 18px !important;
-}
-.mini-tvattlinje-live .speedometer-modern svg {
-  max-width: 70px !important;
-}
-
+/* ─── Responsive ──────────────────────────────────────────────── */
 @media (min-width: 992px) {
-  .tvattlinje-live-page .row > div {
-    flex: 0 0 50%;
-    max-width: 50%;
-  }
+  .tvattlinje-live-page .row > div { flex: 0 0 50%; max-width: 50%; }
 }
 @media (max-width: 991px) {
-  .tvattlinje-live-page {
-    height: auto;
-    min-height: 100vh;
-  }
-  .tvattlinje-live-page .row {
-    height: auto;
-    min-height: 100vh;
-  }
-  .tvattlinje-live-page .row > div {
-    flex: 0 0 100%;
-    max-width: 100%;
-    height: 25vh;
-    min-height: 150px;
-  }
-  .live-card {
-    font-size: 1rem;
-    min-height: 150px;
-    padding: 0.5rem 0.3rem;
-  }
-  .live-label {
-    font-size: 1.5rem;
-    opacity: 0.7;
-    margin-bottom: 0.3rem;
-  }
-  .live-value {
-    font-size: 3rem;
-    font-weight: bold;
-    letter-spacing: 0.05em;
-  }
-  .live-clock {
-    font-size: 6rem;
-  }
-  .live-ibc-today {
-    font-size: 6rem;
-  }
-  .speedometer-modern svg {
-    max-width: 100%;
-    max-height: 85%;
-  }
-  .goal-status-indicator {
-    width: 3.6rem;
-    height: 3.6rem;
-    top: 0.8rem;
-    right: 0.8rem;
-  }
+  .tvattlinje-live-page { height: auto; min-height: 100vh; }
+  .tvattlinje-live-page .row { height: auto; min-height: 100vh; }
+  .tvattlinje-live-page .row > div { flex: 0 0 100%; max-width: 100%; height: 25vh; min-height: 150px; }
+  .live-card { font-size: 1rem; min-height: 150px; padding: 0.5rem 0.3rem; }
+  .live-value { font-size: 3rem; }
+  .live-clock, .live-ibc-today { font-size: 6rem; }
+  .speedometer-modern svg { max-width: 100%; max-height: 85%; }
+  .overlay-title { font-size: 18vw; }
+  .overlay-icon  { font-size: 10vw; }
+  .overlay-time  { font-size: 8vw; }
 }

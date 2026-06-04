@@ -2294,6 +2294,28 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.operatorRankingCache.clear();
   }
 
+  // ======== Detail panel tabs ========
+  activeTab: { [id: number]: string } = {};
+  setTab(id: number, tab: string): void { this.activeTab[id] = tab; }
+  getTab(id: number): string { return this.activeTab[id] || 'oversikt'; }
+
+  getLopnummerPills(id: number): string[] {
+    const s = this.lopnummerMap[id];
+    if (!s) return [];
+    return s.split(', ').filter((p: string) => p.trim().length > 0);
+  }
+
+  getOpInitials(r: any, field: 'op1' | 'op2' | 'op3'): string {
+    const name = this.getOpLabel(r, field);
+    if (!name || name === '–') return '?';
+    return name.trim().split(/\s+/).map((p: string) => p[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  opAvatarColor(field: 'op1' | 'op2' | 'op3'): string {
+    const colors: Record<string, string> = { op1: '#4299e1', op2: '#48bb78', op3: '#ed8936' };
+    return colors[field] || '#9f7aea';
+  }
+
   // ======== trackBy-funktioner ========
 
   trackByReportId(index: number, report: any): number {

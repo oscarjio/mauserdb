@@ -459,7 +459,13 @@
             </thead>
             <tbody>
               <tr *ngFor="let product of products; trackBy: trackByProductId">
-                <td>{{ product.id }}</td>
+                <td>
+                  <span *ngIf="!product.editing">{{ product.id }}</span>
+                  <input *ngIf="product.editing" type="number" class="form-control form-control-sm" style="width:70px"
+                    [(ngModel)]="product.new_id" min="1" max="9999"
+                    (keyup.enter)="saveProduct(product)"
+                    (keyup.escape)="cancelEditProduct(product)">
+                </td>
                 <td>
                   <span *ngIf="!product.editing">{{ product.name }}</span>
                   <input *ngIf="product.editing" type="text" class="form-control form-control-sm"

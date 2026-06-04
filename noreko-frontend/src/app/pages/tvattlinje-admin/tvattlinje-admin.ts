@@ -497,26 +497,36 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
         p.editing = false;
         p.name = p.originalName;
         p.cycle_time_minutes = p.originalCycleTime;
+        p.new_id = p.originalId;
       }
     });
     product.editing = true;
     product.originalName = product.name;
     product.originalCycleTime = product.cycle_time_minutes;
+    product.originalId = product.id;
+    product.new_id = product.id;
   }
 
   saveProduct(product: any) {
     if (!product.name || !product.cycle_time_minutes) return;
     this.productsLoading = true;
-    const updateData = { id: product.id, name: product.name, cycle_time_minutes: product.cycle_time_minutes };
+    const updateData = {
+      id: product.id,
+      new_id: product.new_id ?? product.id,
+      name: product.name,
+      cycle_time_minutes: product.cycle_time_minutes
+    };
     this.http.put<any>(`${environment.apiUrl}?action=tvattlinjeproduct`, updateData, { withCredentials: true })
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.productsLoading = false;
           if (response?.success) {
+            product.id = product.new_id ?? product.id;
             product.editing = false;
             product.originalName = product.name;
             product.originalCycleTime = product.cycle_time_minutes;
+            product.originalId = product.id;
             this.showSuccess('Produkt uppdaterad!');
           }
         },
@@ -526,6 +536,8 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
 
   cancelEditProduct(product: any) {
     product.editing = false;
+    product.id = product.originalId;
+    product.new_id = product.originalId;
     product.name = product.originalName;
     product.cycle_time_minutes = product.originalCycleTime;
   }
