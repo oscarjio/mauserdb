@@ -437,7 +437,9 @@
                               <span *ngIf="report.op3" class="badge bg-dark me-1">{{ resolveOpName(report.op3_name, report.op3) }}</span>
                               <span *ngIf="!report.op1 && !report.op2 && !report.op3" class="text-muted">–</span>
                             </td>
-                            <td class="text-success fw-semibold">{{ safeDisplay(report.antal_ok) }}</td>
+                            <td class="text-success fw-semibold">
+                              <span *ngIf="report.ibcEstimated" title="Preliminärt antal — ibc_ok saknas i PLC-data, uppskattat från cykelräkning">~</span>{{ safeDisplay(report.antal_ok) }}
+                            </td>
                             <td class="d-none d-md-table-cell">{{ ibcPerHour(report) }}</td>
                             <td>
                               <span class="badge"
@@ -472,9 +474,6 @@
                                 </button>
                                 <button *ngIf="loggedIn && !report.isPreliminary && !report.isUnreported" class="btn btn-outline-secondary" (click)="exportPDF(report)" title="Ladda ner PDF">
                                   <i class="fas fa-file-pdf"></i>
-                                </button>
-                                <button *ngIf="loggedIn && (report.isPreliminary || report.isUnreported)" class="btn btn-outline-warning" (click)="openAddFormPrefilled(report)" title="Skicka in skiftrapport">
-                                  <i class="fas fa-paper-plane me-1"></i>Skicka in
                                 </button>
                                 <button *ngIf="canEdit(report) && !report.isPreliminary && !report.isUnreported" class="btn btn-outline-danger" (click)="deleteReport(report.id)">
                                   <i class="fas fa-trash"></i>

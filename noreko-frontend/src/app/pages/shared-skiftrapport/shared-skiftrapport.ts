@@ -262,12 +262,26 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   private _computeShiftTid(report: any): string {
     const fmt = (d: Date) => d.toTimeString().substring(0, 5);
+    const parseDt = (s: any) => {
+      const d = new Date(String(s).replace(' ', 'T'));
+      return isNaN(d.getTime()) ? null : d;
+    };
     try {
+      // Primär: backend-beräknade plc_start/plc_end (korrekt fönster)
+      if (report?.plc_start && report?.plc_end) {
+        const s = parseDt(report.plc_start);
+        const e = parseDt(report.plc_end);
+        const MIN_TS = new Date('2020-01-01').getTime();
+        if (s && e && s.getTime() >= MIN_TS && e.getTime() <= Date.now() + 60000 && s < e) {
+          return `${fmt(s)}→${fmt(e)}`;
+        }
+      }
+      // Fallback: datum med tidkomponent
       if (report?.datum) {
         const raw = String(report.datum);
         if (raw.length > 10) {
-          const d = new Date(raw.replace(' ', 'T'));
-          if (!isNaN(d.getTime())) {
+          const d = parseDt(raw);
+          if (d) {
             const s = fmt(d);
             const drifttidMs = (report.drifttid ?? 0) * 60 * 1000;
             if (drifttidMs > 0) {
@@ -278,9 +292,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           }
         }
       }
+      // Sista utväg: created_at
       if (report?.created_at) {
-        const d = new Date(String(report.created_at).replace(' ', 'T'));
-        if (!isNaN(d.getTime())) return fmt(d);
+        const d = parseDt(report.created_at);
+        if (d) return fmt(d);
       }
     } catch { /* ignore */ }
     return '–';
@@ -621,20 +636,27 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           };
           const buildSynth = (pass: { subs: any[]; times: number[] }, id: number, isPreliminary: boolean): any => {
             const fs = pass.subs[0]; const ls = pass.subs[pass.subs.length - 1];
-            const ibcOk    = cumulDelta(ls?.ibc_ok,     fs?.ibc_ok);
+            const ibcOkRaw = cumulDelta(ls?.ibc_ok,     fs?.ibc_ok);
             const ibcEjOk  = cumulDelta(ls?.ibc_ej_ok,  fs?.ibc_ej_ok);
             const drifttid = cumulDelta(ls?.runtime_plc, fs?.runtime_plc);
             const rasttime = cumulDelta(ls?.rasttime,    fs?.rasttime);
+            // Fallback: om ibc_ok saknas i DB, räkna cykelrader som preliminärt antal
+            const ibcEstimated = ibcOkRaw === 0 && pass.subs.length > 0;
+            const ibcOk = ibcEstimated ? pass.subs.length : ibcOkRaw;
             const firstT = pass.times[0];
             const lastT  = pass.times[pass.times.length - 1];
             const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+            const plcStart = new Date(firstT).toISOString().replace('T', ' ').substring(0, 19);
+            const plcEnd   = new Date(lastT).toISOString().replace('T', ' ').substring(0, 19);
             return {
               id, datum: new Date(firstT).toISOString().substring(0, 10),
               antal_ok: ibcOk, antal_ej_ok: ibcEjOk, totalt: ibcOk + ibcEjOk,
+              ibcEstimated,
               drifttid, rasttime,
               isPreliminary, isUnreported: !isPreliminary,
               prev_created_at: from,
-              created_at: isPreliminary ? nowStr : new Date(lastT).toISOString().replace('T', ' ').substring(0, 19),
+              created_at: isPreliminary ? nowStr : plcEnd,
+              plc_start: plcStart, plc_end: plcEnd,
               _firstTime: firstT, _lastTime: lastT,
               skiftraknare: fs?.skiftraknare ?? null,
               product_id: fs?.produkt ?? null,
