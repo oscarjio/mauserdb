@@ -1,4 +1,5 @@
 # MauserDB Dev Log
+2026-06-04: Agent B — plcbackend nu skriver op1-3, ibc_ok, ibc_ej_ok, runtime_plc, rasttime, lopnummer, driftstopptime, effektivitet till tvattlinje_ibc. Fix: modbusOk sätts till true omedelbart när Modbus lyckas — validering loggar bara varning utan att blockera skrivningen (tidigare bug: validation-throw satte modbusOk=false → NULLs skrevs trots att PLC-data lästes OK).
 2026-06-04: Agent C — v22 IBC=0 fix (AND ibc_ok IS NOT NULL i aggregateWeekStats + getSummary), SNITT KVALITET capped 100% (LEAST+min i getOperatorOfWeek), operator total > monthly total fix (ibc_ok IS NOT NULL i rankSQL getMonthCompare), OEE avail×perf×qual redan fixad (8dd5947b). Commit 2f4e8c5d.
 2026-06-04: Agent A — fixed tvattlinje BÄSTA DAG (s_count→ibc_count), OEE formula (avail*perf*qual), getStatistics PDO fallback (missing columns), PLC Diagnostik tab defensive fix, oversikt tvattlinje timezone+ibc_idag LAG-delta fix; migration add_plc_columns_to_tvattlinje_ibc
 2026-06-04: Agent B — sen inskickning fix (datum→last PLC date, sent_inskickad migration), rebotling skiftvy redesign (KPI-kort, timvis stapel, cykeltidsfördelning, stopdetektering, rådata collapse)

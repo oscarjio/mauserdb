@@ -133,11 +133,13 @@ class TvattLinje {
             // D4010 = aktuellt löpnummer (ignoreras vid cykel)
             $driftstopptime = max(0, (int)($plc[11] ?? 0));  // D4011 - Driftstopptid (min)
 
+            // Modbus lyckades — PLC-fälten skrivs alltid (modbusOk=true).
+            // Validering loggar bara varning vid orimliga värden; den blockerar INTE skrivningen.
+            $modbusOk = true;
             try {
                 $this->validatePLCData('handleCycle', $ibc_ok, $ibc_ej_ok, $omtvaatt, $runtime_plc, $produkt);
-                $modbusOk = true;
             } catch (\RuntimeException $e) {
-                $this->log('handleCycle', "Validering MISSLYCKADES — sparar ändå med default-värden", ['error' => $e->getMessage()]);
+                $this->log('handleCycle', "Validering VARNING — PLC-fält skrivs ändå (råvärden)", ['error' => $e->getMessage()]);
             }
         } else {
             $this->log('handleCycle', "Modbus misslyckades — sparar cykel med null-värden (ibc räknas ändå)");
