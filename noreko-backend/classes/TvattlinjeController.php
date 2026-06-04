@@ -604,7 +604,14 @@ class TvattlinjeController {
             }
 
             $productionPercentage = 0;
-            if ($ibcToday > 0 && $ibcTarget > 0) {
+            $runtimeHours = $totalRuntimeMinutes / 60;
+            if ($runtimeHours > 0.1 && $hourlyTarget > 0 && $ibcToday > 0) {
+                // Taktbaserad procent: faktisk IBC/h ÷ målsatt IBC/h × 100
+                // 100 % = exakt i fas med takt, >100 = snabbare, <100 = långsammare
+                $actualRate = $ibcToday / $runtimeHours;
+                $productionPercentage = round(($actualRate / $hourlyTarget) * 100, 1);
+            } elseif ($ibcToday > 0 && $ibcTarget > 0) {
+                // Fallback utan körtidsdata: dagsmålsprocent som tidigare
                 $productionPercentage = round(($ibcToday / $ibcTarget) * 100, 1);
             }
 
