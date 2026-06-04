@@ -190,8 +190,8 @@ class LineSkiftrapportController {
         // Check if the _ibc table exists before adding correlated subqueries
         $ibcExists = $this->pdo->query("SHOW TABLES LIKE '$ibcTable'")->rowCount() > 0;
         $plcCols = $ibcExists
-            ? "(SELECT MIN(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare) AS plc_start,
-                    (SELECT MAX(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare) AS plc_end"
+            ? "(SELECT MIN(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare AND i.datum <= r.created_at) AS plc_start,
+                    (SELECT MAX(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare AND i.datum <= r.created_at) AS plc_end"
             : "NULL AS plc_start, NULL AS plc_end";
         try {
             $stmt = $this->pdo->prepare("

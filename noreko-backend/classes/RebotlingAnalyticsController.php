@@ -3141,14 +3141,16 @@ class RebotlingAnalyticsController {
             $quality = $ibcTotalt > 0 ? round($ibcOk / $ibcTotalt * 100, 1) : 0.0;
 
             // Prestanda: 15 IBC/h = standard => ideal_cycle = 60/15 = 4 min/IBC
+            // OBS: prestanda mäts på TOTALT antal processade IBCer (ok + ej ok),
+            // inte enbart godkända — annars dubbelräknas kvaliteten i OEE-formeln.
             $idealCycleMin = 60.0 / 15.0; // 4 min per IBC
             $performance = 0.0;
             if ($runtime > 0) {
-                $performance = round(($ibcOk * $idealCycleMin) / $runtime * 100, 1);
+                $performance = round(($ibcTotalt * $idealCycleMin) / $runtime * 100, 1);
                 if ($performance > 100) $performance = 100.0;
             }
 
-            // OEE
+            // OEE = A × P × Q — OEE kan aldrig överstiga vare sig A, P eller Q
             $oee = round($availability * $performance * $quality / 10000, 1);
 
             // Förluster
