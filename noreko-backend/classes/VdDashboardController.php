@@ -379,13 +379,16 @@ class VdDashboardController {
                         COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
                         SUM(ibc_delta) AS total_ibc
                     FROM (
-                        SELECT op1 AS op_id, ibc_delta FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
-                        UNION ALL
-                        SELECT op2, ibc_delta FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
-                        UNION ALL
-                        SELECT op3, ibc_delta FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
-                    ) AS per_shift
-                    LEFT JOIN operators o ON o.number = per_shift.op_id
+                        SELECT DISTINCT op_id, skiftraknare, ibc_delta
+                        FROM (
+                            SELECT op1 AS op_id, skiftraknare, ibc_delta FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
+                            UNION ALL
+                            SELECT op2, skiftraknare, ibc_delta FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
+                            UNION ALL
+                            SELECT op3, skiftraknare, ibc_delta FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
+                        ) positional
+                    ) deduped
+                    LEFT JOIN operators o ON o.number = deduped.op_id
                     GROUP BY op_id, o.name
                     ORDER BY total_ibc DESC
                     LIMIT 3
@@ -401,17 +404,20 @@ class VdDashboardController {
             if (empty($operators) && $this->tableExists('rebotling_skiftrapport')) {
                 try {
                     $sql = "
-                        SELECT sub.op_number AS user_id,
-                               COALESCE(o.name, CONCAT('Operator ', sub.op_number)) AS operator_namn,
-                               SUM(sub.ibc_ok) AS total_ibc
+                        SELECT deduped.op_number AS user_id,
+                               COALESCE(o.name, CONCAT('Operator ', deduped.op_number)) AS operator_namn,
+                               SUM(deduped.ibc_ok) AS total_ibc
                         FROM (
-                            SELECT op1 AS op_number, ibc_ok FROM rebotling_skiftrapport WHERE datum = :today1 AND op1 IS NOT NULL AND op1 > 0
-                            UNION ALL
-                            SELECT op2, ibc_ok FROM rebotling_skiftrapport WHERE datum = :today2 AND op2 IS NOT NULL AND op2 > 0
-                            UNION ALL
-                            SELECT op3, ibc_ok FROM rebotling_skiftrapport WHERE datum = :today3 AND op3 IS NOT NULL AND op3 > 0
-                        ) AS sub
-                        LEFT JOIN operators o ON o.number = sub.op_number
+                            SELECT DISTINCT op_number, skiftraknare, ibc_ok
+                            FROM (
+                                SELECT op1 AS op_number, skiftraknare, ibc_ok FROM rebotling_skiftrapport WHERE datum = :today1 AND op1 IS NOT NULL AND op1 > 0
+                                UNION ALL
+                                SELECT op2, skiftraknare, ibc_ok FROM rebotling_skiftrapport WHERE datum = :today2 AND op2 IS NOT NULL AND op2 > 0
+                                UNION ALL
+                                SELECT op3, skiftraknare, ibc_ok FROM rebotling_skiftrapport WHERE datum = :today3 AND op3 IS NOT NULL AND op3 > 0
+                            ) positional
+                        ) deduped
+                        LEFT JOIN operators o ON o.number = deduped.op_number
                         GROUP BY sub.op_number, o.name
                         ORDER BY total_ibc DESC
                         LIMIT 3
