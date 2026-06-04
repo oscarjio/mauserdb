@@ -1925,7 +1925,8 @@ class BonusController {
             return;
         }
 
-        if (!$sessionOpId || $sessionOpId !== $requestedOpId) {
+        $isAdmin = (($_SESSION['role'] ?? '') === 'admin');
+        if (!$isAdmin && (!$sessionOpId || $sessionOpId !== $requestedOpId)) {
             $this->sendError('Obehörig: op_id matchar inte inloggad användare', 403);
             return;
         }
@@ -2262,6 +2263,11 @@ class BonusController {
         $sessionOpId = isset($_SESSION['operator_id']) ? (int)$_SESSION['operator_id'] : null;
 
         if (!$sessionOpId || $sessionOpId <= 0) {
+            // Admin utan kopplad operatör — returnera tom men giltig respons
+            if (($_SESSION['role'] ?? '') === 'admin') {
+                echo json_encode(['success' => true, 'data' => null, 'message' => 'Inget operatörs-ID kopplat till kontot'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
             $this->sendError('Inget operator_id kopplat till kontot');
             return;
         }

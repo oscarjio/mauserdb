@@ -1892,8 +1892,9 @@ class TvattlinjeController {
                 $kvalitet = ($tot > 0) ? round(($ok / $tot) * 100, 1) : 0;
                 $totalIbcSum += $tot;
                 $totalOkSum  += $ok;
-                // Bästa dag = högst volym (total IBCer tvättade)
-                if ($tot > $bestaIbc) {
+                // Bästa dag = högst volym (total IBCer tvättade), exkludera dagens datum
+                // (ibc_count är ett löpande kumulativt räknerverk — nuvarande dag är ofullständig)
+                if ($tot > $bestaIbc && $r['dag'] < date('Y-m-d')) {
                     $bestaIbc = $tot;
                     $bestaDag = $r['dag'];
                 }

@@ -821,8 +821,11 @@
 
       <div *ngIf="plcDiagError" class="alert alert-danger">{{ plcDiagError }}</div>
 
-      <div *ngIf="!plcDiagData && !plcDiagLoading && !plcDiagError" class="text-center py-5 text-muted">
+      <div *ngIf="plcDiagLoading" class="text-center py-5 text-muted">
         <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>Hämtar diagnostikdata...
+      </div>
+      <div *ngIf="!plcDiagData && !plcDiagLoading && !plcDiagError" class="text-center py-5 text-muted">
+        <i class="fas fa-stethoscope fa-2x mb-2 d-block"></i>Ingen diagnostikdata tillgänglig.
       </div>
 
       <div *ngIf="plcDiagData">
