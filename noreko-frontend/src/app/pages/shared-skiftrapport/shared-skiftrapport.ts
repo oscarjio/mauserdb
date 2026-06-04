@@ -37,6 +37,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   subShiftsMap: { [reportId: number]: any[] } = {};
   subShiftsLoading: { [reportId: number]: boolean } = {};
   subShiftsShowAll: { [reportId: number]: boolean } = {};
+  showRawSubShifts: { [reportId: number]: boolean } = {};
   readonly SUB_PAGE = 30;
   activeTab: { [id: number]: string } = {};
   expandedDays: { [date: string]: boolean } = {};
@@ -787,5 +788,73 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   opAvatarColor(num: number | null): string {
     const colors = ['#4a5568', '#2f6a3f', '#6b4c11', '#553580', '#1a4a6b', '#1a5252', '#5a2020'];
     return colors[((num ?? 0) % colors.length)];
+  }
+
+  private _subTimes(reportId: number): number[] {
+    return (this.subShiftsMap[reportId] || [])
+      .map((s: any) => new Date(String(s.datum).replace(' ', 'T')).getTime())
+      .filter((t: number) => !isNaN(t));
+  }
+
+  private _cycleGapsMin(reportId: number): number[] {
+    const t = this._subTimes(reportId);
+    const gaps: number[] = [];
+    for (let i = 1; i < t.length; i++) gaps.push((t[i] - t[i - 1]) / 60000);
+    return gaps;
+  }
+
+  getPlcKpi(reportId: number): { totalCycles: number; medianCycleMin: number; totalStopMin: number; avgCycleMin: number } {
+    const subs = this.subShiftsMap[reportId] || [];
+    if (subs.length < 2) return { totalCycles: subs.length, medianCycleMin: 0, totalStopMin: 0, avgCycleMin: 0 };
+    const gaps = this._cycleGapsMin(reportId);
+    if (!gaps.length) return { totalCycles: subs.length, medianCycleMin: 0, totalStopMin: 0, avgCycleMin: 0 };
+    const sorted = [...gaps].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const threshold = median * 2;
+    const stopGaps = gaps.filter(g => g > threshold);
+    const workGaps = gaps.filter(g => g <= threshold);
+    return {
+      totalCycles: subs.length,
+      medianCycleMin: Math.round(median * 10) / 10,
+      totalStopMin: Math.round(stopGaps.reduce((s, g) => s + g, 0)),
+      avgCycleMin: workGaps.length ? Math.round(workGaps.reduce((s, g) => s + g, 0) / workGaps.length * 10) / 10 : 0
+    };
+  }
+
+  getDetectedStops(reportId: number): Array<{ start: string; end: string; durationMin: number }> {
+    const times = this._subTimes(reportId);
+    if (times.length < 2) return [];
+    const gaps = this._cycleGapsMin(reportId);
+    const sorted = [...gaps].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    const threshold = median * 2;
+    const stops: Array<{ start: string; end: string; durationMin: number }> = [];
+    for (let i = 1; i < times.length; i++) {
+      const gapMin = (times[i] - times[i - 1]) / 60000;
+      if (gapMin > threshold) {
+        stops.push({
+          start: new Date(times[i - 1]).toTimeString().substring(0, 5),
+          end: new Date(times[i]).toTimeString().substring(0, 5),
+          durationMin: Math.round(gapMin)
+        });
+      }
+    }
+    return stops;
+  }
+
+  getHourlyBuckets(reportId: number): Array<{ hour: number; count: number }> {
+    const buckets: Record<number, number> = {};
+    for (const s of (this.subShiftsMap[reportId] || [])) {
+      if (!s.datum) continue;
+      const h = new Date(String(s.datum).replace(' ', 'T')).getHours();
+      buckets[h] = (buckets[h] || 0) + 1;
+    }
+    return Object.entries(buckets)
+      .map(([h, c]) => ({ hour: +h, count: c as number }))
+      .sort((a, b) => a.hour - b.hour);
+  }
+
+  getHourlyMax(reportId: number): number {
+    return Math.max(...this.getHourlyBuckets(reportId).map(b => b.count), 1);
   }
 }
