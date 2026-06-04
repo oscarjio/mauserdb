@@ -95,6 +95,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     basta_dag: null, basta_ibc: 0
   };
   private oeeTrendChart: Chart | null = null;
+  private statistikPollingId: any = null;
 
   // "Bästa dag" KPI (fylls av OEE-trend)
   bastaDagLabel: string = '–';
@@ -177,6 +178,12 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.syncStateToUrl();
     this.loadStatistics();
     this.loadOeeTrend();
+    this.statistikPollingId = setInterval(() => {
+      if (!this.loading) {
+        this.loadStatistics();
+        this.loadOeeTrend();
+      }
+    }, 60000);
     // Sätt standardintervall för skiftrapport-statistik (senaste 30 dagarna)
     const today = new Date().toISOString().split('T')[0];
     this.skiftStatTo = today;
@@ -244,6 +251,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     clearTimeout(this.chartUpdateTimer);
     clearTimeout(this.oeeTrendChartTimer);
     clearInterval(this.plcDiagRefreshInterval);
+    clearInterval(this.statistikPollingId);
     try { this.productionChart?.destroy(); } catch (e) {}
     this.productionChart = null;
     try { this.oeeTrendChart?.destroy(); } catch (e) {}

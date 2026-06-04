@@ -1797,9 +1797,9 @@ class TvattlinjeController {
                 $stmt = $this->pdo->prepare("
                     SELECT
                         DATE(datum)                                                  AS dag,
-                        SUM(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0))          AS total_ibc,
-                        SUM(COALESCE(ibc_ok, 0))                                    AS total_ok,
-                        SUM(COALESCE(ibc_ej_ok, 0))                                 AS total_ej_ok,
+                        MAX(COALESCE(ibc_count, 0))                                 AS total_ibc,
+                        MAX(COALESCE(ibc_ok, 0))                                    AS total_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0))                                 AS total_ej_ok,
                         COUNT(DISTINCT skiftraknare)                                 AS skift_count
                     FROM tvattlinje_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
