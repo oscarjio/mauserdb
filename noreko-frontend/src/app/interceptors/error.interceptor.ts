@@ -15,15 +15,23 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const safeToRetry = ['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase());
 
   return next(req).pipe(
-    // Retry en gang vid natverksfel (status 0) eller 502/503/504 med 1s delay
-    // Enbart for idempotenta metoder (GET/HEAD/OPTIONS)
+    // Retry vid natverksfel (status 0) eller 502/503/504 — enbart idempotenta metoder (GET/HEAD/OPTIONS).
+    // 503: exponentiell backoff upp till 3 forsok (500ms, 1000ms, 2000ms).
+    // 0/502/504: en forsok med 1s fast delay.
     retry({
-      count: 1,
-      delay: (err: HttpErrorResponse) => {
+      count: 3,
+      delay: (err: HttpErrorResponse, retryCount: number) => {
         if (!safeToRetry) {
           return throwError(() => err);
         }
-        if (err.status === 0 || err.status === 502 || err.status === 503 || err.status === 504) {
+        if (err.status === 503) {
+          return timer(retryCount * 500);
+        }
+        if (err.status === 0 || err.status === 502 || err.status === 504) {
+          // Bara ett forsok for ovriga gateway-fel
+          if (retryCount > 1) {
+            return throwError(() => err);
+          }
           return timer(1000);
         }
         return throwError(() => err);
