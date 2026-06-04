@@ -218,12 +218,35 @@ class LineSkiftrapportController {
 
     private function createReport($table, $data) {
         try {
-            $datum = trim($data['datum'] ?? date('Y-m-d'));
+            // Om datum inte skickas in — hämta senaste PLC-datum från _ibc-tabellen (stöd för sen inskickning)
+            $ibcTable = str_replace('_skiftrapport', '_ibc', $table);
+            $datumFran = trim($data['datum'] ?? '');
+            if ($datumFran === '') {
+                try {
+                    $ibcExists = $this->pdo->query("SHOW TABLES LIKE '$ibcTable'")->rowCount() > 0;
+                    if ($ibcExists) {
+                        $maxStmt = $this->pdo->query("SELECT DATE(MAX(datum)) AS maxd FROM `$ibcTable`");
+                        $maxRow  = $maxStmt->fetch(PDO::FETCH_ASSOC);
+                        $datumFran = ($maxRow && $maxRow['maxd']) ? $maxRow['maxd'] : date('Y-m-d');
+                    } else {
+                        $datumFran = date('Y-m-d');
+                    }
+                } catch (\Throwable $e) {
+                    error_log("LineSkiftrapportController::createReport – IBC-datum fallback: " . $e->getMessage());
+                    $datumFran = date('Y-m-d');
+                }
+            }
+            $datum = $datumFran;
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                 return;
             }
+
+            // Detektera sen inskickning: datum skiljer sig från dagens datum
+            $today = date('Y-m-d');
+            $sentInskickad = ($datum !== $today) ? 1 : 0;
+
             $antal_ok    = max(0, min(999999, intval($data['antal_ok'] ?? 0)));
             $antal_ej_ok = max(0, min(999999, intval($data['antal_ej_ok'] ?? 0)));
             $totalt      = $antal_ok + $antal_ej_ok;
@@ -237,17 +260,48 @@ class LineSkiftrapportController {
             $op3         = isset($data['op3']) && $data['op3'] !== '' && $data['op3'] !== null ? max(0, intval($data['op3'])) : null;
             $product_id  = isset($data['product_id']) && $data['product_id'] !== '' && $data['product_id'] !== null ? intval($data['product_id']) : null;
 
+            // Kontrollera om sent_inskickad-kolumnen finns (migration kanske inte körd ännu)
+            $hasSentCol = false;
+            try {
+                $check = $this->pdo->query(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS
+                     WHERE TABLE_SCHEMA = DATABASE()
+                       AND TABLE_NAME = '$table'
+                       AND COLUMN_NAME = 'sent_inskickad'"
+                )->fetchColumn();
+                $hasSentCol = (int)$check > 0;
+            } catch (\Throwable $e) {
+                // Ignorera — faller tillbaka till INSERT utan kolumnen
+            }
+
             $this->pdo->beginTransaction();
-            $stmt = $this->pdo->prepare("
-                INSERT INTO `$table` (datum, antal_ok, antal_ej_ok, totalt, kommentar, user_id, op1, op2, op3, product_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([$datum, $antal_ok, $antal_ej_ok, $totalt, $kommentar, $user_id, $op1, $op2, $op3, $product_id]);
+            if ($hasSentCol) {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO `$table` (datum, antal_ok, antal_ej_ok, totalt, kommentar, user_id, op1, op2, op3, product_id, sent_inskickad)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([$datum, $antal_ok, $antal_ej_ok, $totalt, $kommentar, $user_id, $op1, $op2, $op3, $product_id, $sentInskickad]);
+            } else {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO `$table` (datum, antal_ok, antal_ej_ok, totalt, kommentar, user_id, op1, op2, op3, product_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([$datum, $antal_ok, $antal_ej_ok, $totalt, $kommentar, $user_id, $op1, $op2, $op3, $product_id]);
+            }
             $newId = (int)$this->pdo->lastInsertId();
-            AuditLogger::log($this->pdo, 'create_rapport', $table, $newId,
-                "Skapad: datum=$datum, antal_ok=$antal_ok, totalt=$totalt");
+            $auditMsg = "Skapad: datum=$datum, antal_ok=$antal_ok, totalt=$totalt";
+            if ($sentInskickad) {
+                $auditMsg .= ", sent_inskickad=1 (datum=$datum, idag=$today)";
+            }
+            AuditLogger::log($this->pdo, 'create_rapport', $table, $newId, $auditMsg);
             $this->pdo->commit();
-            echo json_encode(['success' => true, 'message' => 'Rapport skapad', 'id' => $newId], JSON_UNESCAPED_UNICODE);
+            echo json_encode([
+                'success'         => true,
+                'message'         => 'Rapport skapad',
+                'id'              => $newId,
+                'datum'           => $datum,
+                'sent_inskickad'  => $sentInskickad,
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();

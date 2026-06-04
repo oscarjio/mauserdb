@@ -289,6 +289,179 @@
               </div>
             </div>
           </div>
+
+          <!-- ============ PLC ÖVERSIKT (dag-vy) ============ -->
+          <div *ngIf="viewMode === 'day' && showPlcOverview" class="plc-overview-section mb-4">
+
+            <h6 class="text-muted mb-3">
+              <i class="fas fa-microchip me-2"></i>PLC Översikt
+            </h6>
+
+            <!-- KPI-kort rad -->
+            <div class="row g-2 mb-3">
+              <div class="col-6 col-md-3">
+                <div class="kpi-card" style="background:#2d3748; border-radius:8px; padding:12px; text-align:center;">
+                  <div class="small text-muted mb-1">Total IBC</div>
+                  <div class="fw-bold text-warning" style="font-size:1.4rem;">{{ plcKpi.totalIbc }}</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="kpi-card" style="background:#2d3748; border-radius:8px; padding:12px; text-align:center;">
+                  <div class="small text-muted mb-1">Effektivitet</div>
+                  <div class="fw-bold" style="font-size:1.4rem;"
+                       [class.text-success]="plcKpi.effektivitet >= 80"
+                       [class.text-warning]="plcKpi.effektivitet >= 60 && plcKpi.effektivitet < 80"
+                       [class.text-danger]="plcKpi.effektivitet < 60">
+                    {{ plcKpi.effektivitet }}%
+                  </div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="kpi-card" style="background:#2d3748; border-radius:8px; padding:12px; text-align:center;">
+                  <div class="small text-muted mb-1">Snitt cykeltid</div>
+                  <div class="fw-bold text-info" style="font-size:1.4rem;">{{ plcKpi.snittCykelMin }} min</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="kpi-card" style="background:#2d3748; border-radius:8px; padding:12px; text-align:center;">
+                  <div class="small text-muted mb-1">Stoppid totalt</div>
+                  <div class="fw-bold" style="font-size:1.4rem;"
+                       [class.text-danger]="plcKpi.stoppidTotMin > 30"
+                       [class.text-warning]="plcKpi.stoppidTotMin > 0 && plcKpi.stoppidTotMin <= 30"
+                       [class.text-success]="plcKpi.stoppidTotMin === 0">
+                    {{ plcKpi.stoppidTotMin }} min
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stapeldiagram: Timvis produktion + Cykeltidsfördelning -->
+            <div class="row g-3 mb-3">
+              <div class="col-12 col-lg-7">
+                <div style="background:#2d3748; border-radius:8px; padding:12px;">
+                  <div class="small text-muted mb-2">
+                    <i class="fas fa-chart-bar me-1"></i>Timvis produktion (IBC)
+                  </div>
+                  <div style="height:160px; position:relative;">
+                    <canvas id="plcHourlyCanvas"></canvas>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12 col-lg-5">
+                <div style="background:#2d3748; border-radius:8px; padding:12px;">
+                  <div class="small text-muted mb-2">
+                    <i class="fas fa-chart-column me-1"></i>Cykeltidsfördelning
+                  </div>
+                  <div style="height:160px; position:relative;">
+                    <canvas id="plcHistogramCanvas"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Detekterade stopp -->
+            <div *ngIf="plcDetectedStopps.length > 0" style="background:#2d3748; border-radius:8px; padding:12px; margin-bottom:12px;">
+              <div class="small text-muted mb-2">
+                <i class="fas fa-pause-circle text-danger me-1"></i>
+                Detekterade stopp ({{ plcDetectedStopps.length }} st)
+              </div>
+              <div class="table-responsive">
+                <table class="table table-dark table-sm mb-0" style="font-size:0.82rem;">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Starttid</th>
+                      <th class="text-end">Varaktighet</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let stopp of plcDetectedStopps; let i = index; trackBy: trackByIndex">
+                      <td class="text-muted">{{ i + 1 }}</td>
+                      <td>{{ stopp.startTime }}</td>
+                      <td class="text-end"
+                          [class.text-danger]="stopp.durationMin >= 30"
+                          [class.text-warning]="stopp.durationMin >= 10 && stopp.durationMin < 30"
+                          [class.text-success]="stopp.durationMin < 10">
+                        {{ stopp.durationMin }} min
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div *ngIf="plcDetectedStopps.length === 0" class="small text-success mb-2">
+              <i class="fas fa-check-circle me-1"></i>Inga detekterade stopp under detta skift.
+            </div>
+
+            <!-- Rådata (collapse) -->
+            <div style="background:#2d3748; border-radius:8px; overflow:hidden;">
+              <button type="button"
+                      class="btn btn-sm w-100 text-start py-2 px-3"
+                      style="background:#374151; color:#a0aec0; border:none; border-radius:0;"
+                      (click)="togglePlcRawCycles()">
+                <i class="fas me-2"
+                   [class.fa-chevron-right]="!showRawCyclesCollapse"
+                   [class.fa-chevron-down]="showRawCyclesCollapse"></i>
+                Visa rådata ({{ rawCyclesSorted.length }} rader)
+              </button>
+              <div *ngIf="showRawCyclesCollapse" class="raw-data-table-wrapper p-0">
+                <table class="table table-dark table-striped table-hover table-sm mb-0">
+                  <thead class="raw-data-thead">
+                    <tr>
+                      <th class="raw-data-th"><small class="text-muted">#</small></th>
+                      <th class="raw-data-th" style="cursor:pointer;" (click)="sortRawCycles('datum')">
+                        Tidpunkt <i [class]="getRawSortIcon('datum')" class="ms-1"></i>
+                      </th>
+                      <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('cycle_time')">
+                        Cykeltid (min) <i [class]="getRawSortIcon('cycle_time')" class="ms-1"></i>
+                      </th>
+                      <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('ibc_count')">
+                        IBC# <i [class]="getRawSortIcon('ibc_count')" class="ms-1"></i>
+                      </th>
+                      <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('ibc_ok')">
+                        OK <i [class]="getRawSortIcon('ibc_ok')" class="ms-1"></i>
+                      </th>
+                      <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('ibc_ej_ok')">
+                        Ej OK <i [class]="getRawSortIcon('ibc_ej_ok')" class="ms-1"></i>
+                      </th>
+                      <th class="raw-data-th" style="cursor:pointer;" (click)="sortRawCycles('produkt_namn')">
+                        Produkt <i [class]="getRawSortIcon('produkt_namn')" class="ms-1"></i>
+                      </th>
+                      <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('skiftraknare')">
+                        Skift <i [class]="getRawSortIcon('skiftraknare')" class="ms-1"></i>
+                      </th>
+                      <th class="raw-data-th text-end" style="cursor:pointer;" (click)="sortRawCycles('bur_ej_ok')">
+                        Bur ej OK <i [class]="getRawSortIcon('bur_ej_ok')" class="ms-1"></i>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let c of rawCyclesSorted; let i = index; trackBy: trackByIndex">
+                      <td class="text-muted">{{ i + 1 }}</td>
+                      <td>{{ c.datum | date:'HH:mm:ss' }}</td>
+                      <td class="text-end"
+                          [ngClass]="{
+                            'text-success': +c.cycle_time > 0 && +c.cycle_time <= targetCycleTime,
+                            'text-warning': +c.cycle_time > targetCycleTime && +c.cycle_time <= targetCycleTime * 1.5,
+                            'text-danger': +c.cycle_time > targetCycleTime * 1.5
+                          }">
+                        {{ (+c.cycle_time).toFixed(1) }}
+                      </td>
+                      <td class="text-end">{{ c.ibc_count }}</td>
+                      <td class="text-end text-success">{{ c.ibc_ok >= 0 ? c.ibc_ok : 0 }}</td>
+                      <td class="text-end" [class.text-danger]="+(c.ibc_ej_ok) > 0">{{ c.ibc_ej_ok >= 0 ? c.ibc_ej_ok : 0 }}</td>
+                      <td>{{ c.produkt_namn || '-' }}</td>
+                      <td class="text-end">{{ c.skiftraknare }}</td>
+                      <td class="text-end" [class.text-danger]="+(c.bur_ej_ok) > 0">{{ c.bur_ej_ok || 0 }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+          <!-- ============ /PLC ÖVERSIKT ============ -->
+
         </div>
       </div>
 

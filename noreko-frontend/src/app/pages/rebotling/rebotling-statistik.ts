@@ -179,6 +179,17 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   dayLongestStopMinutes: number = 0;
   dayUtilizationPct: number = 0;
 
+  // ---- PLC Översikt (dag-vy) ----
+  showPlcOverview = false;
+  showRawCyclesCollapse = false;
+  plcKpi: { totalIbc: number; effektivitet: number; snittCykelMin: number; stoppidTotMin: number } = { totalIbc: 0, effektivitet: 0, snittCykelMin: 0, stoppidTotMin: 0 };
+  plcTimvisData: { hour: number; count: number }[] = [];
+  plcCycleHistogram: { label: string; count: number }[] = [];
+  plcDetectedStopps: { startTime: string; durationMin: number }[] = [];
+  private plcHourlyChart: Chart | null = null;
+  private plcHistogramChart: Chart | null = null;
+  private plcChartBuildTimer: any = null;
+
   // Per-cykel data för dag-vy (sorterade efter tid)
   private sortedDayCycles: any[] = [];
 
@@ -473,6 +484,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.stopLivePolling();
     clearTimeout(this.chartUpdateTimer);
     clearTimeout(this.exportFeedbackTimer);
+    clearTimeout(this.plcChartBuildTimer);
     try {
       if (this.productionChart) {
         const canvas = this.productionChart.canvas;
@@ -486,6 +498,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         this.productionChart = null;
       }
     } catch (e) { this.productionChart = null; }
+    try { this.plcHourlyChart?.destroy(); } catch (_) {}
+    this.plcHourlyChart = null;
+    try { this.plcHistogramChart?.destroy(); } catch (_) {}
+    this.plcHistogramChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -900,9 +916,15 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.buildShiftSummaries(data.cycles || []);
     this.computeDayMetrics(data);
 
-    // Spara rådata för modal
+    // Spara rådata för modal och PLC-översikt
     this.rawCycles = data.cycles || [];
     this.sortRawCycles();
+    if (this.viewMode === 'day') {
+      this.showRawCyclesCollapse = false; // Återställ collapse vid ny data
+      this.computePlcOverview();
+    } else {
+      this.showPlcOverview = false;
+    }
 
     this.updatePeriodCellsData(data);
   }
@@ -2312,6 +2334,176 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     this.dayLongestStopMinutes = longestStop;
     this.dayUtilizationPct = utilization;
+  }
+
+  // ======== PLC Översikt (dag-vy) ========
+
+  computePlcOverview(): void {
+    const cycles = this.rawCycles;
+    if (!cycles || cycles.length === 0) {
+      this.showPlcOverview = false;
+      return;
+    }
+    this.showPlcOverview = true;
+
+    // 1. KPI
+    const totalIbc = cycles.reduce((s: number, c: any) => s + (parseInt(c.ibc_ok) || 0), 0);
+    const cycleTimes = cycles
+      .map((c: any) => parseFloat(c.cycle_time))
+      .filter((v: number) => !isNaN(v) && v > 0 && v <= 60);
+    const snittCykel = cycleTimes.length > 0
+      ? Math.round((cycleTimes.reduce((s: number, v: number) => s + v, 0) / cycleTimes.length) * 10) / 10
+      : 0;
+
+    // Stoppid från timelineSegments (stopp + driftstopp)
+    const stoppMin = this.timelineSegments
+      .filter(s => s.type === 'stopped' || s.type === 'driftstopp')
+      .reduce((sum, s) => {
+        const parts = s.duration.match(/(\d+)h\s*(\d+)?m?|(\d+)m/);
+        if (!parts) return sum;
+        if (parts[1]) return sum + parseInt(parts[1]) * 60 + parseInt(parts[2] || '0');
+        if (parts[3]) return sum + parseInt(parts[3]);
+        return sum;
+      }, 0);
+
+    const eff = Math.min(100, this.avgEfficiency || 0);
+    this.plcKpi = { totalIbc, effektivitet: eff, snittCykelMin: snittCykel, stoppidTotMin: stoppMin };
+
+    // 2. Timvis produktion (groupera IBC OK per timme)
+    const hourMap = new Map<number, number>();
+    for (let h = 0; h < 24; h++) hourMap.set(h, 0);
+    for (const c of cycles) {
+      if (!c.datum) continue;
+      const h = new Date(c.datum).getHours();
+      hourMap.set(h, (hourMap.get(h) || 0) + (parseInt(c.ibc_ok) || 0));
+    }
+    this.plcTimvisData = Array.from(hourMap.entries())
+      .map(([hour, count]) => ({ hour, count }))
+      .filter(x => x.count > 0 || (x.hour >= 5 && x.hour <= 22)); // Visa rimliga arbetstimmar
+
+    // 3. Cykeltidsfördelning histogram
+    const bins = [
+      { label: '0–2 min', min: 0, max: 2 },
+      { label: '2–4 min', min: 2, max: 4 },
+      { label: '4–6 min', min: 4, max: 6 },
+      { label: '6–8 min', min: 6, max: 8 },
+      { label: '8–12 min', min: 8, max: 12 },
+      { label: '12+ min', min: 12, max: Infinity },
+    ];
+    this.plcCycleHistogram = bins.map(b => ({
+      label: b.label,
+      count: cycleTimes.filter((v: number) => v >= b.min && v < b.max).length,
+    }));
+
+    // 4. Detekterade stopp (luckor > 2× median cykeltid)
+    const sortedCycles = [...cycles]
+      .filter((c: any) => c.datum)
+      .sort((a: any, b: any) => new Date(a.datum).getTime() - new Date(b.datum).getTime());
+    const sorted = [...cycleTimes].sort((a, b) => a - b);
+    const median = sorted.length > 0 ? sorted[Math.floor(sorted.length / 2)] : 0;
+    const stopThresholdMs = median > 0 ? median * 2 * 60 * 1000 : 10 * 60 * 1000;
+    const detected: { startTime: string; durationMin: number }[] = [];
+    for (let i = 1; i < sortedCycles.length; i++) {
+      const prev = new Date(sortedCycles[i - 1].datum).getTime();
+      const curr = new Date(sortedCycles[i].datum).getTime();
+      const gapMs = curr - prev;
+      if (gapMs > stopThresholdMs) {
+        detected.push({
+          startTime: new Date(sortedCycles[i - 1].datum).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
+          durationMin: Math.round(gapMs / 60000),
+        });
+      }
+    }
+    this.plcDetectedStopps = detected;
+
+    // Bygg chartar efter DOM-uppdatering
+    clearTimeout(this.plcChartBuildTimer);
+    this.plcChartBuildTimer = setTimeout(() => this.buildPlcCharts(), 50);
+  }
+
+  private buildPlcCharts(): void {
+    this.buildPlcHourlyChart();
+    this.buildPlcHistogramChart();
+  }
+
+  private buildPlcHourlyChart(): void {
+    try { this.plcHourlyChart?.destroy(); } catch (_) {}
+    this.plcHourlyChart = null;
+    const canvas = document.getElementById('plcHourlyCanvas') as HTMLCanvasElement;
+    if (!canvas || this.plcTimvisData.length === 0) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const labels = this.plcTimvisData.map(d => `${String(d.hour).padStart(2, '0')}:00`);
+    const counts = this.plcTimvisData.map(d => d.count);
+    this.plcHourlyChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'IBC per timme',
+          data: counts,
+          backgroundColor: 'rgba(99, 179, 237, 0.7)',
+          borderColor: '#63b3ed',
+          borderWidth: 1,
+          borderRadius: 3,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (item) => ` ${item.raw} IBC` } },
+        },
+        scales: {
+          x: { ticks: { color: '#a0aec0', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { beginAtZero: true, ticks: { color: '#a0aec0', precision: 0 }, grid: { color: 'rgba(255,255,255,0.08)' },
+               title: { display: true, text: 'IBC', color: '#a0aec0', font: { size: 10 } } },
+        },
+      },
+    });
+  }
+
+  private buildPlcHistogramChart(): void {
+    try { this.plcHistogramChart?.destroy(); } catch (_) {}
+    this.plcHistogramChart = null;
+    const canvas = document.getElementById('plcHistogramCanvas') as HTMLCanvasElement;
+    if (!canvas || this.plcCycleHistogram.length === 0) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const labels = this.plcCycleHistogram.map(b => b.label);
+    const counts = this.plcCycleHistogram.map(b => b.count);
+    this.plcHistogramChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Antal cykler',
+          data: counts,
+          backgroundColor: counts.map((_, i) => i === 0 || i === 1 ? 'rgba(104, 211, 145, 0.7)' : i <= 3 ? 'rgba(246, 173, 85, 0.7)' : 'rgba(252, 129, 129, 0.7)'),
+          borderColor: counts.map((_, i) => i === 0 || i === 1 ? '#68d391' : i <= 3 ? '#f6ad55' : '#fc8181'),
+          borderWidth: 1,
+          borderRadius: 3,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (item) => ` ${item.raw} cykler` } },
+        },
+        scales: {
+          x: { ticks: { color: '#a0aec0', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { beginAtZero: true, ticks: { color: '#a0aec0', precision: 0 }, grid: { color: 'rgba(255,255,255,0.08)' },
+               title: { display: true, text: 'Cykler', color: '#a0aec0', font: { size: 10 } } },
+        },
+      },
+    });
+  }
+
+  togglePlcRawCycles(): void {
+    this.showRawCyclesCollapse = !this.showRawCyclesCollapse;
   }
 
   updateTable(data: any) {
