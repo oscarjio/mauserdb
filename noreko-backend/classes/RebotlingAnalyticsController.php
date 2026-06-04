@@ -903,6 +903,12 @@ class RebotlingAnalyticsController {
 
                 if ($lastShiftRow) {
                     $lastShift = (int)$lastShiftRow['skiftraknare'];
+
+                    // Skiftets totala drifttid (runtime_plc är kumulativ per skift, ej per op)
+                    $stmtRt = $this->pdo->prepare("SELECT COALESCE(MAX(runtime_plc), 0) FROM rebotling_ibc WHERE skiftraknare = ?");
+                    $stmtRt->execute([$lastShift]);
+                    $shiftRuntime = (float)$stmtRt->fetchColumn();
+
                     // Hämta alla operatörer i skiftet (pos 1,2,3) — EN rad per operatör
                     // ROW_NUMBER() PARTITION BY operator_id eliminerar dubbletter när samma person
                     // arbetar flera positioner (visas bara en gång med sin primärposition).
@@ -942,6 +948,15 @@ class RebotlingAnalyticsController {
                     $opRows->execute([$lastShift, $lastShift, $lastShift]);
                     $opData = $opRows->fetchAll(PDO::FETCH_ASSOC);
 
+                    // PHP-nivå dedup — säkerhetsnät om ROW_NUMBER() missar dubbletter
+                    $seenOpIds = [];
+                    $opData = array_values(array_filter($opData, function($op) use (&$seenOpIds) {
+                        $id = (int)$op['operator_id'];
+                        if (isset($seenOpIds[$id])) return false;
+                        $seenOpIds[$id] = true;
+                        return true;
+                    }));
+
                     // Hämta namn för alla operatörer
                     $opIds = array_unique(array_column($opData, 'operator_id'));
                     $nameMap = [];
@@ -959,9 +974,9 @@ class RebotlingAnalyticsController {
                         $opId  = (int)$op['operator_id'];
                         $ok    = (float)$op['ibc_ok'];
                         $ej    = (float)$op['ibc_ej_ok'];
-                        // Kräv minst 10 minuters drifttid för meningsfull IBC/h — undviker explosion
-                        // vid korta datapunkter (BUG-op-table: operatör-ID visades som IBC/h-värde)
-                        $rtMin = max((float)$op['runtime_min'], 10);
+                        // Använd skiftets totala drifttid — runtime_plc är kumulativ per skift
+                        // och ska inte filtreras per operator (ger för kort tid om op byttes mid-skift)
+                        $rtMin = max($shiftRuntime > 0 ? $shiftRuntime : (float)$op['runtime_min'], 10);
                         $ibcH  = round(min($ok * 60.0 / $rtMin, 99.9), 1);
                         $qual  = ($ok + $ej) > 0 ? round($ok / ($ok + $ej) * 100, 1) : 0;
                         $lastShiftOps[] = [
@@ -2269,14 +2284,18 @@ class RebotlingAnalyticsController {
                         SELECT skiftraknare, op3,           ibc_ok, ibc_ej_ok, runtime_h FROM per_shift WHERE op3 > 0
                     ),
                     deduped AS (
-                        SELECT DISTINCT op_id, skiftraknare, ibc_ok, ibc_ej_ok, runtime_h
+                        SELECT op_id, skiftraknare,
+                               MAX(ibc_ok)     AS ibc_ok,
+                               MAX(ibc_ej_ok)  AS ibc_ej_ok,
+                               MAX(runtime_h)  AS runtime_h
                         FROM all_ops
+                        GROUP BY op_id, skiftraknare
                     )
                     SELECT op_id,
                            COUNT(DISTINCT skiftraknare)                                        AS shifts,
                            SUM(ibc_ok)                                                         AS total_ibc,
                            SUM(ibc_ok)       / NULLIF(SUM(runtime_h), 0)                      AS avg_ibc_per_h,
-                           SUM(ibc_ok)*100.0 / NULLIF(SUM(ibc_ok + ibc_ej_ok), 0)             AS avg_quality_pct
+                           LEAST(100.0, SUM(ibc_ok)*100.0 / NULLIF(SUM(ibc_ok + ibc_ej_ok), 0)) AS avg_quality_pct
                     FROM deduped
                     GROUP BY op_id
                     ORDER BY (SUM(ibc_ok) * 0.6 + SUM(ibc_ok) / NULLIF(SUM(runtime_h), 0) * 0.4) DESC
@@ -2606,8 +2625,12 @@ class RebotlingAnalyticsController {
                     SELECT skiftraknare, op3 AS op_num, ibc_ok, totalt, drifttid FROM lag_shifts WHERE op3 > 0
                 ),
                 deduped AS (
-                    SELECT DISTINCT op_num, skiftraknare, ibc_ok, totalt, drifttid
+                    SELECT op_num, skiftraknare,
+                           MAX(ibc_ok)   AS ibc_ok,
+                           MAX(totalt)   AS totalt,
+                           MAX(drifttid) AS drifttid
                     FROM all_ops
+                    GROUP BY op_num, skiftraknare
                 )
                 SELECT
                     o.number AS number,
@@ -2636,7 +2659,7 @@ class RebotlingAnalyticsController {
                 $totalt  = (int)($row['totalt']   ?? 0);
                 $drMin   = (int)($row['drifttid'] ?? 0);
                 $ibcPerH = $drMin > 0 ? round($ibcOk / ($drMin / 60.0), 1) : null;
-                $qualPct = $totalt > 0 ? round($ibcOk / $totalt * 100, 1) : null;
+                $qualPct = $totalt > 0 ? min(100.0, round($ibcOk / $totalt * 100, 1)) : null;
                 $score   = round($ibcOk * 0.6 + ($ibcPerH ?? 0) * 100 * 0.25 + ($qualPct ?? 0) * 0.15, 1);
                 $operatorRanking[] = [
                     'name'             => $row['name'],
