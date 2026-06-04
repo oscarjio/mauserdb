@@ -1215,23 +1215,27 @@ class TvattlinjeController {
                 }
             }
 
-            // Verkligt antal cykler via LAG-delta på MAX(ibc_count) per dag — fångar missade webhooks
-            // ibc_count är kumulativt; SUM(MAX per dag) räknar fel. Korrekt: SUM av dagliga delta.
+            // Verkligt antal cykler via LAG-delta på MAX(ibc_count) per dag — fångar missade webhooks.
+            // ibc_count är kumulativt (nollställs aldrig); LAG är korrekt men kräver en extra dag FÖRE
+            // perioden som baseline så att första dagenss LAG inte är NULL → COALESCE(0) → jättedelta.
             $total_cycles_true = 0;
             try {
                 $stmtTrue = $this->pdo->prepare('
                     SELECT COALESCE(SUM(GREATEST(0, ibc_delta)), 0)
                     FROM (
-                        SELECT day_end - COALESCE(LAG(day_end) OVER (ORDER BY dag), 0) AS ibc_delta
+                        SELECT dag,
+                               day_end - LAG(day_end) OVER (ORDER BY dag) AS ibc_delta
                         FROM (
                             SELECT DATE(datum) AS dag, MAX(ibc_count) AS day_end
                             FROM tvattlinje_ibc
-                            WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                            WHERE datum >= DATE_SUB(:start, INTERVAL 1 DAY)
+                              AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                             GROUP BY DATE(datum)
                         ) daily_max
                     ) deltas
+                    WHERE dag >= :start2
                 ');
-                $stmtTrue->execute(['start' => $start, 'end' => $end]);
+                $stmtTrue->execute(['start' => $start, 'end' => $end, 'start2' => $start]);
                 $total_cycles_true = (int)$stmtTrue->fetchColumn();
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics total_cycles_true: ' . $e->getMessage()); }
 
@@ -1817,12 +1821,14 @@ class TvattlinjeController {
             // Hämta daglig data från tvattlinje_ibc (PLC-tabell — konsekvent med översiktssidan)
             // ibc_count är ett kumulativt räknerverk som INTE nollställs dagligen.
             // Korrekt daglig produktion = MAX(ibc_count) denna dag − MAX(ibc_count) föregående dag (LAG-delta).
+            // Hämta N+1 dagar i inner-queryn för att ge LAG ett baseline-värde för första dagen,
+            // filtrera sedan bort extradag i outer-queryn.
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT dag,
-                           GREATEST(0, day_end - COALESCE(LAG(day_end) OVER (ORDER BY dag), 0)) AS total_ibc,
-                           GREATEST(0, ok_end  - COALESCE(LAG(ok_end)  OVER (ORDER BY dag), 0)) AS total_ok,
-                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (ORDER BY dag), 0)) AS total_ej_ok,
+                           GREATEST(0, day_end - LAG(day_end) OVER (ORDER BY dag)) AS total_ibc,
+                           GREATEST(0, ok_end  - LAG(ok_end)  OVER (ORDER BY dag)) AS total_ok,
+                           GREATEST(0, ej_end  - LAG(ej_end)  OVER (ORDER BY dag)) AS total_ej_ok,
                            skift_count
                     FROM (
                         SELECT
@@ -1832,12 +1838,13 @@ class TvattlinjeController {
                             MAX(COALESCE(ibc_ej_ok, 0))     AS ej_end,
                             COUNT(DISTINCT skiftraknare)    AS skift_count
                         FROM tvattlinje_ibc
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL (:dagar + 1) DAY)
                         GROUP BY DATE(datum)
                     ) daily_max
+                    WHERE dag >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY)
                     ORDER BY dag ASC
                 ");
-                $stmt->execute(['dagar' => $dagar]);
+                $stmt->execute(['dagar' => $dagar, 'dagar2' => $dagar]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getOeeTrend: ' . $e->getMessage());
