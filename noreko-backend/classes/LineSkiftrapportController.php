@@ -187,25 +187,49 @@ class LineSkiftrapportController {
 
     private function getReports($table) {
         $ibcTable = str_replace('_skiftrapport', '_ibc', $table);
-        // Check if the _ibc table exists before adding correlated subqueries
         $ibcExists = $this->pdo->query("SHOW TABLES LIKE '$ibcTable'")->rowCount() > 0;
-        $plcCols = $ibcExists
-            ? "(SELECT MIN(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare AND i.datum <= r.created_at) AS plc_start,
-                    (SELECT MAX(i.datum) FROM `$ibcTable` i WHERE i.skiftraknare = r.skiftraknare AND i.datum <= r.created_at) AS plc_end"
-            : "NULL AS plc_start, NULL AS plc_end";
         try {
-            $stmt = $this->pdo->prepare("
-                SELECT r.*, u.username AS user_name,
-                    o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name,
-                    $plcCols
-                FROM `$table` r
-                LEFT JOIN users u ON r.user_id = u.id
-                LEFT JOIN operators o1 ON r.op1 IS NOT NULL AND (o1.number = r.op1)
-                LEFT JOIN operators o2 ON r.op2 IS NOT NULL AND (o2.number = r.op2)
-                LEFT JOIN operators o3 ON r.op3 IS NOT NULL AND (o3.number = r.op3)
-                ORDER BY r.datum DESC, r.id DESC
-                LIMIT 1000
-            ");
+            if ($ibcExists) {
+                $stmt = $this->pdo->prepare("
+                    SELECT base.*,
+                        (SELECT MIN(i.datum) FROM `$ibcTable` i
+                         WHERE i.datum > base.prev_created_at AND i.datum <= base.created_at) AS plc_start,
+                        (SELECT MAX(i.datum) FROM `$ibcTable` i
+                         WHERE i.datum > base.prev_created_at AND i.datum <= base.created_at) AS plc_end
+                    FROM (
+                        SELECT r.*, u.username AS user_name,
+                            o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name,
+                            COALESCE(
+                                (SELECT MAX(r2.created_at) FROM `$table` r2 WHERE r2.created_at < r.created_at),
+                                DATE_SUB(r.created_at, INTERVAL 24 HOUR)
+                            ) AS prev_created_at
+                        FROM `$table` r
+                        LEFT JOIN users u ON r.user_id = u.id
+                        LEFT JOIN operators o1 ON r.op1 IS NOT NULL AND (o1.number = r.op1)
+                        LEFT JOIN operators o2 ON r.op2 IS NOT NULL AND (o2.number = r.op2)
+                        LEFT JOIN operators o3 ON r.op3 IS NOT NULL AND (o3.number = r.op3)
+                        ORDER BY r.datum DESC, r.id DESC
+                        LIMIT 1000
+                    ) base
+                ");
+            } else {
+                $stmt = $this->pdo->prepare("
+                    SELECT r.*, u.username AS user_name,
+                        o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name,
+                        COALESCE(
+                            (SELECT MAX(r2.created_at) FROM `$table` r2 WHERE r2.created_at < r.created_at),
+                            DATE_SUB(r.created_at, INTERVAL 24 HOUR)
+                        ) AS prev_created_at,
+                        NULL AS plc_start, NULL AS plc_end
+                    FROM `$table` r
+                    LEFT JOIN users u ON r.user_id = u.id
+                    LEFT JOIN operators o1 ON r.op1 IS NOT NULL AND (o1.number = r.op1)
+                    LEFT JOIN operators o2 ON r.op2 IS NOT NULL AND (o2.number = r.op2)
+                    LEFT JOIN operators o3 ON r.op3 IS NOT NULL AND (o3.number = r.op3)
+                    ORDER BY r.datum DESC, r.id DESC
+                    LIMIT 1000
+                ");
+            }
             $stmt->execute();
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(['success' => true, 'data' => $results], JSON_UNESCAPED_UNICODE);
@@ -530,12 +554,43 @@ class LineSkiftrapportController {
     }
 
     private function getLopnummer(string $line): void {
+        $ibcTable = $line . '_ibc';
+        $today = date('Y-m-d');
+        $normDt = $this->makeDtNormalizer($today);
+
+        // Primär: from/to datetime-fönster (används av syntetiska pass)
+        $from = $normDt(isset($_GET['from']) ? trim(str_replace('T', ' ', $_GET['from'])) : null);
+        $to   = $normDt(isset($_GET['to'])   ? trim(str_replace('T', ' ', $_GET['to']))   : null);
+        $validateDt = fn($s) => (bool) preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $s ?? '');
+
+        if ($validateDt($from)) {
+            $toVal = $validateDt($to) ? $to : date('Y-m-d H:i:s');
+            try {
+                $stmt = $this->pdo->prepare(
+                    "SELECT DISTINCT lopnummer FROM `$ibcTable`
+                     WHERE datum > ? AND datum <= ? AND lopnummer > 0 AND lopnummer < 9998
+                     ORDER BY lopnummer"
+                );
+                $stmt->execute([$from, $toVal]);
+                $nums = array_column($stmt->fetchAll(\PDO::FETCH_ASSOC), 'lopnummer');
+                echo json_encode([
+                    'success' => true,
+                    'ranges'  => $this->buildLopnummerRanges(array_map('intval', $nums)),
+                    'count'   => count($nums),
+                ], JSON_UNESCAPED_UNICODE);
+            } catch (\PDOException $e) {
+                error_log("LineSkiftrapportController::getLopnummer($line) dt: " . $e->getMessage());
+                echo json_encode(['success' => false, 'ranges' => '–', 'count' => 0], JSON_UNESCAPED_UNICODE);
+            }
+            return;
+        }
+
+        // Fallback: skiftraknare
         $skiftraknare = isset($_GET['skiftraknare']) ? intval($_GET['skiftraknare']) : 0;
         if ($skiftraknare <= 0) {
             echo json_encode(['success' => false, 'error' => 'Ogiltigt skiftraknare'], JSON_UNESCAPED_UNICODE);
             return;
         }
-        $ibcTable = $line . '_ibc';
         try {
             $stmt = $this->pdo->prepare(
                 "SELECT DISTINCT lopnummer FROM `$ibcTable`
@@ -556,34 +611,86 @@ class LineSkiftrapportController {
     }
 
     private function getSubShifts(string $line): void {
-        $skiftraknare = isset($_GET['skiftraknare']) ? intval($_GET['skiftraknare']) : 0;
-        if ($skiftraknare <= 0) {
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt skiftraknare'], JSON_UNESCAPED_UNICODE);
+        $today = date('Y-m-d');
+        $normDt = $this->makeDtNormalizer($today);
+
+        $from = $normDt(isset($_GET['from']) ? trim(str_replace('T', ' ', $_GET['from'])) : null);
+        $to   = $normDt(isset($_GET['to'])   ? trim(str_replace('T', ' ', $_GET['to']))   : null);
+        $validateDt = fn($s) => (bool) preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $s ?? '');
+
+        $ibcTable = $line . '_ibc';
+        $selectCols = "i.id, i.datum, i.ibc_count, i.s_count, i.skiftraknare,
+                       i.op1, i.op2, i.op3, i.produkt,
+                       i.ibc_ok, i.ibc_ej_ok, i.omtvaatt,
+                       i.runtime_plc, i.rasttime, i.driftstopptime, i.lopnummer, i.effektivitet,
+                       o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name";
+        $joins = "LEFT JOIN operators o1 ON i.op1 IS NOT NULL AND (o1.number = i.op1)
+                  LEFT JOIN operators o2 ON i.op2 IS NOT NULL AND (o2.number = i.op2)
+                  LEFT JOIN operators o3 ON i.op3 IS NOT NULL AND (o3.number = i.op3)";
+
+        if (!$validateDt($from)) {
+            // Legacy fallback: query by skiftraknare
+            $skiftraknare = intval($_GET['skiftraknare'] ?? 0);
+            if ($skiftraknare <= 0) {
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt from/skiftraknare'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            try {
+                $stmt = $this->pdo->prepare(
+                    "SELECT $selectCols FROM `$ibcTable` i $joins
+                     WHERE i.skiftraknare = ? ORDER BY i.datum ASC"
+                );
+                $stmt->execute([$skiftraknare]);
+                echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
+            } catch (\PDOException $e) {
+                error_log("LineSkiftrapportController::getSubShifts($line) legacy: " . $e->getMessage());
+                echo json_encode(['success' => false, 'data' => []], JSON_UNESCAPED_UNICODE);
+            }
             return;
         }
-        $ibcTable = $line . '_ibc';
+
         try {
-            $stmt = $this->pdo->prepare(
-                "SELECT i.id, i.datum, i.ibc_count, i.s_count, i.skiftraknare,
-                        i.op1, i.op2, i.op3, i.produkt,
-                        i.ibc_ok, i.ibc_ej_ok, i.omtvaatt,
-                        i.runtime_plc, i.rasttime, i.driftstopptime, i.lopnummer,
-                        i.effektivitet,
-                        o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name
-                 FROM `$ibcTable` i
-                 LEFT JOIN operators o1 ON i.op1 IS NOT NULL AND (o1.number = i.op1)
-                 LEFT JOIN operators o2 ON i.op2 IS NOT NULL AND (o2.number = i.op2)
-                 LEFT JOIN operators o3 ON i.op3 IS NOT NULL AND (o3.number = i.op3)
-                 WHERE i.skiftraknare = ?
-                 ORDER BY i.datum ASC"
-            );
-            $stmt->execute([$skiftraknare]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
+            if ($validateDt($to)) {
+                // Normal window: (from, to]
+                $stmt = $this->pdo->prepare(
+                    "SELECT $selectCols FROM `$ibcTable` i $joins
+                     WHERE i.datum > ? AND i.datum <= ?
+                     ORDER BY i.datum ASC LIMIT 2000"
+                );
+                $stmt->execute([$from, $to]);
+            } else {
+                // Preliminary / öppet fönster: from till NOW
+                $stmt = $this->pdo->prepare(
+                    "SELECT $selectCols FROM `$ibcTable` i $joins
+                     WHERE i.datum > ?
+                     ORDER BY i.datum ASC LIMIT 2000"
+                );
+                $stmt->execute([$from]);
+            }
+            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
             error_log("LineSkiftrapportController::getSubShifts($line): " . $e->getMessage());
             echo json_encode(['success' => false, 'data' => []], JSON_UNESCAPED_UNICODE);
         }
+    }
+
+    /** Normaliserar ett datetime-strängar: HH:MM:SS → YYYY-MM-DD HH:MM:SS, etc. */
+    private function makeDtNormalizer(string $today): \Closure {
+        return function(?string $s) use ($today): ?string {
+            if (!$s) return null;
+            $s = trim(str_replace('T', ' ', $s));
+            // Stripp millisekunder/Z (t.ex. ".000Z")
+            $s = preg_replace('/\.\d+Z?$/', '', $s);
+            // Full datetime OK
+            if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $s)) return $s;
+            // Bara tid HH:MM:SS → lägg till dagens datum
+            if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $s)) return "$today $s";
+            // YYYY-MM-DD HH:MM (utan sekunder)
+            if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $s)) return "$s:00";
+            // Bara datum YYYY-MM-DD
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) return "$s 00:00:00";
+            return null;
+        };
     }
 
     private function buildLopnummerRanges(array $nums): string {
