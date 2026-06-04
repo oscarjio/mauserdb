@@ -160,11 +160,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const opMatch = [r.op1, r.op2, r.op3].some(n => n && this.getOpName(n).toLowerCase().includes(s));
         if (!productMatch && !userMatch && !opMatch) return false;
       }
-      // Operatörsfilter
+      // Operatörsfilter — selectedOperatorId håller op.number (inte op.id)
       if (this.selectedOperatorId !== null) {
-        const opNum = this.operators.find(o => o.id === this.selectedOperatorId)?.number;
-        if (opNum == null) return false;
-        if (Number(r.op1) !== Number(opNum) && Number(r.op2) !== Number(opNum) && Number(r.op3) !== Number(opNum)) return false;
+        const opNum = Number(this.selectedOperatorId);
+        if (Number(r.op1) !== opNum && Number(r.op2) !== opNum && Number(r.op3) !== opNum) return false;
       }
       return true;
     });
@@ -327,12 +326,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.recomputeKpis();
   }
 
-  onSearchInput(): void { /* filteredReports-gettern räknas om automatiskt */ }
-  onOperatorFilterChange(): void { /* filteredReports-gettern räknas om automatiskt */ }
+  onSearchInput(): void { this.recomputeKpis(); }
+  onOperatorFilterChange(): void { this.recomputeKpis(); }
 
   getSelectedOperatorName(): string {
     if (this.selectedOperatorId == null) return '';
-    return this.operators.find(o => o.id === this.selectedOperatorId)?.name || '';
+    return this.operators.find(o => Number(o.number) === Number(this.selectedOperatorId))?.name || '';
   }
 
   // ========== KPI getters (computed per change-detection) ==========
@@ -1230,10 +1229,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   toggleDay(date: string): void { this.expandedDays[date] = !this.expandedDays[date]; }
   isDayExpanded(date: string): boolean { return !!this.expandedDays[date]; }
-  isDayAllSelected(reports: any[]): boolean { return reports.length > 0 && reports.every(r => this.selectedIds.has(r.id)); }
+  isDayAllSelected(reports: any[]): boolean {
+    const real = reports.filter(r => r.id > 0);
+    return real.length > 0 && real.every(r => this.selectedIds.has(r.id));
+  }
   toggleDaySelect(reports: any[]): void {
-    if (this.isDayAllSelected(reports)) reports.forEach(r => this.selectedIds.delete(r.id));
-    else reports.forEach(r => this.selectedIds.add(r.id));
+    const real = reports.filter(r => r.id > 0);
+    if (this.isDayAllSelected(reports)) real.forEach(r => this.selectedIds.delete(r.id));
+    else real.forEach(r => this.selectedIds.add(r.id));
   }
   trackByDate(_index: number, day: any): string { return day.date; }
 
