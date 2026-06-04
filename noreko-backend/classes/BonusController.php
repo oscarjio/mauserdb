@@ -708,11 +708,18 @@ class BonusController {
     }
 
     /**
-     * GET /api.php?action=bonus&run=summary
+     * GET /api.php?action=bonus&run=summary&period=today|week|month|year
      *
-     * Dagens sammanfattning. Korrigerar ibc_ok via per-skift-subquery.
+     * Sammanfattning för vald period. Korrigerar ibc_ok via per-skift-subquery.
      */
     private function getDailySummary() {
+        $period = trim($_GET['period'] ?? 'today');
+        $allowed_periods = ['today', 'week', 'month', 'year', 'all'];
+        if (!in_array($period, $allowed_periods, true)) {
+            $period = 'today';
+        }
+        $dateFilter = $this->getDateFilter($period);
+
         try {
             // Korrekt ibc_ok och bonus via per-skift-aggregering
             $stmt = $this->pdo->prepare("
@@ -729,8 +736,7 @@ class BonusController {
                         MAX(ibc_ej_ok) AS shift_ibc_ej_ok,
                         SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
                     FROM rebotling_ibc
-                    WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-
+                    WHERE $dateFilter
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
@@ -745,7 +751,7 @@ class BonusController {
                     COUNT(DISTINCT op2) AS unique_op2,
                     COUNT(DISTINCT op3) AS unique_op3
                 FROM rebotling_ibc
-                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                WHERE $dateFilter
             ");
             $stmt->execute();
             $rawSummary = $stmt->fetch(PDO::FETCH_ASSOC);

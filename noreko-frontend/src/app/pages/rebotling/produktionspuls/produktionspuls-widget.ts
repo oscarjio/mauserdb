@@ -32,7 +32,20 @@ import { ProduktionspulsService, PulsItem } from '../../../services/produktionsp
       <div class="puls-widget-ticker"
            (mouseenter)="paused = true"
            (mouseleave)="paused = false">
-        <div class="puls-widget-track" [class.ticker-paused]="paused">
+        <div class="puls-widget-track" [class.ticker-paused]="paused" aria-hidden="true">
+          <ng-container *ngFor="let item of items; trackBy: trackByIndex">
+            <div class="pw-item" [ngClass]="{
+              'pw-ok': !item.kasserad && !item.over_target,
+              'pw-kasserad': item.kasserad,
+              'pw-over': !item.kasserad && item.over_target
+            }">
+              <span class="pw-op">{{ item.operator }}</span>
+              <span class="pw-cykel" *ngIf="item.cykeltid !== null">{{ item.cykeltid }}m</span>
+              <span class="pw-cykel pw-na" *ngIf="item.cykeltid === null">--</span>
+              <span class="pw-badge" *ngIf="item.kasserad">K</span>
+            </div>
+          </ng-container>
+          <!-- Duplicate for seamless infinite scroll (-50% animation requires 2× content) -->
           <ng-container *ngFor="let item of items; trackBy: trackByIndex">
             <div class="pw-item" [ngClass]="{
               'pw-ok': !item.kasserad && !item.over_target,

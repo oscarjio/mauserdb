@@ -202,21 +202,16 @@ class VeckorapportController {
     // ================================================================
 
     private function getProductionData(string $start, string $end, string $prevStart, string $prevEnd): array {
-        // Dagvis produktion for aktuell vecka — LAG()-delta korrigerar kumulativa PLC-rakneverk
+        // Dagvis produktion — korrekt aggregering: SUM(MAX(ibc_ok) per skift) per dag
         $stmt = $this->pdo->prepare(
-            "SELECT dag, SUM(delta) AS cnt
+            "SELECT dag, SUM(shift_ibc) AS cnt
              FROM (
-                 SELECT dag,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta
-                 FROM (
-                     SELECT DATE(datum) AS dag, skiftraknare,
-                            MAX(COALESCE(ibc_ok, 0)) AS ibc_end
-                     FROM rebotling_ibc
-                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                     GROUP BY DATE(datum), skiftraknare
-                     HAVING COUNT(*) > 1
-                 ) shifts
-             ) deltas
+                 SELECT DATE(datum) AS dag, skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                 GROUP BY DATE(datum), skiftraknare
+             ) shifts
              GROUP BY dag
              ORDER BY dag ASC"
         );
@@ -255,20 +250,15 @@ class VeckorapportController {
         $numDays = count($dailyMap) ?: 1;
         $avgPerDay = round($totalIbc / $numDays, 1);
 
-        // Foregaende vecka for jamforelse — LAG()-delta
+        // Foregaende vecka
         $stmt = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(delta), 0) AS cnt
+            "SELECT COALESCE(SUM(shift_ibc), 0) AS cnt
              FROM (
-                 SELECT GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta
-                 FROM (
-                     SELECT DATE(datum) AS dag, skiftraknare,
-                            MAX(COALESCE(ibc_ok, 0)) AS ibc_end
-                     FROM rebotling_ibc
-                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                     GROUP BY DATE(datum), skiftraknare
-                     HAVING COUNT(*) > 1
-                 ) shifts
-             ) deltas"
+                 SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                 GROUP BY skiftraknare
+             ) shifts"
         );
         $stmt->execute([$prevStart, $prevEnd]);
         $prevWeekTotal = (int)($stmt->fetchColumn() ?: 0);
@@ -299,20 +289,15 @@ class VeckorapportController {
         $runtimeCurrent = $this->getTotalRuntimeHours($start, $end);
         $runtimePrev    = $this->getTotalRuntimeHours($prevStart, $prevEnd);
 
-        // Antal producerade IBC — LAG()-delta for kumulativa PLC-rakneverk
+        // Antal producerade IBC — korrekt aggregering per skift
         $stmtIbc = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(delta), 0) AS cnt
+            "SELECT COALESCE(SUM(shift_ibc), 0) AS cnt
              FROM (
-                 SELECT GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta
-                 FROM (
-                     SELECT DATE(datum) AS dag, skiftraknare,
-                            MAX(COALESCE(ibc_ok, 0)) AS ibc_end
-                     FROM rebotling_ibc
-                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                     GROUP BY DATE(datum), skiftraknare
-                     HAVING COUNT(*) > 1
-                 ) shifts
-             ) deltas"
+                 SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
+                 FROM rebotling_ibc
+                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                 GROUP BY skiftraknare
+             ) shifts"
         );
         $stmtIbc->execute([$start, $end]);
         $totalIbc = (int)($stmtIbc->fetchColumn() ?: 0);
@@ -359,12 +344,11 @@ class VeckorapportController {
             $stmt = $this->pdo->prepare(
                 "SELECT SUM(max_runtime) AS runtime_min
                  FROM (
-                     SELECT DATE(datum) AS dag, skiftraknare,
+                     SELECT skiftraknare,
                             MAX(runtime_plc) AS max_runtime
                      FROM rebotling_ibc
                      WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                     GROUP BY DATE(datum), skiftraknare
-                     HAVING COUNT(*) > 1
+                     GROUP BY skiftraknare
                  ) sub"
             );
             $stmt->execute([$fromDate, $toDate]);
@@ -519,25 +503,19 @@ class VeckorapportController {
         $prevScrappedCount = 0;
         $prevTotalProduced = 0;
 
-        // rebotling_ibc: ibc_ej_ok/ibc_ok — LAG()-delta for kumulativa PLC-rakneverk
+        // rebotling_ibc: korrekt aggregering — SUM(MAX per skift)
         try {
             $stmtKval = $this->pdo->prepare(
-                "SELECT COALESCE(SUM(delta_ej_ok), 0) AS kasserade,
-                        COALESCE(SUM(delta_ok), 0)    AS total
+                "SELECT COALESCE(SUM(shift_ej_ok), 0) AS kasserade,
+                        COALESCE(SUM(shift_ok), 0)    AS total
                  FROM (
-                     SELECT
-                         GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok,
-                         GREATEST(0, ibc_ok_end - COALESCE(LAG(ibc_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
-                     FROM (
-                         SELECT DATE(datum) AS dag, skiftraknare,
-                                MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end,
-                                MAX(COALESCE(ibc_ok, 0))    AS ibc_ok_end
-                         FROM rebotling_ibc
-                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                         GROUP BY DATE(datum), skiftraknare
-                         HAVING COUNT(*) > 1
-                     ) shifts
-                 ) deltas"
+                     SELECT skiftraknare,
+                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
+                            MAX(COALESCE(ibc_ok, 0))    AS shift_ok
+                     FROM rebotling_ibc
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                     GROUP BY skiftraknare
+                 ) shifts"
             );
             $stmtKval->execute([$start, $end]);
             $row = $stmtKval->fetch(\PDO::FETCH_ASSOC);

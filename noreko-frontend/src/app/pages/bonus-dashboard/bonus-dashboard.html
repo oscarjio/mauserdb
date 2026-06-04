@@ -33,7 +33,16 @@
     <button type="button" class="btn-close" aria-label="Stäng" (click)="error = ''"></button>
   </div>
 
-  <!-- Daglig sammanfattning KPI-kort -->
+  <!-- KPI-kort för vald period -->
+  <div class="d-flex justify-content-between align-items-center mb-2" *ngIf="summary">
+    <small class="text-muted">
+      Sammanfattning —
+      <span *ngIf="selectedPeriod === 'today'">Idag</span>
+      <span *ngIf="selectedPeriod === 'week'">Senaste 7 dagar</span>
+      <span *ngIf="selectedPeriod === 'month'">Senaste 30 dagar</span>
+      <span *ngIf="selectedPeriod === 'year'">Senaste året</span>
+    </small>
+  </div>
   <div class="row g-3 mb-3" *ngIf="summary">
     <div class="col-6 col-md-3">
       <div class="kpi-card kpi-cycles">

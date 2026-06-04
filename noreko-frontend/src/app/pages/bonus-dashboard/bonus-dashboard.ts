@@ -184,7 +184,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.error = '';
 
     // Ladda summary
-    this.bonusService.getDailySummary().pipe(
+    this.bonusService.getDailySummary(this.selectedPeriod).pipe(
       timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)

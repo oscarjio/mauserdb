@@ -267,8 +267,8 @@ export class BonusService {
 
   constructor(private http: HttpClient) {}
 
-  getDailySummary(): Observable<BonusSummaryResponse | null> {
-    return this.http.get<BonusSummaryResponse>(this.baseUrl + '&run=summary', {
+  getDailySummary(period: string = 'today'): Observable<BonusSummaryResponse | null> {
+    return this.http.get<BonusSummaryResponse>(this.baseUrl + '&run=summary&period=' + encodeURIComponent(period), {
       withCredentials: true
     }).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
