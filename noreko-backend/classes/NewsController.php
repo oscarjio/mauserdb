@@ -280,22 +280,20 @@ class NewsController {
             error_log("NewsController::getEvents:manuella nyheter: " . $e->getMessage());
         }
 
-        // 1. Rekordag — bästa produktionsdagen någonsin, om den inträffade de senaste 30 dagarna
+        // 1. Rekordag — bästa produktionsdagen de senaste 30 dagarna
+        // rebotling_ibc.ibc_ok är kumulativ PER SKIFT (nollresettas vid skiftstart).
+        // Korrekt dagtotal = SUM(MAX(ibc_ok) per skiftraknare) — INTE LAG-delta (det är tvättlinje-mönstret).
         try {
             $sql = "
-                WITH lag_base AS (
-                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end
+                WITH per_shift AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
+                    WHERE ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ),
-                lag_delta AS (
-                    SELECT dag, skiftraknare, ibc_end,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc
-                    FROM lag_base
-                ),
                 dag_totals AS (
-                    SELECT dag, SUM(delta_ibc) AS ibc_ok
-                    FROM lag_delta
+                    SELECT dag, SUM(shift_ibc) AS ibc_ok
+                    FROM per_shift
                     GROUP BY dag
                 ),
                 best_day AS (
@@ -330,30 +328,25 @@ class NewsController {
         }
 
         // 2. Hög OEE-dag — OEE >= 90% de senaste 14 dagarna
+        // rebotling_ibc.ibc_ok/ibc_ej_ok är kumulativa per skift — dagtotal = SUM(MAX per skiftraknare).
         try {
             $sql = "
-                WITH lag_base AS (
+                WITH per_shift AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(ibc_ok) AS ibc_end,
-                           MAX(ibc_ej_ok) AS ej_end
+                           MAX(COALESCE(ibc_ok, 0))    AS shift_ibc,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(NOW(), INTERVAL 14 DAY)
                       AND ibc_ok > 0
                     GROUP BY DATE(datum), skiftraknare
                 ),
-                lag_delta AS (
-                    SELECT dag,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
-                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
-                    FROM lag_base
-                ),
                 dagdata AS (
                     SELECT dag,
                            ROUND(
-                               CASE WHEN SUM(delta_ibc) + SUM(delta_ej) > 0
-                                    THEN (SUM(delta_ibc) / (SUM(delta_ibc) + SUM(delta_ej))) * 100
+                               CASE WHEN SUM(shift_ibc) + SUM(shift_ej) > 0
+                                    THEN (SUM(shift_ibc) / (SUM(shift_ibc) + SUM(shift_ej))) * 100
                                     ELSE 0 END, 1) AS oee_val
-                    FROM lag_delta
+                    FROM per_shift
                     GROUP BY dag
                 )
                 SELECT 'hog_oee' AS typ,
@@ -455,26 +448,27 @@ class NewsController {
         }
 
         // 5. Senaste produktionsdagar — alltid inkludera för att fylla upp flödet
+        // rebotling_ibc.ibc_ok är kumulativ per skift — dagtotal = SUM(MAX per skiftraknare).
         try {
             $sql = "
-                WITH lag_base AS (
-                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end
+                WITH per_shift AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                      AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ),
-                lag_delta AS (
-                    SELECT dag,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc
-                    FROM lag_base
+                dag_totals AS (
+                    SELECT dag, SUM(shift_ibc) AS ibc_ok
+                    FROM per_shift
+                    GROUP BY dag
                 )
                 SELECT 'produktion' AS typ,
                        dag AS event_datum,
                        DATE_FORMAT(dag,'%Y-%m-%d 12:00:00') AS event_datetime,
-                       SUM(delta_ibc) AS value,
-                       CONCAT('📊 ', DATE_FORMAT(dag,'%d %b %Y'), ': ', SUM(delta_ibc), ' IBC producerade') AS text
-                FROM lag_delta
-                GROUP BY dag
+                       ibc_ok AS value,
+                       CONCAT('📊 ', DATE_FORMAT(dag,'%d %b %Y'), ': ', ibc_ok, ' IBC producerade') AS text
+                FROM dag_totals
                 ORDER BY event_datum DESC
                 LIMIT 5
             ";
@@ -498,22 +492,19 @@ class NewsController {
         }
 
         // 6. Produktionsrekord — dagens produktion slog bästa dagen senaste 30 dagarna
+        // rebotling_ibc.ibc_ok är kumulativ per skift — dagtotal = SUM(MAX per skiftraknare).
         try {
             $sql = "
-                WITH lag_base AS (
-                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end
+                WITH per_shift AS (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 37 DAY)
+                      AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ),
-                lag_delta AS (
-                    SELECT dag,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc
-                    FROM lag_base
-                ),
                 dag_totals AS (
-                    SELECT dag, SUM(delta_ibc) AS ibc_ok
-                    FROM lag_delta
+                    SELECT dag, SUM(shift_ibc) AS ibc_ok
+                    FROM per_shift
                     GROUP BY dag
                 ),
                 recent AS (
@@ -559,30 +550,25 @@ class NewsController {
         }
 
         // 7. OEE-milstolpe — WCM-klass (OEE >= 85%) senaste 14 dagarna
+        // rebotling_ibc.ibc_ok/ibc_ej_ok är kumulativa per skift — dagtotal = SUM(MAX per skiftraknare).
         try {
             $sql = "
-                WITH lag_base AS (
+                WITH per_shift AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(ibc_ok) AS ibc_end,
-                           MAX(ibc_ej_ok) AS ej_end
+                           MAX(COALESCE(ibc_ok, 0))    AS shift_ibc,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(NOW(), INTERVAL 14 DAY)
                       AND ibc_ok > 0
                     GROUP BY DATE(datum), skiftraknare
                 ),
-                lag_delta AS (
-                    SELECT dag,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
-                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
-                    FROM lag_base
-                ),
                 dagdata AS (
                     SELECT dag,
                            ROUND(
-                               CASE WHEN SUM(delta_ibc) + SUM(delta_ej) > 0
-                                    THEN (SUM(delta_ibc) / (SUM(delta_ibc) + SUM(delta_ej))) * 100
+                               CASE WHEN SUM(shift_ibc) + SUM(shift_ej) > 0
+                                    THEN (SUM(shift_ibc) / (SUM(shift_ibc) + SUM(shift_ej))) * 100
                                     ELSE 0 END, 1) AS oee_val
-                    FROM lag_delta
+                    FROM per_shift
                     GROUP BY dag
                 )
                 SELECT dag AS event_datum, oee_val
