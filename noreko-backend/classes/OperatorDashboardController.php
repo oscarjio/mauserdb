@@ -840,9 +840,9 @@ class OperatorDashboardController {
             $stmt->execute([':today' => $today, ':todayb' => $today, ':op' => $opNum, ':op2' => $opNum, ':op3' => $opNum]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
-            $totalIbc  = (int)($row['total_ibc'] ?? 0);
-            $okIbc     = (int)($row['ok_ibc'] ?? 0);
-            $runtimeS  = (float)($row['total_runtime_s'] ?? 0);
+            $totalIbc    = (int)($row['total_ibc'] ?? 0);
+            $okIbc       = (int)($row['ok_ibc'] ?? 0);
+            $runtimeMin  = (float)($row['total_runtime_s'] ?? 0); // runtime_plc är i minuter (namnfel ej fixat i SQL alias)
 
             // Produktionspoäng
             $produktionsPoang = $totalIbc * 10;
@@ -852,7 +852,14 @@ class OperatorDashboardController {
             $kvalitetsBonus = max(0, min(50, ($okPct - 90) * 5));
 
             // IBC/h (runtime_plc i minuter)
-            $ibcPerH = ($runtimeS > 0) ? ($totalIbc * 60.0 / $runtimeS) : 0;
+            // Sanitetsgräns: om runtime < total_ibc × 0.5 min/IBC (dvs > 120 IBC/h = 6× mål)
+            // anses runtime vara ofullständig/felaktig — sätt till 0 så bonus inte blåses upp.
+            $minReasonableRuntime = $totalIbc * 0.5; // minst 0.5 min/IBC (120 IBC/h övre gräns)
+            if ($runtimeMin > 0 && $runtimeMin >= $minReasonableRuntime) {
+                $ibcPerH = $totalIbc * 60.0 / $runtimeMin;
+            } else {
+                $ibcPerH = 0; // runtime saknas eller orimligt låg — visa inte tempo-bonus
+            }
 
             // Snitt IBC/h alla idag (LAG-korrigerad)
             $stmtAll = $this->pdo->prepare($lagCteBonus . "
@@ -872,10 +879,11 @@ class OperatorDashboardController {
             $sumRates = 0.0;
             $countOps = 0;
             foreach ($allRows as $ar) {
-                $r = (float)$ar['total_runtime_s']; // runtime_plc i minuter
-                $i = (int)$ar['total_ibc'];
-                if ($r > 0 && $i > 0) {
-                    $sumRates += ($i * 60.0 / $r);
+                $rMin = (float)$ar['total_runtime_s']; // runtime_plc i minuter
+                $ibc  = (int)$ar['total_ibc'];
+                // Samma sanitetsgräns: hoppa över operatörer med orimlig runtime i snittberäkning
+                if ($rMin > 0 && $ibc > 0 && $rMin >= $ibc * 0.5) {
+                    $sumRates += ($ibc * 60.0 / $rMin);
                     $countOps++;
                 }
             }

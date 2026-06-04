@@ -14,6 +14,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   // (kan skapa dubbletter eller utfora oavsiktliga sidoeffekter)
   const safeToRetry = ['GET', 'HEAD', 'OPTIONS'].includes(req.method.toUpperCase());
 
+  // Endpoints som hanterar sina egna fel och inte ska retry:as via interceptorn.
+  // feature-flags: loadFlags() har redan retry(1)+catchError i sin service.
+  // Att retry:a via interceptorn dessutom skapar 4–8 requests per app-init vid 503 → pool-utmattning.
+  const skipRetry = req.url.includes('action=feature-flags');
+
   return next(req).pipe(
     // Retry vid natverksfel (status 0) eller 502/503/504 — enbart idempotenta metoder (GET/HEAD/OPTIONS).
     // 503: exponentiell backoff upp till 3 forsok (500ms, 1000ms, 2000ms).
@@ -21,7 +26,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     retry({
       count: 3,
       delay: (err: HttpErrorResponse, retryCount: number) => {
-        if (!safeToRetry) {
+        if (!safeToRetry || skipRetry) {
           return throwError(() => err);
         }
         if (err.status === 503) {

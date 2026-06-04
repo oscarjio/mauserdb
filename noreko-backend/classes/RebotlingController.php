@@ -1939,10 +1939,12 @@ class RebotlingController {
             // ibc_ok is a PLC daily running counter — MAX across all rows for the day
             // equals the day's total IBC (counter resets at midnight).
             // SUM(MAX per shift) over-counts multi-shift days (shift2 carries cumulative total).
+            // Build dateFilter without the "s." alias (no CTE alias here)
+            $dateFilterNoAlias = str_replace('s.datum', 'datum', $dateFilter);
             $sqlTotal = str_replace(':dateFrom', '?',
                 "SELECT COALESCE(MAX(ibc_ok), 0)
                     FROM rebotling_skiftrapport
-                    WHERE {$dateFilter}");
+                    WHERE {$dateFilterNoAlias}");
             $stmtTotal = $this->pdo->prepare($sqlTotal);
             $stmtTotal->execute([$d]);
             $ibcIdagTotal = (int)$stmtTotal->fetchColumn();
