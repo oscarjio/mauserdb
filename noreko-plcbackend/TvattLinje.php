@@ -616,9 +616,19 @@ class TvattLinje {
                         'kalla'=> $kalla,
                     ]);
                 }
+                // Korrigera drifttid/rasttime i rapporten till delta-värden.
+                // D4007/D4008 är kumulativa PLC-räknare — råvärdet är maskinens totala
+                // ackumulerade tid sedan start, INTE periodens tid.
+                $totalDeltaRt   = array_sum(array_column($dagDeltas, 'rt'));
+                $totalDeltaRast = array_sum(array_column($dagDeltas, 'rast'));
+                $this->db->prepare(
+                    "UPDATE tvattlinje_skiftrapport SET drifttid=:rt, rasttime=:rast WHERE id=:id"
+                )->execute(['rt' => $totalDeltaRt, 'rast' => $totalDeltaRast, 'id' => $skiftrapportId]);
+
                 $this->log('handleSkiftrapport', "Period-attributering klar", [
                     'id' => $skiftrapportId, 'flerdagars' => $flerdagars, 'antal_dagar' => $antalDagar,
                     'period_start' => $periodStart, 'period_end' => $periodEnd,
+                    'delta_rt_min' => $totalDeltaRt, 'delta_rast_min' => $totalDeltaRast,
                 ]);
             } else {
                 $this->log('handleSkiftrapport', "Inga PLC-events — _daglig ej populerad", [
