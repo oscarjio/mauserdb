@@ -942,11 +942,17 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   }
 
   getSkiftStatTid(r: any): string {
-    if (r.created_at) {
-      const d = new Date(String(r.created_at).replace(' ', 'T'));
-      if (!isNaN(d.getTime())) return d.toTimeString().substring(0, 5);
+    const src = r.created_at || r.datum;
+    if (src) {
+      const d = new Date(String(src).replace(' ', 'T'));
+      if (!isNaN(d.getTime())) {
+        const day   = String(d.getDate());
+        const month = String(d.getMonth() + 1);
+        const time  = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        return `${day}/${month} ${time}`;
+      }
     }
-    return (r.datum || '').substring(0, 10);
+    return '–';
   }
 
   exportPdfSkift() {
@@ -1151,7 +1157,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       const periodCycles = grouped.get(key) || [];
       cell.hasData = periodCycles.length > 0;
       const ibcNums = periodCycles.map((c: any) => Number(c.ibc_count)).filter((n: number) => n > 0);
-      cell.cyclesCount = ibcNums.length ? Math.max(...ibcNums) - Math.min(...ibcNums) + 1 : 0;
+      cell.cyclesCount = ibcNums.length ? Math.max(...ibcNums) - Math.min(...ibcNums) : 0;
 
       if (periodCycles.length > 0) {
         // Filtrera bort NULL och 0 värden när vi beräknar genomsnitt
@@ -1435,7 +1441,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const target = this.targetCycleTime || 3;
     slicedEntries.forEach(([, value]) => {
       const ibcs = value.cycles.map((c: any) => Number(c.ibc_count)).filter((n: number) => n > 0);
-      const count = ibcs.length ? Math.max(...ibcs) - Math.min(...ibcs) + 1 : 0;
+      const count = ibcs.length ? Math.max(...ibcs) - Math.min(...ibcs) : 0;
       cycleCountArr.push(count);
       if (count > 0) {
         const validTimes: number[] = value.cycleTime;

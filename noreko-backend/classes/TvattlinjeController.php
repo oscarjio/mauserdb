@@ -1902,8 +1902,8 @@ class TvattlinjeController {
                                     MAX(COALESCE(ibc_ok,0))                 AS ibc_ok,
                                     MAX(COALESCE(ibc_ej_ok,0))              AS ibc_ej_ok,
                                     skiftraknare,
-                                    MAX(COALESCE(runtime_plc,0))            AS max_runtime,
-                                    MAX(COALESCE(rasttime,0))               AS max_rasttime
+                                    MAX(COALESCE(runtime_plc,0)) - MIN(COALESCE(runtime_plc,0)) AS max_runtime,
+                                    MAX(COALESCE(rasttime,0))   - MIN(COALESCE(rasttime,0))   AS max_rasttime
                                 FROM tvattlinje_ibc
                                 WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :seed_dagar DAY)
                                 GROUP BY DATE(datum), skiftraknare
@@ -2005,22 +2005,26 @@ class TvattlinjeController {
                 $tot = (int)$r['total_ibc'];
                 $ok  = (int)$r['total_ok'];
 
-                // Kvalitet (0-100): godkända / totalt tvättade
-                $qual_pct = ($tot > 0) ? round(($ok / $tot) * 100, 1) : 100.0;
+                // Kvalitet (0-100): D4004 (ibc_ok) är fryst på 0 för tvättlinje — om ingen kvaldata
+                // finns (ok=ej_ok=0) antag 100% (ingen kassation registrerad).
+                $hasQualData = ($ok > 0 || (int)$r['total_ej_ok'] > 0);
+                $qual_pct = ($hasQualData && $tot > 0) ? round(($ok / $tot) * 100, 1) : 100.0;
 
                 // Tillgänglighet (0-100): faktisk körtid / planerad körtid.
-                // runtime_plc är i sekunder (summerat per skift). 8h = 28800 sek som planerad tid.
-                $runtimeSek  = isset($r['total_runtime_sek']) ? (float)$r['total_runtime_sek'] : 0;
-                $rastSek     = isset($r['total_rasttime_sek']) ? (float)$r['total_rasttime_sek'] : 0;
-                $netRuntimeSek = max(0, $runtimeSek - $rastSek);
-                $plannedSek    = 8 * 3600; // 8 timmar per dag
-                $avail_pct = ($runtimeSek > 0)
-                    ? min(100.0, round(($netRuntimeSek / $plannedSek) * 100, 1))
+                // runtime_plc (D4007) lagras i MINUTER (variabelnamnet _sek är missvisande).
+                // MAX-MIN per skift hanterar att PLC-räknaren ej nollställs mellan dygn.
+                $runtimeMin  = isset($r['total_runtime_sek']) ? (float)$r['total_runtime_sek'] : 0;
+                $rastMin     = isset($r['total_rasttime_sek']) ? (float)$r['total_rasttime_sek'] : 0;
+                $netRuntimeMin = max(0, $runtimeMin - $rastMin);
+                // Planerad arbetstid: mån-tors 07-16 med 45 min rast = 495 min, fre 07-15 = 480 min
+                $dayN       = (int)date('N', strtotime($r['dag'])); // 1=mån … 7=sön
+                $plannedMin = ($dayN === 5) ? 480.0 : 495.0;
+                $avail_pct = ($runtimeMin > 0)
+                    ? min(100.0, round(($netRuntimeMin / $plannedMin) * 100, 1))
                     : 100.0; // Ingen runtimedata = antag 100% tillgänglighet
 
-                // Prestanda (0-100): faktisk takt / idealtakt (mål: 1 IBC per 3 min = 20/h = 160/8h)
-                // Ideal = 160 IBCer per 8-timmarsdag. Om ingen runtime → normera mot ibcToday-medel.
-                $idealPerDag = 160.0;
+                // Prestanda (0-100): faktisk takt / idealtakt (mål: 1 IBC per 3 min = 20 IBC/h)
+                $idealPerDag = ($plannedMin / 60.0) * 20.0;
                 $perf_pct = ($idealPerDag > 0)
                     ? min(100.0, round(($tot / $idealPerDag) * 100, 1))
                     : 100.0;
