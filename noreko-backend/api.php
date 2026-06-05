@@ -152,6 +152,10 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
         PDO::ATTR_PERSISTENT => true   // Återanvänd DB-anslutningar mellan requests (~5-10ms besparing per request)
     ]);
+    // Synkronisera MySQL-timezone med PHP (Europe/Stockholm) så CURDATE()/NOW()/DATE() är konsekventa.
+    // datum-kolumner i rebotling_ibc/tvattlinje_ibc lagras med MySQL:s server-timestamp → utan denna
+    // inställning kan CURDATE() avvika från PHP:s date() och ge datum off-by-one nära midnatt.
+    try { $pdo->exec("SET time_zone = 'Europe/Stockholm'"); } catch (\Throwable $e) { /* timezone tables ej installerade — ignoreras */ }
 } catch (\Throwable $e) {
     require_once __DIR__ . '/classes/ErrorLogger.php';
     ErrorLogger::log($e, 'api.php: Databasanslutning misslyckades');
