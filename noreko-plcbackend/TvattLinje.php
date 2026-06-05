@@ -533,11 +533,10 @@ class TvattLinje {
             $prevRow       = $prevStmt->fetch(PDO::FETCH_ASSOC);
             $prevCreatedAt = $prevRow ? $prevRow['created_at'] : date('Y-m-d H:i:s', strtotime('-24 hours'));
 
-            // Dagliga max-värden för ibc_count, runtime_plc och rasttime inom perioden
+            // Dagliga event-data inom perioden
             $evtStmt = $this->db->prepare("
                 SELECT DATE(datum)                        AS dag,
                        MAX(ibc_count)                    AS max_ibc,
-                       MAX(COALESCE(runtime_plc, 0))     AS max_rt,
                        MAX(COALESCE(rasttime, 0))        AS max_rast,
                        MIN(datum)                        AS first_ts,
                        MAX(datum)                        AS last_ts
@@ -562,25 +561,27 @@ class TvattLinje {
 
                 // Baseline: max-värden precis före perioden (för korrekt delta dag 1)
                 $baseStmt = $this->db->prepare(
-                    "SELECT MAX(ibc_count) AS b_ibc, MAX(COALESCE(runtime_plc,0)) AS b_rt, MAX(COALESCE(rasttime,0)) AS b_rast FROM tvattlinje_ibc WHERE datum <= :prev_at"
+                    "SELECT MAX(ibc_count) AS b_ibc, MAX(COALESCE(rasttime,0)) AS b_rast FROM tvattlinje_ibc WHERE datum <= :prev_at"
                 );
                 $baseStmt->execute(['prev_at' => $prevCreatedAt]);
                 $baseRow  = $baseStmt->fetch(PDO::FETCH_ASSOC);
                 $prevIbc  = $baseRow ? (int)($baseRow['b_ibc']  ?? 0) : 0;
-                $prevRt   = $baseRow ? (int)($baseRow['b_rt']   ?? 0) : 0;
                 $prevRast = $baseRow ? (int)($baseRow['b_rast'] ?? 0) : 0;
 
-                // Beräkna dagliga deltar
+                // Beräkna dagliga deltar.
+                // drifttid: event-fönster (first_ts → last_ts) — D4007 tickar 1:1 med väggklockan
+                // och ackumulerar även över natten, så delta ger fel dagsvärde.
+                // rast: delta på rasttime-räknaren (korrekt ackumulerat per dag).
+                // ibc: delta på ibc_count (används som fördelningsnyckel).
                 $totalDeltaIbc = 0;
                 $dagDeltas     = [];
                 foreach ($dayRows as $dr) {
-                    $dIbc  = max(0, (int)$dr['max_ibc']  - $prevIbc);
-                    $dRt   = max(0, (int)$dr['max_rt']   - $prevRt);
+                    $dIbc  = max(0, (int)$dr['max_ibc'] - $prevIbc);
+                    $dRt   = max(0, (int)floor((strtotime($dr['last_ts']) - strtotime($dr['first_ts'])) / 60));
                     $dRast = max(0, (int)$dr['max_rast'] - $prevRast);
                     $dagDeltas[]    = ['dag' => $dr['dag'], 'ibc' => $dIbc, 'rt' => $dRt, 'rast' => $dRast];
                     $totalDeltaIbc += $dIbc;
                     $prevIbc  = (int)$dr['max_ibc'];
-                    $prevRt   = (int)$dr['max_rt'];
                     $prevRast = (int)$dr['max_rast'];
                 }
 
@@ -616,9 +617,7 @@ class TvattLinje {
                         'kalla'=> $kalla,
                     ]);
                 }
-                // Korrigera drifttid/rasttime i rapporten till delta-värden.
-                // D4007/D4008 är kumulativa PLC-räknare — råvärdet är maskinens totala
-                // ackumulerade tid sedan start, INTE periodens tid.
+                // Korrigera drifttid/rasttime i rapporten: summera per-dag event-fönster.
                 $totalDeltaRt   = array_sum(array_column($dagDeltas, 'rt'));
                 $totalDeltaRast = array_sum(array_column($dagDeltas, 'rast'));
                 $this->db->prepare(

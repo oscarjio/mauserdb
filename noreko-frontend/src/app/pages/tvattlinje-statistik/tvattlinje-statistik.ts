@@ -942,15 +942,20 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   }
 
   getSkiftStatTid(r: any): string {
+    const fmt = (s: string) => {
+      const d = new Date(String(s).replace(' ', 'T'));
+      if (isNaN(d.getTime())) return null;
+      return `${d.getDate()}/${d.getMonth()+1} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    };
+    if (r.flerdagars == 1 && r.period_start && r.period_end) {
+      const start = fmt(r.period_start);
+      const end   = fmt(r.period_end);
+      if (start && end) return `${start} – ${end}`;
+    }
     const src = r.created_at || r.datum;
     if (src) {
-      const d = new Date(String(src).replace(' ', 'T'));
-      if (!isNaN(d.getTime())) {
-        const day   = String(d.getDate());
-        const month = String(d.getMonth() + 1);
-        const time  = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-        return `${day}/${month} ${time}`;
-      }
+      const f = fmt(src);
+      if (f) return f;
     }
     return '–';
   }
