@@ -269,6 +269,43 @@
   border: 1px solid rgba(139, 148, 158, 0.4);
 }
 
+.badge-plc-raw-ok {
+  background: rgba(45, 212, 191, 0.15);
+  color: #2dd4bf;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+}
+
+.badge-plc-raw-fail {
+  background: rgba(248, 81, 73, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(248, 81, 73, 0.3);
+}
+
+.plc-raw-data {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.plc-modbus-ok {
+  color: #2dd4bf;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.plc-modbus-fail {
+  color: #f87171;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.plc-registers {
+  color: #6e7681;
+  font-size: 0.7rem;
+  word-break: break-all;
+}
+
 .line-data {
   color: #8b949e;
   word-break: break-all;

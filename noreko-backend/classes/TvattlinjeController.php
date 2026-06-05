@@ -1678,6 +1678,22 @@ class TvattlinjeController {
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::plcDiagnostikStream skiftrapport: ' . $e->getMessage()); }
 
+            // tvattlinje_plc_raw — append-only raw register log
+            try {
+                $stmt = $this->pdo->prepare(
+                    "SELECT * FROM tvattlinje_plc_raw WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
+                );
+                $stmt->execute([':date' => $date]);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $row['source'] = 'plc_raw';
+                    // Parse registers JSON to top-level keys for convenience
+                    if (!empty($row['registers'])) {
+                        $row['registers_parsed'] = json_decode($row['registers'], true) ?: [];
+                    }
+                    $events[] = $row;
+                }
+            } catch (\Throwable $e) { /* table may not exist yet */ }
+
             usort($events, function ($a, $b) {
                 $cmp = strcmp($b['datum'], $a['datum']);
                 return $cmp !== 0 ? $cmp : intval($b['id']) - intval($a['id']);

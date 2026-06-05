@@ -47,7 +47,33 @@ class Rebotling {
         $stmt->execute(['lopnummer' => $lopnummer]);
     }
 
-    
+    // ─── Append-only rålogg av PLC-data ─────────────────────────────────────
+    private function insertRaw(string $eventType, ?int $shellyCount, ?array $registers): void {
+        try {
+            $regJson = null;
+            if ($registers !== null) {
+                $mapped = [];
+                foreach ($registers as $i => $v) {
+                    $mapped['D' . (4000 + $i)] = $v;
+                }
+                $regJson = json_encode($mapped, JSON_UNESCAPED_UNICODE);
+            }
+            $payload = substr(http_build_query($_GET), 0, 500);
+            $this->db->prepare("
+                INSERT INTO rebotling_plc_raw (datum, event_type, shelly_count, registers, modbus_ok, http_payload)
+                VALUES (NOW(3), :et, :sc, :reg, :mok, :pl)
+            ")->execute([
+                'et'  => $eventType,
+                'sc'  => $shellyCount,
+                'reg' => $regJson,
+                'mok' => ($registers !== null) ? 1 : 0,
+                'pl'  => $payload,
+            ]);
+        } catch (\Throwable $e) {
+            error_log('Rebotling::insertRaw: ' . $e->getMessage());
+        }
+    }
+
     public function handleCycle(array $data): void {
         // Validera data
         if (!isset($_GET['count'])) {
@@ -55,12 +81,14 @@ class Rebotling {
         }
 
         // === MODBUS TCP - LÄS FX5 D4000-D4009 ===
+        $plc_raw_data = null;
         try {
             $this->modbus = new ModbusMaster("192.168.10.100", "TCP");
 
             // Läs alla 10 register från D4000-D4009 i ett anrop
             $raw_data = $this->modbus->readMultipleRegisters(0, 4000, 10);
             $plc_data = $this->convert8to16bit($raw_data);
+            $plc_raw_data = $plc_data;
 
             // Extrahera värden enligt FX5-mappning
             $op1 = $plc_data[0];           // D4000 - Operatör 1
@@ -100,6 +128,7 @@ class Rebotling {
                 'bonus_poang' => 0
             ];
         }
+        $this->insertRaw('cycle', $shellyCount, $plc_raw_data);
 
         // Hämta antal gjorda idag, rader i databasen
         $stmt = $this->db->prepare("
@@ -367,6 +396,7 @@ class Rebotling {
             // Faller tillbaka till default-värdena ovan (0/1)
         }
 
+        $this->insertRaw('running', null, null);
         $high = (int)$_GET['high'];
         $low = (int)$_GET['low'];
         // Hantera running som kan vara "true", "1", eller 1
@@ -586,6 +616,7 @@ class Rebotling {
         usleep(500000);
         $raw_data = $this->modbus->readMultipleRegisters(0, 4000, 12);
         $plc_data = $this->convert8to16bit($raw_data);
+        $this->insertRaw('skiftrapport', null, $plc_data);
 
         $op1            = $plc_data[0];  // D4000 - Operatör Tvättplats
         $op2            = $plc_data[1];  // D4001 - Operatör Kontrollstation
@@ -680,7 +711,8 @@ class Rebotling {
         // Läs kommandoregister D4015 (1 register)
         $raw_cmd = $this->modbus->readMultipleRegisters(0, 4015, 1);
         $cmd_data = $this->convert8to16bit($raw_cmd);
-        $kommando = $cmd_data[0]; // D4015 
+        $kommando = $cmd_data[0]; // D4015
+        $this->insertRaw('command', null, null);
 
         error_log("handleCommand: D4015 kommando=$kommando" . $this->modbus->status);
 
@@ -805,6 +837,7 @@ class Rebotling {
         }
 
         $rast_status = (int)$_GET['rast']; // 0 = arbetar, 1 = på rast
+        $this->insertRaw('rast', null, null);
 
         // Hämta senaste status för att undvika duplicering
         $stmt = $this->db->prepare('

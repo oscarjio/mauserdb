@@ -45,6 +45,10 @@
         <input type="checkbox" [(ngModel)]="showSkiftrapport">
         <span class="badge-skiftrapport filter-badge">SKIFTRAPPORT</span>
       </label>
+      <label class="filter-checkbox" title="Rå PLC-registerdata (append-only logg)">
+        <input type="checkbox" [(ngModel)]="showPlcRaw">
+        <span class="badge-plc-raw-ok filter-badge">RÅ-PLC</span>
+      </label>
     </div>
     <div class="toolbar-right">
       <input type="date" class="date-input" [(ngModel)]="selectedDate" (change)="onDateChange()">
@@ -80,9 +84,20 @@
          [class.system-error]="event._systemType === 'error'"
          [class.system-help]="event._systemType === 'help'">
       <span class="line-ts">{{ formatTimestamp(event.datum) }}</span>
-      <ng-container *ngIf="event.source !== '_system'">
+      <ng-container *ngIf="event.source !== '_system' && event.source !== 'plc_raw'">
         <span class="line-badge" [ngClass]="getBadgeClass(event)">{{ getBadgeLabel(event) }}</span>
         <span class="line-data">{{ formatEventData(event) }}</span>
+      </ng-container>
+      <ng-container *ngIf="event.source === 'plc_raw'">
+        <span class="line-badge" [ngClass]="getPlcRawClass(event)">RÅ-PLC</span>
+        <span class="line-badge badge-default" style="margin-left:4px;font-size:0.7rem;">{{ event.event_type }}</span>
+        <span class="line-data plc-raw-data">
+          <span [class]="event['modbus_ok'] == 1 ? 'plc-modbus-ok' : 'plc-modbus-fail'">
+            {{ event['modbus_ok'] == 1 ? 'MODBUS OK' : 'MODBUS FAIL' }}
+          </span>
+          <span *ngIf="event['shelly_count'] != null"> shelly={{ event['shelly_count'] }}</span>
+          <span *ngIf="formatRegisters(event)" class="plc-registers">  {{ formatRegisters(event) }}</span>
+        </span>
       </ng-container>
       <ng-container *ngIf="event.source === '_system'">
         <span class="line-system-text">{{ event._systemText }}</span>

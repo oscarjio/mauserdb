@@ -101,6 +101,33 @@ class TvattLinje {
         ]);
     }
 
+    // ─── Append-only rålogg av PLC-data ─────────────────────────────────────
+    private function insertRaw(string $eventType, ?int $shellyCount, ?array $registers): void {
+        try {
+            $regJson = null;
+            if ($registers !== null) {
+                $mapped = [];
+                foreach ($registers as $i => $v) {
+                    $mapped['D' . (4000 + $i)] = $v;
+                }
+                $regJson = json_encode($mapped, JSON_UNESCAPED_UNICODE);
+            }
+            $payload = substr(http_build_query($_GET), 0, 500);
+            $this->db->prepare("
+                INSERT INTO tvattlinje_plc_raw (datum, event_type, shelly_count, registers, modbus_ok, http_payload)
+                VALUES (NOW(3), :et, :sc, :reg, :mok, :pl)
+            ")->execute([
+                'et'  => $eventType,
+                'sc'  => $shellyCount,
+                'reg' => $regJson,
+                'mok' => ($registers !== null) ? 1 : 0,
+                'pl'  => $payload,
+            ]);
+        } catch (\Throwable $e) {
+            error_log('TvattLinje::insertRaw: ' . $e->getMessage());
+        }
+    }
+
     // =====================================================
     // handleCycle — triggas vid varje ny IBC (Shelly-puck)
     // Läser D4000-D4009 från PLC via Modbus TCP
@@ -119,6 +146,7 @@ class TvattLinje {
         $modbusOk = false;
 
         $plc = $this->readRegisters('handleCycle', 4000, 12);
+        $this->insertRaw('cycle', $shellyCount, $plc);
         if ($plc !== null) {
             $op1            = max(0, (int)($plc[0]  ?? 0));  // D4000 - Op1 Påsatt
             $op2            = max(0, (int)($plc[1]  ?? 0));  // D4001 - Op2 Spolplatform
@@ -307,6 +335,7 @@ class TvattLinje {
             'low'     => $low,
             'running' => $is_running,
         ]);
+        $this->insertRaw('running', null, null);
 
         $stmt = $this->db->prepare('
             SELECT s_count_l, s_count_h, runtime_today, running, datum, CURRENT_TIMESTAMP as tid
@@ -377,6 +406,7 @@ class TvattLinje {
 
         $rast_status = (int)$_GET['rast'];
         $this->log('handleRast', "Signal mottagen", ['rast_status' => $rast_status]);
+        $this->insertRaw('rast', null, null);
 
         $table     = null;
         $lastEntry = null;
@@ -442,6 +472,7 @@ class TvattLinje {
         // annars försök läsa direkt (fallback)
         $plc = !empty($preloadedPlc) ? $preloadedPlc : $this->readRegisters('handleSkiftrapport/fallback', 4000, 12);
         $this->log('handleSkiftrapport', "Använder " . (!empty($preloadedPlc) ? "förhandslästa" : "direktlästa") . " register");
+        $this->insertRaw('skiftrapport', null, $plc);
 
         if ($plc !== null) {
             $op1                = max(0, (int)($plc[0] ?? 0));  // D4000
@@ -669,6 +700,7 @@ class TvattLinje {
         // Detta undviker race-condition: PLCn kan nollställa D4000-D4011 direkt
         // när D4015=1 skickas — om vi läser i separata anrop kan data vara borta.
         $plc = $this->readRegisters('handleCommand', 4000, 16);
+        $this->insertRaw('command', null, $plc);
         if ($plc === null) {
             $this->log('handleCommand', "KRITISKT: kunde inte läsa D4000-D4015 — avbryter");
             return;

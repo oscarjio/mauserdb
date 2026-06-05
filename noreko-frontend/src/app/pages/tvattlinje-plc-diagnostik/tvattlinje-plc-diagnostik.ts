@@ -57,6 +57,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   showRast = true;
   showDriftstopp = true;
   showSkiftrapport = true;
+  showPlcRaw = false;
 
   stats = {
     running: false,
@@ -202,11 +203,15 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       if (e.source === 'rast' && !this.showRast) return false;
       if (e.source === 'driftstopp' && !this.showDriftstopp) return false;
       if (e.source === 'skiftrapport' && !this.showSkiftrapport) return false;
+      if (e.source === 'plc_raw' && !this.showPlcRaw) return false;
       return true;
     });
   }
 
   getBadgeClass(event: PlcEvent): string {
+    if (event.source === 'plc_raw') {
+      return this.getPlcRawClass(event);
+    }
     switch (event.event_type) {
       case 'ON': return 'badge-on';
       case 'OFF': return 'badge-off';
@@ -219,6 +224,9 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   }
 
   getBadgeLabel(event: PlcEvent): string {
+    if (event.source === 'plc_raw') {
+      return 'RÅ-PLC';
+    }
     switch (event.event_type) {
       case 'ON': return 'ON';
       case 'OFF': return 'OFF';
@@ -230,6 +238,17 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       case 'SKIFTRAPPORT': return 'SKIFTRAPPORT';
       default: return event.event_type;
     }
+  }
+
+  formatRegisters(row: any): string {
+    const regs = row['registers_parsed'] || {};
+    return Object.entries(regs)
+      .map(([k, v]) => `${k}=${v}`)
+      .join('  ');
+  }
+
+  getPlcRawClass(row: any): string {
+    return row['modbus_ok'] == 1 ? 'badge-plc-raw-ok' : 'badge-plc-raw-fail';
   }
 
   formatTimestamp(datum: string): string {
