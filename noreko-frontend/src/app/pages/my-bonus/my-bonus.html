@@ -733,8 +733,8 @@
       </div>
       <div class="col-md-3 col-6">
         <div class="kpi-card kpi-eff">
-          <div class="kpi-icon"><i class="fas fa-bolt"></i></div>
-          <div class="kpi-label">Effektivitet</div>
+          <div class="kpi-icon"><i class="fas fa-check-double"></i></div>
+          <div class="kpi-label">Kvalitet</div>
           <div class="kpi-value text-info">{{ (stats.kpis?.effektivitet || 0) | number:'1.1-1' }}%</div>
           <div class="kpi-sub">Godkänd / Total IBC</div>
         </div>
@@ -749,10 +749,10 @@
       </div>
       <div class="col-md-3 col-6">
         <div class="kpi-card kpi-qual">
-          <div class="kpi-icon"><i class="fas fa-check-double"></i></div>
-          <div class="kpi-label">Kvalitet</div>
+          <div class="kpi-icon"><i class="fas fa-bolt"></i></div>
+          <div class="kpi-label">Effektivitet</div>
           <div class="kpi-value text-success">{{ (stats.kpis?.kvalitet || 0) | number:'1.1-1' }}%</div>
-          <div class="kpi-sub">Godkänd / Rättade</div>
+          <div class="kpi-sub">Körtid / Schematid</div>
         </div>
       </div>
     </div>

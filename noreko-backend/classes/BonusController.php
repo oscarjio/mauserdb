@@ -86,25 +86,51 @@ class BonusController {
      * @param string $dateFilter Returnerat av getDateFilter()
      */
     private function perShiftSubquery(string $opFilter, string $dateFilter): string {
+        // shift_runtime: Hela skiftets runtime_plc — INTE filtrerat per operator.
+        // Operatörer byter position mitt i skift → MAX(runtime_plc) per operator-rad underskattar.
+        // Lösning: JOIN mot skiftets TOTALA runtime (alla rader för samma skiftraknare).
         return "
             SELECT
-                skiftraknare,
-                MAX(ibc_ok)     AS shift_ibc_ok,
-                MAX(ibc_ej_ok)  AS shift_ibc_ej_ok,
-                MAX(bur_ej_ok)  AS shift_bur_ej_ok,
-                MAX(runtime_plc) AS shift_runtime,
-                MAX(rasttime)   AS shift_rasttime,
-                SUBSTRING_INDEX(GROUP_CONCAT(effektivitet  ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_effektivitet,
-                SUBSTRING_INDEX(GROUP_CONCAT(produktivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_produktivitet,
-                SUBSTRING_INDEX(GROUP_CONCAT(kvalitet      ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet,
-                SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang   ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus,
-                MIN(datum) AS first_datum,
-                MAX(datum) AS last_datum
-            FROM rebotling_ibc
-            WHERE $opFilter
-
-              AND $dateFilter
-            GROUP BY skiftraknare
+                op_rows.skiftraknare,
+                op_rows.shift_ibc_ok,
+                op_rows.shift_ibc_ej_ok,
+                op_rows.shift_bur_ej_ok,
+                COALESCE(full_shift.full_runtime, op_rows.op_runtime) AS shift_runtime,
+                COALESCE(full_shift.full_rasttime, op_rows.op_rasttime) AS shift_rasttime,
+                op_rows.last_effektivitet,
+                op_rows.last_produktivitet,
+                op_rows.last_kvalitet,
+                op_rows.last_bonus,
+                op_rows.first_datum,
+                op_rows.last_datum
+            FROM (
+                SELECT
+                    skiftraknare,
+                    MAX(ibc_ok)      AS shift_ibc_ok,
+                    MAX(ibc_ej_ok)   AS shift_ibc_ej_ok,
+                    MAX(bur_ej_ok)   AS shift_bur_ej_ok,
+                    MAX(runtime_plc) AS op_runtime,
+                    MAX(rasttime)    AS op_rasttime,
+                    SUBSTRING_INDEX(GROUP_CONCAT(effektivitet  ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_effektivitet,
+                    SUBSTRING_INDEX(GROUP_CONCAT(produktivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_produktivitet,
+                    SUBSTRING_INDEX(GROUP_CONCAT(kvalitet      ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet,
+                    SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang   ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus,
+                    MIN(datum) AS first_datum,
+                    MAX(datum) AS last_datum
+                FROM rebotling_ibc
+                WHERE $opFilter
+                  AND $dateFilter
+                GROUP BY skiftraknare
+            ) op_rows
+            LEFT JOIN (
+                SELECT skiftraknare,
+                       MAX(runtime_plc) AS full_runtime,
+                       MAX(rasttime)    AS full_rasttime
+                FROM rebotling_ibc
+                WHERE $dateFilter
+                  AND skiftraknare IS NOT NULL
+                GROUP BY skiftraknare
+            ) full_shift ON op_rows.skiftraknare = full_shift.skiftraknare
         ";
     }
 

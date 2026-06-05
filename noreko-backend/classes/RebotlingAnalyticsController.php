@@ -904,10 +904,18 @@ class RebotlingAnalyticsController {
                 if ($lastShiftRow) {
                     $lastShift = (int)$lastShiftRow['skiftraknare'];
 
-                    // Skiftets totala drifttid (runtime_plc är kumulativ per skift, ej per op)
-                    $stmtRt = $this->pdo->prepare("SELECT COALESCE(MAX(runtime_plc), 0) FROM rebotling_ibc WHERE skiftraknare = ?");
+                    // Skiftets totala drifttid (runtime_plc är kumulativ per skift, ej per op).
+                    // Fallback: TIMESTAMPDIFF om runtime_plc är 0 (PLC ännu ej skrivit fältet).
+                    $stmtRt = $this->pdo->prepare("
+                        SELECT COALESCE(MAX(runtime_plc), 0) AS runtime,
+                               TIMESTAMPDIFF(MINUTE, MIN(datum), MAX(datum)) AS elapsed
+                        FROM rebotling_ibc WHERE skiftraknare = ?
+                    ");
                     $stmtRt->execute([$lastShift]);
-                    $shiftRuntime = (float)$stmtRt->fetchColumn();
+                    $rtRow = $stmtRt->fetch(\PDO::FETCH_ASSOC);
+                    $shiftRuntime = ((float)($rtRow['runtime'] ?? 0) > 0)
+                        ? (float)$rtRow['runtime']
+                        : max((float)($rtRow['elapsed'] ?? 0), 0);
 
                     // Hämta alla operatörer i skiftet (pos 1,2,3) — EN rad per operatör
                     // ROW_NUMBER() PARTITION BY operator_id eliminerar dubbletter när samma person
@@ -976,8 +984,8 @@ class RebotlingAnalyticsController {
                         $ej    = (float)$op['ibc_ej_ok'];
                         // Använd skiftets totala drifttid — runtime_plc är kumulativ per skift
                         // och ska inte filtreras per operator (ger för kort tid om op byttes mid-skift)
-                        $rtMin = max($shiftRuntime > 0 ? $shiftRuntime : (float)$op['runtime_min'], 10);
-                        $ibcH  = round(min($ok * 60.0 / $rtMin, 99.9), 1);
+                        $rtMin = max($shiftRuntime > 0 ? $shiftRuntime : (float)$op['runtime_min'], 1);
+                        $ibcH  = round($ok * 60.0 / $rtMin, 1);
                         $qual  = ($ok + $ej) > 0 ? round($ok / ($ok + $ej) * 100, 1) : 0;
                         $lastShiftOps[] = [
                             'id'       => $opId,

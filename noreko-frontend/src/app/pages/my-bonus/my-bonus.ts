@@ -1305,12 +1305,12 @@ export class MyBonusPage implements OnInit, OnDestroy {
     const month = today.getMonth();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const workedDates = new Set<string>(
-      (this.history || []).map((s: any) => s.datum || '').filter(Boolean)
+      (this.history || []).map((s: any) => (s.datum || '').substring(0, 10)).filter(Boolean)
     );
     this.workCalendar = Array.from({ length: daysInMonth }, (_, i) => {
       const d = new Date(year, month, i + 1);
       const dateStr = localDateStr(d);
-      const shift = (this.history || []).find((s: any) => s.datum === dateStr);
+      const shift = (this.history || []).find((s: any) => (s.datum || '').substring(0, 10) === dateStr);
       return { date: dateStr, worked: workedDates.has(dateStr), ibc: shift?.ibc_ok || 0 };
     });
   }

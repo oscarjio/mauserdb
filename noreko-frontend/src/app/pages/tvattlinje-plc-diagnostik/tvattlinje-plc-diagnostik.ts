@@ -43,6 +43,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   private destroy$ = new Subject<void>();
   private pollIntervalId: any;
   isFetching = false;
+  private expectedDate = '';
 
   events: PlcEvent[] = [];
   private dbEventMap = new Map<string, PlcEvent>();
@@ -122,8 +123,10 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   fetchEvents(initialLoad = false): void {
     if (this.isFetching) return;
     this.isFetching = true;
+    const requestDate = this.selectedDate;
+    this.expectedDate = requestDate;
 
-    const url = `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostik&date=${this.selectedDate}&limit=200`;
+    const url = `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostik&date=${requestDate}&limit=200`;
 
     this.http.get<PlcDiagnostikResponse>(url, { withCredentials: true })
       .pipe(
@@ -137,6 +140,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       )
       .subscribe(res => {
         if (!res || !res.success) return;
+        if (requestDate !== this.expectedDate) return; // stale response from old date
         this.fetchError = false;
         this.lastFetchTime = new Date();
 
@@ -162,6 +166,8 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
 
   onDateChange(): void {
     this.isToday = this.selectedDate === this.todayStr();
+    this.expectedDate = this.selectedDate; // invalidate any in-flight request
+    this.isFetching = false;              // allow the new date's request to proceed
     this.dbEventMap.clear();
     this.events = [];
     this.fetchEvents(true);

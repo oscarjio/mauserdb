@@ -356,9 +356,28 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get summaryAvgOee(): number | null {
-    const valid = this.filteredReports.filter(r => this.getOeePct(r) != null);
-    if (!valid.length) return null;
-    return Math.round(valid.reduce((s, r) => s + (this.getOeePct(r) ?? 0), 0) / valid.length);
+    const reports = this.filteredReports;
+    if (!reports.length) return null;
+    const totalDrift = reports.reduce((s, r) => s + (r.drifttid || 0), 0);
+    const totalRast  = reports.reduce((s, r) => s + (r.rasttime  || 0), 0);
+    const schema = totalDrift + totalRast;
+    if (schema <= 0 || totalDrift <= 0) return null;
+    const totalIbc = this.cachedTotalIbc;
+    const totalOk  = this.cachedTotalOk;
+    if (totalIbc <= 0) return null;
+    const tillganglighet = totalDrift / schema;
+    const kvalitet       = totalOk / totalIbc;
+    const totalDriftSek  = totalDrift * 60;
+    let totalIdealSek    = 0;
+    for (const r of reports) {
+      const rIbc    = (r.antal_ok || 0) + (r.antal_ej_ok || 0);
+      const product = this.products.find((p: any) => p.id === (r.product_id ?? null));
+      const cycleSek = ((product?.cycle_time_minutes ?? 3.0) * 60);
+      totalIdealSek += rIbc * cycleSek;
+    }
+    const prestanda = totalDriftSek > 0 ? Math.min(totalIdealSek / totalDriftSek, 1) : 1.0;
+    const v = Math.round(tillganglighet * prestanda * kvalitet * 100);
+    return isFinite(v) ? v : null;
   }
 
   get summaryTotalDrift(): number {
