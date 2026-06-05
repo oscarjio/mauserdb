@@ -51,6 +51,10 @@ class LineSkiftrapportController {
                 $this->getSubShifts($line);
                 return;
             }
+            if ($run === 'daglig') {
+                $this->getDagligBreakdown($line);
+                return;
+            }
             $this->getReports($table);
             return;
         }
@@ -691,6 +695,31 @@ class LineSkiftrapportController {
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) return "$s 00:00:00";
             return null;
         };
+    }
+
+    private function getDagligBreakdown($line) {
+        $dagligTable = $line . '_skiftrapport_daglig';
+        $id = intval($_GET['id'] ?? 0);
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt id'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        try {
+            // Om tabellen saknas returnera tom array (migration ej körd ännu)
+            $exists = $this->pdo->query("SHOW TABLES LIKE '$dagligTable'")->rowCount() > 0;
+            if (!$exists) {
+                echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            $stmt = $this->pdo->prepare("SELECT * FROM `$dagligTable` WHERE skiftrapport_id = ? ORDER BY dag ASC");
+            $stmt->execute([$id]);
+            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            error_log("LineSkiftrapportController::getDagligBreakdown($dagligTable): " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
+        }
     }
 
     private function buildLopnummerRanges(array $nums): string {

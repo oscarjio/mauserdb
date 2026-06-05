@@ -508,7 +508,9 @@ class TvattLinje {
             'lopnummer'      => $lopnummer_max ?: $aktuellt_lopnummer,
             'skiftraknare'   => $skiftraknare,
         ]);
+        $skiftrapportId = (int)$this->db->lastInsertId();
         $this->log('handleSkiftrapport', "DB INSERT OK", [
+            'id'            => $skiftrapportId,
             'datum'         => $datum,
             'ibc_ok'        => $ibc_ok,
             'ibc_ej_ok'     => $ibc_ej_ok,
@@ -520,6 +522,113 @@ class TvattLinje {
             'skiftraknare'  => $skiftraknare,
             'modbus_ok'     => $modbusOk,
         ]);
+
+        // ---- Period-attributering per dag ----
+        // Hämta föregående rapports created_at för att avgränsa perioden.
+        try {
+            $prevStmt = $this->db->prepare(
+                "SELECT created_at FROM tvattlinje_skiftrapport WHERE id < :id ORDER BY id DESC LIMIT 1"
+            );
+            $prevStmt->execute(['id' => $skiftrapportId]);
+            $prevRow       = $prevStmt->fetch(PDO::FETCH_ASSOC);
+            $prevCreatedAt = $prevRow ? $prevRow['created_at'] : date('Y-m-d H:i:s', strtotime('-24 hours'));
+
+            // Dagliga max-värden för ibc_count, runtime_plc och rasttime inom perioden
+            $evtStmt = $this->db->prepare("
+                SELECT DATE(datum)                        AS dag,
+                       MAX(ibc_count)                    AS max_ibc,
+                       MAX(COALESCE(runtime_plc, 0))     AS max_rt,
+                       MAX(COALESCE(rasttime, 0))        AS max_rast,
+                       MIN(datum)                        AS first_ts,
+                       MAX(datum)                        AS last_ts
+                FROM tvattlinje_ibc
+                WHERE datum > :prev_at AND datum <= NOW()
+                GROUP BY DATE(datum)
+                ORDER BY dag ASC
+            ");
+            $evtStmt->execute(['prev_at' => $prevCreatedAt]);
+            $dayRows = $evtStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!empty($dayRows)) {
+                $periodStart = $dayRows[0]['first_ts'];
+                $periodEnd   = $dayRows[count($dayRows) - 1]['last_ts'];
+                $flerdagars  = (count($dayRows) > 1 || substr($periodStart, 0, 10) !== substr($periodEnd, 0, 10)) ? 1 : 0;
+                $antalDagar  = count($dayRows);
+
+                // Uppdatera period-kolumnerna på rapporten
+                $this->db->prepare(
+                    "UPDATE tvattlinje_skiftrapport SET period_start=:ps, period_end=:pe, flerdagars=:fd, antal_dagar=:ad WHERE id=:id"
+                )->execute(['ps' => $periodStart, 'pe' => $periodEnd, 'fd' => $flerdagars, 'ad' => $antalDagar, 'id' => $skiftrapportId]);
+
+                // Baseline: max-värden precis före perioden (för korrekt delta dag 1)
+                $baseStmt = $this->db->prepare(
+                    "SELECT MAX(ibc_count) AS b_ibc, MAX(COALESCE(runtime_plc,0)) AS b_rt, MAX(COALESCE(rasttime,0)) AS b_rast FROM tvattlinje_ibc WHERE datum <= :prev_at"
+                );
+                $baseStmt->execute(['prev_at' => $prevCreatedAt]);
+                $baseRow  = $baseStmt->fetch(PDO::FETCH_ASSOC);
+                $prevIbc  = $baseRow ? (int)($baseRow['b_ibc']  ?? 0) : 0;
+                $prevRt   = $baseRow ? (int)($baseRow['b_rt']   ?? 0) : 0;
+                $prevRast = $baseRow ? (int)($baseRow['b_rast'] ?? 0) : 0;
+
+                // Beräkna dagliga deltar
+                $totalDeltaIbc = 0;
+                $dagDeltas     = [];
+                foreach ($dayRows as $dr) {
+                    $dIbc  = max(0, (int)$dr['max_ibc']  - $prevIbc);
+                    $dRt   = max(0, (int)$dr['max_rt']   - $prevRt);
+                    $dRast = max(0, (int)$dr['max_rast'] - $prevRast);
+                    $dagDeltas[]    = ['dag' => $dr['dag'], 'ibc' => $dIbc, 'rt' => $dRt, 'rast' => $dRast];
+                    $totalDeltaIbc += $dIbc;
+                    $prevIbc  = (int)$dr['max_ibc'];
+                    $prevRt   = (int)$dr['max_rt'];
+                    $prevRast = (int)$dr['max_rast'];
+                }
+
+                // Proportionell fördelning av ok/ej_ok/omtvaatt — differens på sista dagen
+                $n         = count($dagDeltas);
+                $sumOk     = $sumEjOk = $sumOmtv = 0;
+                $kalla     = ($totalDeltaIbc > 0) ? 'plc_event' : 'pro_rata';
+                $insStmt   = $this->db->prepare("
+                    INSERT INTO tvattlinje_skiftrapport_daglig
+                      (skiftrapport_id, dag, antal_ok, antal_ej_ok, omtvaatt, drifttid_min, rast_min, kalla)
+                    VALUES (:sid, :dag, :ok, :ejok, :omtv, :rt, :rast, :kalla)
+                    ON DUPLICATE KEY UPDATE
+                      antal_ok=VALUES(antal_ok), antal_ej_ok=VALUES(antal_ej_ok),
+                      omtvaatt=VALUES(omtvaatt), drifttid_min=VALUES(drifttid_min),
+                      rast_min=VALUES(rast_min), kalla=VALUES(kalla)
+                ");
+                foreach ($dagDeltas as $i => $dd) {
+                    $ratio  = ($totalDeltaIbc > 0) ? $dd['ibc'] / $totalDeltaIbc : 1.0 / $n;
+                    $aOk    = ($i < $n - 1) ? (int)round($ibc_ok    * $ratio) : ($ibc_ok    - $sumOk);
+                    $aEjOk  = ($i < $n - 1) ? (int)round($ibc_ej_ok * $ratio) : ($ibc_ej_ok - $sumEjOk);
+                    $aOmtv  = ($i < $n - 1) ? (int)round($omtvaatt  * $ratio) : ($omtvaatt  - $sumOmtv);
+                    $sumOk   += $aOk;
+                    $sumEjOk += $aEjOk;
+                    $sumOmtv += $aOmtv;
+                    $insStmt->execute([
+                        'sid'  => $skiftrapportId,
+                        'dag'  => $dd['dag'],
+                        'ok'   => $aOk,
+                        'ejok' => $aEjOk,
+                        'omtv' => $aOmtv,
+                        'rt'   => $dd['rt'],
+                        'rast' => $dd['rast'],
+                        'kalla'=> $kalla,
+                    ]);
+                }
+                $this->log('handleSkiftrapport', "Period-attributering klar", [
+                    'id' => $skiftrapportId, 'flerdagars' => $flerdagars, 'antal_dagar' => $antalDagar,
+                    'period_start' => $periodStart, 'period_end' => $periodEnd,
+                ]);
+            } else {
+                $this->log('handleSkiftrapport', "Inga PLC-events — _daglig ej populerad", [
+                    'id' => $skiftrapportId, 'prev_created_at' => $prevCreatedAt,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            error_log('TvattLinje::handleSkiftrapport period-attr: ' . $e->getMessage());
+        }
+        // ---- Slut period-attributering ----
 
         // ACK hanteras av handleCommand efter att handleSkiftrapport returnerar
     }

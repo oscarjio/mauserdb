@@ -80,6 +80,13 @@ export class LineSkiftrapportService {
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
+  getDagligBreakdown(line: LineName, reportId: number): Observable<any> {
+    return this.http.get<any>(
+      `${this.url(line)}&run=daglig&id=${reportId}`,
+      { withCredentials: true }
+    ).pipe(timeout(10000), retry(1), catchError(() => of({ success: true, data: [] })));
+  }
+
   getUnreportedCycles(line: LineName, from: string): Observable<any> {
     return this.http.get<any>(
       `${this.url(line)}&run=subshifts&from=${encodeURIComponent(from)}`,

@@ -1926,8 +1926,6 @@ class TvattlinjeController {
                                total_runtime_sek, total_rasttime_sek
                         FROM deltas
                         WHERE total_ibc IS NOT NULL
-                          AND total_ibc > 0
-                          AND day_gap = 1
                           AND dag >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY)
                         ORDER BY dag ASC
                     ");
@@ -1966,8 +1964,6 @@ class TvattlinjeController {
                                total_runtime_sek, total_rasttime_sek
                         FROM deltas
                         WHERE total_ibc IS NOT NULL
-                          AND total_ibc > 0
-                          AND day_gap = 1
                           AND dag >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY)
                         ORDER BY dag ASC
                     ");

@@ -41,6 +41,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   subShiftsLoading: { [reportId: number]: boolean } = {};
   subShiftsShowAll: { [reportId: number]: boolean } = {};
   showRawSubShifts: { [reportId: number]: boolean } = {};
+  dagligBreakdownMap: { [reportId: number]: any[] } = {};
+  dagligBreakdownLoading: { [reportId: number]: boolean } = {};
   readonly PRELIMINARY_ID = -1;
   preliminaryReport: any | null = null;
   unreportedPasses: any[] = [];
@@ -520,6 +522,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       if (report?.skiftraknare && this.lopnummerMap[id] === undefined) {
         this.loadLopnummer(report);
       }
+      // Ladda per-dag-fördelning om rapporten är flerdagars
+      if (report?.flerdagars == 1 && this.dagligBreakdownMap[id] === undefined) {
+        this.loadDagligBreakdown(id);
+      }
       // Ladda PLC-data om created_at finns (fönster kan beräknas)
       if (report?.created_at && this.subShiftsMap[id] === undefined) {
         this.loadSubShifts(report, () => this.renderHourlyChart(id, report));
@@ -565,6 +571,22 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         this.subShiftsMap[id] = res?.success ? (res.data || []) : [];
         this.computePlcStats(id);
         if (onLoaded) setTimeout(onLoaded, 50);
+      });
+  }
+
+  formatPeriodDate(dt: string | null): string {
+    if (!dt) return '?';
+    const d = new Date(String(dt).replace(' ', 'T'));
+    return isNaN(d.getTime()) ? dt.substring(0, 10) : `${d.getDate()}/${d.getMonth() + 1}`;
+  }
+
+  loadDagligBreakdown(id: number): void {
+    this.dagligBreakdownLoading[id] = true;
+    this.service.getDagligBreakdown(this.config.line, id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.dagligBreakdownLoading[id] = false;
+        this.dagligBreakdownMap[id] = res?.data || [];
       });
   }
 

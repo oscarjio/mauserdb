@@ -427,6 +427,10 @@
                               </span>
                               <span *ngIf="!report.isPreliminary && !report.isUnreported" class="badge bg-secondary" style="font-size:.65em;">#{{ si + 1 }}</span>
                               <span *ngIf="isLateSubmission(report.id)" class="badge bg-secondary ms-1" style="font-size:.65em;" title="Rapporten skickades in mer än 2h efter sista cykeln">Sent</span>
+                              <span *ngIf="report.flerdagars == 1" class="badge bg-warning text-dark ms-1" style="font-size:.65em;"
+                                [title]="'Täcker ' + formatPeriodDate(report.period_start) + '–' + formatPeriodDate(report.period_end)">
+                                Sen rapport · {{ report.antal_dagar }} dagar
+                              </span>
                             </td>
                             <td>
                               <span class="badge bg-secondary">{{ getProductName(report.product_id) || '–' }}</span>
@@ -521,6 +525,38 @@
                                       <div *ngIf="report.op3" class="op-avatar" [style.background]="opAvatarColor(report.op3)" [title]="getOpName(report.op3)">{{ getOpInitials(report.op3) }}</div>
                                     </div>
                                   </div>
+                                </div>
+
+                                <!-- Per-dag uppdelning (flerdagars-rapport) -->
+                                <div *ngIf="report.flerdagars == 1" class="px-4 py-2 border-bottom border-secondary">
+                                  <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-calendar-alt me-1"></i>Täcker {{ formatPeriodDate(report.period_start) }} – {{ formatPeriodDate(report.period_end) }}</span>
+                                    <small class="text-muted">Rapporten sträcker sig över {{ report.antal_dagar }} dagar</small>
+                                  </div>
+                                  <div *ngIf="dagligBreakdownLoading[report.id]" class="text-muted small">Laddar fördelning...</div>
+                                  <table *ngIf="!dagligBreakdownLoading[report.id] && (dagligBreakdownMap[report.id]?.length ?? 0) > 0" class="table table-dark table-sm mb-0" style="font-size:.8rem;">
+                                    <thead>
+                                      <tr>
+                                        <th>Dag</th>
+                                        <th class="text-success">IBC OK</th>
+                                        <th>Ej OK</th>
+                                        <th>Omtvätt</th>
+                                        <th>Drifttid</th>
+                                        <th title="Fördelningskälla">Källa</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr *ngFor="let d of dagligBreakdownMap[report.id]">
+                                        <td>{{ formatPeriodDate(d.dag) }}</td>
+                                        <td class="text-success">{{ d.antal_ok }}</td>
+                                        <td>{{ d.antal_ej_ok }}</td>
+                                        <td>{{ d.omtvaatt }}</td>
+                                        <td>{{ d.drifttid_min }}min</td>
+                                        <td><span class="badge" [class.bg-success]="d.kalla==='plc_event'" [class.bg-secondary]="d.kalla==='pro_rata'" style="font-size:.65rem;">{{ d.kalla === 'plc_event' ? 'PLC' : 'Pro rata' }}</span></td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                  <div *ngIf="!dagligBreakdownLoading[report.id] && (dagligBreakdownMap[report.id]?.length ?? 0) === 0" class="text-muted small">Ingen per-dag-data tillgänglig (migration ej körd?).</div>
                                 </div>
 
                                 <!-- TABS -->
