@@ -80,6 +80,15 @@ export class LineSkiftrapportService {
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
+  /** Hämtar linjespecifika inställningar (t.ex. takt_mal för tvattlinje). Returnerar null för linjer utan settings-endpoint. */
+  getLineSettings(line: LineName): Observable<any> {
+    if (line !== 'tvattlinje') return of(null);
+    return this.http.get<any>(
+      `${environment.apiUrl}?action=tvattlinje&run=settings`,
+      { withCredentials: true }
+    ).pipe(timeout(5000), catchError(() => of(null)));
+  }
+
   getDagligBreakdown(line: LineName, reportId: number): Observable<any> {
     return this.http.get<any>(
       `${this.url(line)}&run=daglig&id=${reportId}`,

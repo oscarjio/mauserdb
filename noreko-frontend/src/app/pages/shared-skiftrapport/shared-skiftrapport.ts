@@ -41,6 +41,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   subShiftsLoading: { [reportId: number]: boolean } = {};
   subShiftsShowAll: { [reportId: number]: boolean } = {};
   showRawSubShifts: { [reportId: number]: boolean } = {};
+  fallbackCycleMin = 3.0;
   dagligBreakdownMap: { [reportId: number]: any[] } = {};
   dagligBreakdownLoading: { [reportId: number]: boolean } = {};
   readonly PRELIMINARY_ID = -1;
@@ -131,6 +132,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     });
     this.fetchReports();
     this.loadOperatorsAndProducts();
+    this.service.getLineSettings(this.config.line)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        const takt = parseFloat(res?.data?.takt_mal ?? '');
+        if (isFinite(takt) && takt > 0) this.fallbackCycleMin = takt;
+      });
     this.updateInterval = setInterval(() => {
       if (!this.destroy$.closed) this.fetchReports(true);
     }, 15000);
@@ -211,9 +218,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // ===== Privata compute-metoder (kallas ALDRIG från template) =====
 
   private _computeEfficiencyPct(r: any): number | null {
-    const tot = (r.drifttid || 0) + (r.rasttime || 0);
-    if (!tot) return null;
-    const v = Math.round((r.drifttid / tot) * 100);
+    const drifttid   = r.drifttid || 0;
+    const driftstopp = r.driftstopptime || 0;
+    if (drifttid <= 0) return null;
+    const v = driftstopp > 0 ? Math.round((drifttid / (drifttid + driftstopp)) * 100) : 100;
     return isFinite(v) ? v : null;
   }
 
@@ -231,20 +239,22 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   private _computeOeePct(r: any): number | null {
     try {
-      const totalIbc = r.totalt ?? 0;
-      const okIbc = r.antal_ok ?? 0;
+      const totalIbc   = r.totalt ?? 0;
+      const okIbc      = r.antal_ok ?? 0;
       if (totalIbc <= 0) return null;
-      const kvalitet = okIbc / totalIbc;
-      const drifttidMin = r.drifttid ?? 0;
-      const rasttimeMin = r.rasttime ?? 0;
-      const schemaMin = drifttidMin + rasttimeMin;
-      const tillganglighet = schemaMin > 0 ? Math.min(drifttidMin / schemaMin, 1) : null;
+      const kvalitet     = okIbc / totalIbc;
+      const drifttidMin  = r.drifttid ?? 0;
+      const driftstopp   = r.driftstopptime ?? 0;
+      // Tillgänglighet: drifttid/(drifttid+driftstopp). Rast exkluderas (planerad tid).
+      const tillganglighet = drifttidMin > 0
+        ? Math.min(drifttidMin / (drifttidMin + driftstopp), 1)
+        : null;
       if (tillganglighet == null) return null;
-      const drifttidSek = drifttidMin * 60;
+      const drifttidSek  = drifttidMin * 60;
       const product = this.productNameMap.size > 0
         ? this.products.find(p => p.id === (r.product_id ?? null))
         : null;
-      const IDEAL_CYCLE_SEK = ((product?.cycle_time_minutes ?? 3.0) * 60);
+      const IDEAL_CYCLE_SEK = (product?.cycle_time_minutes ?? this.fallbackCycleMin) * 60;
       const prestanda = drifttidSek > 0
         ? Math.min((totalIbc * IDEAL_CYCLE_SEK) / drifttidSek, 1)
         : 1.0;
@@ -350,31 +360,32 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get summaryAvgEfficiency(): number | null {
-    const totalDrift = this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
-    const totalRast = this.filteredReports.reduce((s, r) => s + (r.rasttime || 0), 0);
-    const schema = totalDrift + totalRast;
-    if (schema <= 0) return null;
-    return Math.round((totalDrift / schema) * 100);
+    const totalDrift    = this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
+    const totalDriftstopp = this.filteredReports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
+    if (totalDrift <= 0) return null;
+    const schema = totalDrift + totalDriftstopp;
+    return totalDriftstopp > 0 ? Math.round((totalDrift / schema) * 100) : 100;
   }
 
   get summaryAvgOee(): number | null {
     const reports = this.filteredReports;
     if (!reports.length) return null;
-    const totalDrift = reports.reduce((s, r) => s + (r.drifttid || 0), 0);
-    const totalRast  = reports.reduce((s, r) => s + (r.rasttime  || 0), 0);
-    const schema = totalDrift + totalRast;
-    if (schema <= 0 || totalDrift <= 0) return null;
+    const totalDrift      = reports.reduce((s, r) => s + (r.drifttid || 0), 0);
+    const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
+    if (totalDrift <= 0) return null;
     const totalIbc = this.cachedTotalIbc;
     const totalOk  = this.cachedTotalOk;
     if (totalIbc <= 0) return null;
-    const tillganglighet = totalDrift / schema;
+    // Tillgänglighet: rast exkluderas, bara driftstopp sänker den
+    const schema         = totalDrift + totalDriftstopp;
+    const tillganglighet = totalDriftstopp > 0 ? totalDrift / schema : 1.0;
     const kvalitet       = totalOk / totalIbc;
     const totalDriftSek  = totalDrift * 60;
     let totalIdealSek    = 0;
     for (const r of reports) {
-      const rIbc    = (r.antal_ok || 0) + (r.antal_ej_ok || 0);
-      const product = this.products.find((p: any) => p.id === (r.product_id ?? null));
-      const cycleSek = ((product?.cycle_time_minutes ?? 3.0) * 60);
+      const rIbc     = (r.antal_ok || 0) + (r.antal_ej_ok || 0);
+      const product  = this.products.find((p: any) => p.id === (r.product_id ?? null));
+      const cycleSek = (product?.cycle_time_minutes ?? this.fallbackCycleMin) * 60;
       totalIdealSek += rIbc * cycleSek;
     }
     const prestanda = totalDriftSek > 0 ? Math.min(totalIdealSek / totalDriftSek, 1) : 1.0;
