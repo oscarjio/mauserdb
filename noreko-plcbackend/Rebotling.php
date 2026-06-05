@@ -79,6 +79,7 @@ class Rebotling {
         if (!isset($_GET['count'])) {
             throw new InvalidArgumentException('Missing required fields for user.created');
         }
+        $shellyCount = (int)$_GET['count'];
 
         // === MODBUS TCP - LÄS FX5 D4000-D4009 ===
         $plc_raw_data = null;
