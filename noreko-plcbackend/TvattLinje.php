@@ -85,8 +85,8 @@ class TvattLinje {
         if ($ibc_ok < 0 || $ibc_ej_ok < 0 || $omtvaatt < 0) {
             throw new \RuntimeException("Negativa värden från PLC: ibc_ok={$ibc_ok}, ibc_ej_ok={$ibc_ej_ok}, omtvaatt={$omtvaatt}");
         }
-        if ($runtime_plc < 0 || $runtime_plc > 1440) {
-            throw new \RuntimeException("Orimlig runtime_plc={$runtime_plc} (max 1440 min/dag)");
+        if ($runtime_plc < 0) {
+            throw new \RuntimeException("Negativt runtime_plc={$runtime_plc}");
         }
         $total = $ibc_ok + $ibc_ej_ok + $omtvaatt;
         if ($total > 500) {
@@ -532,6 +532,22 @@ class TvattLinje {
             $prevStmt->execute(['id' => $skiftrapportId]);
             $prevRow       = $prevStmt->fetch(PDO::FETCH_ASSOC);
             $prevCreatedAt = $prevRow ? $prevRow['created_at'] : date('Y-m-d H:i:s', strtotime('-24 hours'));
+
+            // Härled product_id från vanligaste produkt-värdet i perioden
+            $prodStmt = $this->db->prepare("
+                SELECT produkt FROM tvattlinje_ibc
+                WHERE datum > :prev_at AND datum <= NOW() AND produkt IS NOT NULL AND produkt > 0
+                GROUP BY produkt ORDER BY COUNT(*) DESC LIMIT 1
+            ");
+            $prodStmt->execute(['prev_at' => $prevCreatedAt]);
+            $derivedProdukt = $prodStmt->fetchColumn();
+            if ($derivedProdukt !== false && (int)$derivedProdukt > 0) {
+                $this->db->prepare("UPDATE tvattlinje_skiftrapport SET product_id=:pid WHERE id=:id")
+                    ->execute(['pid' => (int)$derivedProdukt, 'id' => $skiftrapportId]);
+                $this->log('handleSkiftrapport', "product_id härlett från period-events", [
+                    'plc_at_send' => $produkt, 'derived' => (int)$derivedProdukt,
+                ]);
+            }
 
             // Dagliga event-data inom perioden
             $evtStmt = $this->db->prepare("
