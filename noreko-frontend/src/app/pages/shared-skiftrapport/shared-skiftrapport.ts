@@ -5,7 +5,7 @@ import { Subject, Subscription, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
-import { localToday } from '../../utils/date-utils';
+import { localToday, localDateStr } from '../../utils/date-utils';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -665,11 +665,37 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             }
             const firstT = pass.times[0];
             const lastT  = pass.times[pass.times.length - 1];
-            const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
-            const plcStart = new Date(firstT).toISOString().replace('T', ' ').substring(0, 19);
-            const plcEnd   = new Date(lastT).toISOString().replace('T', ' ').substring(0, 19);
+            // Formatera i LOKAL tid — toISOString() ger UTC (-2h i CEST) → fel visad tid + fel daggrupp
+            const localDt = (ms: number): string => {
+              const d = new Date(ms);
+              return localDateStr(d) + ' ' +
+                String(d.getHours()).padStart(2, '0') + ':' +
+                String(d.getMinutes()).padStart(2, '0') + ':' +
+                String(d.getSeconds()).padStart(2, '0');
+            };
+            const nowStr   = localDt(Date.now());
+            const plcStart = localDt(firstT);
+            const plcEnd   = localDt(lastT);
+            // Operatörer: räkna frekvens per op-nummer i cykeldatan, ta topp 3
+            const opFreq = new Map<number, number>();
+            pass.subs.forEach((s: any) => {
+              for (const n of [s.op1, s.op2, s.op3]) {
+                const num = parseInt(n, 10); if (num > 0) opFreq.set(num, (opFreq.get(num) || 0) + 1);
+              }
+            });
+            const sortedOps = Array.from(opFreq.entries()).sort((a, b) => b[1] - a[1]).map(e => e[0]);
+            const [sOp1 = null, sOp2 = null, sOp3 = null] = sortedOps;
+            const opNameFrom = (num: number | null): string | null => {
+              if (!num) return null;
+              for (const s of pass.subs) {
+                if (+s.op1 === num && s.op1_name) return s.op1_name;
+                if (+s.op2 === num && s.op2_name) return s.op2_name;
+                if (+s.op3 === num && s.op3_name) return s.op3_name;
+              }
+              return null;
+            };
             return {
-              id, datum: new Date(firstT).toISOString().substring(0, 10),
+              id, datum: localDateStr(new Date(firstT)),
               antal_ok: ibcOk, antal_ej_ok: ibcEjOk, totalt: ibcOk + ibcEjOk,
               ibcEstimated,
               drifttid, rasttime,
@@ -680,6 +706,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
               _firstTime: firstT, _lastTime: lastT,
               skiftraknare: fs?.skiftraknare ?? null,
               product_id: fs?.produkt ?? null,
+              op1: sOp1, op2: sOp2, op3: sOp3,
+              op1_name: opNameFrom(sOp1), op2_name: opNameFrom(sOp2), op3_name: opNameFrom(sOp3),
             };
           };
 
@@ -1212,16 +1240,17 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       dayMap[d].push(r);
     });
 
-    // Inkludera syntetiska rader i dagens grupp
-    const today = new Date().toISOString().substring(0, 10);
+    // Inkludera syntetiska rader i rätt daggrupp (passets eget lokala datum, ej alltid idag)
+    const today = localToday();
     const synthRows = [
       ...(this.preliminaryReport ? [this.preliminaryReport] : []),
       ...this.unreportedPasses
     ];
-    if (synthRows.length) {
-      if (!dayMap[today]) dayMap[today] = [];
-      synthRows.forEach(s => { if (!dayMap[today].find((r: any) => r.id === s.id)) dayMap[today].push(s); });
-    }
+    synthRows.forEach(s => {
+      const d = (s.datum || today).substring(0, 10);
+      if (!dayMap[d]) dayMap[d] = [];
+      if (!dayMap[d].find((r: any) => r.id === s.id)) dayMap[d].push(s);
+    });
 
     return Object.entries(dayMap).map(([date, reports]) => {
       const submittedOnly = reports.filter((r: any) => !r.isPreliminary && !r.isUnreported);
