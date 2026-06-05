@@ -412,20 +412,23 @@
                             <td class="text-nowrap small">
                               <!-- Status-badge -->
                               <div class="mb-1">
-                                <span *ngIf="report.isPreliminary" class="badge bg-warning text-dark" style="font-size:.7rem;">
+                                <span *ngIf="report._isDagligSlice" class="badge bg-info text-dark" style="font-size:.7rem;">
+                                  <i class="fas fa-calendar-day me-1" style="font-size:.6rem;"></i>Del av rapport
+                                </span>
+                                <span *ngIf="!report._isDagligSlice && report.isPreliminary" class="badge bg-warning text-dark" style="font-size:.7rem;">
                                   <i class="fas fa-circle fa-beat me-1" style="font-size:.6rem;"></i>Pågående
                                 </span>
-                                <span *ngIf="report.isUnreported" class="badge bg-danger" style="font-size:.7rem;">
+                                <span *ngIf="!report._isDagligSlice && report.isUnreported" class="badge bg-danger" style="font-size:.7rem;">
                                   <i class="fas fa-exclamation-triangle me-1" style="font-size:.6rem;"></i>Ej inskickad
                                 </span>
-                                <span *ngIf="!report.isPreliminary && !report.isUnreported" class="badge bg-success" style="font-size:.7rem;">
+                                <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported" class="badge bg-success" style="font-size:.7rem;">
                                   <i class="fas fa-check me-1" style="font-size:.6rem;"></i>Inskickad
                                 </span>
                               </div>
                               <span class="me-1" [class.text-info]="getShiftTid(report) !== '–'" [class.text-muted]="getShiftTid(report) === '–'">
                                 {{ getShiftTid(report) !== '–' ? getShiftTid(report) : '–' }}
                               </span>
-                              <span *ngIf="!report.isPreliminary && !report.isUnreported" class="badge bg-secondary" style="font-size:.65em;">#{{ si + 1 }}</span>
+                              <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported" class="badge bg-secondary" style="font-size:.65em;">#{{ si + 1 }}</span>
                               <span *ngIf="isLateSubmission(report.id)" class="badge bg-secondary ms-1" style="font-size:.65em;" title="Rapporten skickades in mer än 2h efter sista cykeln">Sent</span>
                               <span *ngIf="report.flerdagars == 1" class="badge bg-warning text-dark ms-1" style="font-size:.65em;"
                                 [title]="'Täcker ' + formatPeriodDate(report.period_start) + '–' + formatPeriodDate(report.period_end)">
@@ -455,11 +458,11 @@
                               </span>
                             </td>
                             <td class="d-none d-md-table-cell small">
-                              <span *ngIf="report.drifttid" class="text-success">{{ formatDrifttid(report.drifttid) }}</span>
-                              <span *ngIf="!report.drifttid" class="text-muted">–</span>
+                              <span *ngIf="getNetDrifttidMin(report) > 0" class="text-success">{{ formatNetDrifttid(report) }}</span>
+                              <span *ngIf="getNetDrifttidMin(report) <= 0" class="text-muted">–</span>
                             </td>
                             <td>
-                              <ng-container *ngIf="!report.isPreliminary && !report.isUnreported">
+                              <ng-container *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported">
                                 <div class="form-check form-switch" *ngIf="isAdmin">
                                   <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1" (change)="toggleInlagd(report)" />
                                   <label class="form-check-label small">{{ report.inlagd == 1 ? 'Ja' : 'Nej' }}</label>
@@ -468,26 +471,58 @@
                                   {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
                                 </span>
                               </ng-container>
-                              <span *ngIf="report.isPreliminary || report.isUnreported" class="text-muted small">–</span>
+                              <span *ngIf="report._isDagligSlice" class="badge" [class.bg-success]="report.inlagd == 1" [class.bg-secondary]="!report.inlagd">
+                                {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
+                              </span>
+                              <span *ngIf="!report._isDagligSlice && (report.isPreliminary || report.isUnreported)" class="text-muted small">–</span>
                             </td>
                             <td>
                               <div class="btn-group btn-group-sm">
-                                <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"
-                                  [title]="expanded[report.id] ? 'Dölj' : 'Visa detaljer'">
-                                  <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
-                                </button>
-                                <button *ngIf="loggedIn && !report.isPreliminary && !report.isUnreported" class="btn btn-outline-secondary" (click)="exportPDF(report)" title="Ladda ner PDF">
-                                  <i class="fas fa-file-pdf"></i>
-                                </button>
-                                <button *ngIf="canEdit(report) && !report.isPreliminary && !report.isUnreported" class="btn btn-outline-danger" (click)="deleteReport(report.id)">
-                                  <i class="fas fa-trash"></i>
-                                </button>
+                                <!-- Daglig slice: visa knapp för att expandera förälderrapport -->
+                                <ng-container *ngIf="report._isDagligSlice">
+                                  <button *ngIf="loggedIn" class="btn btn-outline-info btn-sm" (click)="toggleExpand(report._parentId)"
+                                    [title]="expanded[report._parentId] ? 'Dölj fullständig rapport' : 'Visa fullständig rapport'">
+                                    <i class="fas" [class.fa-chevron-up]="expanded[report._parentId]" [class.fa-chevron-down]="!expanded[report._parentId]"></i>
+                                  </button>
+                                </ng-container>
+                                <!-- Vanlig rad -->
+                                <ng-container *ngIf="!report._isDagligSlice">
+                                  <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"
+                                    [title]="expanded[report.id] ? 'Dölj' : 'Visa detaljer'">
+                                    <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
+                                  </button>
+                                  <button *ngIf="loggedIn && !report.isPreliminary && !report.isUnreported" class="btn btn-outline-secondary" (click)="exportPDF(report)" title="Ladda ner PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                  </button>
+                                  <button *ngIf="canEdit(report) && !report.isPreliminary && !report.isUnreported" class="btn btn-outline-danger" (click)="deleteReport(report.id)">
+                                    <i class="fas fa-trash"></i>
+                                  </button>
+                                </ng-container>
+                              </div>
+                            </td>
+                          </tr>
+
+                          <!-- EXPANDERAD DETALJ: Daglig slice (förenklad) -->
+                          <tr *ngIf="report._isDagligSlice && expanded[report._parentId]">
+                            <td colspan="9" class="p-0">
+                              <div class="expand-panel px-4 py-3">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                  <span class="badge bg-info text-dark"><i class="fas fa-calendar-day me-1"></i>Daglig andel</span>
+                                  <small class="text-muted">Rapport #{{ report._parentId }} · {{ getShiftTid(report) }}</small>
+                                </div>
+                                <div class="d-flex flex-wrap gap-3 small">
+                                  <span class="text-success">IBC OK: <strong>{{ report.antal_ok }}</strong></span>
+                                  <span *ngIf="report.antal_ej_ok > 0" class="text-danger">Ej OK: <strong>{{ report.antal_ej_ok }}</strong></span>
+                                  <span>Drifttid: <strong>{{ formatNetDrifttid(report) }}</strong></span>
+                                  <span *ngIf="report.rasttime > 0" class="text-muted">Rast: <strong>{{ formatDrifttid(report.rasttime) }}</strong></span>
+                                  <span *ngIf="ibcPerHour(report) !== '–'" class="text-warning">IBC/H: <strong>{{ ibcPerHour(report) }}</strong></span>
+                                </div>
                               </div>
                             </td>
                           </tr>
 
                           <!-- EXPANDERAD DETALJ -->
-                          <tr *ngIf="expanded[report.id]">
+                          <tr *ngIf="!report._isDagligSlice && expanded[report.id]">
                             <td colspan="9" class="p-0">
                               <div class="expand-panel p-0">
 

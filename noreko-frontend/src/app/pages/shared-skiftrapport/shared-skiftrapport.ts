@@ -193,6 +193,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     // Expandera dagens grupp automatiskt
     const today = new Date().toISOString().substring(0, 10);
     if (this.expandedDays[today] === undefined) this.expandedDays[today] = true;
+    // Auto-ladda daglig-fördelning för alla flerdagarsrapporter (behövs för korrekt daggruppering)
+    for (const r of filtered) {
+      if (r.flerdagars == 1 && this.dagligBreakdownMap[r.id] === undefined && !this.dagligBreakdownLoading[r.id]) {
+        this.loadDagligBreakdown(r.id);
+      }
+    }
   }
 
   /** Bygger om cachen med per-rapport beräknade värden — kallas EN gång per datahändelse. */
@@ -226,8 +232,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeIbcPerHour(r: any): number | null {
-    if (!(r.drifttid > 0) || !(r.antal_ok > 0)) return null;
-    const v = Math.round(r.antal_ok / (r.drifttid / 60) * 10) / 10;
+    const netMin = Math.max(0, (r.drifttid || 0) - (r.rasttime || 0));
+    if (!(netMin > 0) || !(r.antal_ok > 0)) return null;
+    const v = Math.round(r.antal_ok / (netMin / 60) * 10) / 10;
     return isFinite(v) ? v : null;
   }
 
@@ -277,7 +284,20 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const d = new Date(String(s).replace(' ', 'T'));
       return isNaN(d.getTime()) ? null : d;
     };
+    const fmtWithDate = (d: Date) => `${d.getDate()}/${d.getMonth() + 1} ${fmt(d)}`;
     try {
+      // Daglig slice: visa perioden från förälderrapport
+      if (report?._isDagligSlice && report?._parentReport?.period_start && report?._parentReport?.period_end) {
+        const s = parseDt(report._parentReport.period_start);
+        const e = parseDt(report._parentReport.period_end);
+        if (s && e) return `${fmtWithDate(s)} – ${fmtWithDate(e)}`;
+      }
+      // Flerdagarsrapport: visa period med datum istället för bara klockslag
+      if (report?.flerdagars == 1 && report?.period_start && report?.period_end) {
+        const s = parseDt(report.period_start);
+        const e = parseDt(report.period_end);
+        if (s && e) return `${fmtWithDate(s)} – ${fmtWithDate(e)}`;
+      }
       // Primär: backend-beräknade plc_start/plc_end (korrekt fönster)
       if (report?.plc_start && report?.plc_end) {
         const s = parseDt(report.plc_start);
@@ -1277,6 +1297,16 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return v != null ? v.toFixed(1) : '–';
   }
 
+  getNetDrifttidMin(r: any): number {
+    return Math.max(0, (r?.drifttid || 0) - (r?.rasttime || 0));
+  }
+
+  formatNetDrifttid(r: any): string {
+    const m = this.getNetDrifttidMin(r);
+    if (m <= 0) return '–';
+    return this.formatDrifttid(m);
+  }
+
   getSubIbcPerHour(sub: any): string {
     const ok = sub.ibc_ok ?? 0;
     const dt = sub.runtime_plc ?? 0;
@@ -1286,10 +1316,43 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   get groupedDays(): Array<{ date: string; reports: any[]; totalIbc: number; totalDrift: number; avgEff: number | null; operators: string[]; products: string[]; submittedCount: number; hasPreliminary: boolean; unreportedCount: number; }> {
     const dayMap: { [date: string]: any[] } = {};
+
+    // Flerdagarsrapporter med laddad daglig-data: hoppa över i datum-gruppen, injicera slices nedan
     this.filteredReports.forEach(r => {
+      if (r.flerdagars == 1 && (this.dagligBreakdownMap[r.id]?.length ?? 0) > 0) return;
       const d = (r.datum || '').substring(0, 10);
       if (!dayMap[d]) dayMap[d] = [];
       dayMap[d].push(r);
+    });
+
+    // Injicera dagliga slice-rader per dag för flerdagarsrapporter
+    let sliceIdCounter = -2001;
+    this.filteredReports.forEach(r => {
+      if (r.flerdagars != 1 || !(this.dagligBreakdownMap[r.id]?.length > 0)) return;
+      for (const d of this.dagligBreakdownMap[r.id]) {
+        const dagDate = (d.dag || '').substring(0, 10);
+        if (!dayMap[dagDate]) dayMap[dagDate] = [];
+        dayMap[dagDate].push({
+          _isDagligSlice: true,
+          _parentId: r.id,
+          _parentReport: r,
+          id: sliceIdCounter--,
+          datum: d.dag,
+          antal_ok: d.antal_ok ?? 0,
+          antal_ej_ok: d.antal_ej_ok ?? 0,
+          omtvaatt: d.omtvaatt ?? 0,
+          totalt: (d.antal_ok ?? 0) + (d.antal_ej_ok ?? 0),
+          drifttid: d.drifttid_min ?? 0,
+          rasttime: d.rast_min ?? 0,
+          driftstopptime: 0,
+          product_id: r.product_id,
+          op1: r.op1, op2: r.op2, op3: r.op3,
+          op1_name: r.op1_name, op2_name: r.op2_name, op3_name: r.op3_name,
+          inlagd: r.inlagd,
+          created_at: r.created_at,
+          flerdagars: 0,
+        });
+      }
     });
 
     // Inkludera syntetiska rader i rätt daggrupp (passets eget lokala datum, ej alltid idag)
@@ -1315,7 +1378,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         return ta - tb;
       });
       const totalIbc = submittedOnly.reduce((s, r) => s + (r.antal_ok || 0), 0);
-      const totalDrift = submittedOnly.reduce((s, r) => s + (r.drifttid || 0), 0);
+      const totalDrift = submittedOnly.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
       const effVals = submittedOnly.map(r => this.getEfficiencyPct(r)).filter((v): v is number => v != null);
       const avgEff = effVals.length ? Math.round(effVals.reduce((s, v) => s + v, 0) / effVals.length) : null;
       const opSet = new Set<string>();
