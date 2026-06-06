@@ -408,13 +408,13 @@
                         <ng-container *ngFor="let report of day.reports; let si = index; trackBy: trackByIndex">
 
                           <!-- FLERDAGARS-INFO -->
-                          <tr *ngIf="!report._isDagligSlice && report.flerdagars == 1" style="background:rgba(30,64,100,0.35);">
-                            <td [attr.colspan]="isAdmin ? 9 : 8" class="py-1 px-3" style="border-left:3px solid #3182ce; border-bottom:none;">
+                          <tr *ngIf="!report._isDagligSlice && report.flerdagars == 1" style="background:rgba(60,50,10,0.35);">
+                            <td [attr.colspan]="isAdmin ? 9 : 8" class="py-1 px-3" style="border-left:3px solid #d69e2e; border-bottom:none;">
                               <div class="d-flex align-items-center gap-2 flex-wrap" style="font-size:.78rem;">
-                                <i class="fas fa-info-circle text-info"></i>
-                                <span class="text-info fw-semibold">Sen rapport</span>
-                                <span class="text-info">— PLC ej nollställd mellan dagarna, data ackumulerad över {{ report.antal_dagar }} dagar och fördelad automatiskt.</span>
-                                <a [href]="getPlcDiagnostikUrl(report)" class="ms-auto text-info text-decoration-none small">
+                                <i class="fas fa-info-circle text-warning"></i>
+                                <span class="text-warning fw-semibold">Sen rapport</span>
+                                <span class="text-muted">— PLC ej nollställd mellan dagarna, ackumulerad över {{ report.antal_dagar }} dagar och automatiskt fördelad.</span>
+                                <a [href]="getPlcDiagnostikUrl(report)" class="ms-auto text-warning text-decoration-none small">
                                   <i class="fas fa-stethoscope me-1"></i>PLC Diagnostik
                                 </a>
                               </div>
@@ -1058,9 +1058,10 @@
 
                   <!-- Flerdagars-info -->
                   <div *ngIf="!report._isDagligSlice && report.flerdagars == 1" class="mobile-info-banner mb-2">
-                    <i class="fas fa-info-circle text-info me-1"></i>
-                    <span class="text-info">Sen rapport — PLC ej nollställd, {{ report.antal_dagar }} dagar.</span>
-                    <a [href]="getPlcDiagnostikUrl(report)" class="text-info ms-2 text-decoration-none"><i class="fas fa-stethoscope me-1"></i>Diagnostik</a>
+                    <i class="fas fa-info-circle text-warning me-1"></i>
+                    <span class="text-warning fw-semibold">Sen rapport</span>
+                    <span class="text-muted ms-1">— PLC ej nollställd, ackumulerad över {{ report.antal_dagar }} dagar och automatiskt fördelad.</span>
+                    <a [href]="getPlcDiagnostikUrl(report)" class="text-warning ms-2 text-decoration-none"><i class="fas fa-stethoscope me-1"></i>Diagnostik</a>
                   </div>
 
                   <!-- Status + Tid + Knappar -->
