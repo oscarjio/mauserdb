@@ -495,7 +495,9 @@ class TvattLinje {
                 'lopnummer_max' => $lopnummer_max, 'driftstopptime' => $driftstopptime,
             ]);
         } else {
-            $this->log('handleSkiftrapport', "PLC-data saknas — skiftrapport sparas med null-värden");
+            // FAIL-CLOSED: ingen skiftrapport utan giltig Modbus-läsning
+            $this->log('handleSkiftrapport', "PLC-data saknas — skiftrapport AVBRUTEN (fail-closed)");
+            return;
         }
 
         // Skiftraknare
@@ -554,8 +556,9 @@ class TvattLinje {
             'modbus_ok'     => $modbusOk,
         ]);
 
-        // ---- Period-attributering per dag ----
-        // Hämta föregående rapports created_at för att avgränsa perioden.
+        // ---- Period-metadata (ingen produktion beräknas från events) ----
+        // Lagrar period_start/period_end/flerdagars/antal_dagar för informationsändamål.
+        // PLC-värdena i rapporten (D4004/D4005/D4007) är sanningen — ändras aldrig här.
         try {
             $prevStmt = $this->db->prepare(
                 "SELECT created_at FROM tvattlinje_skiftrapport WHERE id < :id ORDER BY id DESC LIMIT 1"
@@ -564,7 +567,7 @@ class TvattLinje {
             $prevRow       = $prevStmt->fetch(PDO::FETCH_ASSOC);
             $prevCreatedAt = $prevRow ? $prevRow['created_at'] : date('Y-m-d H:i:s', strtotime('-24 hours'));
 
-            // Härled product_id från vanligaste produkt-värdet i perioden
+            // Härled product_id från vanligaste produkt i perioden (metadata, ej produktion)
             $prodStmt = $this->db->prepare("
                 SELECT produkt FROM tvattlinje_ibc
                 WHERE datum > :prev_at AND datum <= NOW() AND produkt IS NOT NULL AND produkt > 0
@@ -575,127 +578,35 @@ class TvattLinje {
             if ($derivedProdukt !== false && (int)$derivedProdukt > 0) {
                 $this->db->prepare("UPDATE tvattlinje_skiftrapport SET product_id=:pid WHERE id=:id")
                     ->execute(['pid' => (int)$derivedProdukt, 'id' => $skiftrapportId]);
-                $this->log('handleSkiftrapport', "product_id härlett från period-events", [
-                    'plc_at_send' => $produkt, 'derived' => (int)$derivedProdukt,
-                ]);
             }
 
-            // Dagliga event-data inom perioden
+            // Period-tidpunkter och flerdagars-flagga (metadata för badge i frontend)
             $evtStmt = $this->db->prepare("
-                SELECT DATE(datum)                        AS dag,
-                       MAX(COALESCE(ibc_count, 0))       AS max_ibc_count,
-                       MAX(COALESCE(rasttime, 0))        AS max_rast,
-                       MIN(datum)                        AS first_ts,
-                       MAX(datum)                        AS last_ts
+                SELECT MIN(datum) AS first_ts, MAX(datum) AS last_ts
                 FROM tvattlinje_ibc
                 WHERE datum > :prev_at AND datum <= NOW()
-                GROUP BY DATE(datum)
-                ORDER BY dag ASC
             ");
             $evtStmt->execute(['prev_at' => $prevCreatedAt]);
-            $dayRows = $evtStmt->fetchAll(PDO::FETCH_ASSOC);
-
-            if (!empty($dayRows)) {
-                $periodStart = $dayRows[0]['first_ts'];
-                $periodEnd   = $dayRows[count($dayRows) - 1]['last_ts'];
-                $flerdagars  = (count($dayRows) > 1 || substr($periodStart, 0, 10) !== substr($periodEnd, 0, 10)) ? 1 : 0;
-                $antalDagar  = count($dayRows);
-
-                // Uppdatera period-kolumnerna på rapporten
+            $evtRow = $evtStmt->fetch(PDO::FETCH_ASSOC);
+            if ($evtRow && $evtRow['first_ts']) {
+                $periodStart = $evtRow['first_ts'];
+                $periodEnd   = $evtRow['last_ts'];
+                $flerdagars  = (substr($periodStart, 0, 10) !== substr($periodEnd, 0, 10)) ? 1 : 0;
+                $antalDagar  = $flerdagars
+                    ? (int)((strtotime(substr($periodEnd, 0, 10)) - strtotime(substr($periodStart, 0, 10))) / 86400) + 1
+                    : 1;
                 $this->db->prepare(
                     "UPDATE tvattlinje_skiftrapport SET period_start=:ps, period_end=:pe, flerdagars=:fd, antal_dagar=:ad WHERE id=:id"
                 )->execute(['ps' => $periodStart, 'pe' => $periodEnd, 'fd' => $flerdagars, 'ad' => $antalDagar, 'id' => $skiftrapportId]);
-
-                // Baseline: rasttime ackumulerar — hämta värde precis innan perioden.
-                // ibc_count resettas dagligen i DB så ingen baseline behövs för den.
-                $baseStmt = $this->db->prepare(
-                    "SELECT MAX(COALESCE(rasttime,0)) AS b_rast
-                     FROM tvattlinje_ibc WHERE datum <= :prev_at"
-                );
-                $baseStmt->execute(['prev_at' => $prevCreatedAt]);
-                $baseRow  = $baseStmt->fetch(PDO::FETCH_ASSOC);
-                $prevRast = $baseRow ? (int)($baseRow['b_rast'] ?? 0) : 0;
-
-                // Beräkna dagliga deltar.
-                // ibc_count: fysisk genomströmning (puck-räknare, resettas dagligen) — sanningskälla för antal_ok.
-                // drifttid: event-fönster (first_ts → last_ts) per dag — exkluderar övernatt-idle.
-                // rast: delta på rasttime-räknaren (ackumulerar, kräver baseline-subtraktion).
-                $totalDeltaIbc = 0;
-                $dagDeltas     = [];
-                foreach ($dayRows as $dr) {
-                    $dIbc  = (int)$dr['max_ibc_count'];  // resettas dagligen → max = räknare för dagen
-                    $dRt   = max(0, (int)floor((strtotime($dr['last_ts']) - strtotime($dr['first_ts'])) / 60));
-                    $dRast = max(0, (int)$dr['max_rast'] - $prevRast);
-                    $dagDeltas[]    = ['dag' => $dr['dag'], 'ibc' => $dIbc, 'rt' => $dRt, 'rast' => $dRast];
-                    $totalDeltaIbc += $dIbc;
-                    $prevRast = (int)$dr['max_rast'];
-                }
-
-                // Korrigera antal_ok i rapporten till ibc_count-summan (fysisk genomströmning).
-                // ej_ok/omtvaatt fördelas proportionellt per dag baserat på ibc_count-andel.
-                if ($totalDeltaIbc > 0) {
-                    $this->db->prepare(
-                        "UPDATE tvattlinje_skiftrapport SET antal_ok=:ok, totalt=:tot WHERE id=:id"
-                    )->execute([
-                        'ok'  => $totalDeltaIbc,
-                        'tot' => $totalDeltaIbc + $ibc_ej_ok + $omtvaatt,
-                        'id'  => $skiftrapportId,
-                    ]);
-                }
-
-                $n       = count($dagDeltas);
-                $sumOk   = $sumEjOk = $sumOmtv = 0;
-                $kalla   = ($totalDeltaIbc > 0) ? 'plc_event' : 'pro_rata';
-                $insStmt = $this->db->prepare("
-                    INSERT INTO tvattlinje_skiftrapport_daglig
-                      (skiftrapport_id, dag, antal_ok, antal_ej_ok, omtvaatt, drifttid_min, rast_min, kalla)
-                    VALUES (:sid, :dag, :ok, :ejok, :omtv, :rt, :rast, :kalla)
-                    ON DUPLICATE KEY UPDATE
-                      antal_ok=VALUES(antal_ok), antal_ej_ok=VALUES(antal_ej_ok),
-                      omtvaatt=VALUES(omtvaatt), drifttid_min=VALUES(drifttid_min),
-                      rast_min=VALUES(rast_min), kalla=VALUES(kalla)
-                ");
-                foreach ($dagDeltas as $i => $dd) {
-                    $aOk   = $dd['ibc'];  // exakt per dag — ibc_count resettas dagligen
-                    $ratio = ($totalDeltaIbc > 0) ? $dd['ibc'] / $totalDeltaIbc : 1.0 / $n;
-                    $aEjOk = ($i < $n - 1) ? (int)round($ibc_ej_ok * $ratio) : ($ibc_ej_ok - $sumEjOk);
-                    $aOmtv = ($i < $n - 1) ? (int)round($omtvaatt  * $ratio) : ($omtvaatt  - $sumOmtv);
-                    $sumOk   += $aOk;
-                    $sumEjOk += $aEjOk;
-                    $sumOmtv += $aOmtv;
-                    $insStmt->execute([
-                        'sid'  => $skiftrapportId,
-                        'dag'  => $dd['dag'],
-                        'ok'   => $aOk,
-                        'ejok' => $aEjOk,
-                        'omtv' => $aOmtv,
-                        'rt'   => $dd['rt'],
-                        'rast' => $dd['rast'],
-                        'kalla'=> $kalla,
-                    ]);
-                }
-                // Korrigera drifttid/rasttime i rapporten: summera per-dag event-fönster.
-                $totalDeltaRt   = array_sum(array_column($dagDeltas, 'rt'));
-                $totalDeltaRast = array_sum(array_column($dagDeltas, 'rast'));
-                $this->db->prepare(
-                    "UPDATE tvattlinje_skiftrapport SET drifttid=:rt, rasttime=:rast WHERE id=:id"
-                )->execute(['rt' => $totalDeltaRt, 'rast' => $totalDeltaRast, 'id' => $skiftrapportId]);
-
-                $this->log('handleSkiftrapport', "Period-attributering klar", [
-                    'id' => $skiftrapportId, 'flerdagars' => $flerdagars, 'antal_dagar' => $antalDagar,
+                $this->log('handleSkiftrapport', "Period-metadata sparad", [
+                    'id' => $skiftrapportId, 'flerdagars' => $flerdagars,
                     'period_start' => $periodStart, 'period_end' => $periodEnd,
-                    'ibc_count_total' => $totalDeltaIbc, 'plc_d4004' => $plc[4] ?? null,
-                    'delta_rt_min' => $totalDeltaRt, 'delta_rast_min' => $totalDeltaRast,
-                ]);
-            } else {
-                $this->log('handleSkiftrapport', "Inga PLC-events — _daglig ej populerad", [
-                    'id' => $skiftrapportId, 'prev_created_at' => $prevCreatedAt,
                 ]);
             }
         } catch (\Throwable $e) {
-            error_log('TvattLinje::handleSkiftrapport period-attr: ' . $e->getMessage());
+            error_log('TvattLinje::handleSkiftrapport metadata: ' . $e->getMessage());
         }
-        // ---- Slut period-attributering ----
+        // ---- Slut period-metadata ----
 
         // ACK hanteras av handleCommand efter att handleSkiftrapport returnerar
     }

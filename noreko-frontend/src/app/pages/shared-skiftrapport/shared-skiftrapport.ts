@@ -193,12 +193,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     // Expandera dagens grupp automatiskt
     const today = new Date().toISOString().substring(0, 10);
     if (this.expandedDays[today] === undefined) this.expandedDays[today] = true;
-    // Auto-ladda daglig-fördelning för alla flerdagarsrapporter (behövs för korrekt daggruppering)
-    for (const r of filtered) {
-      if (r.flerdagars == 1 && this.dagligBreakdownMap[r.id] === undefined && !this.dagligBreakdownLoading[r.id]) {
-        this.loadDagligBreakdown(r.id);
-      }
-    }
+    // Daglig-fördelning laddas enbart vid explicit expand (ingen auto-load)
   }
 
   /** Bygger om cachen med per-rapport beräknade värden — kallas EN gång per datahändelse. */
@@ -1329,39 +1324,6 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       dayMap[d].push(r);
     });
 
-    // Flerdagarsrapporter: injicera dagliga slice-rader för dagar FÖRE inlämningsdatumet
-    // (inlämningsdagen har redan den fullständiga rapporten — andra dagar behöver en slice-rad)
-    let sliceIdCounter = -2001;
-    this.filteredReports.forEach(r => {
-      if (r.flerdagars != 1 || !(this.dagligBreakdownMap[r.id]?.length > 0)) return;
-      const submissionDate = (r.datum || '').substring(0, 10);
-      for (const d of this.dagligBreakdownMap[r.id]) {
-        const dagDate = (d.dag || '').substring(0, 10);
-        if (dagDate === submissionDate) continue; // inlämningsdag har redan full rapport-rad
-        if (!dayMap[dagDate]) dayMap[dagDate] = [];
-        dayMap[dagDate].push({
-          _isDagligSlice: true,
-          _parentId: r.id,
-          _parentReport: r,
-          id: sliceIdCounter--,
-          datum: d.dag,
-          antal_ok: d.antal_ok ?? 0,
-          antal_ej_ok: d.antal_ej_ok ?? 0,
-          omtvaatt: d.omtvaatt ?? 0,
-          totalt: (d.antal_ok ?? 0) + (d.antal_ej_ok ?? 0),
-          drifttid: d.drifttid_min ?? 0,
-          rasttime: d.rast_min ?? 0,
-          driftstopptime: 0,
-          product_id: r.product_id,
-          op1: r.op1, op2: r.op2, op3: r.op3,
-          op1_name: r.op1_name, op2_name: r.op2_name, op3_name: r.op3_name,
-          inlagd: r.inlagd,
-          created_at: r.created_at,
-          flerdagars: 0,
-        });
-      }
-    });
-
     // Inkludera syntetiska rader i rätt daggrupp (passets eget lokala datum, ej alltid idag)
     const today = localToday();
     const synthRows = [
@@ -1384,23 +1346,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const tb = b._firstTime ?? new Date(String(b.created_at || '').replace(' ', 'T')).getTime() ?? 0;
         return ta - tb;
       });
-      // Dagliga header-summor: flerdagarsrapport på inlämningsdagen använder daglig-andelen (ej totalrapportens siffror)
-      const totalIbc = submittedOnly.reduce((s, r) => {
-        if (r._isDagligSlice) return s + (r.antal_ok || 0);
-        if (r.flerdagars == 1 && (this.dagligBreakdownMap[r.id]?.length > 0)) {
-          const dagEntry = (this.dagligBreakdownMap[r.id] as any[]).find((d: any) => (d.dag || '').substring(0, 10) === date);
-          return s + (dagEntry ? (dagEntry.antal_ok || 0) : (r.antal_ok || 0));
-        }
-        return s + (r.antal_ok || 0);
-      }, 0);
-      const totalDrift = submittedOnly.reduce((s, r) => {
-        if (r._isDagligSlice) return s + this.getNetDrifttidMin(r);
-        if (r.flerdagars == 1 && (this.dagligBreakdownMap[r.id]?.length > 0)) {
-          const dagEntry = (this.dagligBreakdownMap[r.id] as any[]).find((d: any) => (d.dag || '').substring(0, 10) === date);
-          return s + (dagEntry ? Math.max(0, (dagEntry.drifttid_min || 0) - (dagEntry.rast_min || 0)) : this.getNetDrifttidMin(r));
-        }
-        return s + this.getNetDrifttidMin(r);
-      }, 0);
+      // Dag-summor: inskickade rapporter visar PLC-värden direkt (D4004/D4007)
+      const totalIbc   = submittedOnly.reduce((s, r) => s + (r.antal_ok || 0), 0);
+      const totalDrift = submittedOnly.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
       const effVals = submittedOnly.map(r => this.getEfficiencyPct(r)).filter((v): v is number => v != null);
       const avgEff = effVals.length ? Math.round(effVals.reduce((s, v) => s + v, 0) / effVals.length) : null;
       const opSet = new Set<string>();
