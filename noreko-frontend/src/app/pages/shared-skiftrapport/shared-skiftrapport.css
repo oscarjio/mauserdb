@@ -85,3 +85,117 @@
 .shift-detail-table { background: #2d3748; margin-bottom: 0; }
 .shift-detail-table thead th { background-color: #2d3748 !important; color: #a0aec0; font-size: 0.75rem; text-transform: uppercase; border-color: #4a5568; }
 .shift-detail-table tbody td { background-color: #2d3748 !important; color: #e2e8f0; font-size: 0.88rem; border-color: #4a5568; vertical-align: middle; }
+
+/* ======= MOBIL-KORT-LAYOUT (≤767px) ======= */
+
+/* Filter-bar: stapla vertikalt, full bredd */
+@media (max-width: 767px) {
+  .filter-bar { flex-direction: column !important; align-items: stretch !important; }
+  .filter-bar > div { width: 100%; }
+  .filter-bar input,
+  .filter-bar select { max-width: 100% !important; width: 100% !important; }
+  .filter-bar > button { width: 100%; }
+
+  /* Summary cards: komprimera lite */
+  .summary-card { padding: 0.7rem 0.5rem; }
+  .summary-value { font-size: 1.4rem; }
+  .summary-icon { font-size: 1.1rem; margin-bottom: 0.2rem; }
+
+  /* card-header knapprad: wrap */
+  .card-header .d-flex { flex-wrap: wrap !important; }
+}
+
+/* Dag-header (klickbar) */
+.mobile-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e2a3a;
+  border-left: 3px solid #3182ce;
+  border-radius: 8px 8px 0 0;
+  padding: 0.7rem 0.9rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.mobile-day-header:hover { background: rgba(49,130,206,0.2); }
+
+/* Skiftkort-container */
+.mobile-shifts {
+  border: 1px solid #2d3748;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
+/* Enskilt skiftkort */
+.mobile-shift-card {
+  background: #2d3748;
+  border-bottom: 1px solid #4a5568;
+  padding: 0.7rem 0.75rem;
+}
+.mobile-shift-card:last-child { border-bottom: none; }
+
+/* KPI-chip */
+.mobile-kpi {
+  background: #1a202c;
+  border: 1px solid #3a4a5e;
+  border-radius: 6px;
+  padding: 5px 10px;
+  min-width: 64px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.mobile-kpi-label {
+  font-size: 0.6rem;
+  color: #8fa3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+.mobile-kpi-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Info-banner (flerdagars) */
+.mobile-info-banner {
+  background: rgba(30,64,100,0.35);
+  border-left: 3px solid #3182ce;
+  border-radius: 4px;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.76rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Expanderat panel */
+.mobile-expand-panel {
+  background: #1e2535;
+  border-top: 2px solid #3182ce;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Hero-statistik i expanderat */
+.mobile-hero-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 56px;
+}
+.mobile-hero-num {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.mobile-hero-lbl {
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8fa3b8;
+  margin-top: 2px;
+}

@@ -224,7 +224,7 @@
   </div>
 
   <!-- Filter bar -->
-  <div class="d-flex gap-2 align-items-end mb-3 flex-wrap">
+  <div class="d-flex gap-2 align-items-end mb-3 flex-wrap filter-bar">
     <div>
       <label class="form-label small mb-1">Från datum</label>
       <input type="date" class="form-control form-control-sm" [(ngModel)]="filterFrom" (ngModelChange)="applyFilter()" style="max-width:150px; width:100%;" />
@@ -313,8 +313,8 @@
         <p class="small">Välj ett annat datum eller kontrollera att data skickats från PLC.</p>
       </div>
 
-      <!-- DAG-GRUPPERAD TABELL -->
-      <div class="table-responsive" *ngIf="!loading && (filteredReports.length > 0 || hasSynthRows)">
+      <!-- DAG-GRUPPERAD TABELL (desktop ≥md) -->
+      <div class="table-responsive d-none d-md-block" *ngIf="!loading && (filteredReports.length > 0 || hasSynthRows)">
         <table class="table table-hover">
           <thead class="table-dark">
             <tr>
@@ -1017,6 +1017,253 @@
           </tbody>
         </table>
       </div>
+
+      <!-- MOBIL-LAYOUT: kort per daggrupp (döljs ≥md) -->
+      <div class="d-md-none" *ngIf="!loading && (filteredReports.length > 0 || hasSynthRows)">
+        <ng-container *ngFor="let day of groupedDays; trackBy: trackByDate">
+          <div class="mobile-day-group mb-3">
+
+            <!-- Dag-header -->
+            <div class="mobile-day-header" (click)="toggleDay(day.date)">
+              <div>
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                  <span class="fw-semibold text-info">{{ day.date }}</span>
+                  <span class="badge bg-secondary" style="font-size:.7rem;">{{ day.submittedCount }} skift</span>
+                  <span *ngIf="day.hasPreliminary" class="badge bg-warning text-dark" style="font-size:.65rem;"><i class="fas fa-circle fa-beat me-1" style="font-size:.55rem;"></i>Pågående</span>
+                  <span *ngIf="day.unreportedCount > 0" class="badge bg-danger" style="font-size:.65rem;">{{ day.unreportedCount }} ej inskickad{{ day.unreportedCount > 1 ? 'a' : '' }}</span>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                  <span class="fw-bold text-success" style="font-size:.95rem;">{{ day.totalIbc }} IBC</span>
+                  <span *ngIf="day.avgEff != null" class="badge"
+                    [class.bg-success]="(day.avgEff ?? -1) >= 80"
+                    [class.bg-warning]="(day.avgEff ?? -1) >= 60 && (day.avgEff ?? -1) < 80"
+                    [class.bg-danger]="(day.avgEff ?? -1) >= 0 && (day.avgEff ?? -1) < 60">
+                    {{ day.avgEff }}% tillg
+                  </span>
+                  <span *ngIf="day.totalDrift > 0" class="text-muted small">{{ formatDrifttid(day.totalDrift) }}</span>
+                </div>
+              </div>
+              <i class="fas"
+                [class.fa-chevron-down]="!isDayExpanded(day.date)"
+                [class.fa-chevron-up]="isDayExpanded(day.date)"
+                style="color:#8fa3b8; flex-shrink:0; font-size:1rem;"></i>
+            </div>
+
+            <!-- Skiftkort -->
+            <div class="mobile-shifts" *ngIf="isDayExpanded(day.date)">
+              <ng-container *ngFor="let report of day.reports; let si = index; trackBy: trackByIndex">
+                <div class="mobile-shift-card"
+                  [style.border-left]="report.isPreliminary ? '3px solid #d69e2e' : report.isUnreported ? '3px solid #e53e3e' : report._isDagligSlice ? '3px solid #3182ce' : '3px solid #38a169'"
+                  [style.opacity]="(!report.isPreliminary && !report.isUnreported && report.antal_ok == 0 && report.antal_ej_ok == 0) ? '0.45' : '1'">
+
+                  <!-- Flerdagars-info -->
+                  <div *ngIf="!report._isDagligSlice && report.flerdagars == 1" class="mobile-info-banner mb-2">
+                    <i class="fas fa-info-circle text-info me-1"></i>
+                    <span class="text-info">Sen rapport — PLC ej nollställd, {{ report.antal_dagar }} dagar.</span>
+                    <a [href]="getPlcDiagnostikUrl(report)" class="text-info ms-2 text-decoration-none"><i class="fas fa-stethoscope me-1"></i>Diagnostik</a>
+                  </div>
+
+                  <!-- Status + Tid + Knappar -->
+                  <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                    <div>
+                      <div class="d-flex align-items-center gap-1 flex-wrap mb-1">
+                        <span *ngIf="report._isDagligSlice" class="badge bg-info text-dark" style="font-size:.65rem;"><i class="fas fa-calendar-day me-1"></i>Del av rapport</span>
+                        <span *ngIf="!report._isDagligSlice && report.isPreliminary" class="badge bg-warning text-dark" style="font-size:.65rem;"><i class="fas fa-circle fa-beat me-1"></i>Pågående</span>
+                        <span *ngIf="!report._isDagligSlice && report.isUnreported" class="badge bg-danger" style="font-size:.65rem;">Ej inskickad</span>
+                        <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported" class="badge bg-success" style="font-size:.65rem;"><i class="fas fa-check me-1"></i>Inskickad</span>
+                        <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported" class="badge bg-secondary" style="font-size:.6rem;">#{{ si + 1 }}</span>
+                        <span *ngIf="report.flerdagars == 1" class="badge bg-warning text-dark" style="font-size:.6rem;">Sen · {{ report.antal_dagar }}d</span>
+                      </div>
+                      <span class="text-info small">{{ getShiftTid(report) }}</span>
+                    </div>
+                    <div class="d-flex gap-1 flex-shrink-0">
+                      <ng-container *ngIf="report._isDagligSlice">
+                        <button *ngIf="loggedIn" class="btn btn-outline-info btn-sm" (click)="toggleExpand(report._parentId)">
+                          <i class="fas" [class.fa-chevron-up]="expanded[report._parentId]" [class.fa-chevron-down]="!expanded[report._parentId]"></i>
+                        </button>
+                      </ng-container>
+                      <ng-container *ngIf="!report._isDagligSlice">
+                        <button *ngIf="loggedIn" class="btn btn-outline-info btn-sm" (click)="toggleExpand(report.id)">
+                          <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
+                        </button>
+                        <button *ngIf="loggedIn && !report.isPreliminary && !report.isUnreported" class="btn btn-outline-secondary btn-sm" (click)="exportPDF(report)" title="PDF">
+                          <i class="fas fa-file-pdf"></i>
+                        </button>
+                        <button *ngIf="canEdit(report) && !report.isPreliminary && !report.isUnreported" class="btn btn-outline-danger btn-sm" (click)="deleteReport(report.id)">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </ng-container>
+                    </div>
+                  </div>
+
+                  <!-- KPI-chips -->
+                  <div class="d-flex flex-wrap gap-2 mb-2">
+                    <div class="mobile-kpi">
+                      <div class="mobile-kpi-label">IBC OK</div>
+                      <div class="mobile-kpi-value text-success"><span *ngIf="report.ibcEstimated">~</span>{{ safeDisplay(report.antal_ok) }}</div>
+                    </div>
+                    <div class="mobile-kpi" *ngIf="getEfficiencyPct(report) != null">
+                      <div class="mobile-kpi-label">Tillg%</div>
+                      <div class="mobile-kpi-value"
+                        [class.text-success]="(getEfficiencyPct(report) ?? -1) >= 80"
+                        [class.text-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
+                        [class.text-danger]="(getEfficiencyPct(report) ?? -1) < 60">
+                        {{ getEfficiencyPct(report) }}%
+                      </div>
+                    </div>
+                    <div class="mobile-kpi" *ngIf="getNetDrifttidMin(report) > 0">
+                      <div class="mobile-kpi-label">Drifttid</div>
+                      <div class="mobile-kpi-value text-info">{{ formatNetDrifttid(report) }}</div>
+                    </div>
+                    <div class="mobile-kpi" *ngIf="ibcPerHour(report) !== '–'">
+                      <div class="mobile-kpi-label">IBC/h</div>
+                      <div class="mobile-kpi-value text-warning">{{ ibcPerHour(report) }}</div>
+                    </div>
+                  </div>
+
+                  <!-- Operatörer + Produkt som chips -->
+                  <div class="d-flex flex-wrap gap-1 align-items-center">
+                    <span *ngIf="report.op1" class="badge bg-dark">{{ resolveOpName(report.op1_name, report.op1) }}</span>
+                    <span *ngIf="report.op2" class="badge bg-dark">{{ resolveOpName(report.op2_name, report.op2) }}</span>
+                    <span *ngIf="report.op3" class="badge bg-dark">{{ resolveOpName(report.op3_name, report.op3) }}</span>
+                    <span *ngIf="report.product_id" class="badge bg-secondary">{{ getProductName(report.product_id) }}</span>
+                    <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && report.inlagd == 1" class="badge bg-success ms-auto">Inlagd</span>
+                  </div>
+
+                  <!-- Expanderad: Daglig slice -->
+                  <div *ngIf="report._isDagligSlice && expanded[report._parentId]" class="mobile-expand-panel mt-2 p-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <span class="badge bg-info text-dark"><i class="fas fa-calendar-day me-1"></i>Daglig andel</span>
+                      <small class="text-muted">{{ getShiftTid(report) }}</small>
+                    </div>
+                    <div class="d-flex flex-wrap gap-3 small">
+                      <span class="text-success">IBC OK: <strong>{{ report.antal_ok }}</strong></span>
+                      <span *ngIf="report.antal_ej_ok > 0" class="text-danger">Ej OK: <strong>{{ report.antal_ej_ok }}</strong></span>
+                      <span>Drifttid: <strong>{{ formatNetDrifttid(report) }}</strong></span>
+                      <span *ngIf="ibcPerHour(report) !== '–'" class="text-warning">IBC/H: <strong>{{ ibcPerHour(report) }}</strong></span>
+                    </div>
+                  </div>
+
+                  <!-- Expanderad: Fullständig rapport (mobil-anpassad) -->
+                  <div *ngIf="!report._isDagligSlice && expanded[report.id]" class="mobile-expand-panel mt-2">
+
+                    <!-- Hero-summering -->
+                    <div class="d-flex flex-wrap gap-3 py-2 px-3 border-bottom border-secondary">
+                      <div class="mobile-hero-stat">
+                        <span class="mobile-hero-num text-success">{{ safeDisplay(report.antal_ok) }}</span>
+                        <span class="mobile-hero-lbl">IBC OK</span>
+                      </div>
+                      <div class="mobile-hero-stat" *ngIf="getEfficiencyPct(report) != null">
+                        <span class="mobile-hero-num"
+                          [class.text-success]="(getEfficiencyPct(report) ?? -1) >= 80"
+                          [class.text-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
+                          [class.text-danger]="(getEfficiencyPct(report) ?? -1) < 60">
+                          {{ getEfficiencyPct(report) }}%
+                        </span>
+                        <span class="mobile-hero-lbl">Tillgänglighet</span>
+                      </div>
+                      <div class="mobile-hero-stat" *ngIf="getIbcPerHour(report) != null">
+                        <span class="mobile-hero-num text-warning">{{ getIbcPerHour(report) }}</span>
+                        <span class="mobile-hero-lbl">IBC/h</span>
+                      </div>
+                      <div class="mobile-hero-stat" *ngIf="report.drifttid > 0">
+                        <span class="mobile-hero-num text-info" style="font-size:1.2rem;">{{ formatDrifttid(report.drifttid) }}</span>
+                        <span class="mobile-hero-lbl">Drifttid</span>
+                      </div>
+                      <div *ngIf="report.op1 || report.op2 || report.op3" class="d-flex gap-1 align-items-center ms-auto flex-shrink-0">
+                        <div *ngIf="report.op1" class="op-avatar" [style.background]="opAvatarColor(report.op1)" [title]="getOpName(report.op1)">{{ getOpInitials(report.op1) }}</div>
+                        <div *ngIf="report.op2" class="op-avatar" [style.background]="opAvatarColor(report.op2)" [title]="getOpName(report.op2)">{{ getOpInitials(report.op2) }}</div>
+                        <div *ngIf="report.op3" class="op-avatar" [style.background]="opAvatarColor(report.op3)" [title]="getOpName(report.op3)">{{ getOpInitials(report.op3) }}</div>
+                      </div>
+                    </div>
+
+                    <!-- Daglig fördelning (flerdagars) -->
+                    <div *ngIf="report.flerdagars == 1" class="px-3 py-2 border-bottom border-secondary">
+                      <p class="text-muted small mb-1 fw-semibold">Fördelning per dag</p>
+                      <div *ngIf="dagligBreakdownLoading[report.id]" class="text-muted small">Laddar...</div>
+                      <div *ngFor="let d of dagligBreakdownMap[report.id]" class="d-flex align-items-center gap-2 py-1 border-bottom border-secondary" style="font-size:.78rem;">
+                        <span class="text-muted" style="min-width:32px;">{{ formatPeriodDate(d.dag) }}</span>
+                        <span class="text-success fw-semibold">{{ d.antal_ok }} IBC</span>
+                        <span class="text-info">{{ d.drifttid_min }}min</span>
+                        <span class="badge ms-auto" [class.bg-success]="d.kalla==='plc_event'" [class.bg-secondary]="d.kalla==='pro_rata'" style="font-size:.6rem;">{{ d.kalla === 'plc_event' ? 'PLC' : 'Pro rata' }}</span>
+                      </div>
+                    </div>
+
+                    <!-- PLC KPI-rad (om PLC-data finns) -->
+                    <div *ngIf="(subShiftsMap[report.id]?.length ?? 0) > 0" class="px-3 py-2 border-bottom border-secondary">
+                      <p class="text-muted small mb-1 fw-semibold">PLC-statistik</p>
+                      <div class="d-flex flex-wrap gap-2">
+                        <div class="mobile-kpi"><div class="mobile-kpi-label">Cykler</div><div class="mobile-kpi-value text-info">{{ getPlcKpi(report.id).totalCycles }}</div></div>
+                        <div class="mobile-kpi" *ngIf="getPlcKpi(report.id).avgCycleMin > 0"><div class="mobile-kpi-label">Snitt cykel</div><div class="mobile-kpi-value text-info">{{ getPlcKpi(report.id).avgCycleMin }} min</div></div>
+                        <div class="mobile-kpi"><div class="mobile-kpi-label">Stopp</div>
+                          <div class="mobile-kpi-value"
+                            [class.text-danger]="getPlcKpi(report.id).totalStopMin >= 10"
+                            [class.text-warning]="getPlcKpi(report.id).totalStopMin > 0 && getPlcKpi(report.id).totalStopMin < 10"
+                            [class.text-success]="getPlcKpi(report.id).totalStopMin === 0">
+                            {{ getPlcKpi(report.id).totalStopMin > 0 ? (getPlcKpi(report.id).totalStopMin + ' min') : '0 min' }}
+                          </div>
+                        </div>
+                        <div class="mobile-kpi" *ngIf="report.rasttime > 0"><div class="mobile-kpi-label">Rast</div><div class="mobile-kpi-value text-warning">{{ formatDrifttid(report.rasttime) }}</div></div>
+                      </div>
+                    </div>
+
+                    <!-- Kommentar -->
+                    <div *ngIf="report.kommentar" class="px-3 py-2 border-bottom border-secondary">
+                      <p class="text-muted small mb-1 fw-semibold">Kommentar</p>
+                      <p class="small mb-0" style="color:#e2e8f0; white-space:pre-wrap;">{{ report.kommentar }}</p>
+                    </div>
+
+                    <!-- Inlagd toggle (admin) -->
+                    <div *ngIf="isAdmin && !report.isPreliminary && !report.isUnreported" class="px-3 py-2 border-bottom border-secondary">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small">Inlagd i lönelista:</span>
+                        <div class="form-check form-switch mb-0">
+                          <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1" (change)="toggleInlagd(report)" />
+                          <label class="form-check-label small">{{ report.inlagd == 1 ? 'Ja' : 'Nej' }}</label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Redigera (admin/ägare) -->
+                    <div *ngIf="canEdit(report) && !report.isPreliminary && !report.isUnreported" class="px-3 py-2">
+                      <form (ngSubmit)="saveReport(report)">
+                        <div class="row g-2">
+                          <div class="col-6">
+                            <label class="form-label small">Antal OK</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ok" name="mob-ok-{{report.id}}" min="0" max="99999" />
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label small">Ej OK</label>
+                            <input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ej_ok" name="mob-ejok-{{report.id}}" min="0" max="99999" />
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label small">Kommentar</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="mob-kom-{{report.id}}" maxlength="500" />
+                          </div>
+                          <div class="col-12">
+                            <button class="btn btn-sm w-100"
+                              [class.btn-primary]="config.themeColor === 'primary'"
+                              [class.btn-warning]="config.themeColor === 'warning'"
+                              [class.btn-success]="config.themeColor === 'success'"
+                              [class.text-dark]="config.themeColor === 'warning'"
+                              type="submit">
+                              <i class="fas fa-save me-1"></i>Spara
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+
+                  </div>
+
+                </div>
+              </ng-container>
+            </div>
+
+          </div>
+        </ng-container>
+      </div>
+
     </div>
   </div>
 </div>
