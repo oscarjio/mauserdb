@@ -1317,20 +1317,22 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   get groupedDays(): Array<{ date: string; reports: any[]; totalIbc: number; totalDrift: number; avgEff: number | null; operators: string[]; products: string[]; submittedCount: number; hasPreliminary: boolean; unreportedCount: number; }> {
     const dayMap: { [date: string]: any[] } = {};
 
-    // Flerdagarsrapporter med laddad daglig-data: hoppa över i datum-gruppen, injicera slices nedan
+    // Alla rapporter visas i sin datum-grupp (inlämningsdag)
     this.filteredReports.forEach(r => {
-      if (r.flerdagars == 1 && (this.dagligBreakdownMap[r.id]?.length ?? 0) > 0) return;
       const d = (r.datum || '').substring(0, 10);
       if (!dayMap[d]) dayMap[d] = [];
       dayMap[d].push(r);
     });
 
-    // Injicera dagliga slice-rader per dag för flerdagarsrapporter
+    // Flerdagarsrapporter: injicera dagliga slice-rader för dagar FÖRE inlämningsdatumet
+    // (inlämningsdagen har redan den fullständiga rapporten — andra dagar behöver en slice-rad)
     let sliceIdCounter = -2001;
     this.filteredReports.forEach(r => {
       if (r.flerdagars != 1 || !(this.dagligBreakdownMap[r.id]?.length > 0)) return;
+      const submissionDate = (r.datum || '').substring(0, 10);
       for (const d of this.dagligBreakdownMap[r.id]) {
         const dagDate = (d.dag || '').substring(0, 10);
+        if (dagDate === submissionDate) continue; // inlämningsdag har redan full rapport-rad
         if (!dayMap[dagDate]) dayMap[dagDate] = [];
         dayMap[dagDate].push({
           _isDagligSlice: true,
@@ -1377,8 +1379,23 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const tb = b._firstTime ?? new Date(String(b.created_at || '').replace(' ', 'T')).getTime() ?? 0;
         return ta - tb;
       });
-      const totalIbc = submittedOnly.reduce((s, r) => s + (r.antal_ok || 0), 0);
-      const totalDrift = submittedOnly.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
+      // Dagliga header-summor: flerdagarsrapport på inlämningsdagen använder daglig-andelen (ej totalrapportens siffror)
+      const totalIbc = submittedOnly.reduce((s, r) => {
+        if (r._isDagligSlice) return s + (r.antal_ok || 0);
+        if (r.flerdagars == 1 && (this.dagligBreakdownMap[r.id]?.length > 0)) {
+          const dagEntry = (this.dagligBreakdownMap[r.id] as any[]).find((d: any) => (d.dag || '').substring(0, 10) === date);
+          return s + (dagEntry ? (dagEntry.antal_ok || 0) : (r.antal_ok || 0));
+        }
+        return s + (r.antal_ok || 0);
+      }, 0);
+      const totalDrift = submittedOnly.reduce((s, r) => {
+        if (r._isDagligSlice) return s + this.getNetDrifttidMin(r);
+        if (r.flerdagars == 1 && (this.dagligBreakdownMap[r.id]?.length > 0)) {
+          const dagEntry = (this.dagligBreakdownMap[r.id] as any[]).find((d: any) => (d.dag || '').substring(0, 10) === date);
+          return s + (dagEntry ? Math.max(0, (dagEntry.drifttid_min || 0) - (dagEntry.rast_min || 0)) : this.getNetDrifttidMin(r));
+        }
+        return s + this.getNetDrifttidMin(r);
+      }, 0);
       const effVals = submittedOnly.map(r => this.getEfficiencyPct(r)).filter((v): v is number => v != null);
       const avgEff = effVals.length ? Math.round(effVals.reduce((s, v) => s + v, 0) / effVals.length) : null;
       const opSet = new Set<string>();

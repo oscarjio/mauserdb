@@ -606,35 +606,48 @@ class TvattLinje {
                     "UPDATE tvattlinje_skiftrapport SET period_start=:ps, period_end=:pe, flerdagars=:fd, antal_dagar=:ad WHERE id=:id"
                 )->execute(['ps' => $periodStart, 'pe' => $periodEnd, 'fd' => $flerdagars, 'ad' => $antalDagar, 'id' => $skiftrapportId]);
 
-                // Baseline: max-värden precis före perioden (för korrekt delta dag 1)
+                // Baseline: rast-räknaren ackumulerar inom perioden (korrekt delta)
+                // ibc_count återställs DAGLIGEN i tvattlinje_ibc (startar på 1 varje kalenderdag)
+                // → använd MAX(ibc_count) per dag direkt, utan dag-för-dag-subtraktion
                 $baseStmt = $this->db->prepare(
-                    "SELECT MAX(ibc_count) AS b_ibc, MAX(COALESCE(rasttime,0)) AS b_rast FROM tvattlinje_ibc WHERE datum <= :prev_at"
+                    "SELECT MAX(COALESCE(rasttime,0)) AS b_rast FROM tvattlinje_ibc WHERE datum <= :prev_at"
                 );
                 $baseStmt->execute(['prev_at' => $prevCreatedAt]);
                 $baseRow  = $baseStmt->fetch(PDO::FETCH_ASSOC);
-                $prevIbc  = $baseRow ? (int)($baseRow['b_ibc']  ?? 0) : 0;
                 $prevRast = $baseRow ? (int)($baseRow['b_rast'] ?? 0) : 0;
 
                 // Beräkna dagliga deltar.
-                // drifttid: event-fönster (first_ts → last_ts) — D4007 tickar 1:1 med väggklockan
-                // och ackumulerar även över natten, så delta ger fel dagsvärde.
-                // rast: delta på rasttime-räknaren (korrekt ackumulerat per dag).
-                // ibc: delta på ibc_count (används som fördelningsnyckel).
+                // drifttid: event-fönster (first_ts → last_ts) — D4007 tickar 1:1 med väggklockan.
+                // rast: delta på rasttime-räknaren (ackumulerar korrekt per period).
+                // ibc: MAX(ibc_count) per dag — räknaren återställs vid midnatt, representerar dagens fysiska genomflöde.
                 $totalDeltaIbc = 0;
                 $dagDeltas     = [];
                 foreach ($dayRows as $dr) {
-                    $dIbc  = max(0, (int)$dr['max_ibc'] - $prevIbc);
+                    $dIbc  = max(0, (int)$dr['max_ibc']); // Direkt dagsvärde — återställs dagligen
                     $dRt   = max(0, (int)floor((strtotime($dr['last_ts']) - strtotime($dr['first_ts'])) / 60));
                     $dRast = max(0, (int)$dr['max_rast'] - $prevRast);
                     $dagDeltas[]    = ['dag' => $dr['dag'], 'ibc' => $dIbc, 'rt' => $dRt, 'rast' => $dRast];
                     $totalDeltaIbc += $dIbc;
-                    $prevIbc  = (int)$dr['max_ibc'];
                     $prevRast = (int)$dr['max_rast'];
                 }
 
-                // Proportionell fördelning av ok/ej_ok/omtvaatt — differens på sista dagen
+                // Korrigera antal_ok i rapporten: använd ibc_count istf fruset D4004-register
+                if ($totalDeltaIbc > 0) {
+                    $newTotalt = $totalDeltaIbc + $ibc_ej_ok + $omtvaatt;
+                    $this->db->prepare(
+                        "UPDATE tvattlinje_skiftrapport SET antal_ok=:ok, totalt=:tot WHERE id=:id"
+                    )->execute(['ok' => $totalDeltaIbc, 'tot' => $newTotalt, 'id' => $skiftrapportId]);
+                    $ibc_ok = $totalDeltaIbc;
+                    $this->log('handleSkiftrapport', "antal_ok korrigerat från ibc_count", [
+                        'plc_d4004' => $ibc_ok, 'ibc_count_total' => $totalDeltaIbc,
+                    ]);
+                }
+
+                // Fördela ok/ej_ok/omtvaatt per dag
+                // antal_ok: direkt från ibc_count-delta (korrekt fysisk genomströmning)
+                // ej_ok/omtvaatt: proportionellt från D4005/D4006 (kan vara frusna — bäst tillgängliga data)
                 $n         = count($dagDeltas);
-                $sumOk     = $sumEjOk = $sumOmtv = 0;
+                $sumEjOk   = $sumOmtv = 0;
                 $kalla     = ($totalDeltaIbc > 0) ? 'plc_event' : 'pro_rata';
                 $insStmt   = $this->db->prepare("
                     INSERT INTO tvattlinje_skiftrapport_daglig
@@ -647,10 +660,9 @@ class TvattLinje {
                 ");
                 foreach ($dagDeltas as $i => $dd) {
                     $ratio  = ($totalDeltaIbc > 0) ? $dd['ibc'] / $totalDeltaIbc : 1.0 / $n;
-                    $aOk    = ($i < $n - 1) ? (int)round($ibc_ok    * $ratio) : ($ibc_ok    - $sumOk);
+                    $aOk    = $dd['ibc']; // Direkt från ibc_count — exakt per dag
                     $aEjOk  = ($i < $n - 1) ? (int)round($ibc_ej_ok * $ratio) : ($ibc_ej_ok - $sumEjOk);
                     $aOmtv  = ($i < $n - 1) ? (int)round($omtvaatt  * $ratio) : ($omtvaatt  - $sumOmtv);
-                    $sumOk   += $aOk;
                     $sumEjOk += $aEjOk;
                     $sumOmtv += $aOmtv;
                     $insStmt->execute([
@@ -674,6 +686,7 @@ class TvattLinje {
                 $this->log('handleSkiftrapport', "Period-attributering klar", [
                     'id' => $skiftrapportId, 'flerdagars' => $flerdagars, 'antal_dagar' => $antalDagar,
                     'period_start' => $periodStart, 'period_end' => $periodEnd,
+                    'ibc_count_total' => $totalDeltaIbc, 'plc_d4004' => $plc[4] ?? null,
                     'delta_rt_min' => $totalDeltaRt, 'delta_rast_min' => $totalDeltaRast,
                 ]);
             } else {
