@@ -1307,6 +1307,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return this.formatDrifttid(m);
   }
 
+  getPlcDiagnostikUrl(report: any): string {
+    const date = (report?.datum || report?.created_at || '').substring(0, 10);
+    return `/${this.config.line}/plc-diagnostik${date ? '?datum=' + date : ''}`;
+  }
+
   getSubIbcPerHour(sub: any): string {
     const ok = sub.ibc_ok ?? 0;
     const dt = sub.runtime_plc ?? 0;
