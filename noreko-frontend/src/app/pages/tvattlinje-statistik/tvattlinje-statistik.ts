@@ -600,7 +600,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   updateStatistics(data: any) {
     this.rawCycles = data.cycles || [];
     this.rawCyclesSorted = [...this.rawCycles].reverse();
-    this.totalCycles = data.summary.total_cycles;
+    // IBC Producerade: använd skiftrapport-summa (D4004-råvärde) om tillgänglig — matchar skiftrapportlistan
+    this.totalCycles = data.summary.total_ibc_skiftrapport > 0
+      ? data.summary.total_ibc_skiftrapport
+      : data.summary.total_cycles;
     this.missedWebhooks = data.summary.missed_webhooks || 0;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
 

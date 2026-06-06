@@ -1276,16 +1276,18 @@ class TvattlinjeController {
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics total_cycles_true: ' . $e->getMessage()); }
 
             $total_cycles = $total_cycles_true > 0 ? $total_cycles_true : count($cycles);
-            if ((float)$totalRuntimeMinutes < 0.001 && $total_cycles > 0) {
-                // Fallback: span av första–sista cykel
-                $validCycles = array_filter($cycles, fn($c) => $c['datum'] !== null);
-                if (count($validCycles) > 1) {
-                    $first = new DateTime(reset($validCycles)['datum'], new DateTimeZone('Europe/Stockholm'));
-                    $last  = new DateTime(end($validCycles)['datum'], new DateTimeZone('Europe/Stockholm'));
-                    $diff  = $first->diff($last);
-                    $totalRuntimeMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                }
-            }
+            // Natt-idle-fallback BORTTAGEN: span av första-sista cykel inkluderar natt-idle.
+            // Om inga on/off-events finns visas drifttid som 0 (ingen maskinstatusdata).
+
+            // IBC från inskickade skiftrapporter (PLC-råvärde D4004) — matchar skiftrapportlistan
+            $total_ibc_skiftrapport = 0;
+            try {
+                $srStmt = $this->pdo->prepare(
+                    "SELECT COALESCE(SUM(antal_ok), 0) FROM tvattlinje_skiftrapport WHERE datum >= :s AND datum <= :e"
+                );
+                $srStmt->execute(['s' => $start, 'e' => $end]);
+                $total_ibc_skiftrapport = (int)$srStmt->fetchColumn();
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics sr_ibc: ' . $e->getMessage()); }
 
             // Beräkna rasttid
             $totalRastMinutes = 0;
@@ -1349,6 +1351,7 @@ class TvattlinjeController {
                     'driftstopp_events'  => $driftstopp_events,
                     'summary' => [
                         'total_cycles'              => $total_cycles,
+                        'total_ibc_skiftrapport'    => $total_ibc_skiftrapport,
                         'received_webhooks'         => count($cycles),
                         'missed_webhooks'           => max(0, $total_cycles - count($cycles)),
                         'avg_production_percent'    => round($avg_production_percent, 1),
@@ -2017,9 +2020,9 @@ class TvattlinjeController {
                 $tot = (int)$r['total_ibc'];
                 $ok  = (int)$r['total_ok'];
 
-                // Kvalitet (0-100): D4004 (ibc_ok) är fryst på 0 för tvättlinje — om ingen kvaldata
-                // finns (ok=ej_ok=0) antag 100% (ingen kassation registrerad).
-                $hasQualData = ($ok > 0 || (int)$r['total_ej_ok'] > 0);
+                // Kvalitet (0-100): kräver ok > 0 för meningsfull beräkning.
+                // Om ok=0 men ej_ok>0 beror det oftast på att D4004 var fryst (PLC-bugg) — visa ej 0%.
+                $hasQualData = ($ok > 0);
                 $qual_pct = ($hasQualData && $tot > 0) ? round(($ok / $tot) * 100, 1) : 100.0;
 
                 // Tillgänglighet (0-100): faktisk körtid / planerad körtid.
