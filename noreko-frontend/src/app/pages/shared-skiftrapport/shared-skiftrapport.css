@@ -105,6 +105,72 @@
   .card-header .d-flex { flex-wrap: wrap !important; }
 }
 
+/* ======= TABELL → STAPLADE KORT (≤768px) ======= */
+@media (max-width: 768px) {
+  /* Stoppa horisontell scroll */
+  .table-responsive { overflow-x: hidden; }
+
+  /* Dölj kolumnrubriker */
+  .table thead { display: none; }
+
+  /* Gör tbody, tr, td till block-element */
+  .table tbody,
+  .table tbody tr,
+  .table tbody td { display: block; width: 100%; box-sizing: border-box; }
+
+  /* Varje rad = ett kort */
+  .table tbody tr {
+    background: #2d3748;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    margin-bottom: 0.6rem;
+    overflow: hidden;
+  }
+
+  /* Dag-sammanfattningsrad: mörkare bakgrund + klickbar */
+  .table tbody tr.day-summary-row {
+    background: #1a202c;
+    cursor: pointer;
+    border-left: 3px solid #3182ce !important;
+  }
+
+  /* Varje td: etikett vänster, värde höger */
+  .table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0.75rem;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.85rem;
+    min-height: 2rem;
+  }
+  .table tbody td:last-child { border-bottom: none; }
+
+  /* Etikett från data-label */
+  .table tbody td[data-label]::before {
+    content: attr(data-label);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8fa3b8;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-right: 0.75rem;
+  }
+
+  /* Celler utan etikett (knappar, chevron) */
+  .table tbody td:not([data-label]),
+  .table tbody td[data-label=""] { justify-content: flex-end; }
+  .table tbody td:not([data-label])::before,
+  .table tbody td[data-label=""]::before { display: none; }
+
+  /* colspan-celler (expand-panel, flerdagars-info) — full bredd, ingen etikett */
+  .table tbody td[colspan] { padding: 0; border: none; display: block; }
+  .table tbody td[colspan]::before { display: none; }
+}
+
 /* Dag-header (klickbar) */
 .mobile-day-header {
   display: flex;
