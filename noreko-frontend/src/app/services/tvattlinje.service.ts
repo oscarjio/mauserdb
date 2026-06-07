@@ -87,6 +87,7 @@ export interface OeeTrendSummary {
   total_ibc: number;
   snitt_per_dag: number;
   snitt_oee_pct: number;
+  snitt_kvalitet: number;
   basta_dag: string | null;
   basta_ibc: number;
 }

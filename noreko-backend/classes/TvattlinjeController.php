@@ -1229,25 +1229,30 @@ class TvattlinjeController {
                 $driftstopp_events = $raw_ds;
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics driftstopp: ' . $e->getMessage()); }
 
-            // Beräkna runtime
+            // Beräkna runtime — klampa varje running-spann vid dygngräns (exkluderar natt-idle).
+            // En maskin som skickar running=1 måndag och running=0 tisdag räknas bara till 23:59:59 måndag.
             $totalRuntimeMinutes = 0;
             if (count($onoff_events) > 0) {
                 $lastRunningStart = null;
+                $tz = new \DateTimeZone('Europe/Stockholm');
+                $addSpan = function(\DateTime $from, \DateTime $to) use (&$totalRuntimeMinutes): void {
+                    $midnight = (clone $from)->setTime(23, 59, 59);
+                    $secs = max(0, min($to->getTimestamp(), $midnight->getTimestamp()) - $from->getTimestamp());
+                    $totalRuntimeMinutes += $secs / 60.0;
+                };
                 foreach ($onoff_events as $event) {
-                    $eventTime = new DateTime($event['datum'], new DateTimeZone('Europe/Stockholm'));
+                    $eventTime = new \DateTime($event['datum'], $tz);
                     $isRunning = (bool)($event['running'] ?? false);
                     if ($isRunning && $lastRunningStart === null) {
                         $lastRunningStart = $eventTime;
                     } elseif (!$isRunning && $lastRunningStart !== null) {
-                        $diff = $lastRunningStart->diff($eventTime);
-                        $totalRuntimeMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $addSpan($lastRunningStart, $eventTime);
                         $lastRunningStart = null;
                     }
                 }
                 if ($lastRunningStart !== null) {
-                    $lastEvt = new DateTime($onoff_events[count($onoff_events) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
-                    $diff = $lastRunningStart->diff($lastEvt);
-                    $totalRuntimeMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $lastEvt = new \DateTime($onoff_events[count($onoff_events) - 1]['datum'], $tz);
+                    $addSpan($lastRunningStart, $lastEvt);
                 }
             }
 
@@ -1988,11 +1993,11 @@ class TvattlinjeController {
 
             $antalDagar  = count($dagData);
             $snittPerDag = $antalDagar > 0 ? round($totalIbcSum / $antalDagar, 1) : 0;
-            // Snitt-OEE = aritmetiskt medel av dagliga OEE-värden (redan avail*perf*qual)
             $snittOee = 0;
+            $snittKvalitet = 0;
             if ($antalDagar > 0) {
-                $oeeSum = array_sum(array_column($dagData, 'oee_pct'));
-                $snittOee = round($oeeSum / $antalDagar, 1);
+                $snittOee      = round(array_sum(array_column($dagData, 'oee_pct'))  / $antalDagar, 1);
+                $snittKvalitet = round(array_sum(array_column($dagData, 'qual_pct')) / $antalDagar, 1);
             }
 
             echo json_encode([
@@ -2003,6 +2008,7 @@ class TvattlinjeController {
                     'total_ibc'      => $totalIbcSum,
                     'snitt_per_dag'  => $snittPerDag,
                     'snitt_oee_pct'  => $snittOee,
+                    'snitt_kvalitet' => $snittKvalitet,
                     'basta_dag'      => $bestaDag,
                     'basta_ibc'      => $bestaIbc,
                 ],

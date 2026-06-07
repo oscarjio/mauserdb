@@ -91,7 +91,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   oeeTrendDagar: number = 30;
   oeeTrendData: OeeTrendDay[] = [];
   oeeTrendSummary: OeeTrendSummary = {
-    total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0,
+    total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, snitt_kvalitet: 0,
     basta_dag: null, basta_ibc: 0
   };
   private oeeTrendChart: Chart | null = null;
@@ -2106,7 +2106,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.tvattlinjeService.getOeeTrend(this.oeeTrendDagar)
       .pipe(
         timeout(15000),
-        catchError(() => of({ success: true, empty: true, message: 'Linjen ej i drift', data: [], summary: { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 } } as any)),
+        catchError(() => of({ success: true, empty: true, message: 'Linjen ej i drift', data: [], summary: { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, snitt_kvalitet: 0, basta_dag: null, basta_ibc: 0 } } as any)),
         takeUntil(this.destroy$)
       )
       .subscribe({
@@ -2117,11 +2117,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
             this.oeeTrendEmpty = true;
             this.oeeTrendMessage = res.message || 'Linjen ej i drift';
             this.oeeTrendData = [];
-            this.oeeTrendSummary = { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 };
+            this.oeeTrendSummary = { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, snitt_kvalitet: 0, basta_dag: null, basta_ibc: 0 };
           } else {
             this.oeeTrendEmpty = false;
             this.oeeTrendData = res.data || [];
-            this.oeeTrendSummary = res.summary || { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 };
+            this.oeeTrendSummary = res.summary || { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, snitt_kvalitet: 0, basta_dag: null, basta_ibc: 0 };
             if (this.oeeTrendSummary.basta_dag) {
               this.bastaDagLabel = this.oeeTrendSummary.basta_dag;
               this.bastaDagIbc = this.oeeTrendSummary.basta_ibc;

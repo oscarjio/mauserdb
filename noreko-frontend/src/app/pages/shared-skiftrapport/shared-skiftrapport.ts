@@ -364,7 +364,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // ========== KPI getters (computed per change-detection) ==========
 
   get summaryTotalIbc(): number {
-    return this.filteredReports.reduce((s, r) => s + (r.antal_ok || 0), 0);
+    return this.filteredReports.reduce(
+      (s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0
+    );
   }
 
   get summaryAvgIbcH(): number | null {

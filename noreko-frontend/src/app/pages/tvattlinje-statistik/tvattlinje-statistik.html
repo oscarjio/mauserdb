@@ -682,10 +682,10 @@
                 <div class="col-6 col-md-3">
                   <div class="mini-kpi">
                     <div class="mini-kpi-val"
-                      [class.text-success]="oeeTrendSummary.snitt_oee_pct >= 90"
-                      [class.text-warning]="oeeTrendSummary.snitt_oee_pct >= 70 && oeeTrendSummary.snitt_oee_pct < 90"
-                      [class.text-danger]="oeeTrendSummary.snitt_oee_pct < 70">
-                      {{ oeeTrendSummary.snitt_oee_pct | number:'1.1-1' }}%
+                      [class.text-success]="oeeTrendSummary.snitt_kvalitet >= 90"
+                      [class.text-warning]="oeeTrendSummary.snitt_kvalitet >= 70 && oeeTrendSummary.snitt_kvalitet < 90"
+                      [class.text-danger]="oeeTrendSummary.snitt_kvalitet < 70">
+                      {{ oeeTrendSummary.snitt_kvalitet | number:'1.1-1' }}%
                     </div>
                     <div class="mini-kpi-lbl">Snitt Kvalitet %</div>
                   </div>
