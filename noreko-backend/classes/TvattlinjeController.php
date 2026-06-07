@@ -1891,104 +1891,24 @@ class TvattlinjeController {
         try {
             $rows = [];
 
-            // Hämta daglig data från tvattlinje_ibc (PLC-tabell — konsekvent med översiktssidan)
-            // ibc_count är ett kumulativt räknerverk som INTE nollställs dagligen.
-            // Korrekt daglig produktion = MAX(ibc_count) denna dag − MAX(ibc_count) föregående dag (LAG-delta).
-            // Hämta N+1 dagar i inner-queryn för att ge LAG ett baseline-värde för första dagen,
-            // filtrera sedan bort extradag i outer-queryn.
+            // Källdata: tvattlinje_skiftrapport — PLC-råvärden (D4004/D4005/D4007) inskickade per skift.
+            // Aggregera per dag. Aldrig kumulativ diff → inga negativa värden vid PLC-nollställning.
             try {
-                // Seeded-baseline approach: fetch N+1 days so the first requested day
-                // has a proper LAG baseline. Filter first-row NULL deltas out explicitly
-                // (NOT with COALESCE(LAG,0) which would turn the full cumulative into a delta).
-                // Also fetch runtime_plc and rasttime (aggregated per shift via MAX then SUM)
-                // for OEE availability and performance calculation.
-                $seedDagar = $dagar + 1;
-                try {
-                    $stmt = $this->pdo->prepare("
-                        WITH raw_daily AS (
-                            SELECT
-                                DATE(datum)                                 AS dag,
-                                MAX(ibc_count)                              AS day_end,
-                                MAX(COALESCE(ibc_ok, 0))                    AS ok_end,
-                                MAX(COALESCE(ibc_ej_ok, 0))                 AS ej_end,
-                                COUNT(DISTINCT skiftraknare)                AS skift_count,
-                                SUM(max_runtime)                            AS total_runtime_sek,
-                                SUM(max_rasttime)                           AS total_rasttime_sek
-                            FROM (
-                                SELECT
-                                    DATE(datum)                             AS datum_dag,
-                                    MAX(ibc_count)                          AS ibc_count,
-                                    MAX(COALESCE(ibc_ok,0))                 AS ibc_ok,
-                                    MAX(COALESCE(ibc_ej_ok,0))              AS ibc_ej_ok,
-                                    skiftraknare,
-                                    MAX(COALESCE(runtime_plc,0)) - MIN(COALESCE(runtime_plc,0)) AS max_runtime,
-                                    MAX(COALESCE(rasttime,0))   - MIN(COALESCE(rasttime,0))   AS max_rasttime
-                                FROM tvattlinje_ibc
-                                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :seed_dagar DAY)
-                                GROUP BY DATE(datum), skiftraknare
-                            ) per_shift
-                            GROUP BY dag
-                        ),
-                        deltas AS (
-                            SELECT
-                                dag,
-                                day_end - LAG(day_end) OVER (ORDER BY dag) AS total_ibc,
-                                ok_end  - LAG(ok_end)  OVER (ORDER BY dag) AS total_ok,
-                                ej_end  - LAG(ej_end)  OVER (ORDER BY dag) AS total_ej_ok,
-                                skift_count,
-                                total_runtime_sek,
-                                total_rasttime_sek,
-                                DATEDIFF(dag, LAG(dag) OVER (ORDER BY dag)) AS day_gap
-                            FROM raw_daily
-                        )
-                        SELECT dag, total_ibc, total_ok, total_ej_ok, skift_count,
-                               total_runtime_sek, total_rasttime_sek
-                        FROM deltas
-                        WHERE total_ibc IS NOT NULL
-                          AND dag >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY)
-                        ORDER BY dag ASC
-                    ");
-                    $stmt->execute(['seed_dagar' => $seedDagar, 'dagar2' => $dagar]);
-                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                } catch (\PDOException $e) {
-                    // Utökade kolumner saknas ännu — hämta bara baskolumner (ingen avail/perf)
-                    error_log('TvattlinjeController::getOeeTrend extended columns missing, using fallback: ' . $e->getMessage());
-                    $stmt = $this->pdo->prepare("
-                        WITH raw_daily AS (
-                            SELECT
-                                DATE(datum)                     AS dag,
-                                MAX(ibc_count)                  AS day_end,
-                                0                               AS ok_end,
-                                0                               AS ej_end,
-                                0                               AS skift_count,
-                                0                               AS total_runtime_sek,
-                                0                               AS total_rasttime_sek
-                            FROM tvattlinje_ibc
-                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :seed_dagar DAY)
-                            GROUP BY DATE(datum)
-                        ),
-                        deltas AS (
-                            SELECT
-                                dag,
-                                day_end - LAG(day_end) OVER (ORDER BY dag) AS total_ibc,
-                                ok_end  AS total_ok,
-                                ej_end  AS total_ej_ok,
-                                skift_count,
-                                total_runtime_sek,
-                                total_rasttime_sek,
-                                DATEDIFF(dag, LAG(dag) OVER (ORDER BY dag)) AS day_gap
-                            FROM raw_daily
-                        )
-                        SELECT dag, total_ibc, total_ok, total_ej_ok, skift_count,
-                               total_runtime_sek, total_rasttime_sek
-                        FROM deltas
-                        WHERE total_ibc IS NOT NULL
-                          AND dag >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY)
-                        ORDER BY dag ASC
-                    ");
-                    $stmt->execute(['seed_dagar' => $seedDagar, 'dagar2' => $dagar]);
-                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                }
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        DATE(datum)                              AS dag,
+                        SUM(GREATEST(0, COALESCE(totalt,    0))) AS total_ibc,
+                        SUM(GREATEST(0, COALESCE(antal_ok,  0))) AS total_ok,
+                        SUM(GREATEST(0, COALESCE(antal_ej_ok,0))) AS total_ej_ok,
+                        COUNT(*)                                 AS skift_count,
+                        SUM(GREATEST(0, COALESCE(drifttid,  0))) AS total_runtime_min
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                    GROUP BY DATE(datum)
+                    ORDER BY dag ASC
+                ");
+                $stmt->execute(['dagar' => $dagar]);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getOeeTrend: ' . $e->getMessage());
             }
@@ -2017,19 +1937,15 @@ class TvattlinjeController {
             $bestaIbc    = 0;
 
             foreach ($rows as $r) {
-                $tot = (int)$r['total_ibc'];
-                $ok  = (int)$r['total_ok'];
+                $tot = max(0, (int)$r['total_ibc']);
+                $ok  = max(0, (int)$r['total_ok']);
 
-                // Kvalitet (0-100): kräver ok > 0 för meningsfull beräkning.
-                // Om ok=0 men ej_ok>0 beror det oftast på att D4004 var fryst (PLC-bugg) — visa ej 0%.
-                $hasQualData = ($ok > 0);
-                $qual_pct = ($hasQualData && $tot > 0) ? round(($ok / $tot) * 100, 1) : 100.0;
+                // Kvalitet: antal_ok / totalt. Om totalt=0 → 100% (ingen data = ingen kassation).
+                $qual_pct = ($ok > 0 && $tot > 0) ? round(($ok / $tot) * 100, 1) : 100.0;
 
-                // Tillgänglighet (0-100): faktisk körtid / planerad körtid.
-                // runtime_plc (D4007) lagras i MINUTER (variabelnamnet _sek är missvisande).
-                // MAX-MIN per skift hanterar att PLC-räknaren ej nollställs mellan dygn.
-                $runtimeMin  = isset($r['total_runtime_sek']) ? (float)$r['total_runtime_sek'] : 0;
-                $rastMin     = isset($r['total_rasttime_sek']) ? (float)$r['total_rasttime_sek'] : 0;
+                // Tillgänglighet: drifttid (D4007, minuter) från skiftrapport.
+                $runtimeMin  = max(0, isset($r['total_runtime_min']) ? (float)$r['total_runtime_min'] : 0);
+                $rastMin     = 0; // rast ingår inte i skiftrapportens drifttid (D4007 exkluderar rast)
                 $netRuntimeMin = max(0, $runtimeMin - $rastMin);
                 // Planerad arbetstid: mån-tors 07-16 med 45 min rast = 495 min, fre 07-15 = 480 min
                 $dayN       = (int)date('N', strtotime($r['dag'])); // 1=mån … 7=sön
@@ -2049,8 +1965,7 @@ class TvattlinjeController {
 
                 $totalIbcSum += $tot;
                 $totalOkSum  += $ok;
-                // Bästa dag = högst volym (total IBCer tvättade), exkludera dagens datum
-                // (ibc_count är ett löpande kumulativt räknerverk — nuvarande dag är ofullständig)
+                // Bästa dag = flest inskickade IBCer (totalt), exkludera pågående dag
                 if ($tot > $bestaIbc && $r['dag'] < date('Y-m-d')) {
                     $bestaIbc = $tot;
                     $bestaDag = $r['dag'];
