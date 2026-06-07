@@ -1279,11 +1279,14 @@ class TvattlinjeController {
             // Natt-idle-fallback BORTTAGEN: span av första-sista cykel inkluderar natt-idle.
             // Om inga on/off-events finns visas drifttid som 0 (ingen maskinstatusdata).
 
-            // IBC från inskickade skiftrapporter (PLC-råvärde D4004) — matchar skiftrapportlistan
+            // IBC från inskickade skiftrapporter: SUM(totalt) = antal_ok + antal_ej_ok + omtvaatt.
+            // Matchar "TOTAL IBC"-kolumnen i skiftrapportlistan.
+            // Notera: total_cycles (puck-webhooks via ibc_count) kan skilja sig med ~5-10 IBCer
+            // (testcykler/rengöring utan inskickad rapport, eller PLC-nollställning mellan dagar).
             $total_ibc_skiftrapport = 0;
             try {
                 $srStmt = $this->pdo->prepare(
-                    "SELECT COALESCE(SUM(antal_ok), 0) FROM tvattlinje_skiftrapport WHERE datum >= :s AND datum <= :e"
+                    "SELECT COALESCE(SUM(totalt), 0) FROM tvattlinje_skiftrapport WHERE datum >= :s AND datum <= :e"
                 );
                 $srStmt->execute(['s' => $start, 'e' => $end]);
                 $total_ibc_skiftrapport = (int)$srStmt->fetchColumn();

@@ -42,11 +42,15 @@ button:focus-visible,
   box-shadow: none;
 }
 
-/* Allow horizontal scrolling for table-responsive elements */
+/* Allow horizontal scrolling for table-responsive on desktop only */
 .table-responsive {
-  overflow-x: auto !important;
+  overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 767px) {
+  /* Tabellen är dold på mobil (d-none d-md-block) — inget horisontellt scroll */
+  .table-responsive { overflow-x: hidden; }
 }
 
 /* ============================
