@@ -513,10 +513,9 @@ class TvattlinjeController {
 
     private function getLiveStats() {
         try {
-            // Hämta verkligt antal IBCer idag via MAX(ibc_count) — fångar upp missade webhooks
             $stmt = $this->pdo->prepare('
-                SELECT COALESCE(MAX(ibc_count), 0)
-                FROM tvattlinje_ibc
+                SELECT COALESCE(SUM(totalt), 0)
+                FROM tvattlinje_skiftrapport
                 WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
             ');
             $stmt->execute();
@@ -604,14 +603,7 @@ class TvattlinjeController {
             }
 
             $productionPercentage = 0;
-            $runtimeHours = $totalRuntimeMinutes / 60;
-            if ($runtimeHours > 0.1 && $hourlyTarget > 0 && $ibcToday > 0) {
-                // Taktbaserad procent: faktisk IBC/h ÷ målsatt IBC/h × 100
-                // 100 % = exakt i fas med takt, >100 = snabbare, <100 = långsammare
-                $actualRate = $ibcToday / $runtimeHours;
-                $productionPercentage = round(($actualRate / $hourlyTarget) * 100, 1);
-            } elseif ($ibcToday > 0 && $ibcTarget > 0) {
-                // Fallback utan körtidsdata: dagsmålsprocent som tidigare
+            if ($ibcToday > 0 && $ibcTarget > 0) {
                 $productionPercentage = round(($ibcToday / $ibcTarget) * 100, 1);
             }
 
@@ -1329,6 +1321,17 @@ class TvattlinjeController {
                         $dsStart = null;
                     }
                 }
+            }
+
+            // Fallback: om inga on/off-events → använd SUM(drifttid) från skiftrapport
+            if ($totalRuntimeMinutes == 0) {
+                try {
+                    $driftStmt = $this->pdo->prepare(
+                        "SELECT COALESCE(SUM(drifttid), 0) FROM tvattlinje_skiftrapport WHERE datum >= :s AND datum <= :e"
+                    );
+                    $driftStmt->execute(['s' => $start, 'e' => $end]);
+                    $totalRuntimeMinutes = (float)$driftStmt->fetchColumn();
+                } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics drifttid_fallback: ' . $e->getMessage()); }
             }
 
             $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);

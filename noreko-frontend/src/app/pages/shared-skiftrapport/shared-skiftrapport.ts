@@ -185,7 +185,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.cachedTotalOmtvaatt = filtered.reduce((s, r) => s + (r.omtvaatt || 0), 0);
     this.cachedTotalOk = filtered.reduce((s, r) => s + (r.antal_ok || 0), 0);
     this.cachedTotalEjOk = filtered.reduce((s, r) => s + (r.antal_ej_ok || 0), 0);
-    const totalIbc = this.cachedTotalOk + this.cachedTotalEjOk;
+    const totalIbc = filtered.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
     this.cachedTotalIbc = totalIbc;
     this.cachedAvgQuality = totalIbc === 0 ? 0 : Math.round((this.cachedTotalOk / totalIbc) * 1000) / 10;
     this.cachedAvgIbcPerSkift = filtered.length === 0 ? 0 : Math.round((totalIbc / filtered.length) * 10) / 10;
@@ -371,9 +371,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   get summaryAvgIbcH(): number | null {
     const totalDrift = this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
-    const totalOk = this.filteredReports.reduce((s, r) => s + (r.antal_ok || 0), 0);
-    if (totalDrift <= 0 || totalOk <= 0) return null;
-    return Math.round(totalOk / (totalDrift / 60) * 10) / 10;
+    const totalIbc = this.filteredReports.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
+    if (totalDrift <= 0 || totalIbc <= 0) return null;
+    return Math.round(totalIbc / (totalDrift / 60) * 10) / 10;
   }
 
   get summaryAvgEfficiency(): number | null {

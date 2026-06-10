@@ -461,7 +461,7 @@
                               <span *ngIf="!report.op1 && !report.op2 && !report.op3" class="text-muted">–</span>
                             </td>
                             <td class="text-success fw-semibold" data-label="IBC">
-                              <span *ngIf="report.ibcEstimated" title="Preliminärt antal — ibc_ok saknas i PLC-data, uppskattat från cykelräkning">~</span>{{ safeDisplay(report.antal_ok) }}
+                              <span *ngIf="report.ibcEstimated" title="Preliminärt antal — ibc_ok saknas i PLC-data, uppskattat från cykelräkning">~</span>{{ safeDisplay(report.totalt) }}
                             </td>
                             <td class="d-none d-md-table-cell">{{ ibcPerHour(report) }}</td>
                             <td data-label="Tillg%">
