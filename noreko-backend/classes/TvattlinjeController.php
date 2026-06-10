@@ -1375,6 +1375,21 @@ class TvattlinjeController {
             $unique_dates = array_unique(array_map(fn($c) => date('Y-m-d', strtotime($c['datum'])), $cycles));
             $days_with_production = count($unique_dates);
 
+            // Per-dag IBC-karta från skiftrapporter (source of truth för historiska dagar)
+            $ibcPerDagSr = [];
+            try {
+                $srDagStmt = $this->pdo->prepare("
+                    SELECT DATE(datum) AS dag, COALESCE(SUM(totalt), 0) AS ibc
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum BETWEEN :s AND :e
+                    GROUP BY DATE(datum)
+                ");
+                $srDagStmt->execute(['s' => $start, 'e' => $end]);
+                foreach ($srDagStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $ibcPerDagSr[$row['dag']] = (int)$row['ibc'];
+                }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics ibc_per_dag_sr: ' . $e->getMessage()); }
+
             echo json_encode([
                 'success' => true,
                 'data' => [
@@ -1396,6 +1411,7 @@ class TvattlinjeController {
                         'total_driftstopp_minutes'  => round($totalDriftstoppMinutes, 1),
                         'days_with_production'      => $days_with_production,
                         'runtime_source'            => $runtimeSource,
+                        'ibc_per_dag_skiftrapport'  => $ibcPerDagSr,
                     ]
                 ]
             ], JSON_UNESCAPED_UNICODE);

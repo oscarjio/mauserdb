@@ -51,6 +51,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   currentMonth: number = new Date().getMonth();
   selectedPeriods: Date[] = [];
 
+  ibcPerDag: Record<string, number> = {};
   periodCells: PeriodCell[] = [];
   // Cachad filtrerad lista — uppdateras i generatePeriodCells/updatePeriodCellsData, undviker .filter() i template
   visiblePeriodCells: PeriodCell[] = [];
@@ -638,6 +639,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.buildShiftSummaries(data.cycles || []);
     this.computeDayMetrics(data);
 
+    this.ibcPerDag = data.summary?.ibc_per_dag_skiftrapport || {};
     this.updatePeriodCellsData(data.cycles);
   }
 
@@ -1168,7 +1170,12 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
       const periodCycles = grouped.get(key) || [];
       cell.hasData = periodCycles.length > 0;
-      cell.cyclesCount = periodCycles.length;
+      if (this.viewMode === 'month') {
+        const dayKey = `${cell.date.getFullYear()}-${String(cell.date.getMonth() + 1).padStart(2, '0')}-${String(cell.date.getDate()).padStart(2, '0')}`;
+        cell.cyclesCount = this.ibcPerDag[dayKey] ?? periodCycles.length;
+      } else {
+        cell.cyclesCount = periodCycles.length;
+      }
 
       if (periodCycles.length > 0) {
         // Filtrera bort NULL och 0 värden när vi beräknar genomsnitt
