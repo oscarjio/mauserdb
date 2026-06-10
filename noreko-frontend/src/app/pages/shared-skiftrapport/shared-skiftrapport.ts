@@ -243,23 +243,30 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     try {
       const totalIbc   = r.totalt ?? 0;
       const okIbc      = r.antal_ok ?? 0;
-      if (totalIbc <= 0) return null;
-      const kvalitet     = okIbc / totalIbc;
+      if (totalIbc <= 0 || okIbc <= 0) return null;
+
+      // Kvalitet: godkända / totalt (kassationsförlust)
+      const kvalitet = okIbc / totalIbc;
+
+      // Tillgänglighet: drifttid / (drifttid + rast + driftstopp)
+      // Planerad tid = drifttid + rasttime; driftstopp är oplanerade stopp
       const drifttidMin  = r.drifttid ?? 0;
+      const rasttime     = r.rasttime ?? 0;
       const driftstopp   = r.driftstopptime ?? 0;
-      // Tillgänglighet: drifttid/(drifttid+driftstopp). Rast exkluderas (planerad tid).
-      const tillganglighet = drifttidMin > 0
-        ? Math.min(drifttidMin / (drifttidMin + driftstopp), 1)
-        : null;
-      if (tillganglighet == null) return null;
-      const drifttidSek  = drifttidMin * 60;
+      const plannadTid   = drifttidMin + rasttime + driftstopp;
+      if (plannadTid <= 0) return null;
+      const tillganglighet = Math.min(drifttidMin / plannadTid, 1);
+
+      // Prestanda: faktisk IBC/h (okIbc) / mål IBC/h (baserat på cykeltid)
+      // Drifttid är nettotid inkl. rast; använd drifttidMin som bas för IBC/h
       const product = this.productNameMap.size > 0
         ? this.products.find(p => p.id === (r.product_id ?? null))
         : null;
-      const IDEAL_CYCLE_SEK = (product?.cycle_time_minutes ?? this.fallbackCycleMin) * 60;
-      const prestanda = drifttidSek > 0
-        ? Math.min((totalIbc * IDEAL_CYCLE_SEK) / drifttidSek, 1)
-        : 1.0;
+      const targetCycleMin = product?.cycle_time_minutes ?? this.fallbackCycleMin;
+      const targetIbcH     = 60 / targetCycleMin;
+      const ibcH           = drifttidMin > 0 ? (okIbc / (drifttidMin / 60)) : 0;
+      const prestanda      = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
+
       const v = Math.round(tillganglighet * prestanda * kvalitet * 100);
       return isFinite(v) ? v : null;
     } catch { return null; }
@@ -325,6 +332,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       }
     } catch { /* ignore */ }
     return '–';
+  }
+
+  toggleAdvanced(): void {
+    this.showAdvanced = !this.showAdvanced;
   }
 
   toggleAddForm(): void {
@@ -1179,47 +1190,177 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const pdfMake = pdfMakeModule.default || pdfMakeModule;
         const vfsFonts = vfsFontsModule.default || vfsFontsModule;
         pdfMake.vfs = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || vfsFonts;
-        const q = this.getQualityPct(report);
+
+        const q       = this.getQualityPct(report);
+        const eff     = this.getEfficiencyPct(report);
+        const ibcH    = this.getIbcPerHour(report);
+        const netDt   = this.getNetDrifttidMin(report);
+        const datum   = (report.datum || '').substring(0, 10);
+        const tid     = this.getShiftTid(report);
+        const produkt = this.getProductName(report.product_id) || '\u2013';
+        const lopnr   = this.lopnummerMap[report.id] || '\u2013';
+        const lopLoading = this.lopnummerLoading[report.id];
+
+        // Operatörer
+        const ops = [report.op1, report.op2, report.op3]
+          .filter(Boolean)
+          .map((n: number) => this.getOpName(n))
+          .filter(Boolean);
+
+        const totalt   = report.totalt ?? ((report.antal_ok || 0) + (report.antal_ej_ok || 0));
+        const qColor   = q == null ? '#333' : (q >= 90 ? '#1a6e2e' : (q < 70 ? '#b91c1c' : '#333'));
+        const effColor = eff == null ? '#333' : (eff >= 90 ? '#1a6e2e' : (eff < 70 ? '#b91c1c' : '#333'));
+
         pdfMake.createPdf({
+          pageSize: 'A4' as const,
+          pageMargins: [40, 50, 40, 50] as [number, number, number, number],
           content: [
-            { text: 'Skiftrapport – ' + this.config.lineName, style: 'header' },
-            { text: report.datum + '  |  Skift av ' + (report.user_name || '-'), style: 'subheader' },
-            { text: '\n' },
-            { text: 'Produktion', style: 'sectionHeader' },
+            // ── Header ──────────────────────────────────────────────────────
+            {
+              columns: [
+                {
+                  stack: [
+                    { text: this.config.lineName, style: 'header' },
+                    { text: 'Skiftrapport', style: 'headerSub' }
+                  ]
+                },
+                {
+                  stack: [
+                    { text: datum, style: 'headerRight', alignment: 'right' as const },
+                    { text: tid ? 'Tid: ' + tid : '', style: 'headerRightSmall', alignment: 'right' as const }
+                  ]
+                }
+              ]
+            },
+            { canvas: [{ type: 'line' as const, x1: 0, y1: 2, x2: 515, y2: 2, lineWidth: 2, lineColor: '#2d3748' }], margin: [0, 6, 0, 14] as [number, number, number, number] },
+
+            // ── Identifikation ───────────────────────────────────────────────
+            { text: 'Identifikation', style: 'sectionHeader' },
+            {
+              table: {
+                widths: ['*', '*', '*'],
+                body: [
+                  [
+                    { text: 'Löpnummer', style: 'cellLabel' },
+                    { text: 'Produkt', style: 'cellLabel' },
+                    { text: 'Skiftansvarig', style: 'cellLabel' }
+                  ],
+                  [
+                    { text: lopLoading ? 'Laddar\u2026' : lopnr, style: 'cellValueBold' },
+                    { text: produkt, style: 'cellValue' },
+                    { text: report.user_name || '\u2013', style: 'cellValue' }
+                  ]
+                ]
+              },
+              layout: 'lightHorizontalLines',
+              margin: [0, 4, 0, 12] as [number, number, number, number]
+            },
+
+            // ── Operatörer ───────────────────────────────────────────────────
+            { text: 'Operatörer', style: 'sectionHeader' },
+            {
+              table: {
+                widths: ['*', '*', '*'],
+                body: [
+                  [
+                    { text: 'Op 1', style: 'cellLabel' },
+                    { text: 'Op 2', style: 'cellLabel' },
+                    { text: 'Op 3', style: 'cellLabel' }
+                  ],
+                  [
+                    { text: ops[0] || '\u2013', style: 'cellValue' },
+                    { text: ops[1] || '\u2013', style: 'cellValue' },
+                    { text: ops[2] || '\u2013', style: 'cellValue' }
+                  ]
+                ]
+              },
+              layout: 'lightHorizontalLines',
+              margin: [0, 4, 0, 12] as [number, number, number, number]
+            },
+
+            // ── IBC-statistik ────────────────────────────────────────────────
+            { text: 'IBC-statistik', style: 'sectionHeader' },
             {
               table: {
                 widths: ['*', '*', '*', '*'],
                 body: [
                   [
-                    { text: 'Antal OK', bold: true, fillColor: '#eeeeee' },
-                    { text: 'Antal ej OK', bold: true, fillColor: '#eeeeee' },
-                    { text: 'Totalt', bold: true, fillColor: '#eeeeee' },
-                    { text: 'Kvalitet', bold: true, fillColor: '#eeeeee' }
+                    { text: 'Godkända IBC', style: 'cellLabel' },
+                    { text: 'Ej godkända', style: 'cellLabel' },
+                    { text: 'Totalt', style: 'cellLabel' },
+                    { text: 'Kvalitet %', style: 'cellLabel' }
                   ],
                   [
-                    { text: String(report.antal_ok), alignment: 'center' },
-                    { text: String(report.antal_ej_ok), alignment: 'center' },
-                    { text: String(report.totalt), bold: true, alignment: 'center' },
-                    { text: q != null ? q + '%' : '\u2013', alignment: 'center', color: q != null && q >= 90 ? 'green' : (q != null && q < 70 ? 'red' : 'black') }
+                    { text: String(report.antal_ok ?? 0), alignment: 'center' as const, bold: true, fontSize: 16, color: '#1a6e2e', margin: [0, 4, 0, 4] as [number, number, number, number] },
+                    { text: String(report.antal_ej_ok ?? 0), alignment: 'center' as const, bold: true, fontSize: 16, color: (report.antal_ej_ok > 0 ? '#b91c1c' : '#555'), margin: [0, 4, 0, 4] as [number, number, number, number] },
+                    { text: String(totalt), alignment: 'center' as const, bold: true, fontSize: 16, color: '#1a202c', margin: [0, 4, 0, 4] as [number, number, number, number] },
+                    { text: q != null ? String(q) + '%' : '\u2013', alignment: 'center' as const, bold: true, fontSize: 16, color: qColor, margin: [0, 4, 0, 4] as [number, number, number, number] }
                   ]
                 ]
               },
-              layout: 'lightHorizontalLines'
+              layout: 'lightHorizontalLines',
+              margin: [0, 4, 0, 12] as [number, number, number, number]
             },
-            { text: '\n' },
-            ...(report.kommentar ? [{ text: 'Kommentar: ' + report.kommentar, style: 'meta' }, { text: '\n' }] : []),
-            { text: 'Skiftansvarig: ' + (report.user_name || '-'), style: 'meta' },
-            { text: 'Inlagd: ' + (report.inlagd == 1 ? 'Ja' : 'Nej'), style: 'meta' },
-            { text: 'Genererad: ' + new Date().toLocaleString('sv-SE'), style: 'meta' }
+
+            // ── Drifttid & Prestanda ─────────────────────────────────────────
+            { text: 'Drifttid & Prestanda', style: 'sectionHeader' },
+            {
+              table: {
+                widths: ['*', '*', '*', '*'],
+                body: [
+                  [
+                    { text: 'Drifttid', style: 'cellLabel' },
+                    { text: 'Netto drifttid', style: 'cellLabel' },
+                    { text: 'Tillgänglighet', style: 'cellLabel' },
+                    { text: 'IBC / timme', style: 'cellLabel' }
+                  ],
+                  [
+                    { text: report.drifttid ? this.formatDrifttid(report.drifttid) : '\u2013', alignment: 'center' as const, style: 'cellValueBold' },
+                    { text: netDt > 0 ? this.formatDrifttid(netDt) : '\u2013', alignment: 'center' as const, style: 'cellValue' },
+                    { text: eff != null ? String(eff) + '%' : '\u2013', alignment: 'center' as const, bold: true, fontSize: 14, color: effColor, margin: [0, 3, 0, 3] as [number, number, number, number] },
+                    { text: ibcH != null ? ibcH.toFixed(1) : '\u2013', alignment: 'center' as const, style: 'cellValueBold' }
+                  ]
+                ]
+              },
+              layout: 'lightHorizontalLines',
+              margin: [0, 4, 0, 12] as [number, number, number, number]
+            },
+
+            // ── Kommentar (valfri) ────────────────────────────────────────────
+            ...(report.kommentar ? [
+              { text: 'Kommentar', style: 'sectionHeader' } as any,
+              {
+                table: {
+                  widths: ['*'],
+                  body: [[{ text: report.kommentar, fontSize: 11, margin: [4, 4, 4, 4] as [number, number, number, number] }]]
+                },
+                layout: 'lightHorizontalLines',
+                margin: [0, 4, 0, 12] as [number, number, number, number]
+              } as any
+            ] : []),
+
+            // ── Footer ────────────────────────────────────────────────────────
+            { canvas: [{ type: 'line' as const, x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#cccccc' }], margin: [0, 8, 0, 6] as [number, number, number, number] },
+            {
+              columns: [
+                { text: 'Inlagd i lager: ' + (report.inlagd == 1 ? 'Ja' : 'Nej'), style: 'footer' },
+                { text: 'Genererad: ' + new Date().toLocaleString('sv-SE'), style: 'footer', alignment: 'right' as const }
+              ]
+            }
           ],
           styles: {
-            header: { fontSize: 20, bold: true, margin: [0, 0, 0, 4] },
-            subheader: { fontSize: 12, color: '#555', margin: [0, 0, 0, 10] },
-            sectionHeader: { fontSize: 13, bold: true, margin: [0, 8, 0, 4] },
-            meta: { fontSize: 10, color: '#777', margin: [0, 2, 0, 0] }
+            header:           { fontSize: 22, bold: true, color: '#1a202c' },
+            headerSub:        { fontSize: 11, color: '#718096', margin: [0, 2, 0, 0] as [number, number, number, number] },
+            headerRight:      { fontSize: 16, bold: true, color: '#2d3748' },
+            headerRightSmall: { fontSize: 10, color: '#718096', margin: [0, 2, 0, 0] as [number, number, number, number] },
+            sectionHeader:    { fontSize: 11, bold: true, color: '#2d3748', margin: [0, 0, 0, 3] as [number, number, number, number], decoration: 'underline' as const },
+            cellLabel:        { bold: true, fillColor: '#f0f0f0', fontSize: 9, color: '#555' },
+            cellValue:        { fontSize: 11, margin: [0, 2, 0, 2] as [number, number, number, number] },
+            cellValueBold:    { fontSize: 13, bold: true, margin: [0, 3, 0, 3] as [number, number, number, number], alignment: 'center' as const },
+            footer:           { fontSize: 9, color: '#999' }
           },
-          defaultStyle: { fontSize: 11 }
-        }).download(`${this.config.line}-skiftrapport-${report.datum}-${report.id}.pdf`);
+          defaultStyle: { fontSize: 10 }
+        }).download(`${this.config.line}-skiftrapport-${datum}-${report.id}.pdf`);
       });
     });
   }
@@ -1384,7 +1525,18 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
   trackByDate(_index: number, day: any): string { return day.date; }
 
-  setTab(id: number, tab: string): void { this.activeTab[id] = tab; }
+  setTab(id: number, tab: string): void {
+    this.activeTab[id] = tab;
+    // Rita om timvis-diagram när PLC-data-fliken öppnas (canvas är nu i plcdata-fliken)
+    if (tab === 'plcdata' && this.plcStatsCache.has(id)) {
+      const report = id === this.PRELIMINARY_ID
+        ? this.preliminaryReport
+        : id < 0
+          ? this.unreportedPasses.find(u => u.id === id)
+          : this.reports.find(r => r.id === id);
+      setTimeout(() => this.renderHourlyChart(id, report), 50);
+    }
+  }
   getTab(id: number): string { return this.activeTab[id] || 'oversikt'; }
 
   getLopnummerPills(id: number): string[] {

@@ -1221,10 +1221,29 @@ class TvattlinjeController {
                 $driftstopp_events = $raw_ds;
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics driftstopp: ' . $e->getMessage()); }
 
-            // Beräkna runtime — klampa varje running-spann vid dygngräns (exkluderar natt-idle).
-            // En maskin som skickar running=1 måndag och running=0 tisdag räknas bara till 23:59:59 måndag.
+            // BUGG #106: Primär källa för drifttid är SUM(drifttid) från tvattlinje_skiftrapport.
+            // Drifttid-kolumnen är PLC-register D4007 som räknar NETTO körtid (exkluderar rast automatiskt).
+            // on/off-sensor-span används ENBART som fallback när inga skiftrapporter finns — det spannet
+            // inkluderar rasttid och ger därför ett för högt värde (bugg: statistik visade 3h, skiftrapport 1h 46m).
             $totalRuntimeMinutes = 0;
-            if (count($onoff_events) > 0) {
+            $runtimeSource = 'none';
+
+            // Primär: SUM(drifttid) från inskickade skiftrapporter (D4007 — netto körtid utan rast)
+            try {
+                $driftStmt = $this->pdo->prepare(
+                    "SELECT COALESCE(SUM(drifttid), 0) FROM tvattlinje_skiftrapport WHERE datum >= :s AND datum <= :e"
+                );
+                $driftStmt->execute(['s' => $start, 'e' => $end]);
+                $srDrifttid = (float)$driftStmt->fetchColumn();
+                if ($srDrifttid > 0) {
+                    $totalRuntimeMinutes = $srDrifttid;
+                    $runtimeSource = 'skiftrapport';
+                }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics drifttid_primary: ' . $e->getMessage()); }
+
+            // Fallback: on/off-sensor-spann (klampa vid dygngräns för att exkludera natt-idle).
+            // Notera: detta spann inkluderar rasttid — används bara när inga skiftrapporter finns.
+            if ($totalRuntimeMinutes == 0 && count($onoff_events) > 0) {
                 $lastRunningStart = null;
                 $tz = new \DateTimeZone('Europe/Stockholm');
                 $addSpan = function(\DateTime $from, \DateTime $to) use (&$totalRuntimeMinutes): void {
@@ -1246,6 +1265,7 @@ class TvattlinjeController {
                     $lastEvt = new \DateTime($onoff_events[count($onoff_events) - 1]['datum'], $tz);
                     $addSpan($lastRunningStart, $lastEvt);
                 }
+                if ($totalRuntimeMinutes > 0) $runtimeSource = 'onoff';
             }
 
             // Verkligt antal cykler via LAG-delta på MAX(ibc_count) per dag — fångar missade webhooks.
@@ -1323,18 +1343,13 @@ class TvattlinjeController {
                 }
             }
 
-            // Fallback: om inga on/off-events → använd SUM(drifttid) från skiftrapport
-            if ($totalRuntimeMinutes == 0) {
-                try {
-                    $driftStmt = $this->pdo->prepare(
-                        "SELECT COALESCE(SUM(drifttid), 0) FROM tvattlinje_skiftrapport WHERE datum >= :s AND datum <= :e"
-                    );
-                    $driftStmt->execute(['s' => $start, 'e' => $end]);
-                    $totalRuntimeMinutes = (float)$driftStmt->fetchColumn();
-                } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics drifttid_fallback: ' . $e->getMessage()); }
+            // netRuntimeMinutes: när källan är skiftrapport (D4007) är rast redan exkluderad av PLC:n —
+            // dra inte av $totalRastMinutes en gång till. Driftstopp dras alltid av.
+            if ($runtimeSource === 'skiftrapport') {
+                $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalDriftstoppMinutes);
+            } else {
+                $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);
             }
-
-            $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);
             $total_runtime_hours = $totalRuntimeMinutes / 60;
 
             // Snitt cykeltid
@@ -1373,6 +1388,7 @@ class TvattlinjeController {
                         'total_rast_minutes'        => round($totalRastMinutes, 1),
                         'total_driftstopp_minutes'  => round($totalDriftstoppMinutes, 1),
                         'days_with_production'      => $days_with_production,
+                        'runtime_source'            => $runtimeSource,
                     ]
                 ]
             ], JSON_UNESCAPED_UNICODE);

@@ -440,7 +440,7 @@
                                     <span *ngIf="getEfficiencyPct(report) == null" class="text-muted">–</span>
                                   </td>
                                   <td class="text-nowrap">
-                                    <span *ngIf="report.drifttid" class="text-success small">{{ report.drifttid }} min</span>
+                                    <span *ngIf="report.drifttid" class="text-success small">{{ formatDrifttid(report.drifttid) }}</span>
                                     <span *ngIf="!report.drifttid" class="text-muted">–</span>
                                   </td>
                                   <td class="text-nowrap">

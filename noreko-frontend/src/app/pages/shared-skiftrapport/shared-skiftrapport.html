@@ -266,6 +266,13 @@
       <h5 class="mb-0"><i class="fas fa-table me-2"></i>Skiftrapporter</h5>
       <div class="d-flex gap-2 align-items-center flex-wrap">
         <button class="btn btn-sm"
+          [class.btn-info]="showAdvanced"
+          [class.btn-outline-light]="!showAdvanced && config.themeColor !== 'warning'"
+          [class.btn-outline-dark]="!showAdvanced && config.themeColor === 'warning'"
+          (click)="toggleAdvanced()">
+          <i class="fas fa-cogs me-1"></i>{{ showAdvanced ? 'Dölj Avancerat' : 'Avancerat' }}
+        </button>
+        <button class="btn btn-sm"
           [class.btn-outline-light]="config.themeColor !== 'warning'"
           [class.btn-outline-dark]="config.themeColor === 'warning'"
           (click)="exportCSV()"
@@ -393,15 +400,15 @@
                     <table class="table shift-detail-table">
                       <thead>
                         <tr>
-                          <th>TID</th>
-                          <th>PRODUKT</th>
-                          <th>OPERATÖR</th>
-                          <th>IBC</th>
-                          <th class="d-none d-md-table-cell">IBC/H</th>
-                          <th>TILLG%</th>
-                          <th class="d-none d-md-table-cell">DRIFTTID</th>
-                          <th>INLAGD</th>
-                          <th>ÅTGÄRDER</th>
+                          <th title="Tidpunkt och status">TID</th>
+                          <th>Produkt</th>
+                          <th>Operatörer</th>
+                          <th title="Godkända IBC">IBC</th>
+                          <th class="d-none d-md-table-cell" title="IBC per timme">IBC/h</th>
+                          <th title="Tillgänglighet (drifttid / plannad tid)">Tillg%</th>
+                          <th class="d-none d-md-table-cell" title="Netto drifttid exkl. rast">Drifttid</th>
+                          <th title="Inlagd i lönesystem">Inlagd</th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -423,7 +430,7 @@
 
                           <!-- SKIFT-RAD -->
                           <tr [class.inlagd-row]="report.inlagd == 1"
-                              [style.border-left]="report.isPreliminary ? '3px solid #d69e2e' : report.isUnreported ? '3px solid #e53e3e' : '3px solid #38a169'"
+                              [style.border-left]="report.isPreliminary ? '3px solid #d69e2e' : report.isUnreported ? '3px solid #e53e3e' : (!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && (report.drifttid == 0 || report.drifttid == null) && (report.totalt == 0 || report.totalt == null)) ? '3px solid #718096' : '3px solid #38a169'"
                               [style.opacity]="(!report.isPreliminary && !report.isUnreported && report.antal_ok == 0 && report.antal_ej_ok == 0) ? '0.45' : '1'">
                             <td class="text-nowrap small" data-label="Status">
                               <!-- Status-badge -->
@@ -437,8 +444,11 @@
                                 <span *ngIf="!report._isDagligSlice && report.isUnreported" class="badge bg-danger" style="font-size:.7rem;">
                                   <i class="fas fa-exclamation-triangle me-1" style="font-size:.6rem;"></i>Ej inskickad
                                 </span>
-                                <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported" class="badge bg-success" style="font-size:.7rem;">
+                                <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && !((report.drifttid == 0 || report.drifttid == null) && (report.totalt == 0 || report.totalt == null))" class="badge bg-success" style="font-size:.7rem;">
                                   <i class="fas fa-check me-1" style="font-size:.6rem;"></i>Inskickad
+                                </span>
+                                <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && (report.drifttid == 0 || report.drifttid == null) && (report.totalt == 0 || report.totalt == null)" class="badge bg-secondary" style="font-size:.7rem;" title="Rapporten saknar drifttid och produktionsdata">
+                                  <i class="fas fa-question-circle me-1" style="font-size:.6rem;"></i>Ofullständig
                                 </span>
                               </div>
                               <span class="me-1" [class.text-info]="getShiftTid(report) !== '–'" [class.text-muted]="getShiftTid(report) === '–'">
@@ -624,7 +634,7 @@
                                   </li>
                                   <li class="nav-item" *ngIf="report.prev_created_at != null">
                                     <button type="button" class="nav-link" [class.active]="getTab(report.id)==='plcdata'" (click)="setTab(report.id,'plcdata')">
-                                      <i class="fas fa-microchip me-1"></i>PLC-data
+                                      <i class="fas fa-microchip me-1"></i>PLC-data &amp; Tidslinje
                                     </button>
                                   </li>
                                   <li class="nav-item">
@@ -645,19 +655,20 @@
                                   <!-- ÖVERSIKT -->
                                   <ng-container *ngIf="getTab(report.id)==='oversikt'">
 
-                                    <!-- SEKTION 1: KPI-RAD (8 kort) när PLC-data finns -->
+                                    <!-- KPI-RAD med PLC-data -->
                                     <ng-container *ngIf="report.prev_created_at != null && !subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0">
+                                      <p class="text-muted small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">Produktion</p>
                                       <div class="row g-2 mb-3">
                                         <div class="col-6 col-md-3">
                                           <div class="kpi-card">
-                                            <div class="kpi-label">Totalt IBC</div>
+                                            <div class="kpi-label">IBC OK</div>
                                             <div class="kpi-value text-success">{{ safeDisplay(report.antal_ok) }}</div>
                                           </div>
                                         </div>
                                         <div class="col-6 col-md-3">
                                           <div class="kpi-card">
-                                            <div class="kpi-label">OK / Ej OK</div>
-                                            <div class="kpi-value"><span class="text-success">{{ safeDisplay(report.antal_ok) }}</span><span class="text-muted mx-1">/</span><span class="text-danger">{{ safeDisplay(report.antal_ej_ok) }}</span></div>
+                                            <div class="kpi-label">IBC ej OK</div>
+                                            <div class="kpi-value text-danger">{{ safeDisplay(report.antal_ej_ok) }}</div>
                                           </div>
                                         </div>
                                         <div class="col-6 col-md-3">
@@ -677,21 +688,18 @@
                                             <div class="kpi-value text-warning">{{ getIbcPerHour(report) ?? '–' }}</div>
                                           </div>
                                         </div>
+                                      </div>
+                                      <p class="text-muted small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">Tid &amp; Tillgänglighet</p>
+                                      <div class="row g-2 mb-2">
                                         <div class="col-6 col-md-3">
                                           <div class="kpi-card">
-                                            <div class="kpi-label">Snitt cykeltid</div>
-                                            <div class="kpi-value text-info">{{ getPlcKpi(report.id).avgCycleMin > 0 ? (getPlcKpi(report.id).avgCycleMin + ' min') : '–' }}</div>
-                                          </div>
-                                        </div>
-                                        <div class="col-6 col-md-3">
-                                          <div class="kpi-card">
-                                            <div class="kpi-label">Drifttid D4007</div>
+                                            <div class="kpi-label">Drifttid</div>
                                             <div class="kpi-value text-success">{{ report.drifttid > 0 ? formatDrifttid(report.drifttid) : '–' }}</div>
                                           </div>
                                         </div>
                                         <div class="col-6 col-md-3">
                                           <div class="kpi-card">
-                                            <div class="kpi-label">Rast D4008</div>
+                                            <div class="kpi-label">Rast</div>
                                             <div class="kpi-value text-warning">{{ report.rasttime > 0 ? formatDrifttid(report.rasttime) : '0m' }}</div>
                                           </div>
                                         </div>
@@ -706,8 +714,23 @@
                                             </div>
                                           </div>
                                         </div>
+                                        <div class="col-6 col-md-3">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label">Snitt cykeltid</div>
+                                            <div class="kpi-value text-info">{{ getPlcKpi(report.id).avgCycleMin > 0 ? (getPlcKpi(report.id).avgCycleMin + ' min') : '–' }}</div>
+                                          </div>
+                                        </div>
                                       </div>
+                                      <p class="text-muted small mt-1 mb-0">
+                                        <i class="fas fa-microchip me-1"></i>Detaljerad PLC-data, tidslinje och rådata finns på fliken
+                                        <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-info" (click)="setTab(report.id,'plcdata')">PLC-data</button>.
+                                      </p>
                                     </ng-container>
+
+                                    <!-- Hämtar PLC-data -->
+                                    <div *ngIf="report.prev_created_at != null && subShiftsLoading[report.id]" class="text-muted small py-2">
+                                      <i class="fas fa-spinner fa-spin me-1"></i>Hämtar PLC-data...
+                                    </div>
 
                                     <!-- Fallback KPI-rad utan PLC-data -->
                                     <ng-container *ngIf="!(report.prev_created_at != null && !subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0)">
@@ -751,127 +774,6 @@
                                       </div>
                                     </ng-container>
 
-                                    <!-- PLC-ÖVERSIKT (cykler) -->
-                                    <div *ngIf="report.prev_created_at != null" class="mt-2">
-                                      <div *ngIf="subShiftsLoading[report.id]" class="text-muted small py-2">
-                                        <i class="fas fa-spinner fa-spin me-1"></i>Hämtar PLC-data...
-                                      </div>
-                                      <div *ngIf="!subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) === 0" class="text-muted small">
-                                        Inga PLC-cykler registrerade.
-                                      </div>
-
-                                      <ng-container *ngIf="!subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0">
-
-                                        <!-- SEKTION 2: TIMVIS STAPELDIAGRAM (Chart.js 4) -->
-                                        <div class="mb-4" *ngIf="getHourlyBuckets(report.id).length > 0">
-                                          <p class="text-muted small mb-2"><i class="fas fa-chart-bar me-1"></i>Timvis produktion (IBC/timme)</p>
-                                          <div style="position:relative; height:180px;">
-                                            <canvas [id]="'plc-hourly-' + report.id"></canvas>
-                                          </div>
-                                        </div>
-
-                                        <!-- SEKTION 3: CYKELTIDSKORT -->
-                                        <div class="mb-3" *ngIf="getCycleStats(report.id).avg != null">
-                                          <p class="text-muted small mb-2"><i class="fas fa-stopwatch me-1"></i>Cykeltidsstatistik (gap ≤ 30 min)</p>
-                                          <div class="row g-2">
-                                            <div class="col-6 col-md-3">
-                                              <div class="kpi-card">
-                                                <div class="kpi-label">Snitt</div>
-                                                <div class="kpi-value text-info">{{ getCycleStats(report.id).avg != null ? (getCycleStats(report.id).avg + ' min') : '–' }}</div>
-                                              </div>
-                                            </div>
-                                            <div class="col-6 col-md-3">
-                                              <div class="kpi-card">
-                                                <div class="kpi-label">Median</div>
-                                                <div class="kpi-value text-warning">{{ getCycleStats(report.id).median != null ? (getCycleStats(report.id).median + ' min') : '–' }}</div>
-                                              </div>
-                                            </div>
-                                            <div class="col-6 col-md-3">
-                                              <div class="kpi-card">
-                                                <div class="kpi-label">Min</div>
-                                                <div class="kpi-value text-success">{{ getCycleStats(report.id).min != null ? (getCycleStats(report.id).min + ' min') : '–' }}</div>
-                                              </div>
-                                            </div>
-                                            <div class="col-6 col-md-3">
-                                              <div class="kpi-card">
-                                                <div class="kpi-label">Max</div>
-                                                <div class="kpi-value text-danger">{{ getCycleStats(report.id).max != null ? (getCycleStats(report.id).max + ' min') : '–' }}</div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                        <!-- SEKTION 4: STOPPLISTA -->
-                                        <div class="mb-3" *ngIf="getDetectedStops(report.id).length > 0">
-                                          <p class="text-muted small mb-2"><i class="fas fa-pause-circle me-1 text-danger"></i>Detekterade stopp (gap &gt; 2× mediancykeltid)</p>
-                                          <div class="d-flex flex-wrap gap-2">
-                                            <span *ngFor="let stop of getDetectedStops(report.id)"
-                                                  class="badge"
-                                                  [class.bg-danger]="stop.durationMin >= 10"
-                                                  [class.bg-warning]="stop.durationMin < 10"
-                                                  style="font-size:.8rem; padding:.35em .6em;">
-                                              {{ stop.start }} → {{ stop.end }} ({{ stop.durationMin }} min)
-                                            </span>
-                                          </div>
-                                        </div>
-                                        <div class="mb-3" *ngIf="getDetectedStops(report.id).length === 0">
-                                          <p class="text-muted small mb-0"><i class="fas fa-check-circle me-1 text-success"></i>Inga detekterade stopp</p>
-                                        </div>
-
-                                        <!-- Avvikande data-badge -->
-                                        <div class="mb-2" *ngIf="getAnomalyCount(report.id) > 0">
-                                          <span class="badge bg-secondary" title="Cykler med ogiltig, framtida eller orimlig tidsstämpel exkluderades">
-                                            <i class="fas fa-exclamation-triangle me-1 text-warning"></i>Avvikande data {{ getAnomalyCount(report.id) }} st
-                                          </span>
-                                        </div>
-
-                                        <!-- SEKTION 5: RÅDATA COLLAPSE -->
-                                        <div>
-                                          <button class="btn btn-sm btn-outline-secondary mb-2" type="button"
-                                                  (click)="showRawSubShifts[report.id] = !showRawSubShifts[report.id]">
-                                            <i class="fas me-1" [class.fa-chevron-down]="!showRawSubShifts[report.id]" [class.fa-chevron-up]="showRawSubShifts[report.id]"></i>
-                                            {{ showRawSubShifts[report.id] ? 'Dölj rådata' : ('Visa rådata (' + subShiftsMap[report.id].length + ' rader)') }}
-                                          </button>
-                                          <div *ngIf="showRawSubShifts[report.id]" class="table-responsive">
-                                            <table class="table table-sm table-dark table-hover mb-0" style="font-size:.82rem;">
-                                              <thead><tr><th>TID</th><th>PRODUKT</th><th>OPERATÖR</th><th>IBC</th><th>IBC/H</th><th>CYKL%</th><th>DRIFTTID</th></tr></thead>
-                                              <tbody>
-                                                <tr *ngFor="let sub of visibleSubShifts(report.id); let subI = index">
-                                                  <td class="text-nowrap">{{ formatSubTime(sub.datum) }}</td>
-                                                  <td>{{ getProductName(sub.produkt) || '–' }}</td>
-                                                  <td>
-                                                    <span *ngIf="sub.op1" class="badge bg-secondary me-1">{{ resolveOpName(sub.op1_name, sub.op1) }}</span>
-                                                    <span *ngIf="sub.op2" class="badge bg-secondary me-1">{{ resolveOpName(sub.op2_name, sub.op2) }}</span>
-                                                    <span *ngIf="sub.op3" class="badge bg-secondary me-1">{{ resolveOpName(sub.op3_name, sub.op3) }}</span>
-                                                    <span *ngIf="!sub.op1 && !sub.op2 && !sub.op3" class="text-muted">–</span>
-                                                  </td>
-                                                  <td class="text-success fw-semibold">{{ sub.ibc_ok ?? '–' }}</td>
-                                                  <td>{{ getSubIbcPerHour(sub) }}</td>
-                                                  <td>
-                                                    <ng-container *ngIf="getSubCycleEff(subShiftsMap[report.id], subI, report.product_id) as cycleEff; else noEff">
-                                                      <span class="badge"
-                                                        [class.bg-success]="cycleEff >= 80"
-                                                        [class.bg-warning]="cycleEff >= 60 && cycleEff < 80"
-                                                        [class.bg-danger]="cycleEff < 60">
-                                                        {{ cycleEff }}%
-                                                      </span>
-                                                    </ng-container>
-                                                    <ng-template #noEff><span class="text-muted">–</span></ng-template>
-                                                  </td>
-                                                  <td>{{ formatDrifttid(sub.runtime_plc) }}</td>
-                                                </tr>
-                                              </tbody>
-                                            </table>
-                                            <div *ngIf="(subShiftsMap[report.id]?.length ?? 0) > SUB_PAGE" class="mt-2 text-center">
-                                              <button class="btn btn-sm btn-outline-secondary" (click)="subShiftsShowAll[report.id] = !subShiftsShowAll[report.id]">
-                                                <i class="fas me-1" [class.fa-expand-alt]="!subShiftsShowAll[report.id]" [class.fa-compress-alt]="subShiftsShowAll[report.id]"></i>
-                                                {{ subShiftsShowAll[report.id] ? 'Dölj' : ('Visa alla ' + subShiftsMap[report.id].length + ' rader') }}
-                                              </button>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </ng-container>
-                                    </div>
                                   </ng-container>
 
                                   <!-- OPERATÖRER -->
@@ -881,7 +783,7 @@
                                         <div class="kpi-card d-flex align-items-center gap-3 py-3 px-3" style="text-align:left;">
                                           <div class="op-avatar flex-shrink-0" [style.background]="opAvatarColor(report.op1)">{{ getOpInitials(report.op1) }}</div>
                                           <div>
-                                            <div class="fw-semibold" style="font-size:.95rem;">{{ getOpName(report.op1) }}</div>
+                                            <div class="fw-semibold" style="font-size:.95rem;">{{ resolveOpName(report.op1_name, report.op1) }}</div>
                                             <div class="text-muted small">Op1 — Påsatt</div>
                                           </div>
                                         </div>
@@ -890,7 +792,7 @@
                                         <div class="kpi-card d-flex align-items-center gap-3 py-3 px-3" style="text-align:left;">
                                           <div class="op-avatar flex-shrink-0" [style.background]="opAvatarColor(report.op2)">{{ getOpInitials(report.op2) }}</div>
                                           <div>
-                                            <div class="fw-semibold" style="font-size:.95rem;">{{ getOpName(report.op2) }}</div>
+                                            <div class="fw-semibold" style="font-size:.95rem;">{{ resolveOpName(report.op2_name, report.op2) }}</div>
                                             <div class="text-muted small">Op2 — Spolplattform</div>
                                           </div>
                                         </div>
@@ -899,7 +801,7 @@
                                         <div class="kpi-card d-flex align-items-center gap-3 py-3 px-3" style="text-align:left;">
                                           <div class="op-avatar flex-shrink-0" [style.background]="opAvatarColor(report.op3)">{{ getOpInitials(report.op3) }}</div>
                                           <div>
-                                            <div class="fw-semibold" style="font-size:.95rem;">{{ getOpName(report.op3) }}</div>
+                                            <div class="fw-semibold" style="font-size:.95rem;">{{ resolveOpName(report.op3_name, report.op3) }}</div>
                                             <div class="text-muted small">Op3 — Kontroll</div>
                                           </div>
                                         </div>
@@ -912,6 +814,14 @@
 
                                   <!-- PLC-DATA -->
                                   <ng-container *ngIf="getTab(report.id)==='plcdata'">
+
+                                    <!-- Laddningsindikator -->
+                                    <div *ngIf="subShiftsLoading[report.id]" class="text-muted small py-2">
+                                      <i class="fas fa-spinner fa-spin me-1"></i>Hämtar PLC-cykler...
+                                    </div>
+
+                                    <!-- PLC-registervärden -->
+                                    <p class="text-muted small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">Register &amp; Identitet</p>
                                     <div class="row g-2 mb-3">
                                       <div class="col-6 col-md-2" *ngIf="report.drifttid > 0">
                                         <div class="kpi-card">
@@ -944,7 +854,9 @@
                                         </div>
                                       </div>
                                     </div>
-                                    <div *ngIf="report.skiftraknare != null" class="mt-1">
+
+                                    <!-- Löpnummer -->
+                                    <div *ngIf="report.skiftraknare != null" class="mb-3">
                                       <p class="text-muted small mb-2"><i class="fas fa-list-ol me-1"></i>Löpnummer detta skift (D4009)</p>
                                       <div *ngIf="lopnummerLoading[report.id]" class="text-muted small"><i class="fas fa-spinner fa-spin me-1"></i>Hämtar...</div>
                                       <div *ngIf="!lopnummerLoading[report.id]">
@@ -954,6 +866,136 @@
                                         <span *ngIf="getLopnummerPills(report.id).length === 0" class="text-muted small">–</span>
                                       </div>
                                     </div>
+
+                                    <!-- Cykler (om PLC-data laddats) -->
+                                    <ng-container *ngIf="!subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) > 0">
+
+                                      <!-- Timvis stapeldiagram -->
+                                      <div class="mb-4" *ngIf="getHourlyBuckets(report.id).length > 0">
+                                        <p class="text-muted small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">
+                                          <i class="fas fa-chart-bar me-1"></i>Timvis produktion (IBC/timme)
+                                        </p>
+                                        <div style="position:relative; height:180px;">
+                                          <canvas [id]="'plc-hourly-' + report.id"></canvas>
+                                        </div>
+                                      </div>
+
+                                      <!-- Cykeltidsstatistik -->
+                                      <div class="mb-3" *ngIf="getCycleStats(report.id).avg != null">
+                                        <p class="text-muted small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">
+                                          <i class="fas fa-stopwatch me-1"></i>Cykeltidsstatistik (gap ≤ 30 min)
+                                        </p>
+                                        <div class="row g-2">
+                                          <div class="col-6 col-md-3">
+                                            <div class="kpi-card">
+                                              <div class="kpi-label">Snitt</div>
+                                              <div class="kpi-value text-info">{{ getCycleStats(report.id).avg != null ? (getCycleStats(report.id).avg + ' min') : '–' }}</div>
+                                            </div>
+                                          </div>
+                                          <div class="col-6 col-md-3">
+                                            <div class="kpi-card">
+                                              <div class="kpi-label">Median</div>
+                                              <div class="kpi-value text-warning">{{ getCycleStats(report.id).median != null ? (getCycleStats(report.id).median + ' min') : '–' }}</div>
+                                            </div>
+                                          </div>
+                                          <div class="col-6 col-md-3">
+                                            <div class="kpi-card">
+                                              <div class="kpi-label">Min</div>
+                                              <div class="kpi-value text-success">{{ getCycleStats(report.id).min != null ? (getCycleStats(report.id).min + ' min') : '–' }}</div>
+                                            </div>
+                                          </div>
+                                          <div class="col-6 col-md-3">
+                                            <div class="kpi-card">
+                                              <div class="kpi-label">Max</div>
+                                              <div class="kpi-value text-danger">{{ getCycleStats(report.id).max != null ? (getCycleStats(report.id).max + ' min') : '–' }}</div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <!-- Stopplista -->
+                                      <div class="mb-3">
+                                        <p class="text-muted small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">
+                                          <i class="fas fa-pause-circle me-1 text-danger"></i>Detekterade stopp
+                                          <span class="text-muted fw-normal" style="text-transform:none;">(gap &gt; 2× mediancykeltid)</span>
+                                        </p>
+                                        <div *ngIf="getDetectedStops(report.id).length > 0" class="d-flex flex-wrap gap-2">
+                                          <span *ngFor="let stop of getDetectedStops(report.id)"
+                                                class="badge"
+                                                [class.bg-danger]="stop.durationMin >= 10"
+                                                [class.bg-warning]="stop.durationMin < 10"
+                                                style="font-size:.8rem; padding:.35em .6em;">
+                                            {{ stop.start }} → {{ stop.end }} ({{ stop.durationMin }} min)
+                                          </span>
+                                        </div>
+                                        <p *ngIf="getDetectedStops(report.id).length === 0" class="text-muted small mb-0">
+                                          <i class="fas fa-check-circle me-1 text-success"></i>Inga detekterade stopp
+                                        </p>
+                                      </div>
+
+                                      <!-- Avvikande data -->
+                                      <div class="mb-3" *ngIf="getAnomalyCount(report.id) > 0">
+                                        <span class="badge bg-secondary" title="Cykler med ogiltig, framtida eller orimlig tidsstämpel exkluderades">
+                                          <i class="fas fa-exclamation-triangle me-1 text-warning"></i>Avvikande data: {{ getAnomalyCount(report.id) }} st exkluderade
+                                        </span>
+                                      </div>
+
+                                      <!-- Rådata (kollapsbar) -->
+                                      <div>
+                                        <p class="text-muted small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">
+                                          <i class="fas fa-database me-1"></i>Rådata
+                                        </p>
+                                        <button class="btn btn-sm btn-outline-secondary mb-2" type="button"
+                                                (click)="showRawSubShifts[report.id] = !showRawSubShifts[report.id]">
+                                          <i class="fas me-1" [class.fa-chevron-down]="!showRawSubShifts[report.id]" [class.fa-chevron-up]="showRawSubShifts[report.id]"></i>
+                                          {{ showRawSubShifts[report.id] ? 'Dölj rådata' : ('Visa rådata (' + subShiftsMap[report.id].length + ' rader)') }}
+                                        </button>
+                                        <div *ngIf="showRawSubShifts[report.id]" class="table-responsive">
+                                          <table class="table table-sm table-dark table-hover mb-0" style="font-size:.82rem;">
+                                            <thead><tr><th>TID</th><th>PRODUKT</th><th>OPERATÖR</th><th>IBC</th><th>IBC/H</th><th>CYKL%</th><th>DRIFTTID</th></tr></thead>
+                                            <tbody>
+                                              <tr *ngFor="let sub of visibleSubShifts(report.id); let subI = index">
+                                                <td class="text-nowrap">{{ formatSubTime(sub.datum) }}</td>
+                                                <td>{{ getProductName(sub.produkt) || '–' }}</td>
+                                                <td>
+                                                  <span *ngIf="sub.op1" class="badge bg-secondary me-1">{{ resolveOpName(sub.op1_name, sub.op1) }}</span>
+                                                  <span *ngIf="sub.op2" class="badge bg-secondary me-1">{{ resolveOpName(sub.op2_name, sub.op2) }}</span>
+                                                  <span *ngIf="sub.op3" class="badge bg-secondary me-1">{{ resolveOpName(sub.op3_name, sub.op3) }}</span>
+                                                  <span *ngIf="!sub.op1 && !sub.op2 && !sub.op3" class="text-muted">–</span>
+                                                </td>
+                                                <td class="text-success fw-semibold">{{ sub.ibc_ok ?? '–' }}</td>
+                                                <td>{{ getSubIbcPerHour(sub) }}</td>
+                                                <td>
+                                                  <ng-container *ngIf="getSubCycleEff(subShiftsMap[report.id], subI, report.product_id) as cycleEff; else noEff">
+                                                    <span class="badge"
+                                                      [class.bg-success]="cycleEff >= 80"
+                                                      [class.bg-warning]="cycleEff >= 60 && cycleEff < 80"
+                                                      [class.bg-danger]="cycleEff < 60">
+                                                      {{ cycleEff }}%
+                                                    </span>
+                                                  </ng-container>
+                                                  <ng-template #noEff><span class="text-muted">–</span></ng-template>
+                                                </td>
+                                                <td>{{ formatDrifttid(sub.runtime_plc) }}</td>
+                                              </tr>
+                                            </tbody>
+                                          </table>
+                                          <div *ngIf="(subShiftsMap[report.id]?.length ?? 0) > SUB_PAGE" class="mt-2 text-center">
+                                            <button class="btn btn-sm btn-outline-secondary" (click)="subShiftsShowAll[report.id] = !subShiftsShowAll[report.id]">
+                                              <i class="fas me-1" [class.fa-expand-alt]="!subShiftsShowAll[report.id]" [class.fa-compress-alt]="subShiftsShowAll[report.id]"></i>
+                                              {{ subShiftsShowAll[report.id] ? 'Dölj' : ('Visa alla ' + subShiftsMap[report.id].length + ' rader') }}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                    </ng-container>
+
+                                    <!-- Inga cykler -->
+                                    <div *ngIf="!subShiftsLoading[report.id] && (subShiftsMap[report.id]?.length ?? 0) === 0" class="text-muted small">
+                                      <i class="fas fa-info-circle me-1"></i>Inga PLC-cykler registrerade för detta skift.
+                                    </div>
+
                                   </ng-container>
 
                                   <!-- KOMMENTAR -->
@@ -1053,7 +1095,7 @@
             <div class="mobile-shifts" *ngIf="isDayExpanded(day.date)">
               <ng-container *ngFor="let report of day.reports; let si = index; trackBy: trackByIndex">
                 <div class="mobile-shift-card"
-                  [style.border-left]="report.isPreliminary ? '3px solid #d69e2e' : report.isUnreported ? '3px solid #e53e3e' : report._isDagligSlice ? '3px solid #3182ce' : '3px solid #38a169'"
+                  [style.border-left]="report.isPreliminary ? '3px solid #d69e2e' : report.isUnreported ? '3px solid #e53e3e' : report._isDagligSlice ? '3px solid #3182ce' : (!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && (report.drifttid == 0 || report.drifttid == null) && (report.totalt == 0 || report.totalt == null)) ? '3px solid #718096' : '3px solid #38a169'"
                   [style.opacity]="(!report.isPreliminary && !report.isUnreported && report.antal_ok == 0 && report.antal_ej_ok == 0) ? '0.45' : '1'">
 
                   <!-- Flerdagars-info -->
@@ -1071,7 +1113,8 @@
                         <span *ngIf="report._isDagligSlice" class="badge bg-info text-dark" style="font-size:.65rem;"><i class="fas fa-calendar-day me-1"></i>Del av rapport</span>
                         <span *ngIf="!report._isDagligSlice && report.isPreliminary" class="badge bg-warning text-dark" style="font-size:.65rem;"><i class="fas fa-circle fa-beat me-1"></i>Pågående</span>
                         <span *ngIf="!report._isDagligSlice && report.isUnreported" class="badge bg-danger" style="font-size:.65rem;">Ej inskickad</span>
-                        <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported" class="badge bg-success" style="font-size:.65rem;"><i class="fas fa-check me-1"></i>Inskickad</span>
+                        <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && !((report.drifttid == 0 || report.drifttid == null) && (report.totalt == 0 || report.totalt == null))" class="badge bg-success" style="font-size:.65rem;"><i class="fas fa-check me-1"></i>Inskickad</span>
+                        <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && (report.drifttid == 0 || report.drifttid == null) && (report.totalt == 0 || report.totalt == null)" class="badge bg-secondary" style="font-size:.65rem;" title="Rapporten saknar drifttid och produktionsdata"><i class="fas fa-question-circle me-1"></i>Ofullständig</span>
                         <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported" class="badge bg-secondary" style="font-size:.6rem;">#{{ si + 1 }}</span>
                         <span *ngIf="report.flerdagars == 1" class="badge bg-warning text-dark" style="font-size:.6rem;">Sen · {{ report.antal_dagar }}d</span>
                       </div>

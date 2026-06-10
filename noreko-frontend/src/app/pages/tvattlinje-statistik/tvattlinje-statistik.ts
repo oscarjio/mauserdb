@@ -611,9 +611,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const target = data.summary.target_cycle_time || 3;
     const avgActual = data.summary.avg_cycle_time || 0;
     if (avgActual > 0 && target > 0) {
-      this.avgEfficiency = Math.round((target / avgActual) * 100);
+      this.avgEfficiency = Math.min(Math.round((target / avgActual) * 100), 200);
     } else {
-      this.avgEfficiency = Math.round(data.summary.avg_production_percent || 0);
+      this.avgEfficiency = Math.min(Math.round(data.summary.avg_production_percent || 0), 200);
     }
 
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
@@ -1079,6 +1079,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const pausePeriods = this.buildPausePeriods(rast_events || []);
     const offPeriods = onoff_events ? this.buildOffPeriods(onoff_events) : [];
     const result: number[] = [];
+    const firstCycleMs = new Date(cycles[0].datum).getTime();
 
     for (let i = 0; i < cycles.length; i++) {
       const cycleMs = new Date(cycles[i].datum).getTime();
@@ -1113,12 +1114,15 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         }
       }
 
-      // Om fönstret börjar innan första ON-event, räkna den inledande av-perioden
-      // (hanteras av offPeriods om första eventet är ON — ingen separat hantering behövs)
+      // Kold-start-korrigering: om fönstret sträcker sig innan skiftets första cykel
+      // används faktisk förfluten tid istället för 30 min som nämnare, så att
+      // effektiviteten inte artificellt sjunker i början av skiftet.
+      const elapsedMin = (cycleMs - firstCycleMs) / 60000;
+      const effectiveWindowMin = Math.min(WINDOW_MINUTES, elapsedMin > 0 ? elapsedMin : WINDOW_MINUTES);
 
-      const netWindowMin = Math.max(1, WINDOW_MINUTES - pauseMinInWindow - offMinInWindow);
+      const netWindowMin = Math.max(1, effectiveWindowMin - pauseMinInWindow - offMinInWindow);
       const pp = windowCount > 0
-        ? Math.round((windowCount * targetMin / netWindowMin) * 100)
+        ? Math.min(Math.round((windowCount * targetMin / netWindowMin) * 100), 200)
         : 0;
       result.push(pp);
     }
@@ -1179,7 +1183,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
         const avgEff = periodCycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / periodCycles.length;
         cell.avgCycleTime = Math.round(avgCycleTime * 10) / 10;
-        cell.efficiency = Math.round(avgEff);
+        cell.efficiency = Math.min(Math.round(avgEff), 200);
       }
     });
 
@@ -1455,7 +1459,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         const validTimes: number[] = value.cycleTime;
         if (validTimes.length > 0) {
           const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
-          efficiencyArr.push(Math.round((target / avgActual) * 100));
+          efficiencyArr.push(Math.min(Math.round((target / avgActual) * 100), 200));
         } else {
           efficiencyArr.push(0);
         }
@@ -1942,7 +1946,28 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
     };
 
-    // Bygg rast- och driftstoppperioder som [startMin, endMin]-par för överlapsberäkning
+    // Konvertera MySQL datetime-sträng "YYYY-MM-DD HH:MM:SS" till epoch-minuter (dag * 1440 + HH * 60 + MM)
+    const toEpochMin = (datum: string): number => {
+      if (!datum) return 0;
+      const m = datum.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+      if (!m) return 0;
+      const dayEpoch = Math.floor(new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3])).getTime() / 86400000);
+      return dayEpoch * 1440 + parseInt(m[4]) * 60 + parseInt(m[5]);
+    };
+
+    // Bygg rast- och driftstoppperioder som [startMin, endMin]-par för överlapsberäkning (epoch-minuter)
+    const buildPeriodsEpoch = (events: any[], isStart: (e: any) => boolean): [number, number][] => {
+      const periods: [number, number][] = [];
+      let start: number | null = null;
+      for (const e of (events || [])) {
+        const min = toEpochMin(e.datum);
+        if (isStart(e) && start === null) { start = min; }
+        else if (!isStart(e) && start !== null) { periods.push([start, min]); start = null; }
+      }
+      return periods;
+    };
+
+    // Bygg rast- och driftstoppperioder som [startMin, endMin]-par för dag-vy (minuter på dygnet)
     const buildPeriods = (events: any[], isStart: (e: any) => boolean): [number, number][] => {
       const periods: [number, number][] = [];
       let start: number | null = null;
@@ -1956,6 +1981,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const rastPeriods = buildPeriods(data.rast_events || [],
       e => e.rast_status == 1);
     const dsPeriods = buildPeriods(data.driftstopp_events || [],
+      e => e.status === 'start' || e.driftstopp_status == 1);
+
+    // Epoch-minuters perioder för flerdag-vyer (month/year)
+    const rastPeriodsEpoch = buildPeriodsEpoch(data.rast_events || [], e => e.rast_status == 1);
+    const dsPeriodsEpoch   = buildPeriodsEpoch(data.driftstopp_events || [],
       e => e.status === 'start' || e.driftstopp_status == 1);
 
     const overlapMin = (periods: [number, number][], winStart: number, winEnd: number): number =>
@@ -1995,8 +2025,21 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
       if (this.viewMode === 'year') {
         period = this.monthNames[date.getMonth()];
+        // Beräkna rast/driftstopp för hela månaden (epoch-minuter)
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd   = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59);
+        const winStartE = Math.floor(monthStart.getTime() / 86400000) * 1440;
+        const winEndE   = Math.floor(monthEnd.getTime()   / 86400000) * 1440 + 23 * 60 + 59;
+        rastMin = Math.round(overlapMin(rastPeriodsEpoch, winStartE, winEndE) * 10) / 10;
+        dsMin   = Math.round(overlapMin(dsPeriodsEpoch,   winStartE, winEndE) * 10) / 10;
       } else if (this.viewMode === 'month') {
         period = `${date.getDate()} ${this.monthNames[date.getMonth()].substring(0, 3)}`;
+        // Beräkna rast/driftstopp för hela dagen (epoch-minuter)
+        const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const winStartE = Math.floor(dayStart.getTime() / 86400000) * 1440;
+        const winEndE   = winStartE + 1439;
+        rastMin = Math.round(overlapMin(rastPeriodsEpoch, winStartE, winEndE) * 10) / 10;
+        dsMin   = Math.round(overlapMin(dsPeriodsEpoch,   winStartE, winEndE) * 10) / 10;
       } else {
         const hour = date.getHours();
         const minute = Math.floor(date.getMinutes() / 10) * 10;
@@ -2015,7 +2058,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       const avgCycleTime = validCycleTimes.length > 0
         ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length : 0;
       const taktMal = this.targetCycleTime || 3;
-      const efficiency = avgCycleTime > 0 ? Math.round((taktMal / avgCycleTime) * 100) : 0;
+      const efficiency = avgCycleTime > 0 ? Math.min(Math.round((taktMal / avgCycleTime) * 100), 200) : 0;
 
       this.tableData.push({
         period,
@@ -2031,6 +2074,12 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     });
 
     this.tableData.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    // För month/year-vyer: summera rast/driftstopp från tableData (summary-fälten är dag-specifika)
+    if (this.viewMode !== 'day') {
+      this.totalRastMinutes       = Math.round(this.tableData.reduce((s, r) => s + (r.rastMinutes || 0), 0) * 10) / 10;
+      this.totalDriftstoppMinutes = Math.round(this.tableData.reduce((s, r) => s + (r.driftstoppMinutes || 0), 0) * 10) / 10;
+    }
   }
 
   onTableRowClick(row: TableRow) {

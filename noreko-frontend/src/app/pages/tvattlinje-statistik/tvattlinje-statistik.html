@@ -146,7 +146,10 @@
                [class.kpi-hero-neutral]="viewMode !== 'day' || dayUtilizationPct === 0">
             <div class="kpi-hero-icon"><i class="fas fa-clock"></i></div>
             <div class="kpi-hero-value">{{ totalRuntimeHours }}<span class="kpi-hero-unit">h</span></div>
-            <div class="kpi-hero-label">Körtid</div>
+            <div class="kpi-hero-label">Körtid
+              <i class="fas fa-info-circle ms-1" style="font-size:0.75em;opacity:0.6;cursor:help;"
+                 title="Netto körtid från PLC (D4007) — rast exkluderad. Samma källa som skiftrapporten."></i>
+            </div>
             <div class="kpi-hero-sub" *ngIf="viewMode === 'day' && dayUtilizationPct > 0">
               Utnyttjande {{ dayUtilizationPct }}%
             </div>
@@ -376,8 +379,8 @@
                       <th class="text-end" scope="col">Snitt Cykeltid</th>
                       <th class="text-end" scope="col">Effektivitet</th>
                       <th class="text-end" scope="col">Körtid (min)</th>
-                      <th class="text-end" scope="col" *ngIf="viewMode === 'day'">Rast (min)</th>
-                      <th class="text-end" scope="col" *ngIf="viewMode === 'day'">Driftstopp (min)</th>
+                      <th class="text-end" scope="col">Rast (min)</th>
+                      <th class="text-end" scope="col">Driftstopp (min)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -395,8 +398,8 @@
                         <strong>{{ row.efficiency | number:'1.1-1' }}%</strong>
                       </td>
                       <td class="text-end">{{ row.runtime | number:'1.0-0' }}</td>
-                      <td class="text-end" *ngIf="viewMode === 'day'" style="color:#ffc107">{{ row.rastMinutes > 0 ? (row.rastMinutes | number:'1.0-1') : '–' }}</td>
-                      <td class="text-end" *ngIf="viewMode === 'day'" style="color:#e74c3c">{{ row.driftstoppMinutes > 0 ? (row.driftstoppMinutes | number:'1.0-1') : '–' }}</td>
+                      <td class="text-end" style="color:#ffc107">{{ row.rastMinutes > 0 ? (row.rastMinutes | number:'1.0-1') : '–' }}</td>
+                      <td class="text-end" style="color:#e74c3c">{{ row.driftstoppMinutes > 0 ? (row.driftstoppMinutes | number:'1.0-1') : '–' }}</td>
                     </tr>
                   </tbody>
                   <tfoot *ngIf="tableData.length > 1">
@@ -408,8 +411,8 @@
                         <strong>{{ avgEfficiency | number:'1.1-1' }}%</strong>
                       </td>
                       <td class="text-end"><strong>{{ (totalRuntimeHours * 60) | number:'1.0-0' }}</strong></td>
-                      <td *ngIf="viewMode === 'day'"></td>
-                      <td *ngIf="viewMode === 'day'"></td>
+                      <td class="text-end" style="color:#ffc107"><strong>{{ totalRastMinutes > 0 ? (totalRastMinutes | number:'1.0-1') : '–' }}</strong></td>
+                      <td class="text-end" style="color:#e74c3c"><strong>{{ totalDriftstoppMinutes > 0 ? (totalDriftstoppMinutes | number:'1.0-1') : '–' }}</strong></td>
                     </tr>
                   </tfoot>
                 </table>

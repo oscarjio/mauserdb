@@ -269,6 +269,7 @@ class TvattLinje {
             // Faktiska IBCer detta skift = current - start + 1 (inkluderar nuvarande rad)
             $actual_ibcs = max(1, $ibc_count - $ibc_count_at_start + 1);
             $effektivitet = round(($actual_ibcs * $taktMal) / max(1, $runtime_plc) * 100, 2);
+            $effektivitet = min($effektivitet, 200.0); // cap — förhindrar explosion vid skiftstart
         }
 
         // Spara

@@ -495,7 +495,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const product = this.products?.find((p: any) => p.id === r.product_id);
     const targetCycleMin = product?.cycle_time_minutes || 3;
     const targetIbcH = 60 / targetCycleMin;
-    return Math.round((ibcH / targetIbcH) * 100);
+    return Math.min(Math.round((ibcH / targetIbcH) * 100), 150);
   }
 
   getDefectPct(r: any): number | null {
