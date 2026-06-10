@@ -1168,8 +1168,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
       const periodCycles = grouped.get(key) || [];
       cell.hasData = periodCycles.length > 0;
-      const ibcNums = periodCycles.map((c: any) => Number(c.ibc_count)).filter((n: number) => n > 0);
-      cell.cyclesCount = ibcNums.length ? Math.max(...ibcNums) - Math.min(...ibcNums) : 0;
+      cell.cyclesCount = periodCycles.length;
 
       if (periodCycles.length > 0) {
         // Filtrera bort NULL och 0 värden när vi beräknar genomsnitt
