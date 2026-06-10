@@ -640,6 +640,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.computeDayMetrics(data);
 
     this.ibcPerDag = data.summary?.ibc_per_dag_skiftrapport || {};
+    console.log('[ibcPerDag]', this.ibcPerDag);
     this.updatePeriodCellsData(data.cycles);
   }
 
@@ -1457,9 +1458,18 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const efficiencyArr: number[] = [];
     const cycleCountArr: number[] = [];
     const target = this.targetCycleTime || 3;
-    slicedEntries.forEach(([, value]) => {
-      const ibcs = value.cycles.map((c: any) => Number(c.ibc_count)).filter((n: number) => n > 0);
-      const count = ibcs.length ? Math.max(...ibcs) - Math.min(...ibcs) : 0;
+    const monthViewSimple = this.viewMode === 'month' && this.selectedPeriods.length < 2;
+    slicedEntries.forEach(([key, value]) => {
+      let count: number;
+      if (monthViewSimple) {
+        // Använd skiftrapport-karta (source of truth) istf kumulativ räknardiff
+        const day = parseInt(key, 10);
+        const dayKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        count = this.ibcPerDag[dayKey] ?? value.cycles.length;
+      } else {
+        const ibcs = value.cycles.map((c: any) => Number(c.ibc_count)).filter((n: number) => n > 0);
+        count = ibcs.length ? Math.max(...ibcs) - Math.min(...ibcs) : 0;
+      }
       cycleCountArr.push(count);
       if (count > 0) {
         const validTimes: number[] = value.cycleTime;
