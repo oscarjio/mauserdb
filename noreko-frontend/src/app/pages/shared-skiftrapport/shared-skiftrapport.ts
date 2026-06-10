@@ -1490,7 +1490,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         return ta - tb;
       });
       // Dag-summor: inskickade rapporter visar PLC-värden direkt (D4004/D4007)
-      const totalIbc   = submittedOnly.reduce((s, r) => s + (r.antal_ok || 0), 0);
+      const totalIbc   = submittedOnly.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
       const totalDrift = submittedOnly.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
       const effVals = submittedOnly.map(r => this.getEfficiencyPct(r)).filter((v): v is number => v != null);
       const avgEff = effVals.length ? Math.round(effVals.reduce((s, v) => s + v, 0) / effVals.length) : null;

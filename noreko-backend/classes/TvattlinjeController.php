@@ -1428,25 +1428,34 @@ class TvattlinjeController {
             // Beräkna summerade KPI:er + bästa dag + godkänd % per rad
             $totalOk       = 0;
             $totalEjOk     = 0;
+            $totalOmtvaatt = 0;
             $totalDrifttid = 0;
             $bastaDag      = null;
             $bastaDagIbc   = 0;
+            $cycleTimes    = [];
 
             // Daglig aggregering för bästa dag
             $dagMap = [];
             foreach ($rows as &$r) {
-                $ok    = (int)($r['antal_ok']   ?? 0);
-                $ejOk  = (int)($r['antal_ej_ok'] ?? 0);
-                $tot   = $ok + $ejOk;
+                $ok       = (int)($r['antal_ok']    ?? 0);
+                $ejOk     = (int)($r['antal_ej_ok'] ?? 0);
+                $omtv     = (int)($r['omtvaatt']    ?? 0);
+                $tot      = (int)($r['totalt']      ?? ($ok + $ejOk + $omtv));
 
-                $totalOk     += $ok;
-                $totalEjOk   += $ejOk;
+                $totalOk       += $ok;
+                $totalEjOk     += $ejOk;
+                $totalOmtvaatt += $omtv;
                 $totalDrifttid += (int)($r['drifttid'] ?? 0);
+
+                // Cykeltid per skift
+                if ($tot > 0 && ($r['drifttid'] ?? 0) > 0) {
+                    $cycleTimes[] = (float)$r['drifttid'] / $tot;
+                }
 
                 // Godkänd % per rad
                 $r['godkand_pct'] = $tot > 0 ? round($ok / $tot * 100, 1) : null;
 
-                // Samla per dag för bästa dag
+                // Samla per dag för bästa dag (totalt inkl. omtvätt)
                 $dag = substr($r['datum'] ?? '', 0, 10);
                 if ($dag) {
                     $dagMap[$dag] = ($dagMap[$dag] ?? 0) + $tot;
@@ -1454,8 +1463,9 @@ class TvattlinjeController {
             }
             unset($r);
 
-            $totalIbc = $totalOk + $totalEjOk;
+            $totalIbc = $totalOk + $totalEjOk + $totalOmtvaatt;
             $avgGodkandPct = $totalIbc > 0 ? round($totalOk / $totalIbc * 100, 1) : null;
+            $avgCycleTime  = count($cycleTimes) > 0 ? round(array_sum($cycleTimes) / count($cycleTimes), 2) : null;
 
             // Bästa dag = dag med flest totala IBC
             if (!empty($dagMap)) {
@@ -1471,9 +1481,11 @@ class TvattlinjeController {
                     'total_ibc'       => $totalIbc,
                     'total_ok'        => $totalOk,
                     'total_ej_ok'     => $totalEjOk,
+                    'total_omtvaatt'  => $totalOmtvaatt,
                     'total_drifttid'  => $totalDrifttid,
                     'skift_count'     => count($rows),
                     'avg_godkand_pct' => $avgGodkandPct,
+                    'avg_cycle_time'  => $avgCycleTime,
                     'basta_dag'       => $bastaDag,
                     'basta_dag_ibc'   => $bastaDagIbc,
                 ],
