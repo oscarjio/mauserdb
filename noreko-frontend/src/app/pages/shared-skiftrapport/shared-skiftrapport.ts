@@ -228,8 +228,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   private _computeIbcPerHour(r: any): number | null {
     const netMin = Math.max(0, (r.drifttid || 0) - (r.rasttime || 0));
-    if (!(netMin > 0) || !(r.antal_ok > 0)) return null;
-    const v = Math.round(r.antal_ok / (netMin / 60) * 10) / 10;
+    const totalt = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0));
+    if (!(netMin > 0) || !(totalt > 0)) return null;
+    const v = Math.round(netMin / totalt * 10) / 10;
     return isFinite(v) ? v : null;
   }
 
@@ -384,7 +385,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const totalDrift = this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
     const totalIbc = this.filteredReports.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
     if (totalDrift <= 0 || totalIbc <= 0) return null;
-    return Math.round(totalIbc / (totalDrift / 60) * 10) / 10;
+    return Math.round(totalDrift / totalIbc * 10) / 10;
   }
 
   get summaryAvgEfficiency(): number | null {

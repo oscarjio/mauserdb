@@ -60,7 +60,7 @@
         <div class="summary-value text-warning">
           {{ summaryAvgIbcH != null ? summaryAvgIbcH : '–' }}
         </div>
-        <div class="summary-label">Snitt IBC/h</div>
+        <div class="summary-label">Snitt min/IBC</div>
       </div>
     </div>
     <div class="col-6 col-md-2">
@@ -404,7 +404,7 @@
                           <th>Produkt</th>
                           <th>Operatörer</th>
                           <th title="Godkända IBC">IBC</th>
-                          <th class="d-none d-md-table-cell" title="IBC per timme">IBC/h</th>
+                          <th class="d-none d-md-table-cell" title="Minuter per IBC">min/IBC</th>
                           <th title="Tillgänglighet (drifttid / plannad tid)">Tillg%</th>
                           <th class="d-none d-md-table-cell" title="Netto drifttid exkl. rast">Drifttid</th>
                           <th title="Inlagd i lönesystem">Inlagd</th>
@@ -541,7 +541,7 @@
                                   <span *ngIf="report.antal_ej_ok > 0" class="text-danger">Ej OK: <strong>{{ report.antal_ej_ok }}</strong></span>
                                   <span>Drifttid: <strong>{{ formatNetDrifttid(report) }}</strong></span>
                                   <span *ngIf="report.rasttime > 0" class="text-muted">Rast: <strong>{{ formatDrifttid(report.rasttime) }}</strong></span>
-                                  <span *ngIf="ibcPerHour(report) !== '–'" class="text-warning">IBC/H: <strong>{{ ibcPerHour(report) }}</strong></span>
+                                  <span *ngIf="ibcPerHour(report) !== '–'" class="text-warning">min/IBC: <strong>{{ ibcPerHour(report) }}</strong></span>
                                 </div>
                               </div>
                             </td>
@@ -572,7 +572,7 @@
                                     <div class="hero-divider d-none d-sm-block" *ngIf="getIbcPerHour(report) != null"></div>
                                     <div class="hero-stat" *ngIf="getIbcPerHour(report) != null">
                                       <span class="hero-num text-warning">{{ getIbcPerHour(report) }}</span>
-                                      <span class="hero-lbl">IBC/h</span>
+                                      <span class="hero-lbl">min/IBC</span>
                                     </div>
                                     <div class="hero-divider d-none d-sm-block" *ngIf="report.drifttid > 0"></div>
                                     <div class="hero-stat" *ngIf="report.drifttid > 0">
@@ -684,7 +684,7 @@
                                         </div>
                                         <div class="col-6 col-md-3">
                                           <div class="kpi-card">
-                                            <div class="kpi-label">IBC/h</div>
+                                            <div class="kpi-label">min/IBC</div>
                                             <div class="kpi-value text-warning">{{ getIbcPerHour(report) ?? '–' }}</div>
                                           </div>
                                         </div>
@@ -761,7 +761,7 @@
                                         </div>
                                         <div class="col-6 col-md-2" *ngIf="getIbcPerHour(report) != null">
                                           <div class="kpi-card">
-                                            <div class="kpi-label">IBC/h</div>
+                                            <div class="kpi-label">min/IBC</div>
                                             <div class="kpi-value text-warning">{{ getIbcPerHour(report) }}</div>
                                           </div>
                                         </div>
@@ -952,7 +952,7 @@
                                         </button>
                                         <div *ngIf="showRawSubShifts[report.id]" class="table-responsive">
                                           <table class="table table-sm table-dark table-hover mb-0" style="font-size:.82rem;">
-                                            <thead><tr><th>TID</th><th>PRODUKT</th><th>OPERATÖR</th><th>IBC</th><th>IBC/H</th><th>CYKL%</th><th>DRIFTTID</th></tr></thead>
+                                            <thead><tr><th>TID</th><th>PRODUKT</th><th>OPERATÖR</th><th>IBC</th><th>min/IBC</th><th>CYKL%</th><th>DRIFTTID</th></tr></thead>
                                             <tbody>
                                               <tr *ngFor="let sub of visibleSubShifts(report.id); let subI = index">
                                                 <td class="text-nowrap">{{ formatSubTime(sub.datum) }}</td>
@@ -1160,7 +1160,7 @@
                       <div class="mobile-kpi-value text-info">{{ formatNetDrifttid(report) }}</div>
                     </div>
                     <div class="mobile-kpi" *ngIf="ibcPerHour(report) !== '–'">
-                      <div class="mobile-kpi-label">IBC/h</div>
+                      <div class="mobile-kpi-label">min/IBC</div>
                       <div class="mobile-kpi-value text-warning">{{ ibcPerHour(report) }}</div>
                     </div>
                   </div>
@@ -1184,7 +1184,7 @@
                       <span class="text-success">IBC OK: <strong>{{ report.antal_ok }}</strong></span>
                       <span *ngIf="report.antal_ej_ok > 0" class="text-danger">Ej OK: <strong>{{ report.antal_ej_ok }}</strong></span>
                       <span>Drifttid: <strong>{{ formatNetDrifttid(report) }}</strong></span>
-                      <span *ngIf="ibcPerHour(report) !== '–'" class="text-warning">IBC/H: <strong>{{ ibcPerHour(report) }}</strong></span>
+                      <span *ngIf="ibcPerHour(report) !== '–'" class="text-warning">min/IBC: <strong>{{ ibcPerHour(report) }}</strong></span>
                     </div>
                   </div>
 
@@ -1208,7 +1208,7 @@
                       </div>
                       <div class="mobile-hero-stat" *ngIf="getIbcPerHour(report) != null">
                         <span class="mobile-hero-num text-warning">{{ getIbcPerHour(report) }}</span>
-                        <span class="mobile-hero-lbl">IBC/h</span>
+                        <span class="mobile-hero-lbl">min/IBC</span>
                       </div>
                       <div class="mobile-hero-stat" *ngIf="report.drifttid > 0">
                         <span class="mobile-hero-num text-info" style="font-size:1.2rem;">{{ formatDrifttid(report.drifttid) }}</span>
