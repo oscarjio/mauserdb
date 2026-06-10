@@ -1228,11 +1228,18 @@ class TvattlinjeController {
             $totalRuntimeMinutes = 0;
             $runtimeSource = 'none';
 
-            // Primär: SUM(drifttid) från inskickade skiftrapporter (D4007 — netto körtid utan rast)
+            // Primär: SUM(drifttid) från inskickade skiftrapporter (D4007 — netto körtid utan rast).
+            // Per-dag-cap på 1440 min (24h) förhindrar att kumulativa/överlappande poster ger >24h/dag.
             try {
-                $driftStmt = $this->pdo->prepare(
-                    "SELECT COALESCE(SUM(drifttid), 0) FROM tvattlinje_skiftrapport WHERE datum >= :s AND datum <= :e"
-                );
+                $driftStmt = $this->pdo->prepare("
+                    SELECT COALESCE(SUM(LEAST(dag_drifttid, 1440)), 0)
+                    FROM (
+                        SELECT DATE(datum) AS dag, SUM(drifttid) AS dag_drifttid
+                        FROM tvattlinje_skiftrapport
+                        WHERE datum >= :s AND datum <= :e
+                        GROUP BY DATE(datum)
+                    ) per_dag
+                ");
                 $driftStmt->execute(['s' => $start, 'e' => $end]);
                 $srDrifttid = (float)$driftStmt->fetchColumn();
                 if ($srDrifttid > 0) {
