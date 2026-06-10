@@ -2195,7 +2195,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     try { this.oeeTrendChart?.destroy(); } catch (e) {}
     this.oeeTrendChart = null;
     const labels = this.oeeTrendData.map(d => d.dag.substring(5)); // MM-DD
-    const oeeValues = this.oeeTrendData.map(d => d.oee_pct);
+    const oeeValues = this.oeeTrendData.map(d => d.qual_pct);
     const ibcValues = this.oeeTrendData.map(d => d.total_ibc);
 
     this.oeeTrendChart = new Chart(this.oeeTrendChartRef.nativeElement, {
@@ -2204,7 +2204,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         labels,
         datasets: [
           {
-            label: 'Kvalitet % (OEE-proxy)',
+            label: 'Kvalitet %',
             data: oeeValues,
             borderColor: '#4299e1',
             backgroundColor: 'rgba(66,153,225,0.15)',

@@ -80,6 +80,7 @@ export interface OeeTrendDay {
   total_ok: number;
   total_ej_ok: number;
   oee_pct: number;
+  qual_pct: number;
   skift_count: number;
 }
 

@@ -2027,8 +2027,9 @@ class TvattlinjeController {
             $snittOee = 0;
             $snittKvalitet = 0;
             if ($antalDagar > 0) {
-                $snittOee      = round(array_sum(array_column($dagData, 'oee_pct'))  / $antalDagar, 1);
-                $snittKvalitet = round(array_sum(array_column($dagData, 'qual_pct')) / $antalDagar, 1);
+                $snittOee      = round(array_sum(array_column($dagData, 'oee_pct')) / $antalDagar, 1);
+                // Viktat snitt: SUM(ok) / SUM(totalt) — konsekvent med skiftrapport-sidan och statistik-fliken
+                $snittKvalitet = $totalIbcSum > 0 ? round($totalOkSum / $totalIbcSum * 100, 1) : 0;
             }
 
             echo json_encode([
