@@ -513,6 +513,7 @@ class TvattlinjeController {
 
     private function getLiveStats() {
         try {
+            // Primär källa: skiftrapport (operatörsbekräftad data)
             $stmt = $this->pdo->prepare('
                 SELECT COALESCE(SUM(totalt), 0)
                 FROM tvattlinje_skiftrapport
@@ -520,6 +521,15 @@ class TvattlinjeController {
             ');
             $stmt->execute();
             $ibcToday = (int)$stmt->fetchColumn();
+            // Fallback: om inga skiftrapporter finns idag, räkna Shelly-pulser från tvattlinje_ibc
+            if ($ibcToday === 0) {
+                $fb = $this->pdo->query('
+                    SELECT COALESCE(COUNT(*), 0)
+                    FROM tvattlinje_ibc
+                    WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                ');
+                $ibcToday = (int)$fb->fetchColumn();
+            }
             
             // Läs dagmål — försöker key-value-tabellen (ny kod) och faller tillbaka på gamla kolumnen
             $ibcTarget = 140;
