@@ -188,11 +188,19 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       }
     }, 60000);
     // ROUTING-BUGG 2: prenumerera på URL-ändringar (back/forward) — skippa första emit som ngOnInit redan hanterat
-    this.route.queryParams.pipe(skip(1), takeUntil(this.destroy$)).subscribe(() => {
+    this.route.queryParams.pipe(skip(1), takeUntil(this.destroy$)).subscribe(params => {
       this.applyStateFromUrl();
       this.updateBreadcrumb();
       this.generatePeriodCells();
       this.loadStatistics();
+      // Flik följer historiken: sätt activeTab från URL, annars återställ till overview
+      const validTabs = ['overview', 'produktion', 'analys', 'avancerat', 'plc-diag'];
+      const tab = params['tab'];
+      if (!tab || !validTabs.includes(tab)) {
+        this.activeTab = 'overview';
+      } else {
+        this.setTab(tab as 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag');
+      }
     });
     // Sätt standardintervall för skiftrapport-statistik (senaste 30 dagarna)
     const today = new Date().toISOString().split('T')[0];
