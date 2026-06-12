@@ -423,7 +423,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get summaryTotalDrift(): number {
-    return this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
+    // Cap per dag 1440 min för att förhindra att en felaktig DB-rad blåser upp totalen
+    return this.groupedDays.reduce((s, d) => s + d.totalDrift, 0);
   }
 
   // ========== Per-rad helpers ==========
@@ -1458,7 +1459,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return (ok / (dt / 60)).toFixed(1);
   }
 
-  get groupedDays(): Array<{ date: string; reports: any[]; totalIbc: number; totalDrift: number; avgEff: number | null; operators: string[]; products: string[]; submittedCount: number; hasPreliminary: boolean; unreportedCount: number; }> {
+  get groupedDays(): Array<{ date: string; reports: any[]; totalIbc: number; totalDrift: number; driftWarning: boolean; avgEff: number | null; operators: string[]; products: string[]; submittedCount: number; hasPreliminary: boolean; unreportedCount: number; }> {
     const dayMap: { [date: string]: any[] } = {};
 
     // Alla rapporter visas i sin datum-grupp (inlämningsdag)
@@ -1492,7 +1493,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       });
       // Dag-summor: inskickade rapporter visar PLC-värden direkt (D4004/D4007)
       const totalIbc   = submittedOnly.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
-      const totalDrift = submittedOnly.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
+      const rawDrift   = submittedOnly.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
+      const totalDrift = Math.min(rawDrift, 1440);
+      const driftWarning = rawDrift > 1440;
       const effVals = submittedOnly.map(r => this.getEfficiencyPct(r)).filter((v): v is number => v != null);
       const avgEff = effVals.length ? Math.round(effVals.reduce((s, v) => s + v, 0) / effVals.length) : null;
       const opSet = new Set<string>();
@@ -1500,7 +1503,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const prodSet = new Set<string>();
       submittedOnly.forEach(r => { if (r.product_id) { const name = this.getProductName(r.product_id); if (name) prodSet.add(name); } });
       return {
-        date, reports: sorted, totalIbc, totalDrift, avgEff,
+        date, reports: sorted, totalIbc, totalDrift, driftWarning, avgEff,
         operators: Array.from(opSet), products: Array.from(prodSet),
         submittedCount: submittedOnly.length,
         hasPreliminary: reports.some((r: any) => r.isPreliminary),

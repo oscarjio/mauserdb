@@ -148,6 +148,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     total_drifttid: number;
     skift_count: number;
     avg_godkand_pct: number | null;
+    avg_cycle_time: number | null;
     basta_dag: string | null;
     basta_dag_ibc: number;
   } | null = null;
@@ -1457,20 +1458,36 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     // Bygg effektivitets- och IBC-räknar-arrayer för stapeldiagram (månad/år-vy)
     const efficiencyArr: number[] = [];
     const cycleCountArr: number[] = [];
+    const hasReportArr: boolean[] = [];
     const target = this.targetCycleTime || 3;
     const monthViewSimple = this.viewMode === 'month' && this.selectedPeriods.length < 2;
+    const yearView = this.viewMode === 'year';
+    // Årsvy: summera ibcPerDag per månad (nyckel = månadsindex 0-11)
+    const ibcPerMonth: Record<number, number> = {};
+    if (yearView) {
+      Object.entries(this.ibcPerDag).forEach(([dayKey, ibc]) => {
+        const m = parseInt(dayKey.substring(5, 7), 10) - 1;
+        ibcPerMonth[m] = (ibcPerMonth[m] || 0) + ibc;
+      });
+    }
     slicedEntries.forEach(([key, value]) => {
       let count: number;
+      let hasReport = true;
       if (monthViewSimple) {
-        // Använd skiftrapport-karta (source of truth) istf kumulativ räknardiff
         const day = parseInt(key, 10);
         const dayKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        count = this.ibcPerDag[dayKey] ?? value.cycles.length;
+        hasReport = dayKey in this.ibcPerDag;
+        count = hasReport ? this.ibcPerDag[dayKey] : 0;
+      } else if (yearView) {
+        const monthIdx = this.monthNames.findIndex(n => n.substring(0, 3) === key);
+        hasReport = monthIdx >= 0 && monthIdx in ibcPerMonth;
+        count = hasReport ? ibcPerMonth[monthIdx] : 0;
       } else {
         const ibcs = value.cycles.map((c: any) => Number(c.ibc_count)).filter((n: number) => n > 0);
         count = ibcs.length ? Math.max(...ibcs) - Math.min(...ibcs) : 0;
       }
       cycleCountArr.push(count);
+      hasReportArr.push(hasReport);
       if (count > 0) {
         const validTimes: number[] = value.cycleTime;
         if (validTimes.length > 0) {
@@ -1484,7 +1501,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       }
     });
 
-    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, efficiencyArr, cycleCountArr };
+    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, efficiencyArr, cycleCountArr, hasReportArr };
   }
 
   /** Förbereder dag-vy chart med per-cykel-data och rullande effektivitet */
@@ -1730,13 +1747,16 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   private createBarChart(ctx: CanvasRenderingContext2D, chartData: any) {
     const effData: number[] = chartData.efficiencyArr || [];
     const countData: number[] = chartData.cycleCountArr || [];
+    const hasReport: boolean[] = chartData.hasReportArr || effData.map(() => true);
 
-    const barColors = effData.map((eff: number) => {
+    const barColors = effData.map((eff: number, i: number) => {
+      if (!hasReport[i]) return 'rgba(80, 80, 80, 0.25)';
       if (eff >= 90) return 'rgba(39, 174, 96, 0.75)';
       if (eff >= 70) return 'rgba(255, 193, 7, 0.75)';
       return eff > 0 ? 'rgba(220, 53, 69, 0.65)' : 'rgba(100, 100, 100, 0.3)';
     });
-    const barBorderColors = effData.map((eff: number) => {
+    const barBorderColors = effData.map((eff: number, i: number) => {
+      if (!hasReport[i]) return '#444';
       if (eff >= 90) return '#27ae60';
       if (eff >= 70) return '#ffc107';
       return eff > 0 ? '#dc3545' : '#555';
@@ -1756,8 +1776,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
           data: effData,
           backgroundColor: barColors,
           borderColor: barBorderColors,
-          borderWidth: 1,
+          borderWidth: hasReport.map((r: boolean) => r ? 1 : 2),
           borderRadius: 4,
+          borderSkipped: false,
         }]
       },
       options: {
@@ -1787,6 +1808,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
                 const idx = context.dataIndex;
                 const eff = effData[idx] || 0;
                 const count = countData[idx] || 0;
+                if (!hasReport[idx]) return ['Ej rapporterad (ingen skiftrapport)'];
                 const effStatus = eff >= 100 ? ' (över mål)' : eff >= 90 ? ' (nära mål)' : ' (under mål)';
                 return [`Effektivitet: ${eff}%${effStatus}`, `Antal IBC: ${count} st`];
               }

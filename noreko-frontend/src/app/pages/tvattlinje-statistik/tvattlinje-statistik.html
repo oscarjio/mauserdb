@@ -515,10 +515,11 @@
             <div class="mini-kpi-lbl">Godkända %</div>
           </div>
         </div>
-        <!-- Genomsnittlig cykeltid — ej tillgänglig från skiftrapporter, visas som – -->
         <div class="col-6 col-md-2">
           <div class="mini-kpi">
-            <div class="mini-kpi-val text-muted">–</div>
+            <div class="mini-kpi-val" [class.text-muted]="!skiftStatSummary?.avg_cycle_time">
+              {{ skiftStatSummary?.avg_cycle_time ? (skiftStatSummary!.avg_cycle_time | number:'1.1-1') + ' min/st' : '–' }}
+            </div>
             <div class="mini-kpi-lbl">Avg cykeltid</div>
           </div>
         </div>
@@ -593,7 +594,7 @@
                   <td><strong>{{ getSkiftStatTid(r) }}</strong></td>
                   <td class="text-end text-success"><strong>{{ r.antal_ok || 0 }}</strong></td>
                   <td class="text-end text-danger">{{ r.antal_ej_ok || 0 }}</td>
-                  <td class="text-end"><strong>{{ (r.antal_ok || 0) + (r.antal_ej_ok || 0) }}</strong></td>
+                  <td class="text-end"><strong>{{ r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0)) }}</strong></td>
                   <td class="text-end">
                     <span *ngIf="r.godkand_pct !== null && r.godkand_pct !== undefined"
                           [class.text-success]="r.godkand_pct >= 90"

@@ -1285,31 +1285,27 @@ class TvattlinjeController {
                 if ($totalRuntimeMinutes > 0) $runtimeSource = 'onoff';
             }
 
-            // Verkligt antal cykler via LAG-delta på MAX(ibc_count) per dag — fångar missade webhooks.
-            // ibc_count är kumulativt (nollställs aldrig); LAG är korrekt men kräver en extra dag FÖRE
-            // perioden som baseline så att första dagenss LAG inte är NULL → COALESCE(0) → jättedelta.
-            $total_cycles_true = 0;
+            // ibc_count nollställs varje dag (1..N) — SUM(MAX per dag) ger korrekt totalt antal.
+            // missed_webhooks = total_cycles minus faktiskt mottagna rader.
+            $total_cycles = 0;
+            $received_webhooks = 0;
             try {
                 $stmtTrue = $this->pdo->prepare('
-                    SELECT COALESCE(SUM(GREATEST(0, ibc_delta)), 0)
+                    SELECT COALESCE(SUM(day_max), 0), COALESCE(SUM(day_count), 0)
                     FROM (
-                        SELECT dag,
-                               day_end - LAG(day_end) OVER (ORDER BY dag) AS ibc_delta
-                        FROM (
-                            SELECT DATE(datum) AS dag, MAX(ibc_count) AS day_end
-                            FROM tvattlinje_ibc
-                            WHERE datum >= DATE_SUB(:start, INTERVAL 1 DAY)
-                              AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
-                            GROUP BY DATE(datum)
-                        ) daily_max
-                    ) deltas
-                    WHERE dag >= :start2
+                        SELECT MAX(ibc_count) AS day_max, COUNT(*) AS day_count
+                        FROM tvattlinje_ibc
+                        WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum)
+                    ) per_dag
                 ');
-                $stmtTrue->execute(['start' => $start, 'end' => $end, 'start2' => $start]);
-                $total_cycles_true = (int)$stmtTrue->fetchColumn();
-            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics total_cycles_true: ' . $e->getMessage()); }
+                $stmtTrue->execute(['start' => $start, 'end' => $end]);
+                $row = $stmtTrue->fetch(\PDO::FETCH_NUM);
+                $total_cycles    = (int)($row[0] ?? 0);
+                $received_webhooks = (int)($row[1] ?? 0);
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics total_cycles: ' . $e->getMessage()); }
 
-            $total_cycles = $total_cycles_true > 0 ? $total_cycles_true : count($cycles);
+            if ($total_cycles === 0) $total_cycles = count($cycles);
             // Natt-idle-fallback BORTTAGEN: span av första-sista cykel inkluderar natt-idle.
             // Om inga on/off-events finns visas drifttid som 0 (ingen maskinstatusdata).
 
@@ -1410,8 +1406,8 @@ class TvattlinjeController {
                     'summary' => [
                         'total_cycles'              => $total_cycles,
                         'total_ibc_skiftrapport'    => $total_ibc_skiftrapport,
-                        'received_webhooks'         => count($cycles),
-                        'missed_webhooks'           => max(0, $total_cycles - count($cycles)),
+                        'received_webhooks'         => $received_webhooks > 0 ? $received_webhooks : count($cycles),
+                        'missed_webhooks'           => max(0, $total_cycles - ($received_webhooks > 0 ? $received_webhooks : count($cycles))),
                         'avg_production_percent'    => round($avg_production_percent, 1),
                         'avg_cycle_time'            => round($avg_cycle_time, 2),
                         'target_cycle_time'         => $target_cycle_time,
