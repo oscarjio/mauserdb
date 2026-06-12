@@ -219,11 +219,15 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // ===== Privata compute-metoder (kallas ALDRIG från template) =====
 
   private _computeEfficiencyPct(r: any): number | null {
-    const drifttid   = r.drifttid || 0;
-    const driftstopp = r.driftstopptime || 0;
-    if (drifttid <= 0) return null;
-    const v = driftstopp > 0 ? Math.round((drifttid / (drifttid + driftstopp)) * 100) : 100;
-    return isFinite(v) ? v : null;
+    const totalt   = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
+    const netMin   = Math.max(0, (r.drifttid || 0) - (r.rasttime || 0));
+    if (totalt <= 0 || netMin <= 0) return null;
+    const actualCycle = netMin / totalt;
+    const product     = this.products.find((p: any) => p.id === (r.product_id ?? null));
+    const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
+    if (!(targetCycle > 0) || !(actualCycle > 0)) return null;
+    const v = Math.round((targetCycle / actualCycle) * 100);
+    return isFinite(v) ? Math.min(v, 999) : null;
   }
 
   private _computeIbcPerHour(r: any): number | null {
@@ -399,25 +403,27 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   get summaryAvgOee(): number | null {
     const reports = this.filteredReports;
     if (!reports.length) return null;
-    const totalDrift      = reports.reduce((s, r) => s + (r.drifttid || 0), 0);
+    // Cap drifttid at 1440 per report to prevent erroneous DB values inflating OEE
+    const cappedDrift     = (r: any) => Math.min(r.drifttid || 0, 1440);
+    const netDrift        = (r: any) => Math.max(0, cappedDrift(r) - (r.rasttime || 0));
+    const totalDrift      = reports.reduce((s, r) => s + cappedDrift(r), 0);
     const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
     if (totalDrift <= 0) return null;
     const totalIbc = this.cachedTotalIbc;
     const totalOk  = this.cachedTotalOk;
     if (totalIbc <= 0) return null;
-    // Tillgänglighet: rast exkluderas, bara driftstopp sänker den
     const schema         = totalDrift + totalDriftstopp;
     const tillganglighet = totalDriftstopp > 0 ? totalDrift / schema : 1.0;
     const kvalitet       = totalOk / totalIbc;
-    const totalDriftSek  = totalDrift * 60;
-    let totalIdealSek    = 0;
+    const totalNettoDriftSek = reports.reduce((s, r) => s + netDrift(r), 0) * 60;
+    let totalIdealSek = 0;
     for (const r of reports) {
       const rIbc     = (r.antal_ok || 0) + (r.antal_ej_ok || 0);
       const product  = this.products.find((p: any) => p.id === (r.product_id ?? null));
       const cycleSek = (product?.cycle_time_minutes ?? this.fallbackCycleMin) * 60;
       totalIdealSek += rIbc * cycleSek;
     }
-    const prestanda = totalDriftSek > 0 ? Math.min(totalIdealSek / totalDriftSek, 1) : 1.0;
+    const prestanda = totalNettoDriftSek > 0 ? Math.min(totalIdealSek / totalNettoDriftSek, 1) : 1.0;
     const v = Math.round(tillganglighet * prestanda * kvalitet * 100);
     return isFinite(v) ? v : null;
   }
@@ -425,6 +431,24 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   get summaryTotalDrift(): number {
     // Cap per dag 1440 min för att förhindra att en felaktig DB-rad blåser upp totalen
     return this.groupedDays.reduce((s, d) => s + d.totalDrift, 0);
+  }
+
+  get summaryAvgEff(): number | null {
+    const reports = this.filteredReports;
+    let totalIdealMin = 0;
+    let totalNettoMin = 0;
+    for (const r of reports) {
+      const totalt   = (r.totalt || 0) || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
+      const netMin   = Math.max(0, Math.min(r.drifttid || 0, 1440) - (r.rasttime || 0));
+      if (totalt <= 0 || netMin <= 0) continue;
+      const product     = this.products.find((p: any) => p.id === (r.product_id ?? null));
+      const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
+      totalIdealMin += totalt * targetCycle;
+      totalNettoMin += netMin;
+    }
+    if (totalNettoMin <= 0) return null;
+    const v = Math.round((totalIdealMin / totalNettoMin) * 100);
+    return isFinite(v) ? Math.min(v, 999) : null;
   }
 
   // ========== Per-rad helpers ==========
@@ -462,7 +486,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   getOpName(num: number | null): string {
     if (!num) return '';
     const n = Number(num);
-    return this.opNameMap.get(n) ?? this.operators.find(o => Number(o.number) === n)?.name ?? `#${num}`;
+    return this.opNameMap.get(n) ?? this.operators.find(o => Number(o.number) === n)?.name ?? `Okänd(#${num})`;
   }
 
   private loadOperatorsAndProducts(): void {

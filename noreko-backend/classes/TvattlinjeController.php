@@ -1454,6 +1454,23 @@ class TvattlinjeController {
                 error_log('TvattlinjeController::getSkiftrapportStatistik rows: ' . $e->getMessage());
             }
 
+            // Bygg PLC-spann per dag för drifttid-sanering (cap mot faktisk körtid)
+            $plcSpanPerDag = [];
+            try {
+                $spanStmt = $this->pdo->prepare("
+                    SELECT DATE(datum) AS dag,
+                           ROUND(TIMESTAMPDIFF(SECOND, MIN(datum), MAX(datum)) / 60.0) AS span_min
+                    FROM tvattlinje_ibc
+                    WHERE datum >= :s AND datum <= DATE_ADD(:e, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum)
+                    HAVING span_min > 0
+                ");
+                $spanStmt->execute(['s' => $start, 'e' => $end]);
+                foreach ($spanStmt->fetchAll(\PDO::FETCH_ASSOC) as $span) {
+                    $plcSpanPerDag[$span['dag']] = (int)$span['span_min'];
+                }
+            } catch (\Throwable $e) { /* ignorera om tvattlinje_ibc saknas */ }
+
             // Beräkna summerade KPI:er + bästa dag + godkänd % per rad
             $totalOk       = 0;
             $totalEjOk     = 0;
@@ -1470,6 +1487,17 @@ class TvattlinjeController {
                 $ejOk     = (int)($r['antal_ej_ok'] ?? 0);
                 $omtv     = (int)($r['omtvaatt']    ?? 0);
                 $tot      = (int)($r['totalt']      ?? ($ok + $ejOk + $omtv));
+
+                // Cap drifttid mot PLC-spann om det finns — sanerar felaktiga databasposter
+                $rawDrift = (int)($r['drifttid'] ?? 0);
+                $dag      = substr($r['datum'] ?? '', 0, 10);
+                if ($rawDrift > 0 && $dag && isset($plcSpanPerDag[$dag])) {
+                    $capped = min($rawDrift, max($plcSpanPerDag[$dag], 1));
+                    if ($capped < $rawDrift) {
+                        $r['drifttid'] = $capped;
+                        $r['drifttid_saniterad'] = true;
+                    }
+                }
 
                 $totalOk       += $ok;
                 $totalEjOk     += $ejOk;
@@ -1577,11 +1605,15 @@ class TvattlinjeController {
             // Beräkna KPI för aktuellt datum
             $totalOk   = 0;
             $totalEjOk = 0;
+            $totalOmtv = 0;
+            $totalRast = 0;
             foreach ($rows as $r) {
                 $totalOk   += (int)($r['antal_ok']    ?? 0);
                 $totalEjOk += (int)($r['antal_ej_ok'] ?? 0);
+                $totalOmtv += (int)($r['omtvaatt']    ?? 0);
+                $totalRast += (int)($r['rasttime']    ?? 0);
             }
-            $totalIbc  = $totalOk + $totalEjOk;
+            $totalIbc  = $totalOk + $totalEjOk + $totalOmtv;
             $kvalitetPct = $totalIbc > 0 ? round(($totalOk / $totalIbc) * 100, 1) : 0;
 
             // Föregående dag
@@ -1596,7 +1628,7 @@ class TvattlinjeController {
 
             // Hämta runtime från tvattlinje_ibc om det finns
             $runtimeMinutes = 0;
-            $rastMinutes    = 0;
+            $rastMinutes    = $totalRast;
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT MIN(datum) as first_ts, MAX(datum) as last_ts, COUNT(*) as cnt
@@ -1632,6 +1664,7 @@ class TvattlinjeController {
                     'total_ibc'       => $totalIbc,
                     'total_ok'        => $totalOk,
                     'total_ej_ok'     => $totalEjOk,
+                    'total_omtv'      => $totalOmtv,
                     'kvalitet_pct'    => $kvalitetPct,
                     'runtime_minutes' => $runtimeMinutes,
                     'rast_minutes'    => $rastMinutes,

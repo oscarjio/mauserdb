@@ -104,20 +104,20 @@
     <div class="col-6 col-md-2">
       <div class="summary-card">
         <div class="summary-icon"
-          [class.text-success]="cachedAvgQuality >= 95"
-          [class.text-warning]="cachedAvgQuality >= 80 && cachedAvgQuality < 95"
-          [class.text-danger]="cachedAvgQuality > 0 && cachedAvgQuality < 80"
-          [class.text-muted]="cachedAvgQuality === 0">
-          <i class="fas fa-medal"></i>
+          [class.text-success]="(summaryAvgEff ?? -1) >= 90"
+          [class.text-warning]="(summaryAvgEff ?? -1) >= 70 && (summaryAvgEff ?? -1) < 90"
+          [class.text-danger]="(summaryAvgEff ?? -1) >= 0 && (summaryAvgEff ?? -1) < 70"
+          [class.text-muted]="summaryAvgEff == null">
+          <i class="fas fa-tachometer-alt"></i>
         </div>
         <div class="summary-value"
-          [class.text-success]="cachedAvgQuality >= 95"
-          [class.text-warning]="cachedAvgQuality >= 80 && cachedAvgQuality < 95"
-          [class.text-danger]="cachedAvgQuality > 0 && cachedAvgQuality < 80"
-          [class.text-muted]="cachedAvgQuality === 0">
-          {{ cachedTotalIbc > 0 ? (cachedAvgQuality | number:'1.0-1') + '%' : '–' }}
+          [class.text-success]="(summaryAvgEff ?? -1) >= 90"
+          [class.text-warning]="(summaryAvgEff ?? -1) >= 70 && (summaryAvgEff ?? -1) < 90"
+          [class.text-danger]="(summaryAvgEff ?? -1) >= 0 && (summaryAvgEff ?? -1) < 70"
+          [class.text-muted]="summaryAvgEff == null">
+          {{ summaryAvgEff != null ? (summaryAvgEff + '%') : '–' }}
         </div>
-        <div class="summary-label">Snitt Kvalitet</div>
+        <div class="summary-label">Effektivitet</div>
       </div>
     </div>
     <div class="col-6 col-md-2">
@@ -396,18 +396,21 @@
 
               <!-- EXPANDERADE SUB-SKIFT -->
               <tr *ngIf="isDayExpanded(day.date)" class="day-expanded-row">
-                <td [attr.colspan]="isAdmin ? 9 : 8" class="p-0">
+                <td [attr.colspan]="isAdmin ? 12 : 11" class="p-0">
                   <div class="day-shift-panel p-3">
                     <table class="table shift-detail-table">
                       <thead>
                         <tr>
                           <th title="Tidpunkt och status">TID</th>
+                          <th class="text-center" title="Löpnummer">LOPNR</th>
                           <th>Produkt</th>
                           <th>Operatörer</th>
                           <th title="Godkända IBC">IBC</th>
                           <th class="d-none d-md-table-cell" title="Minuter per IBC">min/IBC</th>
-                          <th title="Tillgänglighet (drifttid / plannad tid)">Tillg%</th>
+                          <th title="Effektivitet: målcykeltid / faktisk cykeltid × 100">Eff%</th>
                           <th class="d-none d-md-table-cell" title="Netto drifttid exkl. rast">Drifttid</th>
+                          <th class="d-none d-md-table-cell" title="Rasttid (min)">Rast</th>
+                          <th class="d-none d-md-table-cell" title="Driftstopp (min)">Stopp</th>
                           <th title="Inlagd i lönesystem">Inlagd</th>
                           <th></th>
                         </tr>
@@ -417,7 +420,7 @@
 
                           <!-- FLERDAGARS-INFO -->
                           <tr *ngIf="!report._isDagligSlice && report.flerdagars == 1" style="background:rgba(60,50,10,0.35);">
-                            <td [attr.colspan]="isAdmin ? 9 : 8" class="py-1 px-3" style="border-left:3px solid #d69e2e; border-bottom:none;">
+                            <td [attr.colspan]="isAdmin ? 12 : 11" class="py-1 px-3" style="border-left:3px solid #d69e2e; border-bottom:none;">
                               <div class="d-flex align-items-center gap-2 flex-wrap" style="font-size:.78rem;">
                                 <i class="fas fa-info-circle text-warning"></i>
                                 <span class="text-warning fw-semibold">Sen rapport</span>
@@ -462,6 +465,7 @@
                                 Sen rapport · {{ report.antal_dagar }} dagar
                               </span>
                             </td>
+                            <td class="text-center small text-muted" data-label="Lopnr">{{ report.lopnummer || '–' }}</td>
                             <td data-label="Produkt">
                               <span class="badge bg-secondary">{{ getProductName(report.product_id) || '–' }}</span>
                             </td>
@@ -487,6 +491,12 @@
                             <td class="d-none d-md-table-cell small">
                               <span *ngIf="getNetDrifttidMin(report) > 0" class="text-success">{{ formatNetDrifttid(report) }}</span>
                               <span *ngIf="getNetDrifttidMin(report) <= 0" class="text-muted">–</span>
+                            </td>
+                            <td class="d-none d-md-table-cell small text-muted">
+                              {{ (report.rasttime > 0) ? (report.rasttime + 'm') : '–' }}
+                            </td>
+                            <td class="d-none d-md-table-cell small text-muted">
+                              {{ (report.driftstopptime > 0) ? (report.driftstopptime + 'm') : '–' }}
                             </td>
                             <td data-label="Inlagd">
                               <ng-container *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported">
@@ -531,7 +541,7 @@
 
                           <!-- EXPANDERAD DETALJ: Daglig slice (förenklad) -->
                           <tr *ngIf="report._isDagligSlice && expanded[report._parentId]">
-                            <td colspan="9" class="p-0">
+                            <td [attr.colspan]="isAdmin ? 12 : 11" class="p-0">
                               <div class="expand-panel px-4 py-3">
                                 <div class="d-flex align-items-center gap-2 mb-2">
                                   <span class="badge bg-info text-dark"><i class="fas fa-calendar-day me-1"></i>Daglig andel</span>
@@ -550,7 +560,7 @@
 
                           <!-- EXPANDERAD DETALJ -->
                           <tr *ngIf="!report._isDagligSlice && expanded[report.id]">
-                            <td colspan="9" class="p-0">
+                            <td [attr.colspan]="isAdmin ? 12 : 11" class="p-0">
                               <div class="expand-panel p-0">
 
                                 <!-- HERO ROW -->
@@ -563,12 +573,22 @@
                                     <div class="hero-divider d-none d-sm-block" *ngIf="getEfficiencyPct(report) != null"></div>
                                     <div class="hero-stat" *ngIf="getEfficiencyPct(report) != null">
                                       <span class="hero-num"
-                                        [class.text-success]="(getEfficiencyPct(report) ?? -1) >= 80"
-                                        [class.text-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
-                                        [class.text-danger]="(getEfficiencyPct(report) ?? -1) < 60">
+                                        [class.text-success]="(getEfficiencyPct(report) ?? -1) >= 90"
+                                        [class.text-warning]="(getEfficiencyPct(report) ?? -1) >= 70 && (getEfficiencyPct(report) ?? -1) < 90"
+                                        [class.text-danger]="(getEfficiencyPct(report) ?? -1) < 70">
                                         {{ getEfficiencyPct(report) }}%
                                       </span>
-                                      <span class="hero-lbl">Tillgänglighet</span>
+                                      <span class="hero-lbl">Eff%</span>
+                                    </div>
+                                    <div class="hero-divider d-none d-sm-block" *ngIf="getOeePct(report) != null"></div>
+                                    <div class="hero-stat" *ngIf="getOeePct(report) != null">
+                                      <span class="hero-num"
+                                        [class.text-success]="(getOeePct(report) ?? -1) >= 75"
+                                        [class.text-warning]="(getOeePct(report) ?? -1) >= 50 && (getOeePct(report) ?? -1) < 75"
+                                        [class.text-danger]="(getOeePct(report) ?? -1) < 50">
+                                        {{ getOeePct(report) }}%
+                                      </span>
+                                      <span class="hero-lbl">OEE</span>
                                     </div>
                                     <div class="hero-divider d-none d-sm-block" *ngIf="getIbcPerHour(report) != null"></div>
                                     <div class="hero-stat" *ngIf="getIbcPerHour(report) != null">
