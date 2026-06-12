@@ -3,7 +3,7 @@ import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subject, of } from 'rxjs';
-import { takeUntil, catchError, timeout } from 'rxjs/operators';
+import { takeUntil, catchError, timeout, skip } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { TvattlinjeService, OeeTrendDay, OeeTrendSummary } from '../../services/tvattlinje.service';
 import { PdfExportService } from '../../services/pdf-export.service';
@@ -160,6 +160,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
   private oeeTrendChartTimer: any = null;
+  private chartViewKey = '';
 
   constructor(
     private tvattlinjeService: TvattlinjeService,
@@ -177,15 +178,22 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.applyStateFromUrl();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(true);
     this.loadStatistics();
     this.loadOeeTrend();
     this.statistikPollingId = setInterval(() => {
       if (!this.loading) {
-        this.loadStatistics();
+        this.loadStatistics(true);
         this.loadOeeTrend();
       }
     }, 60000);
+    // ROUTING-BUGG 2: prenumerera på URL-ändringar (back/forward) — skippa första emit som ngOnInit redan hanterat
+    this.route.queryParams.pipe(skip(1), takeUntil(this.destroy$)).subscribe(() => {
+      this.applyStateFromUrl();
+      this.updateBreadcrumb();
+      this.generatePeriodCells();
+      this.loadStatistics();
+    });
     // Sätt standardintervall för skiftrapport-statistik (senaste 30 dagarna)
     const today = new Date().toISOString().split('T')[0];
     this.skiftStatTo = today;
@@ -194,9 +202,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.skiftStatFrom = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  /** Läs vy, år, månad och valda datum från URL query params. */
+  /** Läs vy, år, månad, valda datum och aktiv flik från URL query params. */
   private applyStateFromUrl() {
     const q = this.route.snapshot.queryParams;
+    const tab = q['tab'];
+    if (tab && ['overview', 'produktion', 'analys', 'avancerat', 'plc-diag'].includes(tab)) {
+      this.activeTab = tab;
+    }
     const view = (q['view'] || 'month') as ViewMode;
     if (view === 'year' || view === 'month' || view === 'day') {
       this.viewMode = view;
@@ -226,13 +238,15 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     }
   }
 
-  /** Uppdatera URL med nuvarande vy, år, månad och valda datum (ersätter inte history). */
-  private syncStateToUrl(replace = true) {
+  /** Uppdatera URL med nuvarande vy, år, månad, valda datum och aktiv flik.
+   *  replace=true: ersätt history-post (ngOnInit). replace=false: ny post (användarnavigering). */
+  private syncStateToUrl(replace = false) {
     const params: Record<string, string | null> = {
       view: this.viewMode,
       year: String(this.currentYear),
       month: this.viewMode === 'year' ? null : String(this.currentMonth),
-      dates: null
+      dates: null,
+      tab: this.activeTab !== 'overview' ? this.activeTab : null
     };
     if (this.viewMode === 'day' && this.selectedPeriods.length > 0) {
       params['dates'] = this.selectedPeriods
@@ -282,7 +296,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false);
     this.loadStatistics();
   }
 
@@ -296,7 +310,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false);
     this.loadStatistics();
   }
 
@@ -308,7 +322,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false);
     this.loadStatistics();
   }
 
@@ -330,7 +344,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false);
     this.loadStatistics();
   }
 
@@ -352,7 +366,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false);
     this.loadStatistics();
   }
 
@@ -442,7 +456,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.selectedPeriods.push(cell.date);
       cell.isSelected = true;
     }
-    this.syncStateToUrl();
+    this.syncStateToUrl(false);
   }
 
   clearSelection() {
@@ -450,7 +464,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.periodCells.forEach(cell => cell.isSelected = false);
     this.generatePeriodCells();
     this.resetChartSelection();
-    this.syncStateToUrl();
+    this.syncStateToUrl(false);
   }
 
   showStatistics() {
@@ -464,7 +478,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     }
     if (this.viewMode === 'month' && this.selectedPeriods.length > 0) {
       this.generatePeriodCells();
-      this.syncStateToUrl();
+      this.syncStateToUrl(false);
     }
     this.loadStatistics();
   }
@@ -522,8 +536,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   }
 
 
-  loadStatistics() {
-    this.loading = true;
+  loadStatistics(silent = false) {
+    if (!silent) this.loading = true;
     this.error = null;
 
     const { start, end } = this.getDateRange();
@@ -543,7 +557,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
           // Spara senaste data så vi kan zooma/markera i grafen
           this.lastStatisticsData = response.data;
           this.updateStatistics(response.data);
-          this.updateChart(response.data);
+          this.updateChart(response.data, silent);
           this.updateTable(response.data);
         }
         this.loading = false;
@@ -840,6 +854,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   setTab(tab: 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag') {
     this.activeTab = tab;
+    this.syncStateToUrl(false);
     if (tab === 'analys' && this.oeeTrendLoaded && !this.oeeTrendEmpty) {
       clearTimeout(this.oeeTrendChartTimer);
       this.oeeTrendChartTimer = setTimeout(() => {
@@ -1228,9 +1243,40 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.periodCells = this.periodCells.slice(firstIndex, lastIndex + 1);
   }
 
-  updateChart(data: any) {
+  updateChart(data: any, silent = false) {
+    const viewKey = `${this.viewMode}_${this.currentYear}_${this.currentMonth}_${this.selectedPeriods.map(d => d.toISOString()).join(',')}`;
+
+    // Silent poll + same view/period + chart alive → incremental update, ingen blink
+    if (silent && this.productionChart && viewKey === this.chartViewKey) {
+      try {
+        const chartData = this.viewMode === 'day'
+          ? this.preparePerCycleChartData(data)
+          : this.prepareChartData(data);
+        const chart = this.productionChart;
+        const newLabels: string[] = chartData.labels;
+        const prevLen = chart.data.labels?.length ?? 0;
+        if (newLabels.length !== prevLen) {
+          // Ersätt hela labels + data (vy oförändrad men punktantal ändrats — dag-vy)
+          chart.data.labels = newLabels;
+          chart.data.datasets.forEach((ds: any, i: number) => {
+            const src = chartData.datasets?.[i]?.data ?? chartData.cycleCountArr ?? [];
+            ds.data = src;
+          });
+        } else {
+          // Uppdatera bara värden
+          chart.data.datasets.forEach((ds: any, i: number) => {
+            const src = chartData.datasets?.[i]?.data ?? chartData.cycleCountArr ?? [];
+            ds.data = src;
+          });
+        }
+        chart.update('none');
+        return;
+      } catch { /* fall through to full recreate */ }
+    }
+
     try { this.productionChart?.destroy(); } catch (e) {}
     this.productionChart = null;
+    this.chartViewKey = viewKey;
 
     clearTimeout(this.chartUpdateTimer);
     this.chartUpdateTimer = setTimeout(() => {
