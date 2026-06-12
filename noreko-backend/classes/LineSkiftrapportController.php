@@ -197,9 +197,11 @@ class LineSkiftrapportController {
                 $stmt = $this->pdo->prepare("
                     SELECT base.*,
                         (SELECT MIN(i.datum) FROM `$ibcTable` i
-                         WHERE i.datum > base.prev_created_at AND i.datum <= base.created_at) AS plc_start,
+                         WHERE i.datum > base.prev_created_at AND i.datum <= base.created_at
+                           AND DATE(i.datum) = base.datum) AS plc_start,
                         (SELECT MAX(i.datum) FROM `$ibcTable` i
-                         WHERE i.datum > base.prev_created_at AND i.datum <= base.created_at) AS plc_end
+                         WHERE i.datum > base.prev_created_at AND i.datum <= base.created_at
+                           AND DATE(i.datum) = base.datum) AS plc_end
                     FROM (
                         SELECT r.*, u.username AS user_name,
                             o1.name AS op1_name, o2.name AS op2_name, o3.name AS op3_name,

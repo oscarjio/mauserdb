@@ -1239,18 +1239,30 @@ class TvattlinjeController {
             $runtimeSource = 'none';
 
             // Primär: SUM(drifttid) från inskickade skiftrapporter (D4007 — netto körtid utan rast).
-            // Per-dag-cap på 1440 min (24h) förhindrar att kumulativa/överlappande poster ger >24h/dag.
+            // Cap mot faktiskt PLC-spann (tvattlinje_ibc MIN/MAX per dag) förhindrar att felaktiga
+            // databasposter (t.ex. id=8 med drifttid=1523min) blåser upp körtiden.
+            // Fallback: LEAST(dag_drifttid, 1440) om PLC-spann saknas.
             try {
                 $driftStmt = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(LEAST(dag_drifttid, 1440)), 0)
+                    SELECT COALESCE(SUM(capped), 0)
                     FROM (
-                        SELECT DATE(datum) AS dag, SUM(drifttid) AS dag_drifttid
-                        FROM tvattlinje_skiftrapport
-                        WHERE datum >= :s AND datum <= :e
-                        GROUP BY DATE(datum)
+                        SELECT LEAST(
+                            SUM(sr.drifttid),
+                            COALESCE(plc.span_min, 1440)
+                        ) AS capped
+                        FROM tvattlinje_skiftrapport sr
+                        LEFT JOIN (
+                            SELECT DATE(datum) AS dag,
+                                   GREATEST(1, ROUND(TIMESTAMPDIFF(SECOND, MIN(datum), MAX(datum)) / 60.0)) AS span_min
+                            FROM tvattlinje_ibc
+                            WHERE datum >= :s2 AND datum < DATE_ADD(:e2, INTERVAL 1 DAY)
+                            GROUP BY DATE(datum)
+                        ) plc ON plc.dag = DATE(sr.datum)
+                        WHERE sr.datum >= :s AND sr.datum <= :e
+                        GROUP BY DATE(sr.datum)
                     ) per_dag
                 ");
-                $driftStmt->execute(['s' => $start, 'e' => $end]);
+                $driftStmt->execute(['s' => $start, 'e' => $end, 's2' => $start, 'e2' => $end]);
                 $srDrifttid = (float)$driftStmt->fetchColumn();
                 if ($srDrifttid > 0) {
                     $totalRuntimeMinutes = $srDrifttid;
