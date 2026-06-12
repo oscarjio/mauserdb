@@ -227,7 +227,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
     if (!(targetCycle > 0) || !(actualCycle > 0)) return null;
     const v = Math.round((targetCycle / actualCycle) * 100);
-    return isFinite(v) ? Math.min(v, 999) : null;
+    return isFinite(v) ? Math.min(v, 100) : null;
   }
 
   private _computeIbcPerHour(r: any): number | null {
@@ -448,7 +448,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     }
     if (totalNettoMin <= 0) return null;
     const v = Math.round((totalIdealMin / totalNettoMin) * 100);
-    return isFinite(v) ? Math.min(v, 999) : null;
+    return isFinite(v) ? Math.min(v, 100) : null;
   }
 
   // ========== Per-rad helpers ==========
