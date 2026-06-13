@@ -157,6 +157,54 @@
     </div>
   </div>
 
+  <!-- Bästa team-kombinationer (Tvättlinje) -->
+  <div class="card" *ngIf="linje === 'tvattlinje' && (teamKombiner.length > 0 || loadingTeam)">
+    <div class="card-header">
+      <i class="fas fa-users me-2 text-muted"></i>
+      Bästa team-kombinationer — senaste {{ dagar }} dagar
+      <span class="text-muted small ms-2">(klick → auto-fyll operatörer)</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="text-center py-3" *ngIf="loadingTeam">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+      </div>
+      <div class="table-responsive" *ngIf="!loadingTeam && teamKombiner.length > 0">
+        <table class="table table-dark table-hover mb-0" style="cursor:pointer">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Team (Påsatt / Spolplatform / Kontrollstation)</th>
+              <th class="text-end">Skift</th>
+              <th class="text-end">Snitt IBC/h</th>
+              <th class="text-end">Snitt/skift</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let t of teamKombiner; let i = index"
+                (click)="applyTeam(i)"
+                [style.background]="selectedTeamIdx === i ? 'rgba(99,179,237,0.15)' : ''">
+              <td class="text-muted">{{ i + 1 }}</td>
+              <td>
+                <span *ngFor="let op of t.operatorer; let last = last">
+                  <span class="badge me-1" style="background:#2d3748; color:#e2e8f0; font-size:.75rem">
+                    <span style="color:#a0aec0; font-size:.7rem">{{ op.pos_namn }}</span>
+                    {{ op.namn }}
+                  </span>
+                </span>
+              </td>
+              <td class="text-end text-muted">{{ t.skift_count }}</td>
+              <td class="text-end"><strong style="color:#63b3ed">{{ t.snitt_ibc_per_h | number:'1.1-1' }}</strong></td>
+              <td class="text-end text-muted">{{ t.snitt_per_skift | number:'1.0-0' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="text-center py-3 text-muted" *ngIf="!loadingTeam && teamKombiner.length === 0">
+        Ingen kombinationsdata (minst 3 skift krävs).
+      </div>
+    </div>
+  </div>
+
   <!-- Positionsstatistik per operatör -->
   <div class="card" *ngIf="!loading && stats.length > 0">
     <div class="card-header">

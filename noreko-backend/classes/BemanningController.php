@@ -20,6 +20,11 @@ class BemanningController {
             return;
         }
 
+        if ($method === 'GET' && $run === 'team-kombinationer') {
+            $this->getTeamKombinationer();
+            return;
+        }
+
         if ($method === 'POST' && $run === 'foreslag') {
             $this->getForeslag();
             return;
@@ -328,5 +333,87 @@ class BemanningController {
             'data'                    => $result,
             'total_estimated_ibc_h'   => round($totalEstimated, 1),
         ], JSON_UNESCAPED_UNICODE);
+    }
+
+    // ---------------------------------------------------------------
+    // GET team-kombinationer — historiska teamkombos med IBC/h
+    // ?action=bemanning&run=team-kombinationer&linje=tvattlinje&dagar=60
+    // ---------------------------------------------------------------
+    private function getTeamKombinationer(): void {
+        $linje = $_GET['linje'] ?? 'tvattlinje';
+        $dagar = max(1, min(365, (int)($_GET['dagar'] ?? 60)));
+        $from  = date('Y-m-d', strtotime("-{$dagar} days"));
+
+        if ($linje !== 'tvattlinje') {
+            echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        // Hämta operatörsnamn
+        $opNames = [];
+        try {
+            $stmtOps = $this->pdo->query("SELECT number, name FROM operators ORDER BY name");
+            foreach ($stmtOps->fetchAll() as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+        } catch (\Throwable $e) {
+            error_log('BemanningController::getTeamKombinationer opNames: ' . $e->getMessage());
+        }
+
+        try {
+            $sql = "
+                SELECT
+                    COALESCE(op1, 0) AS op1_id,
+                    COALESCE(op2, 0) AS op2_id,
+                    COALESCE(op3, 0) AS op3_id,
+                    COUNT(*)         AS skift_count,
+                    SUM(totalt)      AS total_ibc,
+                    ROUND(AVG(CASE WHEN drifttid > 0
+                        THEN totalt / (drifttid / 60.0) ELSE NULL END), 2) AS snitt_ibc_per_h,
+                    ROUND(AVG(totalt), 1) AS snitt_per_skift
+                FROM tvattlinje_skiftrapport
+                WHERE datum >= :from AND totalt > 0 AND drifttid > 0
+                GROUP BY COALESCE(op1, 0), COALESCE(op2, 0), COALESCE(op3, 0)
+                HAVING COUNT(*) >= 3
+                ORDER BY snitt_ibc_per_h DESC
+                LIMIT 20
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':from' => $from]);
+            $rows = $stmt->fetchAll();
+        } catch (\Throwable $e) {
+            error_log('BemanningController::getTeamKombinationer query: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $posNamn = [1 => 'Påsatt', 2 => 'Spolplatform', 3 => 'Kontrollstation'];
+        $result = [];
+        foreach ($rows as $r) {
+            $ops = [];
+            foreach ([1 => (int)$r['op1_id'], 2 => (int)$r['op2_id'], 3 => (int)$r['op3_id']] as $pos => $opId) {
+                if ($opId > 0) {
+                    $ops[] = [
+                        'op_id'    => $opId,
+                        'namn'     => $opNames[$opId] ?? "Op{$opId}",
+                        'position' => $pos,
+                        'pos_namn' => $posNamn[$pos],
+                    ];
+                }
+            }
+            $result[] = [
+                'op1_id'         => (int)$r['op1_id'],
+                'op2_id'         => (int)$r['op2_id'],
+                'op3_id'         => (int)$r['op3_id'],
+                'operatorer'     => $ops,
+                'skift_count'    => (int)$r['skift_count'],
+                'total_ibc'      => round((float)$r['total_ibc'], 0),
+                'snitt_ibc_per_h'=> round((float)$r['snitt_ibc_per_h'], 2),
+                'snitt_per_skift'=> round((float)$r['snitt_per_skift'], 1),
+            ];
+        }
+
+        echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE);
     }
 }

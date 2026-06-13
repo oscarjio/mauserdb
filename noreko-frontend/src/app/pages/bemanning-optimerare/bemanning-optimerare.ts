@@ -38,6 +38,24 @@ interface Operator {
   selected: boolean;
 }
 
+interface TeamOp {
+  op_id: number;
+  namn: string;
+  position: number;
+  pos_namn: string;
+}
+
+interface TeamKombination {
+  op1_id: number;
+  op2_id: number;
+  op3_id: number;
+  operatorer: TeamOp[];
+  skift_count: number;
+  total_ibc: number;
+  snitt_ibc_per_h: number;
+  snitt_per_skift: number;
+}
+
 @Component({
   standalone: true,
   selector: 'app-bemanning-optimerare',
@@ -64,6 +82,10 @@ export class BemanningOptimerarePage implements OnInit, OnDestroy {
   foreslag: ForeslagResult | null = null;
   totalEstimated: number | null = null;
 
+  teamKombiner: TeamKombination[] = [];
+  loadingTeam = false;
+  selectedTeamIdx: number | null = null;
+
   readonly linjeOptions: { value: 'rebotling' | 'tvattlinje'; label: string }[] = [
     { value: 'rebotling',  label: 'Rebotling' },
     { value: 'tvattlinje', label: 'Tvättlinje' },
@@ -89,6 +111,8 @@ export class BemanningOptimerarePage implements OnInit, OnDestroy {
     this.errorForeslag = '';
     this.operators = [];
     this.stats = [];
+    this.teamKombiner = [];
+    this.selectedTeamIdx = null;
     this.loadStats();
   }
 
@@ -112,6 +136,7 @@ export class BemanningOptimerarePage implements OnInit, OnDestroy {
         }
         this.stats = res.data ?? [];
         this.buildOperatorList();
+        if (this.linje === 'tvattlinje') this.loadTeamKombiner();
       });
   }
 
@@ -202,5 +227,25 @@ export class BemanningOptimerarePage implements OnInit, OnDestroy {
 
   linjeLabel(): string {
     return this.linje === 'tvattlinje' ? 'Tvättlinje' : 'Rebotling';
+  }
+
+  private loadTeamKombiner(): void {
+    this.loadingTeam = true;
+    this.http.get<any>(
+      `${environment.apiUrl}?action=bemanning&run=team-kombinationer&linje=${this.linje}&dagar=${this.dagar}`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+    .subscribe(res => {
+      this.loadingTeam = false;
+      if (res?.success) this.teamKombiner = (res.data ?? []).slice(0, 10);
+    });
+  }
+
+  applyTeam(idx: number): void {
+    const team = this.teamKombiner[idx];
+    if (!team) return;
+    this.selectedTeamIdx = idx;
+    const teamIds = new Set([team.op1_id, team.op2_id, team.op3_id].filter(id => id > 0));
+    this.operators.forEach(op => { op.selected = teamIds.has(op.op_id); });
   }
 }
