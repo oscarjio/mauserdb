@@ -189,14 +189,26 @@ class TvattlinjeOperatorController {
 
         $rows = $this->getRankingRows($from, $to);
 
-        $labels = array_column($rows, 'operator_namn');
-        $values = array_column($rows, 'total_ibc');
+        $chartData = [];
+        foreach ($rows as $op) {
+            $chartData[] = [
+                'operator_namn'     => $op['operator_namn'],
+                'produktions_poang' => $op['produktions_poang'],
+                'kvalitets_bonus'   => $op['kvalitets_bonus'],
+                'tempo_bonus'       => $op['tempo_bonus'],
+                'stopp_bonus'       => $op['stopp_bonus'],
+                'streak_bonus'      => $op['streak_bonus'] ?? 0,
+                'total_poang'       => $op['total_poang'],
+            ];
+        }
 
         $result = [
             'success' => true,
             'data'    => [
-                'labels' => $labels,
-                'values' => $values,
+                'chart_data' => $chartData,
+                'period'     => $period,
+                'from_date'  => $from,
+                'to_date'    => $to,
             ],
             'period'  => $period,
             'from'    => $from,
@@ -210,6 +222,7 @@ class TvattlinjeOperatorController {
 
     /**
      * MVP för perioden — bästa operatör enligt total_poang.
+     * Returnerar samma struktur som OperatorRankingController::mvp() — data.mvp.
      */
     private function mvp(): void {
         [$from, $to, $period] = $this->getDateRange();
@@ -225,18 +238,19 @@ class TvattlinjeOperatorController {
         $rows = $this->getRankingRows($from, $to);
         $mvp  = !empty($rows) ? $rows[0] : null;
 
+        // Mappa op_id → user_id för att matcha MvpData/OperatorRank-interfacet i frontend
+        if ($mvp !== null) {
+            $mvp['user_id'] = $mvp['op_id'];
+        }
+
         $result = [
             'success' => true,
-            'data'    => $mvp
-                ? [
-                    'operator_id'    => $mvp['op_id'],
-                    'operator_namn'  => $mvp['operator_namn'],
-                    'total_poang'    => $mvp['total_poang'],
-                    'total_ibc'      => $mvp['total_ibc'],
-                    'ibc_per_h'      => $mvp['ibc_per_h'],
-                    'period'         => $period,
-                ]
-                : null,
+            'data'    => [
+                'mvp'       => $mvp,
+                'typ'       => $period,
+                'from_date' => $from,
+                'to_date'   => $to,
+            ],
             'period'  => $period,
             'from'    => $from,
             'to'      => $to,
@@ -429,7 +443,98 @@ class TvattlinjeOperatorController {
         // Sortera på total_poang DESC (samma som Rebotling)
         usort($result, fn($a, $b) => $b['total_poang'] <=> $a['total_poang']);
 
+        // Beräkna streaks (dagar i rad med produktion över snitt)
+        $this->calcStreaks($result);
+
         return $result;
+    }
+
+    /**
+     * Streak: dagar i rad där operatörens dagliga IBC × 10 >= genomsnittsgräns.
+     * Anpassad för tvattlinje_skiftrapport (direkt antal per rad, ingen LAG).
+     */
+    private function calcStreaks(array &$ranking): void {
+        if (empty($ranking)) return;
+
+        $avgPoang = array_sum(array_column($ranking, 'total_poang')) / count($ranking);
+        $dagGrans = max(1, $avgPoang / 30);
+
+        $opIds = array_column($ranking, 'op_id');
+        if (empty($opIds)) return;
+
+        $placeholders = implode(',', array_fill(0, count($opIds), '?'));
+        $allDagData = [];
+
+        try {
+            // Hämta daglig IBC per operatör senaste 30 dagar (delat mellan aktiva)
+            $sql = "
+                SELECT
+                    op_col AS op_id,
+                    DATE(datum) AS dag,
+                    SUM(totalt / GREATEST(1,
+                        (CASE WHEN op1 > 0 THEN 1 ELSE 0 END +
+                         CASE WHEN op2 > 0 THEN 1 ELSE 0 END +
+                         CASE WHEN op3 > 0 THEN 1 ELSE 0 END)
+                    )) AS ibc_count
+                FROM (
+                    SELECT datum, totalt, op1, op2, op3, op1 AS op_col
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                      AND totalt > 0 AND op1 IN ($placeholders)
+                    UNION ALL
+                    SELECT datum, totalt, op1, op2, op3, op2 AS op_col
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                      AND totalt > 0 AND op2 IN ($placeholders)
+                    UNION ALL
+                    SELECT datum, totalt, op1, op2, op3, op3 AS op_col
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                      AND totalt > 0 AND op3 IN ($placeholders)
+                ) sub
+                GROUP BY op_col, DATE(datum)
+                ORDER BY op_col, dag DESC
+            ";
+            $params = array_merge($opIds, $opIds, $opIds);
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $allDagData[(int)$row['op_id']][] = [
+                    'dag'       => $row['dag'],
+                    'ibc_count' => (float)$row['ibc_count'],
+                ];
+            }
+        } catch (\PDOException $e) {
+            error_log('TvattlinjeOperatorController::calcStreaks: ' . $e->getMessage());
+            return;
+        }
+
+        foreach ($ranking as &$op) {
+            $streak  = 0;
+            $dagData = $allDagData[$op['op_id']] ?? [];
+
+            foreach ($dagData as $d) {
+                if (($d['ibc_count'] * 10) >= $dagGrans) {
+                    $streak++;
+                } else {
+                    break;
+                }
+            }
+
+            $streakBonus          = $streak * 5;
+            $op['streak']         = $streak;
+            $op['streak_bonus']   = $streakBonus;
+            $op['total_poang']    = round($op['total_poang'] + $streakBonus, 1);
+        }
+        unset($op);
+
+        // Re-sortera efter uppdaterade poäng
+        usort($ranking, fn($a, $b) => $b['total_poang'] <=> $a['total_poang']);
+        foreach ($ranking as $i => &$r) {
+            $r['rank'] = $i + 1;
+        }
+        unset($r);
     }
 
     // ================================================================

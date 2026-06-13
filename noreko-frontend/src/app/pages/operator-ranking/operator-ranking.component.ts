@@ -264,13 +264,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
     this.svc.getPoangfordelning(this.period, this.line).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPoangfordelning = false;
       if (res?.success) {
-        if (this.line === 'tvattlinje') {
-          this.tvattChartData = res.data;
-          this.poangfordelningData = null;
-        } else {
-          this.poangfordelningData = res.data;
-          this.tvattChartData = null;
-        }
+        this.poangfordelningData = res.data;
         if (this.poangChartTimer) clearTimeout(this.poangChartTimer);
         this.poangChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildPoangChart(); }, 100);
       } else {
@@ -322,37 +316,6 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
 
     const canvas = document.getElementById('poangFordelningChart') as HTMLCanvasElement;
     if (!canvas) return;
-
-    // Tvättlinje: labels/values format
-    if (this.line === 'tvattlinje') {
-      if (!this.tvattChartData?.labels?.length) return;
-      this.poangChart = new Chart(canvas, {
-        type: 'bar',
-        data: {
-          labels: this.tvattChartData.labels,
-          datasets: [{
-            label: 'IBC',
-            data: this.tvattChartData.values,
-            backgroundColor: this.tvattChartData.labels.map((_, i) =>
-              i === 0 ? 'rgba(255,215,0,0.7)' : i === 1 ? 'rgba(192,192,192,0.7)' : i === 2 ? 'rgba(205,127,50,0.7)' : 'rgba(66,153,225,0.6)'
-            ),
-            borderColor: this.tvattChartData.labels.map((_, i) =>
-              i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#4299e1'
-            ),
-            borderWidth: 2, borderRadius: 4,
-          }],
-        },
-        options: {
-          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} IBC` } } },
-          scales: {
-            x: { ticks: { color: '#a0aec0' }, grid: { color: 'rgba(74,85,104,0.3)' } },
-            y: { ticks: { color: '#e2e8f0', font: { size: 12 } }, grid: { color: 'rgba(74,85,104,0.3)' } },
-          },
-        },
-      });
-      return;
-    }
 
     if (!this.poangfordelningData?.chart_data?.length) return;
 
