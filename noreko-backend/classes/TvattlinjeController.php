@@ -45,6 +45,8 @@ class TvattlinjeController {
                 $this->getPlcDiagnostics();
             } elseif ($action === 'plc-diagnostik') {
                 $this->getPlcDiagnostikStream();
+            } elseif ($action === 'operator-scores') {
+                $this->getOperatorScores();
             } else {
                 $this->getLiveStats();
             }
@@ -2151,6 +2153,173 @@ class TvattlinjeController {
                     'snitt_oee_pct' => 0, 'basta_dag' => null, 'basta_ibc' => 0,
                 ],
             ], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    // =========================================================
+    // Operator Scores — IBC/h ranking med kategorier
+    // GET ?action=tvattlinje&run=operator-scores&from=YYYY-MM-DD&to=YYYY-MM-DD
+    // =========================================================
+
+    private function getOperatorScores(): void {
+        try {
+            $to   = $_GET['to']   ?? date('Y-m-d');
+            $from = $_GET['from'] ?? date('Y-m-d', strtotime($to . ' -90 days'));
+
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
+            $stmtOps = $this->pdo->query("SELECT number, name FROM operators WHERE active=1 ORDER BY name");
+            $opNames = [];
+            foreach ($stmtOps->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $opNames[(int)$r['number']] = $r['name'];
+            }
+
+            // tvattlinje_skiftrapport: totalt är direkt antal (inte kumulativt)
+            $stmtShifts = $this->pdo->prepare("
+                SELECT totalt, drifttid, op1, op2, op3,
+                       YEARWEEK(datum, 1) AS yw
+                FROM tvattlinje_skiftrapport
+                WHERE datum BETWEEN :from AND :to AND drifttid > 0 AND totalt > 0
+                ORDER BY datum ASC
+            ");
+            $stmtShifts->execute([':from' => $from, ':to' => $to]);
+            $allShifts = $stmtShifts->fetchAll(\PDO::FETCH_ASSOC);
+
+            $opTotals      = [];
+            $opPosTotals   = [];
+            $opWeekly      = [];
+            $opBestWorst   = [];
+            $teamPosTotals = ['op1'=>['ibc'=>0.0,'min'=>0.0], 'op2'=>['ibc'=>0.0,'min'=>0.0], 'op3'=>['ibc'=>0.0,'min'=>0.0]];
+            $teamTotalIbc  = 0.0;
+            $teamTotalMin  = 0.0;
+
+            foreach ($allShifts as $s) {
+                $aktiva = 0;
+                foreach (['op1','op2','op3'] as $p) if ((int)$s[$p] > 0) $aktiva++;
+                if ($aktiva === 0) continue;
+
+                $tot = (float)$s['totalt'];
+                $min = (float)$s['drifttid'];
+                if ($min <= 0) continue;
+
+                $ibcPerOp  = $tot / $aktiva;
+                $shiftIbcH = round($ibcPerOp / ($min / 60.0), 2);
+                $yw        = $s['yw'];
+
+                $teamTotalIbc += $tot;
+                $teamTotalMin += $min;
+
+                foreach (['op1','op2','op3'] as $pos) {
+                    $num = (int)$s[$pos];
+                    if ($num <= 0) continue;
+                    if (!isset($opNames[$num])) $opNames[$num] = "Operatör $num";
+
+                    $opTotals[$num]['ibc']   = ($opTotals[$num]['ibc']   ?? 0.0) + $ibcPerOp;
+                    $opTotals[$num]['min']   = ($opTotals[$num]['min']   ?? 0.0) + $min;
+                    $opTotals[$num]['count'] = ($opTotals[$num]['count'] ?? 0) + 1;
+
+                    $opPosTotals[$num][$pos]['ibc']   = ($opPosTotals[$num][$pos]['ibc']   ?? 0.0) + $ibcPerOp;
+                    $opPosTotals[$num][$pos]['min']   = ($opPosTotals[$num][$pos]['min']   ?? 0.0) + $min;
+                    $opPosTotals[$num][$pos]['count'] = ($opPosTotals[$num][$pos]['count'] ?? 0) + 1;
+
+                    $opWeekly[$num][$yw]['ibc'] = ($opWeekly[$num][$yw]['ibc'] ?? 0.0) + $ibcPerOp;
+                    $opWeekly[$num][$yw]['min'] = ($opWeekly[$num][$yw]['min'] ?? 0.0) + $min;
+
+                    $opBestWorst[$num][] = $shiftIbcH;
+
+                    $teamPosTotals[$pos]['ibc'] += $ibcPerOp;
+                    $teamPosTotals[$pos]['min'] += $min;
+                }
+            }
+
+            $teamAvgPerPos = [];
+            foreach ($teamPosTotals as $pos => $t) {
+                $teamAvgPerPos[$pos] = $t['min'] > 0 ? $t['ibc'] / ($t['min'] / 60.0) : 0;
+            }
+            $teamTotal = $teamTotalMin > 0 ? $teamTotalIbc / ($teamTotalMin / 60.0) : 1;
+
+            $results = [];
+            foreach ($opNames as $num => $name) {
+                if (!isset($opTotals[$num])) continue;
+                $tot = $opTotals[$num];
+                if ($tot['count'] < 3) continue;
+
+                $ibc_per_h = round($tot['ibc'] / ($tot['min'] / 60.0), 1);
+
+                $posStats = [];
+                foreach (($opPosTotals[$num] ?? []) as $pos => $pt) {
+                    $posIbcH = $pt['min'] > 0 ? round($pt['ibc'] / ($pt['min'] / 60.0), 1) : 0;
+                    $tAvg    = $teamAvgPerPos[$pos] ?? 0;
+                    $posStats[$pos] = [
+                        'ibc_per_h'   => $posIbcH,
+                        'team_avg'    => round($tAvg, 1),
+                        'antal_skift' => $pt['count'],
+                        'vs_avg_pct'  => $tAvg > 0 ? round(($posIbcH / $tAvg - 1) * 100) : 0,
+                    ];
+                }
+
+                $wMin = 0.0; $wAvg = 0.0;
+                foreach (array_keys($posStats) as $pos) {
+                    $pm = $opPosTotals[$num][$pos]['min'] ?? 0;
+                    $wAvg += ($teamAvgPerPos[$pos] ?? 0) * $pm;
+                    $wMin += $pm;
+                }
+                $posWeightedTeamAvg = $wMin > 0 ? $wAvg / $wMin : $teamTotal;
+                $vsAvgPct = $posWeightedTeamAvg > 0 ? round(($ibc_per_h / $posWeightedTeamAvg - 1) * 100) : 0;
+                $score    = max(0, min(100, round(50 + ($ibc_per_h - $posWeightedTeamAvg) * 5)));
+                $rating   = $vsAvgPct >= 15  ? 'Elite'
+                          : ($vsAvgPct >= 0   ? 'Solid'
+                          : ($vsAvgPct >= -15  ? 'Developing'
+                          : 'Needs attention'));
+
+                ksort($opWeekly[$num]);
+                $weeklyVals = [];
+                foreach ($opWeekly[$num] as $bucket) {
+                    $weeklyVals[] = $bucket['min'] > 0 ? round($bucket['ibc'] / ($bucket['min'] / 60.0), 1) : 0;
+                }
+                $weeklyVals = array_slice($weeklyVals, -8);
+                $shiftVals  = $opBestWorst[$num] ?? [0];
+
+                $results[] = [
+                    'number'       => $num,
+                    'name'         => $name,
+                    'ibc_per_h'    => $ibc_per_h,
+                    'team_avg'     => round($teamTotal, 1),
+                    'vs_avg_pct'   => $vsAvgPct,
+                    'score'        => (int)$score,
+                    'rating'       => $rating,
+                    'antal_skift'  => $tot['count'],
+                    'best_shift'   => round(max($shiftVals), 1),
+                    'worst_shift'  => round(min($shiftVals), 1),
+                    'per_position' => $posStats,
+                    'trend_weeks'  => $weeklyVals,
+                ];
+            }
+
+            usort($results, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'from'             => $from,
+                    'to'               => $to,
+                    'operatorer'       => $results,
+                    'team_avg_per_pos' => [
+                        'op1' => round($teamAvgPerPos['op1'] ?? 0, 1),
+                        'op2' => round($teamAvgPerPos['op2'] ?? 0, 1),
+                        'op3' => round($teamAvgPerPos['op3'] ?? 0, 1),
+                    ],
+                ],
+            ], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Throwable $e) {
+            error_log('TvattlinjeController::getOperatorScores: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid operatörspoäng'], JSON_UNESCAPED_UNICODE);
         }
     }
 

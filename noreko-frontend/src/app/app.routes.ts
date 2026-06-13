@@ -231,6 +231,7 @@ export const routes: Routes = [
       { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },
       { path: 'tvattlinje/operator-prestation', canActivate: [adminGuard], data: { line: 'tvattlinje' }, loadComponent: () => import('./pages/operator-prestation/operator-prestation').then(m => m.OperatorPrestationPage) },
       { path: 'tvattlinje/operator-ranking',    canActivate: [adminGuard], data: { line: 'tvattlinje' }, loadComponent: () => import('./pages/operator-ranking/operator-ranking.component').then(m => m.OperatorRankingPage) },
+      { path: 'tvattlinje/operator-scores',     canActivate: [adminGuard], data: { line: 'tvattlinje' }, loadComponent: () => import('./pages/operator-scores/operator-scores').then(m => m.OperatorScoresPage) },
       { path: 'tvattlinje/operator-topplista',  canActivate: [adminGuard], data: { line: 'tvattlinje' }, loadComponent: () => import('./pages/operator-ranking/operator-ranking.component').then(m => m.OperatorRankingPage) },
       { path: 'tvattlinje/operator-poang',      canActivate: [adminGuard], data: { line: 'tvattlinje' }, loadComponent: () => import('./pages/operator-ranking/operator-ranking.component').then(m => m.OperatorRankingPage) },
       { path: 'tvattlinje/plc-diagnostik', canActivate: [adminGuard], loadComponent: () => import('./pages/tvattlinje-plc-diagnostik/tvattlinje-plc-diagnostik').then(m => m.TvattlinjePlcDiagnostikPage) },

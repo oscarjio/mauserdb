@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
@@ -53,6 +53,7 @@ export class OperatorScoresPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private trendCharts: Map<number, Chart> = new Map();
 
+  line: 'rebotling' | 'tvattlinje' = 'rebotling';
   loading = false;
   error = '';
   operatorer: OperatorScore[] = [];
@@ -63,9 +64,10 @@ export class OperatorScoresPage implements OnInit, OnDestroy {
   sortDir: 1 | -1 = -1;
   filterThreshold: 'all' | 'elite' | 'solid' | 'developing' | 'attention' = 'all';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
+    this.line = (this.route.snapshot.data['line'] as 'rebotling' | 'tvattlinje') ?? 'rebotling';
     const now = new Date();
     this.toDate = this.dateStr(now);
     const from = new Date(now.getTime() - 90 * 86400000);
@@ -98,7 +100,8 @@ export class OperatorScoresPage implements OnInit, OnDestroy {
     this.trendCharts.forEach(c => c.destroy());
     this.trendCharts.clear();
 
-    const url = `${environment.apiUrl}?action=rebotling&run=operator-scores&from=${this.fromDate}&to=${this.toDate}`;
+    const action = this.line === 'tvattlinje' ? 'tvattlinje' : 'rebotling';
+    const url = `${environment.apiUrl}?action=${action}&run=operator-scores&from=${this.fromDate}&to=${this.toDate}`;
     this.http.get<ApiResponse>(url, { withCredentials: true })
       .pipe(
         timeout(15000),
@@ -166,6 +169,10 @@ export class OperatorScoresPage implements OnInit, OnDestroy {
   }
 
   posLabel(pos: string): string {
+    if (this.line === 'tvattlinje') {
+      const map: Record<string, string> = { op1: 'Påsatt', op2: 'Spolplatform', op3: 'Kontrollstation' };
+      return map[pos] ?? pos;
+    }
     const map: Record<string, string> = { op1: 'Tvätt', op2: 'Kontroll', op3: 'Truck' };
     return map[pos] ?? pos;
   }

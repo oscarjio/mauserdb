@@ -67,6 +67,7 @@
           <li *ngIf="ff.canAccess('tvattlinje/skiftrapport')"><a class="dropdown-item" routerLink="/tvattlinje/skiftrapport">Skiftrapport</a></li>
           <li *ngIf="ff.canAccess('tvattlinje/statistik')"><a class="dropdown-item" routerLink="/tvattlinje/statistik">Statistik</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/bemanning-optimerare"><i class="fas fa-users-cog me-2"></i>Bemanning</a></li>
+          <li *ngIf="ff.canAccess('tvattlinje/admin')"><a class="dropdown-item text-warning" routerLink="/tvattlinje/operator-scores"><i class="fas fa-medal me-2"></i>IBC/h Ranking</a></li>
           <li *ngIf="ff.canAccess('tvattlinje/admin')"><a class="dropdown-item text-warning" routerLink="/tvattlinje/operator-prestation"><i class="fas fa-chart-line me-2"></i>Operatörsprestation</a></li>
           <li *ngIf="loggedIn && (user?.role === 'admin' || user?.role === 'developer')"><hr class="dropdown-divider"></li>
           <li *ngIf="ff.canAccess('tvattlinje/admin')"><a class="dropdown-item text-warning" routerLink="/tvattlinje/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
