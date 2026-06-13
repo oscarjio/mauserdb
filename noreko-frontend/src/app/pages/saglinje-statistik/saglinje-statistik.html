@@ -1,3 +1,9 @@
+<div *ngIf="oeeTrendLoaded && oeeTrendEmpty"
+  style="background:linear-gradient(135deg,rgba(237,137,54,.2),rgba(221,107,32,.15));border:1px solid rgba(237,137,54,.4);color:#fbd38d;padding:.875rem 1.5rem;font-size:.9rem;text-align:center;">
+  <i class="fas fa-info-circle me-2"></i>
+  <strong>Såglinjen är ej i drift</strong> — historisk statistik visas när produktion har startats.
+</div>
+
 <div class="container-fluid mt-4">
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <h1 class="h3 mb-0">

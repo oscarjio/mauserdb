@@ -76,7 +76,7 @@
         <button type="button" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
           <i class="fas fa-tachometer-alt"></i><span>Översikt</span>
         </button>
-        <button type="button" [class.active]="activeTab === 'produktion'" (click)="setTab('produktion')">
+        <button type="button" [class.active]="activeTab === 'skiftrapporter'" (click)="setTab('skiftrapporter')">
           <i class="fas fa-industry"></i><span>Skiftrapporter</span>
           <span *ngIf="plcDaysWithoutReport.length > 0"
                 class="badge ms-1"
@@ -459,7 +459,7 @@
   <!-- ================================================================
        TAB: SKIFTRAPPORTER (Produktion)
        ================================================================ -->
-  <div *ngIf="activeTab === 'produktion'" class="tab-content-area">
+  <div *ngIf="activeTab === 'skiftrapporter'" class="tab-content-area">
     <div class="container-fluid py-4">
 
       <!-- Datumfilter + sök + export -->

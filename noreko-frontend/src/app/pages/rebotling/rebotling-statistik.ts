@@ -319,7 +319,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     if (!isNaN(year) && year >= 2000 && year <= maxYear) {
       this.currentYear = year;
     }
-    const month = parseInt(q['month'], 10);
+    const monthParam = parseInt(q['month'], 10);
+    const month = monthParam - 1;
     if (!isNaN(month) && month >= 0 && month <= 11) {
       this.currentMonth = month;
     }
@@ -353,7 +354,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       // view=year: ta bort month och dates
       // view=month: ta med month men ta bort dates
       // view=day: ta med month och dates (men inte month i sig är redundant — vi behåller det för kontext)
-      month: this.viewMode === 'year' ? null : String(this.currentMonth),
+      month: this.viewMode === 'year' ? null : String(this.currentMonth + 1),
       dates: null
     };
     if (this.viewMode === 'day' && this.selectedPeriods.length > 0) {

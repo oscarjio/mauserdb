@@ -105,7 +105,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   isDragging: boolean = false;
 
   // ---- Tabs ----
-  activeTab: 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag' = 'overview';
+  activeTab: 'overview' | 'skiftrapporter' | 'analys' | 'avancerat' | 'plc-diag' = 'overview';
   showDetailTable = false;
 
   // ---- Avancerat (rådata) ----
@@ -196,12 +196,12 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.loadStatistics();
       // Flik följer historiken: applyStateFromUrl sätter redan activeTab — anropa setTab med skipUrlSync=true
       // så att tab-specifik initiering (data-loading, plc-diag polling) körs utan att push:a ny history-post.
-      const validTabs = ['overview', 'produktion', 'analys', 'avancerat', 'plc-diag'];
+      const validTabs = ['overview', 'skiftrapporter', 'analys', 'avancerat', 'plc-diag'];
       const tab = params['tab'];
       if (!tab || !validTabs.includes(tab)) {
         this.activeTab = 'overview';
       } else {
-        this.setTab(tab as 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag', true);
+        this.setTab(tab as 'overview' | 'skiftrapporter' | 'analys' | 'avancerat' | 'plc-diag', true);
       }
     });
     // Sätt standardintervall för skiftrapport-statistik (senaste 30 dagarna)
@@ -216,7 +216,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   private applyStateFromUrl() {
     const q = this.route.snapshot.queryParams;
     const tab = q['tab'];
-    if (tab && ['overview', 'produktion', 'analys', 'avancerat', 'plc-diag'].includes(tab)) {
+    if (tab && ['overview', 'skiftrapporter', 'analys', 'avancerat', 'plc-diag'].includes(tab)) {
       this.activeTab = tab;
     }
     const view = (q['view'] || 'month') as ViewMode;
@@ -862,7 +862,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   // Skiftrapport statistik — produktions-tab
   // =========================================================
 
-  setTab(tab: 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag', skipUrlSync = false) {
+  setTab(tab: 'overview' | 'skiftrapporter' | 'analys' | 'avancerat' | 'plc-diag', skipUrlSync = false) {
     this.activeTab = tab;
     if (!skipUrlSync) this.syncStateToUrl(false);
     if (tab === 'analys' && this.oeeTrendLoaded && !this.oeeTrendEmpty) {
@@ -871,7 +871,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         if (!this.destroy$.closed) this.renderOeeTrendChart();
       }, 80);
     }
-    if (tab === 'produktion' && this.skiftStatData.length === 0 && !this.skiftStatLoading) {
+    if (tab === 'skiftrapporter' && this.skiftStatData.length === 0 && !this.skiftStatLoading) {
       this.loadSkiftrapportStatistik();
     }
     if (tab === 'plc-diag') {

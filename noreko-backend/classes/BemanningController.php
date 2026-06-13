@@ -73,7 +73,7 @@ class BemanningController {
                          CASE WHEN op3 > 0 THEN 1 ELSE 0 END)) AS ibc_share,
                     GREATEST(1, LEAST(drifttid, 1440)) AS drifttid
                 FROM tvattlinje_skiftrapport
-                WHERE datum >= :from AND op1 > 0 AND totalt > 0
+                WHERE datum >= :from1 AND op1 > 0 AND totalt > 0
                 UNION ALL
                 SELECT
                     op2, 2,
@@ -83,7 +83,7 @@ class BemanningController {
                          CASE WHEN op3 > 0 THEN 1 ELSE 0 END)),
                     GREATEST(1, LEAST(drifttid, 1440))
                 FROM tvattlinje_skiftrapport
-                WHERE datum >= :from AND op2 > 0 AND totalt > 0
+                WHERE datum >= :from2 AND op2 > 0 AND totalt > 0
                 UNION ALL
                 SELECT
                     op3, 3,
@@ -93,7 +93,7 @@ class BemanningController {
                          CASE WHEN op3 > 0 THEN 1 ELSE 0 END)),
                     GREATEST(1, LEAST(drifttid, 1440))
                 FROM tvattlinje_skiftrapport
-                WHERE datum >= :from AND op3 > 0 AND totalt > 0
+                WHERE datum >= :from3 AND op3 > 0 AND totalt > 0
             ) sub
             LEFT JOIN operators o ON o.number = sub.op_id
             GROUP BY sub.op_id, o.name, sub.position
@@ -102,7 +102,7 @@ class BemanningController {
 
         try {
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':from' => $from]);
+            $stmt->execute([':from1' => $from, ':from2' => $from, ':from3' => $from]);
             $rows = $stmt->fetchAll();
         } catch (\Throwable $e) {
             error_log('BemanningController::getTvattlinjeStats: ' . $e->getMessage());
