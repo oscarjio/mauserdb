@@ -12,7 +12,7 @@ class AdminController {
                 session_start(['read_and_close' => true]);
             }
         }
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin', 'developer'])) {
             error_log('AdminController::handle: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
@@ -204,8 +204,9 @@ class AdminController {
                     $user = $stmt->fetch(PDO::FETCH_ASSOC);
                     if ($user) {
                         $newAdminStatus = (int)$user['admin'] === 1 ? 0 : 1;
-                        $stmt = $pdo->prepare("UPDATE users SET admin = ? WHERE id = ?");
-                        $stmt->execute([$newAdminStatus, $id]);
+                        $newRole = $newAdminStatus ? 'admin' : 'user';
+                        $stmt = $pdo->prepare("UPDATE users SET admin = ?, role = ? WHERE id = ?");
+                        $stmt->execute([$newAdminStatus, $newRole, $id]);
                         $pdo->commit();
                         $uname = $user['username'] ?: 'okänd';
                         AuditLogger::log($pdo, 'toggle_admin', 'user', (int)$id,
@@ -289,6 +290,8 @@ class AdminController {
             $phone = isset($data['phone']) ? strip_tags(trim($data['phone'])) : null;
             $password = $data['password'] ?? null;
             $admin = isset($data['admin']) ? ($data['admin'] ? 1 : 0) : null;
+            $roleRaw = isset($data['role']) ? trim($data['role']) : null;
+            $role = in_array($roleRaw, ['user', 'admin', 'developer']) ? $roleRaw : null;
             $operatorId = array_key_exists('operator_id', $data) ? $data['operator_id'] : 'SKIP';
 
             // Validera username om angiven
@@ -325,9 +328,17 @@ class AdminController {
             if ($email) { $fields[] = 'email = ?'; $params[] = $email; }
             if ($phone !== null) { $fields[] = 'phone = ?'; $params[] = $phone; }
             if ($password) { $fields[] = 'password = ?'; $params[] = AuthHelper::hashPassword($password); }
-            if ($admin !== null && $id !== (int)$_SESSION['user_id']) {
-                $fields[] = 'admin = ?';
-                $params[] = $admin;
+            if ($id !== (int)$_SESSION['user_id']) {
+                if ($role !== null) {
+                    $derivedAdmin = in_array($role, ['admin', 'developer']) ? 1 : 0;
+                    $fields[] = 'role = ?';
+                    $params[] = $role;
+                    $fields[] = 'admin = ?';
+                    $params[] = $derivedAdmin;
+                } elseif ($admin !== null) {
+                    $fields[] = 'admin = ?';
+                    $params[] = $admin;
+                }
             }
             if ($operatorId !== 'SKIP') {
                 $fields[] = 'operator_id = ?';
@@ -370,13 +381,13 @@ class AdminController {
             $activeExists = $stmt->rowCount() > 0;
             
             if ($activeExists) {
-                $stmt = $pdo->query("SELECT id, username, email, phone, last_login, admin, active, operator_id FROM users");
+                $stmt = $pdo->query("SELECT id, username, email, phone, last_login, admin, active, operator_id, role FROM users");
             } else {
-                $stmt = $pdo->query("SELECT id, username, email, phone, last_login, admin, operator_id FROM users");
+                $stmt = $pdo->query("SELECT id, username, email, phone, last_login, admin, operator_id, role FROM users");
             }
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($users as &$u) {
-                $u['role'] = ((int)$u['admin'] === 1) ? 'admin' : 'user';
+                $u['role'] = $u['role'] ?? (((int)$u['admin'] === 1) ? 'admin' : 'user');
                 if (!isset($u['active'])) {
                     $u['active'] = 1; // Default till aktiv om kolumnen inte finns
                 }
