@@ -354,7 +354,8 @@
                   <i class="fas fa-calendar-day me-2 text-muted" style="font-size:.8rem;"></i>{{ day.date }}
                 </td>
                 <td class="text-center" data-label="Skift">
-                  <span class="badge bg-secondary">{{ day.submittedCount }} skift</span>
+                  <span class="badge bg-secondary">{{ day.submittedCount > 0 ? 1 : 0 }} skift</span>
+                  <span *ngIf="day.submittedCount > 1" class="badge bg-warning text-dark ms-1" style="font-size:.72rem;" title="{{ day.submittedCount }} PLC-rapporter slogs ihop till ett skift">⚠ {{ day.submittedCount }} poster</span>
                   <span *ngIf="day.hasPreliminary" class="badge bg-warning text-dark ms-1" style="font-size:.72rem;">
                     <i class="fas fa-circle fa-beat me-1" style="font-size:.6rem;"></i>Pågående
                   </span>
