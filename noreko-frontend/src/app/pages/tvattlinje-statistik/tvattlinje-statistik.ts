@@ -154,6 +154,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   } | null = null;
   skiftStatFrom: string = '';
   skiftStatTo: string = '';
+  skiftStatPlcOnlyDays: string[] = [];
   private skiftStatChartRef: Chart | null = null;
   @ViewChild('skiftStatChart') skiftStatChartElement!: ElementRef<HTMLCanvasElement>;
 
@@ -945,6 +946,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
           if (res?.success) {
             this.skiftStatData = res.data || [];
             this.skiftStatSummary = res.summary || null;
+            this.skiftStatPlcOnlyDays = res.summary?.plc_only_days || [];
             this.applySkiftSearch();
             setTimeout(() => this.renderSkiftStatChart(), 150);
           }

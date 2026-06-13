@@ -1557,6 +1557,11 @@ class TvattlinjeController {
                 $bastaDagIbc = $dagMap[$bastaDag];
             }
 
+            // Dagar med PLC-data men utan skiftrapport
+            $skiftDagar   = array_unique(array_map(fn($r) => substr($r['datum'] ?? '', 0, 10), $rows));
+            $plcOnlyDays  = array_values(array_filter(array_keys($plcSpanPerDag), fn($d) => !in_array($d, $skiftDagar)));
+            sort($plcOnlyDays);
+
             echo json_encode([
                 'success' => true,
                 'data'    => $rows,
@@ -1571,6 +1576,7 @@ class TvattlinjeController {
                     'avg_cycle_time'  => $avgCycleTime,
                     'basta_dag'       => $bastaDag,
                     'basta_dag_ibc'   => $bastaDagIbc,
+                    'plc_only_days'   => $plcOnlyDays,
                 ],
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {

@@ -391,6 +391,10 @@
                       <td>
                         <i class="fas fa-calendar-day me-2 text-muted"></i>
                         {{ row.period }}
+                        <span *ngIf="row.cycles > 0 && !ibcPerDag[formatDate(row.date)]"
+                              class="badge ms-2"
+                              style="background:rgba(255,193,7,0.2);color:#ffc107;font-size:.72rem;vertical-align:middle;"
+                              title="PLC-produktion registrerad men skiftrapport saknas för denna dag">⚠ Saknar skiftrapport</span>
                       </td>
                       <td class="text-end"><strong>{{ row.cycles }}</strong></td>
                       <td class="text-end">{{ row.avgCycleTime }} min</td>
@@ -492,6 +496,17 @@
         <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
         <h5>Inga skiftrapporter hittades</h5>
         <p class="text-muted">Tryck på "Hämta" för att söka eller välj ett annat datumintervall.</p>
+      </div>
+
+      <!-- Varning: dagar med PLC-produktion men utan skiftrapport -->
+      <div *ngIf="!skiftStatLoading && skiftStatPlcOnlyDays.length > 0"
+           class="alert mb-3 d-flex align-items-start gap-2"
+           style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.4);color:#ffc107;border-radius:8px;padding:.75rem 1rem;">
+        <i class="fas fa-exclamation-triangle mt-1 flex-shrink-0"></i>
+        <div>
+          <strong>{{ skiftStatPlcOnlyDays.length }} dag(ar) med PLC-produktion saknar skiftrapport:</strong>
+          <span class="ms-1">{{ skiftStatPlcOnlyDays.join(', ') }}</span>
+        </div>
       </div>
 
       <!-- 6 KPI-kort -->
