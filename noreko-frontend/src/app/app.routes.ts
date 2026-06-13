@@ -125,6 +125,7 @@ export const routes: Routes = [
       { path: 'rebotling/daglig-briefing', canActivate: [authGuard], loadComponent: () => import('./rebotling/daglig-briefing/daglig-briefing.component').then(m => m.DagligBriefingPage) },
       { path: 'rebotling/gamification', canActivate: [authGuard], loadComponent: () => import('./rebotling/gamification/gamification.component').then(m => m.GamificationPage) },
       { path: 'rebotling/prediktivt-underhall', canActivate: [authGuard], loadComponent: () => import('./rebotling/prediktivt-underhall/prediktivt-underhall.component').then(m => m.PrediktivtUnderhallPage) },
+      { path: 'bemanning-optimerare', canActivate: [authGuard], loadComponent: () => import('./pages/bemanning-optimerare/bemanning-optimerare').then(m => m.BemanningOptimerarePage) },
 
       // Statistik
       { path: 'statistik/overblick', canActivate: [authGuard], loadComponent: () => import('./pages/statistik-overblick/statistik-overblick.component').then(m => m.StatistikOverblickPage) },

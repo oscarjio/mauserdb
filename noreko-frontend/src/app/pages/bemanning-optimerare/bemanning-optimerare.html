@@ -1,0 +1,195 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-users-cog me-2" style="color:#63b3ed"></i>
+      Bemanning-optimerare
+    </h1>
+    <p class="page-subtitle">Välj vilka operatörer som är tillgängliga — systemet föreslår bästa placering per position.</p>
+  </div>
+
+  <!-- Inställningar -->
+  <div class="card settings-card">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-auto">
+          <label class="form-label text-muted small">Linje</label>
+          <div class="btn-group" role="group">
+            <button
+              *ngFor="let opt of linjeOptions"
+              type="button"
+              class="btn btn-sm"
+              [class.btn-primary]="linje === opt.value"
+              [class.btn-outline-secondary]="linje !== opt.value"
+              (click)="linje = opt.value; onLinjeChange()">
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+        <div class="col-auto">
+          <label class="form-label text-muted small">Historik (dagar)</label>
+          <select class="form-select form-select-sm dark-select" [(ngModel)]="dagar" (change)="loadStats()">
+            <option [value]="14">14 dagar</option>
+            <option [value]="30">30 dagar</option>
+            <option [value]="60">60 dagar</option>
+            <option [value]="90">90 dagar</option>
+          </select>
+        </div>
+        <div class="col-auto" *ngIf="operators.length > 0">
+          <label class="form-label text-muted small">&nbsp;</label>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-success" (click)="toggleAll(true)">Markera alla</button>
+            <button class="btn btn-sm btn-outline-secondary" (click)="toggleAll(false)">Avmarkera alla</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Laddning / fel -->
+  <div class="text-center py-4" *ngIf="loading">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="text-muted mt-2">Laddar operatörsstatistik...</p>
+  </div>
+  <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+
+  <!-- Operatörslista -->
+  <div class="card" *ngIf="!loading && operators.length > 0">
+    <div class="card-header">
+      <span class="card-title-text">Tillgängliga operatörer idag</span>
+      <span class="badge-count ms-2">{{ operators.length }} operatörer</span>
+    </div>
+    <div class="card-body">
+      <div class="operator-grid">
+        <div
+          class="operator-chip"
+          *ngFor="let op of operators"
+          [class.selected]="op.selected"
+          (click)="op.selected = !op.selected">
+          <div class="chip-check">
+            <i class="fas" [class.fa-check-square]="op.selected" [class.fa-square]="!op.selected"></i>
+          </div>
+          <div class="chip-info">
+            <span class="chip-name">{{ op.name }}</span>
+            <span class="chip-sub">Bäst: {{ bestPositionFor(op.op_id) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3 text-center">
+        <button
+          class="btn btn-primary btn-lg px-5"
+          (click)="berakna()"
+          [disabled]="loadingForeslag || selectedOpIds.length === 0">
+          <span *ngIf="loadingForeslag">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            Beräknar...
+          </span>
+          <span *ngIf="!loadingForeslag">
+            <i class="fas fa-magic me-2"></i>Beräkna bästa bemanning
+          </span>
+        </button>
+      </div>
+      <div class="alert alert-danger mt-3" *ngIf="errorForeslag">{{ errorForeslag }}</div>
+    </div>
+  </div>
+
+  <!-- Inga operatörer -->
+  <div class="alert alert-info" *ngIf="!loading && operators.length === 0 && !error">
+    <i class="fas fa-info-circle me-2"></i>
+    Ingen operatörsdata hittades för {{ linjeLabel() }} de senaste {{ dagar }} dagarna.
+    Prova ett längre historikintervall.
+  </div>
+
+  <!-- Resultat -->
+  <div class="card result-card" *ngIf="foreslag">
+    <div class="card-header result-header">
+      <i class="fas fa-star me-2" style="color:#ecc94b"></i>
+      Rekommenderad bemanning — {{ linjeLabel() }}
+    </div>
+    <div class="card-body">
+      <div class="position-cards">
+        <div
+          class="position-card"
+          *ngFor="let posKey of posKeys; let i = index"
+          [class.pos-empty]="!foreslag[posKey]">
+
+          <div class="pos-header">
+            <span class="pos-number">Pos {{ i + 1 }}</span>
+            <span class="pos-name" *ngIf="foreslag[posKey]">{{ foreslag[posKey]!.position_namn }}</span>
+            <span class="pos-name text-muted" *ngIf="!foreslag[posKey]">Ej tillsatt</span>
+          </div>
+
+          <ng-container *ngIf="foreslag[posKey] as pos">
+            <div class="pos-op-name">{{ pos.namn }}</div>
+
+            <div class="pos-ibc">
+              <span class="ibc-value">{{ pos.avg_ibc_per_h | number:'1.1-1' }}</span>
+              <span class="ibc-unit">IBC/h</span>
+            </div>
+
+            <div class="pos-confidence" [style.color]="confidenceColor(pos.confidence)">
+              <span
+                *ngFor="let dot of confidenceDots(pos.confidence)"
+                class="conf-dot"
+                [class.filled]="dot === 1"
+                [style.background]="dot === 1 ? confidenceColor(pos.confidence) : 'transparent'"
+                [style.border-color]="confidenceColor(pos.confidence)">
+              </span>
+              <span class="conf-label ms-1">{{ confidenceLabel(pos.confidence) }}</span>
+            </div>
+
+            <div class="pos-skift text-muted small">
+              Baserat på {{ pos.skift_count }} skift
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="!foreslag[posKey]">
+            <div class="pos-op-name text-muted">—</div>
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="total-estimate" *ngIf="totalEstimated !== null">
+        <i class="fas fa-tachometer-alt me-2" style="color:#63b3ed"></i>
+        Estimerat totalt:
+        <strong style="color:#63b3ed; font-size:1.3rem">{{ totalEstimated | number:'1.1-1' }} IBC/h</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Positionsstatistik per operatör -->
+  <div class="card" *ngIf="!loading && stats.length > 0">
+    <div class="card-header">
+      <i class="fas fa-table me-2 text-muted"></i>
+      Detaljerad statistik — {{ linjeLabel() }}, senaste {{ dagar }} dagar
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-dark table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th>Position</th>
+              <th class="text-end">Skift</th>
+              <th class="text-end">Total IBC</th>
+              <th class="text-end">IBC/h</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of stats">
+              <td>{{ s.operator_namn }}</td>
+              <td>
+                <span class="pos-badge pos-{{ s.position }}">{{ s.position_namn }}</span>
+              </td>
+              <td class="text-end">{{ s.skift_count }}</td>
+              <td class="text-end">{{ s.total_ibc | number:'1.0-0' }}</td>
+              <td class="text-end">
+                <strong style="color:#63b3ed">{{ s.avg_ibc_per_h | number:'1.1-1' }}</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

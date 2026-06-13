@@ -308,6 +308,7 @@ $classNameMap = [
     'gamification'                   => 'GamificationController',
     'prediktivt-underhall'           => 'PrediktivtUnderhallController',
     'feature-flags'                  => 'FeatureFlagController',
+    'bemanning'                      => 'BemanningController',
 ];
 
 $actionKey = strtolower($action);
