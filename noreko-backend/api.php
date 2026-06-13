@@ -299,6 +299,7 @@ $classNameMap = [
     'tidrapport'                    => 'TidrapportController',
     'oee-trendanalys'               => 'OeeTrendanalysController',
     'operator-ranking'              => 'OperatorRankingController',
+    'tvattlinje-operator'           => 'TvattlinjeOperatorController',
     'vd-dashboard'                  => 'VdDashboardController',
     'historisk-sammanfattning'       => 'HistoriskSammanfattningController',
     'kvalitetstrendanalys'           => 'KvalitetstrendanalysController',

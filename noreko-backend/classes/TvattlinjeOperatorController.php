@@ -1,0 +1,401 @@
+<?php
+/**
+ * TvattlinjeOperatorController.php
+ * Operatörsranking och prestandastatistik för tvättlinjen.
+ *
+ * Tabellstruktur (tvattlinje_skiftrapport):
+ *   id, datum, antal_ok, antal_ej_ok, totalt, op1, op2, op3,
+ *   omtvaatt, drifttid, rasttime, lopnummer, skiftraknare, product_id
+ *
+ * Skillnad mot rebotling: totalt = direkt antal per rad (inget löpande räkneverk).
+ * IBC-delning: om op1=2, op2=5, op3=null → varje aktiv operatör får totalt/2 st.
+ *
+ * Endpoints via ?action=tvattlinje-operator&run=XXX:
+ *   run=ranking         — fullständig rankinglista, sorterad på total_ibc DESC
+ *   run=sammanfattning  — KPI-kort: total IBC, aktiva op, snitt ibc/h, bästa op
+ *   run=topplista       — top 3 (podium-visning)
+ *   run=poangfordelning — IBC per operatör (chart-data)
+ *
+ * Perioder: ?period=idag|vecka|manad|30d
+ */
+class TvattlinjeOperatorController {
+    private $pdo;
+
+    /** Cache TTL i sekunder */
+    private const CACHE_TTL = 30;
+
+    public function __construct() {
+        global $pdo;
+        $this->pdo = $pdo;
+    }
+
+    // ================================================================
+    // ENTRY POINT
+    // ================================================================
+
+    public function handle(): void {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start(['read_and_close' => true]);
+        }
+
+        if (empty($_SESSION['user_id'])) {
+            $this->sendError('Inloggning krävs', 401);
+            return;
+        }
+
+        $run = trim($_GET['run'] ?? '');
+
+        switch ($run) {
+            case 'ranking':         $this->ranking();         break;
+            case 'sammanfattning':  $this->sammanfattning();  break;
+            case 'topplista':       $this->topplista();       break;
+            case 'poangfordelning': $this->poangfordelning(); break;
+            default:
+                $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
+                break;
+        }
+    }
+
+    // ================================================================
+    // ENDPOINTS
+    // ================================================================
+
+    /**
+     * Fullständig rankinglista med alla KPI:er per operatör.
+     */
+    private function ranking(): void {
+        [$from, $to, $period] = $this->getDateRange();
+
+        $cacheKey = "tvatt_ranking_{$period}_{$from}_{$to}";
+        $cached = $this->cacheGet($cacheKey);
+        if ($cached !== null) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($cached, JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $rows = $this->getRankingRows($from, $to);
+
+        $result = [
+            'success' => true,
+            'data'    => $rows,
+            'period'  => $period,
+            'from'    => $from,
+            'to'      => $to,
+        ];
+        $this->cacheSet($cacheKey, $result);
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($result, JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * KPI-kort: total IBC, aktiva operatörer, snitt IBC/h, bästa operatör.
+     */
+    private function sammanfattning(): void {
+        [$from, $to, $period] = $this->getDateRange();
+
+        $cacheKey = "tvatt_sammanfattning_{$period}_{$from}_{$to}";
+        $cached = $this->cacheGet($cacheKey);
+        if ($cached !== null) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($cached, JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $rows = $this->getRankingRows($from, $to);
+
+        $totalIbc       = array_sum(array_column($rows, 'total_ibc'));
+        $aktivaOp       = count($rows);
+        $ibcPerHValues  = array_filter(array_column($rows, 'ibc_per_h'), fn($v) => $v > 0);
+        $snittIbcH      = $aktivaOp > 0 && count($ibcPerHValues) > 0
+            ? round(array_sum($ibcPerHValues) / count($ibcPerHValues), 1)
+            : 0;
+        $bastaOp = !empty($rows) ? $rows[0] : null;
+
+        $result = [
+            'success' => true,
+            'data'    => [
+                'total_ibc'       => $totalIbc,
+                'aktiva_operatorer' => $aktivaOp,
+                'snitt_ibc_per_h' => $snittIbcH,
+                'basta_operator'  => $bastaOp
+                    ? ['namn' => $bastaOp['operator_namn'], 'ibc_per_h' => $bastaOp['ibc_per_h']]
+                    : null,
+            ],
+            'period'  => $period,
+            'from'    => $from,
+            'to'      => $to,
+        ];
+        $this->cacheSet($cacheKey, $result);
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($result, JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Top 3 operatörer för podium-visning.
+     */
+    private function topplista(): void {
+        [$from, $to, $period] = $this->getDateRange();
+
+        $cacheKey = "tvatt_topplista_{$period}_{$from}_{$to}";
+        $cached = $this->cacheGet($cacheKey);
+        if ($cached !== null) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($cached, JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $rows = array_slice($this->getRankingRows($from, $to), 0, 3);
+
+        $result = [
+            'success' => true,
+            'data'    => $rows,
+            'period'  => $period,
+            'from'    => $from,
+            'to'      => $to,
+        ];
+        $this->cacheSet($cacheKey, $result);
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($result, JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * IBC per operatör som chart-data.
+     */
+    private function poangfordelning(): void {
+        [$from, $to, $period] = $this->getDateRange();
+
+        $cacheKey = "tvatt_poang_{$period}_{$from}_{$to}";
+        $cached = $this->cacheGet($cacheKey);
+        if ($cached !== null) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($cached, JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $rows = $this->getRankingRows($from, $to);
+
+        $labels = array_column($rows, 'operator_namn');
+        $values = array_column($rows, 'total_ibc');
+
+        $result = [
+            'success' => true,
+            'data'    => [
+                'labels' => $labels,
+                'values' => $values,
+            ],
+            'period'  => $period,
+            'from'    => $from,
+            'to'      => $to,
+        ];
+        $this->cacheSet($cacheKey, $result);
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($result, JSON_UNESCAPED_UNICODE);
+    }
+
+    // ================================================================
+    // CORE DATA LOGIC
+    // ================================================================
+
+    /**
+     * Hämtar och beräknar ranking-rader för perioden.
+     *
+     * Logik:
+     *  - Varje rad i tvattlinje_skiftrapport = ett separat skift (totalt är direkt antal).
+     *  - Räkna aktiva operatörer per skift (op1/op2/op3 IS NOT NULL AND > 0).
+     *  - Dela totalt jämnt mellan aktiva operatörer (IBC-delning).
+     *  - Summera drifttid (i sekunder) per operatör för IBC/h-beräkning.
+     *    drifttid i tabellen kan vara minuter eller sekunder — kontrollera skala via
+     *    typisk drifttid: vi antar minuter (som tvattlinje_skiftrapport brukar vara).
+     *
+     * @return array  Sorterad array med operatörsdata, bäst först.
+     */
+    private function getRankingRows(string $from, string $to): array {
+        if (!$this->tableExists('tvattlinje_skiftrapport')) {
+            return [];
+        }
+
+        try {
+            // Hämta alla skift för perioden
+            $sql = "
+                SELECT
+                    id, datum, totalt, antal_ok, antal_ej_ok,
+                    op1, op2, op3,
+                    drifttid, rasttime, skiftraknare
+                FROM tvattlinje_skiftrapport
+                WHERE datum >= :from AND datum <= :to
+                  AND totalt > 0
+                ORDER BY datum ASC, skiftraknare ASC
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $skift = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('TvattlinjeOperatorController::getRankingRows query: ' . $e->getMessage());
+            return [];
+        }
+
+        // Samla data per operatörs-ID (PLC-nummer)
+        $opData = [];
+
+        foreach ($skift as $s) {
+            $aktiva = [];
+            foreach (['op1', 'op2', 'op3'] as $opField) {
+                $opId = (int)($s[$opField] ?? 0);
+                if ($opId > 0) {
+                    $aktiva[] = $opId;
+                }
+            }
+            if (empty($aktiva)) {
+                continue;
+            }
+
+            $antalAktiva = count($aktiva);
+            $totalt      = (float)($s['totalt'] ?? 0);
+            $ibcPerOp    = $antalAktiva > 0 ? $totalt / $antalAktiva : 0;
+
+            // drifttid antas vara i minuter (standard för tvattlinje)
+            $drifttidMin = (float)($s['drifttid'] ?? 0);
+            $rastMin     = (float)($s['rasttime'] ?? 0);
+            $nettoMin    = max(0, $drifttidMin - $rastMin);
+            $nettotimMin = $nettoMin / $antalAktiva; // tid per operatör
+
+            foreach ($aktiva as $opId) {
+                if (!isset($opData[$opId])) {
+                    $opData[$opId] = [
+                        'op_id'        => $opId,
+                        'total_ibc'    => 0.0,
+                        'skift_count'  => 0,
+                        'total_min'    => 0.0,
+                    ];
+                }
+                $opData[$opId]['total_ibc']   += $ibcPerOp;
+                $opData[$opId]['skift_count']  += 1;
+                $opData[$opId]['total_min']    += $nettotimMin;
+            }
+        }
+
+        if (empty($opData)) {
+            return [];
+        }
+
+        // Slå upp operatörsnamn från operators-tabellen
+        $opIds = array_keys($opData);
+        $placeholders = implode(',', array_fill(0, count($opIds), '?'));
+        $namn = [];
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT number, name FROM operators WHERE number IN ($placeholders)"
+            );
+            $stmt->execute($opIds);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $namn[(int)$row['number']] = $row['name'];
+            }
+        } catch (\PDOException $e) {
+            error_log('TvattlinjeOperatorController::getRankingRows namn-lookup: ' . $e->getMessage());
+        }
+
+        // Bygg slutlig lista
+        $result = [];
+        foreach ($opData as $opId => $d) {
+            $totalIbc       = round($d['total_ibc']);
+            $skiftCount     = $d['skift_count'];
+            $avgIbcPerSkift = $skiftCount > 0 ? round($totalIbc / $skiftCount, 1) : 0;
+            $totalTimmar    = $d['total_min'] / 60.0;
+            $ibcPerH        = $totalTimmar > 0 ? round($totalIbc / $totalTimmar, 1) : 0.0;
+
+            $result[] = [
+                'op_id'              => $opId,
+                'operator_namn'      => $namn[$opId] ?? ('Operator ' . $opId),
+                'total_ibc'          => (int)$totalIbc,
+                'skift_count'        => $skiftCount,
+                'avg_ibc_per_skift'  => $avgIbcPerSkift,
+                'ibc_per_h'          => $ibcPerH,
+            ];
+        }
+
+        // Sortera på total_ibc DESC
+        usort($result, fn($a, $b) => $b['total_ibc'] <=> $a['total_ibc']);
+
+        return $result;
+    }
+
+    // ================================================================
+    // HELPERS
+    // ================================================================
+
+    /**
+     * Returnerar [from, to, period] baserat på ?period=idag|vecka|manad|30d.
+     */
+    private function getDateRange(): array {
+        $period = trim($_GET['period'] ?? '30d');
+        $today  = date('Y-m-d');
+
+        switch ($period) {
+            case 'idag':
+                return [$today, $today, 'idag'];
+            case 'vecka':
+                // Beräkna senaste måndag (undviker söndagsbugg)
+                $dagIVecka = (int)date('N'); // 1=mån, 7=sön
+                $monday    = date('Y-m-d', strtotime('-' . ($dagIVecka - 1) . ' days'));
+                return [$monday, $today, 'vecka'];
+            case 'manad':
+                return [date('Y-m-01'), $today, 'manad'];
+            case '30d':
+            default:
+                return [date('Y-m-d', strtotime('-29 days')), $today, '30d'];
+        }
+    }
+
+    private function tableExists(string $table): bool {
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE() AND table_name = ?"
+            );
+            $stmt->execute([$table]);
+            return (int)$stmt->fetchColumn() > 0;
+        } catch (\PDOException $e) {
+            error_log('TvattlinjeOperatorController::tableExists: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function cacheGet(string $key): ?array {
+        $cacheDir = dirname(__DIR__) . '/cache';
+        $file     = $cacheDir . '/tvatt_op_' . md5($key) . '.json';
+        if (file_exists($file) && (time() - filemtime($file)) < self::CACHE_TTL) {
+            $data = @file_get_contents($file);
+            if ($data !== false) {
+                $decoded = json_decode($data, true);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+            }
+        }
+        return null;
+    }
+
+    private function cacheSet(string $key, array $data): void {
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0777, true);
+        }
+        $file = $cacheDir . '/tvatt_op_' . md5($key) . '.json';
+        @file_put_contents($file, json_encode($data, JSON_UNESCAPED_UNICODE), LOCK_EX);
+    }
+
+    private function sendError(string $message, int $code = 400): void {
+        http_response_code($code);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success'   => false,
+            'error'     => $message,
+            'timestamp' => date('Y-m-d H:i:s'),
+        ], JSON_UNESCAPED_UNICODE);
+    }
+}
