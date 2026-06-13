@@ -78,6 +78,11 @@
         </button>
         <button type="button" [class.active]="activeTab === 'produktion'" (click)="setTab('produktion')">
           <i class="fas fa-industry"></i><span>Skiftrapporter</span>
+          <span *ngIf="plcDaysWithoutReport.length > 0"
+                class="badge ms-1"
+                style="background:rgba(255,193,7,0.85);color:#000;font-size:.68rem;border-radius:10px;padding:1px 6px;vertical-align:middle;">
+            {{ plcDaysWithoutReport.length }}
+          </span>
         </button>
         <button type="button" [class.active]="activeTab === 'analys'" (click)="setTab('analys')">
           <i class="fas fa-chart-line"></i><span>OEE-trend</span>
@@ -192,6 +197,17 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- Varning: dagar med PLC-produktion men utan skiftrapport (månadsvy) -->
+      <div *ngIf="viewMode === 'month' && !loading && plcDaysWithoutReport.length > 0"
+           class="alert mb-3 d-flex align-items-start gap-2"
+           style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.4);color:#ffc107;border-radius:8px;padding:.75rem 1rem;">
+        <i class="fas fa-exclamation-triangle mt-1 flex-shrink-0"></i>
+        <div>
+          <strong>{{ plcDaysWithoutReport.length }} dag(ar) med PLC-produktion saknar skiftrapport:</strong>
+          <span class="ms-1">{{ plcDaysWithoutReport.join(', ') }}</span>
+        </div>
       </div>
 
       <!-- Loading State -->

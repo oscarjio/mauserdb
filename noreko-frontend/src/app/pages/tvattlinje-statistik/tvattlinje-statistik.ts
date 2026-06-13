@@ -194,13 +194,14 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.updateBreadcrumb();
       this.generatePeriodCells();
       this.loadStatistics();
-      // Flik följer historiken: sätt activeTab från URL, annars återställ till overview
+      // Flik följer historiken: applyStateFromUrl sätter redan activeTab — anropa setTab med skipUrlSync=true
+      // så att tab-specifik initiering (data-loading, plc-diag polling) körs utan att push:a ny history-post.
       const validTabs = ['overview', 'produktion', 'analys', 'avancerat', 'plc-diag'];
       const tab = params['tab'];
       if (!tab || !validTabs.includes(tab)) {
         this.activeTab = 'overview';
       } else {
-        this.setTab(tab as 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag');
+        this.setTab(tab as 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag', true);
       }
     });
     // Sätt standardintervall för skiftrapport-statistik (senaste 30 dagarna)
@@ -861,9 +862,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   // Skiftrapport statistik — produktions-tab
   // =========================================================
 
-  setTab(tab: 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag') {
+  setTab(tab: 'overview' | 'produktion' | 'analys' | 'avancerat' | 'plc-diag', skipUrlSync = false) {
     this.activeTab = tab;
-    this.syncStateToUrl(false);
+    if (!skipUrlSync) this.syncStateToUrl(false);
     if (tab === 'analys' && this.oeeTrendLoaded && !this.oeeTrendEmpty) {
       clearTimeout(this.oeeTrendChartTimer);
       this.oeeTrendChartTimer = setTimeout(() => {
@@ -971,6 +972,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   getSkiftStatUniqueDates(): number {
     return new Set(this.skiftStatData.map((r: any) => (r.datum || '').substring(0, 10)).filter(Boolean)).size;
+  }
+
+  get plcDaysWithoutReport(): string[] {
+    if (this.viewMode !== 'month') return [];
+    return this.tableData
+      .filter(row => row.cycles > 0 && !(this.formatDate(row.date) in this.ibcPerDag))
+      .map(row => this.formatDate(row.date));
   }
 
   getSkiftStatTid(r: any): string {

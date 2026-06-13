@@ -64,7 +64,7 @@ export class BemanningOptimerarePage implements OnInit, OnDestroy {
   foreslag: ForeslagResult | null = null;
   totalEstimated: number | null = null;
 
-  readonly linjeOptions = [
+  readonly linjeOptions: { value: 'rebotling' | 'tvattlinje'; label: string }[] = [
     { value: 'rebotling',  label: 'Rebotling' },
     { value: 'tvattlinje', label: 'Tvättlinje' },
   ];
