@@ -376,7 +376,7 @@
                 </td>
                 <td class="d-none d-lg-table-cell text-success small">
                   {{ day.totalDrift > 0 ? formatDrifttid(day.totalDrift) : '–' }}
-                  <span *ngIf="day.driftWarning" class="badge bg-warning text-dark ms-1" title="Drifttid överstiger 24h i databasen — cappat till 24h">⚠</span>
+                  <span *ngIf="day.driftWarning" class="badge bg-warning text-dark ms-1" title="Drifttid överstiger 10h i databasen — cappat till 10h">⚠</span>
                 </td>
                 <td class="d-none d-md-table-cell">
                   <span *ngFor="let op of day.operators" class="badge bg-dark me-1">{{ op }}</span>

@@ -403,8 +403,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   get summaryAvgOee(): number | null {
     const reports = this.filteredReports;
     if (!reports.length) return null;
-    // Cap drifttid at 1440 per report to prevent erroneous DB values inflating OEE
-    const cappedDrift     = (r: any) => Math.min(r.drifttid || 0, 1440);
+    // Cap drifttid at 600 min (~10h) per report — one shift per day, never 24h
+    const cappedDrift     = (r: any) => Math.min(r.drifttid || 0, 600);
     const netDrift        = (r: any) => Math.max(0, cappedDrift(r) - (r.rasttime || 0));
     const totalDrift      = reports.reduce((s, r) => s + cappedDrift(r), 0);
     const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
@@ -1518,8 +1518,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       // Dag-summor: inskickade rapporter visar PLC-värden direkt (D4004/D4007)
       const totalIbc   = submittedOnly.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
       const rawDrift   = submittedOnly.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
-      const totalDrift = Math.min(rawDrift, 1440);
-      const driftWarning = rawDrift > 1440;
+      const totalDrift = Math.min(rawDrift, 600);
+      const driftWarning = rawDrift > 600;
       const effVals = submittedOnly.map(r => this.getEfficiencyPct(r)).filter((v): v is number => v != null);
       const avgEff = effVals.length ? Math.round(effVals.reduce((s, v) => s + v, 0) / effVals.length) : null;
       const opSet = new Set<string>();
