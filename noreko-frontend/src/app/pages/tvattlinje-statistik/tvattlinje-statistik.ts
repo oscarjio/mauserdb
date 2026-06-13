@@ -227,7 +227,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     if (!isNaN(year) && year >= 2000 && year <= 2100) {
       this.currentYear = year;
     }
-    const month = parseInt(q['month'], 10);
+    const monthParam = parseInt(q['month'], 10);
+    const month = monthParam - 1;
     if (!isNaN(month) && month >= 0 && month <= 11) {
       this.currentMonth = month;
     }
@@ -254,7 +255,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const params: Record<string, string | null> = {
       view: this.viewMode,
       year: String(this.currentYear),
-      month: this.viewMode === 'year' ? null : String(this.currentMonth),
+      month: this.viewMode === 'year' ? null : String(this.currentMonth + 1),
       dates: null,
       tab: this.activeTab !== 'overview' ? this.activeTab : null
     };
