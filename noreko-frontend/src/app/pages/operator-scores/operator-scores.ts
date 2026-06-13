@@ -54,6 +54,10 @@ export class OperatorScoresPage implements OnInit, OnDestroy {
   private trendCharts: Map<number, Chart> = new Map();
 
   line: 'rebotling' | 'tvattlinje' = 'rebotling';
+
+  teamKombiner: any[] = [];
+  loadingTeam = false;
+
   loading = false;
   error = '';
   operatorer: OperatorScore[] = [];
@@ -73,6 +77,7 @@ export class OperatorScoresPage implements OnInit, OnDestroy {
     const from = new Date(now.getTime() - 90 * 86400000);
     this.fromDate = this.dateStr(from);
     this.fetchData();
+    if (this.line === 'tvattlinje') this.fetchTeamKombiner();
   }
 
   ngOnDestroy(): void {
@@ -185,6 +190,17 @@ export class OperatorScoresPage implements OnInit, OnDestroy {
     if (pct >= 10) return 'text-success';
     if (pct <= -10) return 'text-danger';
     return 'text-warning';
+  }
+
+  private fetchTeamKombiner(): void {
+    this.loadingTeam = true;
+    const url = `${environment.apiUrl}?action=bemanning&run=team-kombinationer&linje=tvattlinje&dagar=90`;
+    this.http.get<any>(url, { withCredentials: true })
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingTeam = false;
+        if (res?.success) this.teamKombiner = (res.data ?? []).slice(0, 10);
+      });
   }
 
   private buildAllTrendCharts(): void {
