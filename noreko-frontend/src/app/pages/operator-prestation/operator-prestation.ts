@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 
 interface ToolCard {
   title: string;
@@ -17,8 +17,38 @@ interface ToolCard {
   templateUrl: './operator-prestation.html',
   styleUrl: './operator-prestation.css'
 })
-export class OperatorPrestationPage {
-  groups: { label: string; tools: ToolCard[] }[] = [
+export class OperatorPrestationPage implements OnInit {
+  line: 'rebotling' | 'tvattlinje' = 'rebotling';
+
+  constructor(private route: ActivatedRoute) {}
+
+  ngOnInit(): void {
+    this.line = (this.route.snapshot.data['line'] as 'rebotling' | 'tvattlinje') ?? 'rebotling';
+  }
+
+  get lineName(): string { return this.line === 'tvattlinje' ? 'Tvättlinje' : 'Rebotling'; }
+
+  get activeGroups(): { label: string; tools: ToolCard[] }[] {
+    return this.line === 'tvattlinje' ? this.tvattlinjeGroups : this.rebotlingGroups;
+  }
+
+  readonly tvattlinjeGroups: { label: string; tools: ToolCard[] }[] = [
+    {
+      label: 'Ranking & Jämförelse',
+      tools: [
+        { title: 'Operatörsranking', desc: 'Rankar alla operatörer på total IBC och IBC/h för vald period', route: '/tvattlinje/operator-ranking', icon: 'fas fa-trophy', color: '#f6c90e' },
+        { title: 'Topplista', desc: 'Podium-visning av topp 3 operatörer', route: '/tvattlinje/operator-topplista', icon: 'fas fa-medal', color: '#68d391' },
+      ]
+    },
+    {
+      label: 'Diagram & Analys',
+      tools: [
+        { title: 'IBC-fördelning', desc: 'Stapeldiagram med IBC-bidrag per operatör under perioden', route: '/tvattlinje/operator-poang', icon: 'fas fa-chart-bar', color: '#63b3ed' },
+      ]
+    },
+  ];
+
+  readonly rebotlingGroups: { label: string; tools: ToolCard[] }[] = [
     {
       label: 'Träning & Uppföljning',
       tools: [

@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
@@ -12,6 +13,7 @@ import {
   PoangFordelningData,
   HistorikData,
   MvpData,
+  TvattOpSammanfattning,
 } from '../../services/operator-ranking.service';
 
 Chart.register(...registerables);
@@ -24,6 +26,8 @@ Chart.register(...registerables);
   imports: [CommonModule],
 })
 export class OperatorRankingPage implements OnInit, OnDestroy {
+
+  line: 'rebotling' | 'tvattlinje' = 'rebotling';
 
   // Period
   period = '30d';
@@ -55,9 +59,11 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
 
   // Data
   sammanfattning: SammanfattningData | null = null;
+  tvattSammanfattning: TvattOpSammanfattning | null = null;
   topplistaData: TopplistaData | null = null;
   rankingData: RankingData | null = null;
   poangfordelningData: PoangFordelningData | null = null;
+  tvattChartData: { labels: string[]; values: number[] } | null = null;
   historikData: HistorikData | null = null;
   mvpData: MvpData | null = null;
 
@@ -72,9 +78,10 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private historikChartTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
-  constructor(private svc: OperatorRankingService) {}
+  constructor(private svc: OperatorRankingService, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
+    this.line = (this.route.snapshot.data['line'] as 'rebotling' | 'tvattlinje') ?? 'rebotling';
     this.loadAll();
     this.refreshTimer = setInterval(() => this.loadAll(), 120000);
   }
@@ -108,8 +115,22 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
     this.loadTopplista();
     this.loadRanking();
     this.loadPoangfordelning();
-    this.loadHistorik();
-    this.loadMvp();
+    if (this.line === 'rebotling') {
+      this.loadHistorik();
+      this.loadMvp();
+    }
+  }
+
+  // ---- Display helpers (line-agnostic) ----
+
+  get lineName(): string { return this.line === 'tvattlinje' ? 'Tvättlinje' : 'Rebotling'; }
+
+  podiumPrimary(entry: any): number {
+    return this.line === 'tvattlinje' ? entry.total_ibc : entry.total_poang;
+  }
+  podiumPrimaryLabel(): string { return this.line === 'tvattlinje' ? 'IBC' : 'poäng'; }
+  podiumSecondary(entry: any): string {
+    return this.line === 'tvattlinje' ? `${entry.ibc_per_h} IBC/h` : `${entry.total_ibc} IBC`;
   }
 
   // ---- Helpers ----
@@ -163,11 +184,12 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadSammanfattning(): void {
     this.loadingSammanfattning = true;
     this.errorSammanfattning = false;
-    this.svc.getSammanfattning(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getSammanfattning(this.period, this.line).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingSammanfattning = false;
       this.isFetching = false;
       if (res?.success) {
-        this.sammanfattning = res.data;
+        if (this.line === 'tvattlinje') this.tvattSammanfattning = res.data;
+        else this.sammanfattning = res.data;
       } else {
         this.errorSammanfattning = true;
       }
@@ -177,10 +199,25 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadTopplista(): void {
     this.loadingTopplista = true;
     this.errorTopplista = false;
-    this.svc.getTopplista(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getTopplista(this.period, this.line).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTopplista = false;
       if (res?.success) {
-        this.topplistaData = res.data;
+        if (this.line === 'tvattlinje') {
+          const rows: any[] = res.data ?? [];
+          this.topplistaData = {
+            topplista: rows.map((e, i) => ({
+              rank: i + 1, user_id: e.op_id ?? 0, operator_namn: e.operator_namn,
+              total_ibc: e.total_ibc, ok_ibc: e.total_ibc, ok_pct: 0,
+              ibc_per_h: e.ibc_per_h ?? 0, produktions_poang: 0, kvalitets_bonus: 0,
+              tempo_bonus: 0, stopp_bonus: 0, total_bonus: 0, total_poang: e.total_ibc,
+              antal_stopp: 0, stopptid_sek: 0, streak: 0, streak_bonus: 0,
+              skift_count: e.skift_count, avg_ibc_per_skift: e.avg_ibc_per_skift,
+            })),
+            period: res.period ?? '', from_date: res.from ?? '', to_date: res.to ?? '',
+          };
+        } else {
+          this.topplistaData = res.data;
+        }
       } else {
         this.errorTopplista = true;
       }
@@ -190,10 +227,25 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadRanking(): void {
     this.loadingRanking = true;
     this.errorRanking = false;
-    this.svc.getRanking(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getRanking(this.period, this.line).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingRanking = false;
       if (res?.success) {
-        this.rankingData = res.data;
+        if (this.line === 'tvattlinje') {
+          const rows: any[] = res.data ?? [];
+          this.rankingData = {
+            ranking: rows.map((e, i) => ({
+              rank: i + 1, user_id: e.op_id ?? 0, operator_namn: e.operator_namn,
+              total_ibc: e.total_ibc, ok_ibc: e.total_ibc, ok_pct: 0,
+              ibc_per_h: e.ibc_per_h ?? 0, produktions_poang: 0, kvalitets_bonus: 0,
+              tempo_bonus: 0, stopp_bonus: 0, total_bonus: 0, total_poang: e.total_ibc,
+              antal_stopp: 0, stopptid_sek: 0, streak: 0, streak_bonus: 0,
+              skift_count: e.skift_count, avg_ibc_per_skift: e.avg_ibc_per_skift,
+            })),
+            period: res.period ?? '', from_date: res.from ?? '', to_date: res.to ?? '',
+          };
+        } else {
+          this.rankingData = res.data;
+        }
       } else {
         this.errorRanking = true;
       }
@@ -203,10 +255,16 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadPoangfordelning(): void {
     this.loadingPoangfordelning = true;
     this.errorPoangfordelning = false;
-    this.svc.getPoangfordelning(this.period).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getPoangfordelning(this.period, this.line).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPoangfordelning = false;
       if (res?.success) {
-        this.poangfordelningData = res.data;
+        if (this.line === 'tvattlinje') {
+          this.tvattChartData = res.data;
+          this.poangfordelningData = null;
+        } else {
+          this.poangfordelningData = res.data;
+          this.tvattChartData = null;
+        }
         if (this.poangChartTimer) clearTimeout(this.poangChartTimer);
         this.poangChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildPoangChart(); }, 100);
       } else {
@@ -258,7 +316,39 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
 
     const canvas = document.getElementById('poangFordelningChart') as HTMLCanvasElement;
     if (!canvas) return;
-    if (!canvas || !this.poangfordelningData?.chart_data?.length) return;
+
+    // Tvättlinje: labels/values format
+    if (this.line === 'tvattlinje') {
+      if (!this.tvattChartData?.labels?.length) return;
+      this.poangChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: this.tvattChartData.labels,
+          datasets: [{
+            label: 'IBC',
+            data: this.tvattChartData.values,
+            backgroundColor: this.tvattChartData.labels.map((_, i) =>
+              i === 0 ? 'rgba(255,215,0,0.7)' : i === 1 ? 'rgba(192,192,192,0.7)' : i === 2 ? 'rgba(205,127,50,0.7)' : 'rgba(66,153,225,0.6)'
+            ),
+            borderColor: this.tvattChartData.labels.map((_, i) =>
+              i === 0 ? '#FFD700' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#4299e1'
+            ),
+            borderWidth: 2, borderRadius: 4,
+          }],
+        },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x} IBC` } } },
+          scales: {
+            x: { ticks: { color: '#a0aec0' }, grid: { color: 'rgba(74,85,104,0.3)' } },
+            y: { ticks: { color: '#e2e8f0', font: { size: 12 } }, grid: { color: 'rgba(74,85,104,0.3)' } },
+          },
+        },
+      });
+      return;
+    }
+
+    if (!this.poangfordelningData?.chart_data?.length) return;
 
     const items = this.poangfordelningData.chart_data;
     const labels = items.map(i => i.operator_namn);

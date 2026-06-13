@@ -34,6 +34,16 @@ export interface OperatorRank {
   stopptid_sek: number;
   streak: number;
   streak_bonus: number;
+  // Tvättlinje extras (optional)
+  skift_count?: number;
+  avg_ibc_per_skift?: number;
+}
+
+export interface TvattOpSammanfattning {
+  total_ibc: number;
+  aktiva_operatorer: number;
+  snitt_ibc_per_h: number;
+  basta_operator: { namn: string; ibc_per_h: number } | null;
 }
 
 export interface RankingData {
@@ -96,48 +106,50 @@ export interface ApiResponse<T> {
 
 @Injectable({ providedIn: 'root' })
 export class OperatorRankingService {
-  private api = `${environment.apiUrl}?action=operator-ranking`;
-
   constructor(private http: HttpClient) {}
 
-  getSammanfattning(period: string): Observable<ApiResponse<SammanfattningData> | null> {
-    return this.http.get<ApiResponse<SammanfattningData>>(
-      `${this.api}&run=sammanfattning&period=${period}`,
+  private action(line: 'rebotling' | 'tvattlinje'): string {
+    return `${environment.apiUrl}?action=${line === 'tvattlinje' ? 'tvattlinje-operator' : 'operator-ranking'}`;
+  }
+
+  getSammanfattning(period: string, line: 'rebotling' | 'tvattlinje' = 'rebotling'): Observable<any | null> {
+    return this.http.get<any>(
+      `${this.action(line)}&run=sammanfattning&period=${period}`,
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getRanking(period: string): Observable<ApiResponse<RankingData> | null> {
-    return this.http.get<ApiResponse<RankingData>>(
-      `${this.api}&run=ranking&period=${period}`,
+  getRanking(period: string, line: 'rebotling' | 'tvattlinje' = 'rebotling'): Observable<any | null> {
+    return this.http.get<any>(
+      `${this.action(line)}&run=ranking&period=${period}`,
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getTopplista(period: string): Observable<ApiResponse<TopplistaData> | null> {
-    return this.http.get<ApiResponse<TopplistaData>>(
-      `${this.api}&run=topplista&period=${period}`,
+  getTopplista(period: string, line: 'rebotling' | 'tvattlinje' = 'rebotling'): Observable<any | null> {
+    return this.http.get<any>(
+      `${this.action(line)}&run=topplista&period=${period}`,
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getPoangfordelning(period: string): Observable<ApiResponse<PoangFordelningData> | null> {
-    return this.http.get<ApiResponse<PoangFordelningData>>(
-      `${this.api}&run=poangfordelning&period=${period}`,
+  getPoangfordelning(period: string, line: 'rebotling' | 'tvattlinje' = 'rebotling'): Observable<any | null> {
+    return this.http.get<any>(
+      `${this.action(line)}&run=poangfordelning&period=${period}`,
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getHistorik(days: number = 90): Observable<ApiResponse<HistorikData> | null> {
     return this.http.get<ApiResponse<HistorikData>>(
-      `${this.api}&run=historik&days=${days}`,
+      `${environment.apiUrl}?action=operator-ranking&run=historik&days=${days}`,
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getMvp(typ: string): Observable<ApiResponse<MvpData> | null> {
     return this.http.get<ApiResponse<MvpData>>(
-      `${this.api}&run=mvp&typ=${typ}`,
+      `${environment.apiUrl}?action=operator-ranking&run=mvp&typ=${typ}`,
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
