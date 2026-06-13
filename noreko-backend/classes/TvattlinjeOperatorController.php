@@ -50,6 +50,7 @@ class TvattlinjeOperatorController {
             case 'sammanfattning':  $this->sammanfattning();  break;
             case 'topplista':       $this->topplista();       break;
             case 'poangfordelning': $this->poangfordelning(); break;
+            case 'mvp':             $this->mvp();             break;
             default:
                 $this->sendError('Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8'));
                 break;
@@ -111,16 +112,26 @@ class TvattlinjeOperatorController {
         $snittIbcH      = $aktivaOp > 0 && count($ibcPerHValues) > 0
             ? round(array_sum($ibcPerHValues) / count($ibcPerHValues), 1)
             : 0;
+        $poangValues    = array_column($rows, 'total_poang');
+        $snittPoang     = $aktivaOp > 0 ? round(array_sum($poangValues) / $aktivaOp, 1) : 0;
+        $hogstaPoang    = !empty($poangValues) ? max($poangValues) : 0;
+        // Rows already sorted by total_poang DESC
         $bastaOp = !empty($rows) ? $rows[0] : null;
 
         $result = [
             'success' => true,
             'data'    => [
-                'total_ibc'       => $totalIbc,
-                'aktiva_operatorer' => $aktivaOp,
-                'snitt_ibc_per_h' => $snittIbcH,
-                'basta_operator'  => $bastaOp
-                    ? ['namn' => $bastaOp['operator_namn'], 'ibc_per_h' => $bastaOp['ibc_per_h']]
+                'total_ibc'           => $totalIbc,
+                'aktiva_operatorer'   => $aktivaOp,
+                'snitt_ibc_per_h'     => $snittIbcH,
+                'snitt_poang'         => $snittPoang,
+                'hogsta_poang'        => $hogstaPoang,
+                'basta_operator'      => $bastaOp
+                    ? [
+                        'namn'        => $bastaOp['operator_namn'],
+                        'ibc_per_h'   => $bastaOp['ibc_per_h'],
+                        'total_poang' => $bastaOp['total_poang'],
+                    ]
                     : null,
             ],
             'period'  => $period,
@@ -197,6 +208,45 @@ class TvattlinjeOperatorController {
         echo json_encode($result, JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * MVP för perioden — bästa operatör enligt total_poang.
+     */
+    private function mvp(): void {
+        [$from, $to, $period] = $this->getDateRange();
+
+        $cacheKey = "tvatt_mvp_{$period}_{$from}_{$to}";
+        $cached = $this->cacheGet($cacheKey);
+        if ($cached !== null) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($cached, JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        $rows = $this->getRankingRows($from, $to);
+        $mvp  = !empty($rows) ? $rows[0] : null;
+
+        $result = [
+            'success' => true,
+            'data'    => $mvp
+                ? [
+                    'operator_id'    => $mvp['op_id'],
+                    'operator_namn'  => $mvp['operator_namn'],
+                    'total_poang'    => $mvp['total_poang'],
+                    'total_ibc'      => $mvp['total_ibc'],
+                    'ibc_per_h'      => $mvp['ibc_per_h'],
+                    'period'         => $period,
+                ]
+                : null,
+            'period'  => $period,
+            'from'    => $from,
+            'to'      => $to,
+        ];
+        $this->cacheSet($cacheKey, $result);
+
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($result, JSON_UNESCAPED_UNICODE);
+    }
+
     // ================================================================
     // CORE DATA LOGIC
     // ================================================================
@@ -254,9 +304,13 @@ class TvattlinjeOperatorController {
                 continue;
             }
 
-            $antalAktiva = count($aktiva);
-            $totalt      = (float)($s['totalt'] ?? 0);
-            $ibcPerOp    = $antalAktiva > 0 ? $totalt / $antalAktiva : 0;
+            $antalAktiva  = count($aktiva);
+            $totalt       = (float)($s['totalt'] ?? 0);
+            $antalOk      = (float)($s['antal_ok'] ?? 0);
+            $ibcPerOp     = $antalAktiva > 0 ? $totalt / $antalAktiva : 0;
+            $okPerOp      = $antalAktiva > 0 ? $antalOk / $antalAktiva : 0;
+            $stoppMin     = (float)($s['driftstopptime'] ?? 0);
+            $hadStopp     = $stoppMin > 0 ? 1 : 0;
 
             // drifttid antas vara i minuter (standard för tvattlinje)
             $drifttidMin = (float)($s['drifttid'] ?? 0);
@@ -267,15 +321,21 @@ class TvattlinjeOperatorController {
             foreach ($aktiva as $opId) {
                 if (!isset($opData[$opId])) {
                     $opData[$opId] = [
-                        'op_id'        => $opId,
-                        'total_ibc'    => 0.0,
-                        'skift_count'  => 0,
-                        'total_min'    => 0.0,
+                        'op_id'         => $opId,
+                        'total_ibc'     => 0.0,
+                        'ok_ibc'        => 0.0,
+                        'skift_count'   => 0,
+                        'total_min'     => 0.0,
+                        'stopp_min'     => 0.0,
+                        'antal_stopp'   => 0,
                     ];
                 }
                 $opData[$opId]['total_ibc']   += $ibcPerOp;
-                $opData[$opId]['skift_count']  += 1;
-                $opData[$opId]['total_min']    += $nettotimMin;
+                $opData[$opId]['ok_ibc']      += $okPerOp;
+                $opData[$opId]['skift_count'] += 1;
+                $opData[$opId]['total_min']   += $nettotimMin;
+                $opData[$opId]['stopp_min']   += $stoppMin;
+                $opData[$opId]['antal_stopp'] += $hadStopp;
             }
         }
 
@@ -299,27 +359,75 @@ class TvattlinjeOperatorController {
             error_log('TvattlinjeOperatorController::getRankingRows namn-lookup: ' . $e->getMessage());
         }
 
-        // Bygg slutlig lista
+        // Beräkna snitt IBC/h för tempobonus
+        $totalIbcAll = 0.0;
+        $totalTimmAll = 0.0;
+        foreach ($opData as $d) {
+            $totalIbcAll  += $d['total_ibc'];
+            $totalTimmAll += $d['total_min'] / 60.0;
+        }
+        $avgIbcPerH = $totalTimmAll > 0 ? ($totalIbcAll / $totalTimmAll) : 1.0;
+
+        // Bygg slutlig lista med poäng/bonus (samma formel som Rebotling)
         $result = [];
         foreach ($opData as $opId => $d) {
-            $totalIbc       = round($d['total_ibc']);
+            $totalIbc       = (float)$d['total_ibc'];
+            $okIbc          = (float)$d['ok_ibc'];
             $skiftCount     = $d['skift_count'];
             $avgIbcPerSkift = $skiftCount > 0 ? round($totalIbc / $skiftCount, 1) : 0;
             $totalTimmar    = $d['total_min'] / 60.0;
             $ibcPerH        = $totalTimmar > 0 ? round($totalIbc / $totalTimmar, 1) : 0.0;
+            $antalStopp     = $d['antal_stopp'];
+            $stoppMin       = $d['stopp_min'];
+            $stoppSek       = $stoppMin * 60;
+            $skiftSek       = $skiftCount * 8 * 3600; // 8h per skift
+
+            // Produktionspoäng: 10 per IBC
+            $produktionsPoang = $totalIbc * 10;
+
+            // Kvalitetsbonus: (% godkända - 90) × 5, max 50
+            $okPct        = $totalIbc > 0 ? ($okIbc / $totalIbc * 100) : 0;
+            $kvalBonus    = max(0.0, min(50.0, ($okPct - 90) * 5));
+
+            // Tempobonus: om IBC/h > snitt
+            $tempoBonus = 0.0;
+            if ($ibcPerH > $avgIbcPerH && $avgIbcPerH > 0) {
+                $tempoBonus = round(($ibcPerH - $avgIbcPerH) * 20, 1);
+            }
+
+            // Stoppbonus
+            $stoppBonus = 0;
+            if ($antalStopp === 0 && $totalIbc > 0) {
+                $stoppBonus = 50;
+            } elseif ($skiftSek > 0 && ($stoppSek / $skiftSek) < 0.10) {
+                $stoppBonus = 30;
+            }
+
+            $totalBonus  = round($kvalBonus + $tempoBonus + $stoppBonus, 1);
+            $totalPoang  = round($produktionsPoang + $totalBonus, 1);
 
             $result[] = [
-                'op_id'              => $opId,
-                'operator_namn'      => $namn[$opId] ?? ('Operator ' . $opId),
-                'total_ibc'          => (int)$totalIbc,
-                'skift_count'        => $skiftCount,
-                'avg_ibc_per_skift'  => $avgIbcPerSkift,
-                'ibc_per_h'          => $ibcPerH,
+                'op_id'             => $opId,
+                'operator_namn'     => $namn[$opId] ?? ('Operator ' . $opId),
+                'total_ibc'         => (int)round($totalIbc),
+                'ok_ibc'            => (int)round($okIbc),
+                'ok_pct'            => round($okPct, 1),
+                'skift_count'       => $skiftCount,
+                'avg_ibc_per_skift' => $avgIbcPerSkift,
+                'ibc_per_h'         => $ibcPerH,
+                'produktions_poang' => (int)round($produktionsPoang),
+                'kvalitets_bonus'   => round($kvalBonus, 1),
+                'tempo_bonus'       => round($tempoBonus, 1),
+                'stopp_bonus'       => $stoppBonus,
+                'total_bonus'       => $totalBonus,
+                'total_poang'       => $totalPoang,
+                'antal_stopp'       => $antalStopp,
+                'streak'            => 0,
             ];
         }
 
-        // Sortera på total_ibc DESC
-        usort($result, fn($a, $b) => $b['total_ibc'] <=> $a['total_ibc']);
+        // Sortera på total_poang DESC (samma som Rebotling)
+        usort($result, fn($a, $b) => $b['total_poang'] <=> $a['total_poang']);
 
         return $result;
     }

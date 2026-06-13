@@ -115,9 +115,9 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
     this.loadTopplista();
     this.loadRanking();
     this.loadPoangfordelning();
+    this.loadMvp();
     if (this.line === 'rebotling') {
       this.loadHistorik();
-      this.loadMvp();
     }
   }
 
@@ -125,13 +125,9 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
 
   get lineName(): string { return this.line === 'tvattlinje' ? 'Tvättlinje' : 'Rebotling'; }
 
-  podiumPrimary(entry: any): number {
-    return this.line === 'tvattlinje' ? entry.total_ibc : entry.total_poang;
-  }
-  podiumPrimaryLabel(): string { return this.line === 'tvattlinje' ? 'IBC' : 'poäng'; }
-  podiumSecondary(entry: any): string {
-    return this.line === 'tvattlinje' ? `${entry.ibc_per_h} IBC/h` : `${entry.total_ibc} IBC`;
-  }
+  podiumPrimary(entry: any): number { return entry.total_poang; }
+  podiumPrimaryLabel(): string { return 'poäng'; }
+  podiumSecondary(entry: any): string { return `${entry.total_ibc} IBC`; }
 
   // ---- Helpers ----
 
@@ -207,10 +203,15 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
           this.topplistaData = {
             topplista: rows.map((e, i) => ({
               rank: i + 1, user_id: e.op_id ?? 0, operator_namn: e.operator_namn,
-              total_ibc: e.total_ibc, ok_ibc: e.total_ibc, ok_pct: 0,
-              ibc_per_h: e.ibc_per_h ?? 0, produktions_poang: 0, kvalitets_bonus: 0,
-              tempo_bonus: 0, stopp_bonus: 0, total_bonus: 0, total_poang: e.total_ibc,
-              antal_stopp: 0, stopptid_sek: 0, streak: 0, streak_bonus: 0,
+              total_ibc: e.total_ibc, ok_ibc: e.ok_ibc ?? e.total_ibc, ok_pct: e.ok_pct ?? 0,
+              ibc_per_h: e.ibc_per_h ?? 0,
+              produktions_poang: e.produktions_poang ?? 0,
+              kvalitets_bonus: e.kvalitets_bonus ?? 0,
+              tempo_bonus: e.tempo_bonus ?? 0,
+              stopp_bonus: e.stopp_bonus ?? 0,
+              total_bonus: e.total_bonus ?? 0,
+              total_poang: e.total_poang ?? 0,
+              antal_stopp: e.antal_stopp ?? 0, stopptid_sek: 0, streak: e.streak ?? 0, streak_bonus: 0,
               skift_count: e.skift_count, avg_ibc_per_skift: e.avg_ibc_per_skift,
             })),
             period: res.period ?? '', from_date: res.from ?? '', to_date: res.to ?? '',
@@ -235,10 +236,15 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
           this.rankingData = {
             ranking: rows.map((e, i) => ({
               rank: i + 1, user_id: e.op_id ?? 0, operator_namn: e.operator_namn,
-              total_ibc: e.total_ibc, ok_ibc: e.total_ibc, ok_pct: 0,
-              ibc_per_h: e.ibc_per_h ?? 0, produktions_poang: 0, kvalitets_bonus: 0,
-              tempo_bonus: 0, stopp_bonus: 0, total_bonus: 0, total_poang: e.total_ibc,
-              antal_stopp: 0, stopptid_sek: 0, streak: 0, streak_bonus: 0,
+              total_ibc: e.total_ibc, ok_ibc: e.ok_ibc ?? e.total_ibc, ok_pct: e.ok_pct ?? 0,
+              ibc_per_h: e.ibc_per_h ?? 0,
+              produktions_poang: e.produktions_poang ?? 0,
+              kvalitets_bonus: e.kvalitets_bonus ?? 0,
+              tempo_bonus: e.tempo_bonus ?? 0,
+              stopp_bonus: e.stopp_bonus ?? 0,
+              total_bonus: e.total_bonus ?? 0,
+              total_poang: e.total_poang ?? 0,
+              antal_stopp: e.antal_stopp ?? 0, stopptid_sek: 0, streak: e.streak ?? 0, streak_bonus: 0,
               skift_count: e.skift_count, avg_ibc_per_skift: e.avg_ibc_per_skift,
             })),
             period: res.period ?? '', from_date: res.from ?? '', to_date: res.to ?? '',
@@ -291,7 +297,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   private loadMvp(): void {
     this.loadingMvp = true;
     this.errorMvp = false;
-    this.svc.getMvp(this.mvpTyp).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getMvp(this.mvpTyp, this.line).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingMvp = false;
       if (res?.success) {
         this.mvpData = res.data;

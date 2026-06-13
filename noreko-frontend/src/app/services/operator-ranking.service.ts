@@ -43,7 +43,9 @@ export interface TvattOpSammanfattning {
   total_ibc: number;
   aktiva_operatorer: number;
   snitt_ibc_per_h: number;
-  basta_operator: { namn: string; ibc_per_h: number } | null;
+  snitt_poang?: number;
+  hogsta_poang?: number;
+  basta_operator: { namn: string; ibc_per_h: number; total_poang?: number } | null;
 }
 
 export interface RankingData {
@@ -147,7 +149,13 @@ export class OperatorRankingService {
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getMvp(typ: string): Observable<ApiResponse<MvpData> | null> {
+  getMvp(typ: string, line: 'rebotling' | 'tvattlinje' = 'rebotling'): Observable<ApiResponse<MvpData> | null> {
+    if (line === 'tvattlinje') {
+      return this.http.get<ApiResponse<MvpData>>(
+        `${this.action('tvattlinje')}&run=mvp&period=${typ}`,
+        { withCredentials: true }
+      ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
+    }
     return this.http.get<ApiResponse<MvpData>>(
       `${environment.apiUrl}?action=operator-ranking&run=mvp&typ=${typ}`,
       { withCredentials: true }
