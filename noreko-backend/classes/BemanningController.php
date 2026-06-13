@@ -286,7 +286,6 @@ class BemanningController {
         $totalEstimated = 0.0;
 
         for ($pos = 1; $pos <= 3; $pos++) {
-            $best     = null;
             $bestScore = -1.0;
             $bestOpId  = null;
 
