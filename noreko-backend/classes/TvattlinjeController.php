@@ -545,6 +545,20 @@ class TvattlinjeController {
             } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getLiveStats dagmal: ' . $e->getMessage());
             }
+            // Veckodagsmål override (samma logik som getTodaySnapshot)
+            try {
+                $this->ensureWeekdayGoalsTable();
+                $tz  = new \DateTimeZone('Europe/Stockholm');
+                $isoDay = (int)(new \DateTime('now', $tz))->format('N') - 1; // 0=Måndag
+                $wg = $this->pdo->prepare("SELECT mal FROM tvattlinje_weekday_goals WHERE weekday = ?");
+                $wg->execute([$isoDay]);
+                $wgRow = $wg->fetch(\PDO::FETCH_ASSOC);
+                if ($wgRow && (int)$wgRow['mal'] > 0) {
+                    $ibcTarget = (int)$wgRow['mal'];
+                }
+            } catch (\Throwable $e) {
+                error_log('TvattlinjeController::getLiveStats weekdayGoal: ' . $e->getMessage());
+            }
 
             // Beräkna hourlyTarget baserat på 8 timmars arbetstid
             $hourlyTarget = $ibcTarget / 8;
