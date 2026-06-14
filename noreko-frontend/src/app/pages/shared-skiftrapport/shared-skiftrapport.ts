@@ -220,7 +220,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   private _computeEfficiencyPct(r: any): number | null {
     const totalt   = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
-    const netMin   = Math.max(0, (r.drifttid || 0) - (r.rasttime || 0));
+    const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600) - (r.rasttime || 0));
     if (totalt <= 0 || netMin <= 0) return null;
     const actualCycle = netMin / totalt;
     const product     = this.products.find((p: any) => p.id === (r.product_id ?? null));
@@ -439,7 +439,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     let totalNettoMin = 0;
     for (const r of reports) {
       const totalt   = (r.totalt || 0) || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
-      const netMin   = Math.max(0, Math.min(r.drifttid || 0, 1440) - (r.rasttime || 0));
+      const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600) - (r.rasttime || 0));
       if (totalt <= 0 || netMin <= 0) continue;
       const product     = this.products.find((p: any) => p.id === (r.product_id ?? null));
       const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
