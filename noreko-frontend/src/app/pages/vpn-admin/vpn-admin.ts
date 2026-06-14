@@ -60,7 +60,7 @@ export class VpnAdminPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe(val => {
       this.user = val;
-      this.isAdmin = val?.role === 'admin';
+      this.isAdmin = val?.role === 'admin' || val?.role === 'developer';
 
       if (!this.isAdmin) {
         this.router.navigate(['/']);

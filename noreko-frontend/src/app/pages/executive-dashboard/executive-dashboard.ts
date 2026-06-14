@@ -96,7 +96,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
-      this.isAdmin = val?.role === 'admin';
+      this.isAdmin = val?.role === 'admin' || val?.role === 'developer';
     });
   }
 

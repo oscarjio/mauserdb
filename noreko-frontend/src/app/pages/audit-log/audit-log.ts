@@ -72,7 +72,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
       this.user = val;
       const wasAdmin = this.isAdmin;
-      this.isAdmin = val?.role === 'admin';
+      this.isAdmin = val?.role === 'admin' || val?.role === 'developer';
       if (this.isAdmin && !wasAdmin) {
         this.loadLogs();
         this.loadAvailableActions();

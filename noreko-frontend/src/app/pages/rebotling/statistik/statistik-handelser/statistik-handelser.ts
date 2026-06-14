@@ -23,7 +23,7 @@ export class StatistikHandelserComponent implements OnInit, OnDestroy {
   eventsAdminSaving: boolean = false;
   private destroy$ = new Subject<void>();
   constructor(private rebotlingService: RebotlingService, private auth: AuthService) {}
-  ngOnInit() { this.auth.user$.pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(val => { this.isAdmin = val?.role === 'admin'; }); this.loadProductionEvents(); }
+  ngOnInit() { this.auth.user$.pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(val => { this.isAdmin = val?.role === 'admin' || val?.role === 'developer'; }); this.loadProductionEvents(); }
   ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
 
   eventColor(type: string): string { const colors: Record<string, string> = { underhall: '#f97316', ny_operator: '#3b82f6', mal_andring: '#a855f7', rekord: '#eab308', ovrigt: '#6b7280' }; return colors[type] ?? '#6b7280'; }

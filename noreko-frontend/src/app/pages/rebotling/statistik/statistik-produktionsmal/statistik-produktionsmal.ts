@@ -54,7 +54,7 @@ export class StatistikProduktionsmalComponent implements OnInit, AfterViewInit, 
     this.authService.user$.pipe(
       takeUntil(this.destroy$)
     ).subscribe((user) => {
-      this.isAdmin = user?.role === 'admin';
+      this.isAdmin = user?.role === 'admin' || user?.role === 'developer';
     });
 
     // Auto-refresh var 60:e sekund

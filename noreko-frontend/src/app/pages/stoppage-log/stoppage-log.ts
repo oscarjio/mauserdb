@@ -262,7 +262,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
       this.user = val;
-      this.isAdmin = val?.role === 'admin';
+      this.isAdmin = val?.role === 'admin' || val?.role === 'developer';
     });
 
     // Read query params for pre-fill (from QR code scan)

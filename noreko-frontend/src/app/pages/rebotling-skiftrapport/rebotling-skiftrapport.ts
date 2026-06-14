@@ -149,7 +149,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
       this.user = user;
-      this.isAdmin = user?.role === 'admin';
+      this.isAdmin = user?.role === 'admin' || user?.role === 'developer';
     });
     this.fetchReports();
     this.fetchProducts();

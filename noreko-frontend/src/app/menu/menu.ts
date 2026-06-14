@@ -237,7 +237,7 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   loadVpnStatus() {
-    if (!this.loggedIn || this.user?.role !== 'admin') {
+    if (!this.loggedIn || (this.user?.role !== 'admin' && this.user?.role !== 'developer')) {
       return;
     }
     if (this.isFetchingVpn) return;

@@ -128,7 +128,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(v => this.loggedIn = v);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(u => {
       this.user = u;
-      this.isAdmin = u?.role === 'admin';
+      this.isAdmin = u?.role === 'admin' || u?.role === 'developer';
     });
     this.fetchReports();
     this.loadOperatorsAndProducts();

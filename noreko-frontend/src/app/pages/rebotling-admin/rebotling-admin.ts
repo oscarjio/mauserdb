@@ -230,7 +230,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user    = val;
-      this.isAdmin = val?.role === 'admin';
+      this.isAdmin = val?.role === 'admin' || val?.role === 'developer';
     });
   }
 

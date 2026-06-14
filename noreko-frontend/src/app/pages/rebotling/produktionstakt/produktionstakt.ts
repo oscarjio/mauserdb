@@ -52,7 +52,7 @@ export class ProduktionsTaktPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.authService.user$.pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(user => {
-      this.isAdmin = user?.role === 'admin';
+      this.isAdmin = user?.role === 'admin' || user?.role === 'developer';
     });
 
     this.fetchAll();

@@ -130,7 +130,7 @@ export class News implements OnInit, OnDestroy {
       }
     });
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: AuthUser | null | undefined) => {
-      this.isAdmin = val?.role === 'admin';
+      this.isAdmin = val?.role === 'admin' || val?.role === 'developer';
     });
   }
 

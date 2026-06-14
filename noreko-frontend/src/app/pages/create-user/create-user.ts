@@ -57,7 +57,7 @@ export class CreateUserPage implements OnInit, OnDestroy, ComponentCanDeactivate
       switchMap(() => this.auth.user$),
       takeUntil(this.destroy$)
     ).subscribe(user => {
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'developer')) {
         this.router.navigate(['/']);
       }
     });

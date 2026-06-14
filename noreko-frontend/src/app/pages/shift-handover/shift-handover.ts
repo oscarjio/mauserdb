@@ -153,7 +153,7 @@ export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit, Comp
 
   canDelete(note: HandoverNote): boolean {
     if (!this.currentUser) return false;
-    if (this.currentUser.role === 'admin') return true;
+    if (this.currentUser.role === 'admin' || this.currentUser.role === 'developer') return true;
     if (note.created_by_user_id !== null && note.created_by_user_id === this.currentUser.id) return true;
     return false;
   }

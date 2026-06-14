@@ -433,7 +433,7 @@
                   <th scope="col">Varaktighet</th>
                   <th scope="col">Maskin</th>
                   <th scope="col">Kommentar</th>
-                  <th scope="col" *ngIf="loggedIn && user?.role === 'admin'"></th>
+                  <th scope="col" *ngIf="loggedIn && (user?.role === 'admin' || user?.role === 'developer')"></th>
                 </tr>
               </thead>
               <tbody>
@@ -449,7 +449,7 @@
                   <td class="td-tid">{{ formatTid(post.varaktighet_min) }}</td>
                   <td class="td-maskin">{{ post.maskin }}</td>
                   <td class="td-kommentar">{{ post.kommentar || '' }}</td>
-                  <td *ngIf="loggedIn && user?.role === 'admin'" class="td-actions">
+                  <td *ngIf="loggedIn && (user?.role === 'admin' || user?.role === 'developer')" class="td-actions">
                     <button class="btn-delete" (click)="deleteLegacy(post)" [disabled]="deletingId === post.id" title="Ta bort">
                       <span *ngIf="deletingId === post.id" role="status" class="spinner-border spinner-border-sm"></span>
                       <i *ngIf="deletingId !== post.id" class="fas fa-trash-alt"></i>

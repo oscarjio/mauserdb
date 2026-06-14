@@ -51,7 +51,7 @@ export class UsersPage implements OnInit, OnDestroy {
       switchMap(() => this.auth.user$),
       takeUntil(this.destroy$)
     ).subscribe(user => {
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'developer')) {
         this.router.navigate(['/']);
       }
     });

@@ -80,7 +80,7 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
-      if (!user || user.role !== 'admin') {
+      if (!user || (user.role !== 'admin' && user.role !== 'developer')) {
         this.router.navigate(['/']);
       }
     });
