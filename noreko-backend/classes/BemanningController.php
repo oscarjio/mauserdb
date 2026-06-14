@@ -76,7 +76,7 @@ class BemanningController {
                         (CASE WHEN op1 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN op2 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN op3 > 0 THEN 1 ELSE 0 END)) AS ibc_share,
-                    GREATEST(1, LEAST(drifttid, 1440)) AS drifttid
+                    GREATEST(1, LEAST(drifttid, 600)) AS drifttid
                 FROM tvattlinje_skiftrapport
                 WHERE datum >= :from1 AND op1 > 0 AND totalt > 0
                 UNION ALL
@@ -86,7 +86,7 @@ class BemanningController {
                         (CASE WHEN op1 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN op2 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN op3 > 0 THEN 1 ELSE 0 END)),
-                    GREATEST(1, LEAST(drifttid, 1440))
+                    GREATEST(1, LEAST(drifttid, 600))
                 FROM tvattlinje_skiftrapport
                 WHERE datum >= :from2 AND op2 > 0 AND totalt > 0
                 UNION ALL
@@ -96,7 +96,7 @@ class BemanningController {
                         (CASE WHEN op1 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN op2 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN op3 > 0 THEN 1 ELSE 0 END)),
-                    GREATEST(1, LEAST(drifttid, 1440))
+                    GREATEST(1, LEAST(drifttid, 600))
                 FROM tvattlinje_skiftrapport
                 WHERE datum >= :from3 AND op3 > 0 AND totalt > 0
             ) sub
@@ -374,7 +374,7 @@ class BemanningController {
                 FROM tvattlinje_skiftrapport
                 WHERE datum >= :from AND totalt > 0 AND drifttid > 0
                 GROUP BY COALESCE(op1, 0), COALESCE(op2, 0), COALESCE(op3, 0)
-                HAVING COUNT(*) >= 3
+                HAVING COUNT(*) >= 2
                 ORDER BY snitt_ibc_per_h DESC
                 LIMIT 20
             ";
