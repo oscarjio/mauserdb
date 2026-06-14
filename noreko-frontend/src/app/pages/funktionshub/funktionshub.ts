@@ -41,6 +41,7 @@ const CATEGORIES: HubCategory[] = [
       { route: '/rebotling/historisk-sammanfattning', label: 'Historisk sammanfattning', icon: 'fas fa-chart-bar', featureKey: 'rebotling/historisk-sammanfattning', description: 'Sammanfattning av historisk data' },
       { route: '/rebotling/rebotling-trendanalys', label: 'Trendanalys', icon: 'fas fa-chart-line', featureKey: 'rebotling/rebotling-trendanalys', description: 'Identifiera trender i produktionsdata' },
       { route: '/rebotling/benchmarking', label: 'Benchmarking', icon: 'fas fa-trophy', featureKey: 'rebotling/benchmarking', description: 'Jämför perioder och skift' },
+      { route: '/rebotling/historik', label: 'Historisk jämförelse', icon: 'fas fa-history', featureKey: 'rebotling/historik', description: 'Jämför historiska perioder' },
     ]
   },
   {
@@ -71,6 +72,7 @@ const CATEGORIES: HubCategory[] = [
       { route: '/rebotling/stopptidsanalys', label: 'Stopptidsanalys', icon: 'fas fa-stopwatch', featureKey: 'rebotling/stopptidsanalys', description: 'Analysera stopptider i detalj' },
       { route: '/rebotling/pareto', label: 'Pareto-analys', icon: 'fas fa-chart-bar', featureKey: 'rebotling/pareto', description: '80/20-analys av stopporsaker' },
       { route: '/rebotling/avvikelselarm', label: 'Avvikelselarm', icon: 'fas fa-exclamation-triangle', featureKey: 'rebotling/avvikelselarm', description: 'Automatiska avvikelselarm' },
+      { route: '/rebotling/stopporsak-registrering', label: 'Registrera stopp', icon: 'fas fa-stop-circle', featureKey: 'rebotling/stopporsak-registrering', description: 'Registrera en stopporsak manuellt' },
     ]
   },
   {
@@ -81,6 +83,7 @@ const CATEGORIES: HubCategory[] = [
       { route: '/rebotling/operator-dashboard', label: 'Min statistik', icon: 'fas fa-id-badge', featureKey: 'rebotling/operator-dashboard', description: 'Personlig statistik-dashboard' },
       { route: '/min-bonus', label: 'Min Bonus', icon: 'fas fa-star', featureKey: 'min-bonus', description: 'Se din aktuella bonus' },
       { route: '/rebotling/operator-ranking', label: 'Ranking', icon: 'fas fa-trophy', featureKey: 'rebotling/operator-ranking', description: 'Operatörsranking idag' },
+      { route: '/rebotling/live-ranking', label: 'Topplista (live)', icon: 'fas fa-trophy', featureKey: 'rebotling/live-ranking', description: 'Live-ranking av operatörer' },
       { route: '/rebotling/ranking-historik', label: 'Ranking-historik', icon: 'fas fa-trophy', featureKey: 'rebotling/ranking-historik', description: 'Historisk ranking över tid' },
       { route: '/rebotling/operator-jamforelse', label: 'Operatörsjämförelse', icon: 'fas fa-users', featureKey: 'rebotling/operator-jamforelse', description: 'Jämför operatörsprestanda' },
       { route: '/rebotling/operators-prestanda', label: 'Operatörs-prestanda', icon: 'fas fa-users', featureKey: 'rebotling/operators-prestanda', description: 'Detaljerad prestandavy' },
@@ -119,6 +122,7 @@ const CATEGORIES: HubCategory[] = [
       { route: '/rebotling/skiftjamforelse', label: 'Skiftjämförelse', icon: 'fas fa-people-arrows', featureKey: 'rebotling/skiftjamforelse', description: 'Jämför prestanda mellan skift' },
       { route: '/rebotling/malhistorik', label: 'Målhistorik', icon: 'fas fa-bullseye', featureKey: 'rebotling/malhistorik', description: 'Historik för produktionsmål' },
       { route: '/rebotling/alarm-historik', label: 'Alarm-historik', icon: 'fas fa-bell', featureKey: 'rebotling/alarm-historik', description: 'Historik över utlösta larm' },
+      { route: '/rebotling/skiftoverlamning', label: 'Skiftöverlämning v2', icon: 'fas fa-clipboard-check', featureKey: 'rebotling/skiftoverlamning', description: 'Skiftöverlämning med checklista' },
     ]
   },
   {
@@ -135,6 +139,8 @@ const CATEGORIES: HubCategory[] = [
       { route: '/rebotling/kalender', label: 'Produktionskalender', icon: 'fas fa-calendar-alt', featureKey: 'rebotling/kalender', description: 'Kalendervy med produktionsdata' },
       { route: '/rebotling/prognos', label: 'Leveransprognos', icon: 'fas fa-chart-line', featureKey: 'rebotling/prognos', description: 'Prognos för leveranser' },
       { route: '/rebotling/skiftplanering', label: 'Skiftplanering', icon: 'fas fa-calendar-alt', featureKey: 'rebotling/skiftplanering', description: 'Planera och hantera skift' },
+      { route: '/rebotling/andon', label: 'Andon-tavla', icon: 'fas fa-tv', featureKey: 'rebotling/andon', description: 'Digital signaltavla för störningar' },
+      { route: '/rebotling/andon-board', label: 'Fabriksskärm', icon: 'fas fa-desktop', featureKey: 'rebotling/andon-board', description: 'Stor fabriksskärm med live-data' },
     ]
   },
 ];
