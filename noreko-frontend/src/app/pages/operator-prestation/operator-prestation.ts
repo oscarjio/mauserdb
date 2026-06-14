@@ -57,6 +57,7 @@ export class OperatorPrestationPage implements OnInit {
       label: 'Ranking & Jämförelse',
       tools: [
         { title: 'Operatörsranking', desc: 'Ranking på IBC/h vs teamsnitt', route: '/rebotling/operator-scores', icon: 'fas fa-star', color: '#68d391' },
+        { title: 'Poängranking', desc: 'Sammansatt poängranking — fart, trend, mångsidighet, kassation', route: '/rebotling/operator-ranking', icon: 'fas fa-trophy', color: '#4299e1' },
         { title: 'Periodanalys A/B', desc: 'Jämför två perioder sida vid sida', route: '/rebotling/operator-analys', icon: 'fas fa-balance-scale', color: '#63b3ed' },
         { title: 'Operatörsjämförelse', desc: 'Jämför valfria operatörer', route: '/rebotling/operator-compare', icon: 'fas fa-exchange-alt', color: '#63b3ed' },
         { title: 'Schemaläggningsmatris', desc: 'Bästa operatör per position', route: '/rebotling/operator-matcher', icon: 'fas fa-th', color: '#63b3ed' },

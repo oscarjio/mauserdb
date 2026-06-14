@@ -262,12 +262,7 @@
           </li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Operatörsanalys</li>
-          <li *ngIf="ff.canAccess('admin/operator-dashboard')"><a class="dropdown-item" routerLink="/admin/operator-dashboard"><i class="fas fa-users-cog me-2"></i>Operatörsdashboard</a></li>
-          <li *ngIf="ff.canAccess('admin/operator-compare')"><a class="dropdown-item" routerLink="/admin/operator-compare"><i class="fas fa-exchange-alt me-2"></i>Operatörsjämförelse</a></li>
-          <li *ngIf="ff.canAccess('admin/operator-attendance')"><a class="dropdown-item" routerLink="/admin/operator-attendance"><i class="fas fa-calendar-check me-2"></i>Närvaro</a></li>
-          <li *ngIf="ff.canAccess('admin/operator-trend')"><a class="dropdown-item" routerLink="/admin/operator-trend"><i class="fas fa-chart-line me-2"></i>Prestanda-trend</a></li>
-          <li *ngIf="ff.canAccess('admin/kvalitetstrend')"><a class="dropdown-item" routerLink="/admin/kvalitetstrend"><i class="fas fa-star-half-alt me-2" style="color:#4299e1;"></i>Kvalitetstrend</a></li>
-          <li *ngIf="ff.canAccess('admin/stopporsak-trend')"><a class="dropdown-item" routerLink="/admin/stopporsak-trend"><i class="fas fa-chart-bar me-2" style="color:#ed8936;"></i>Stopporsak-trend</a></li>
+          <li><a class="dropdown-item" routerLink="/admin/operatorsanalys"><i class="fas fa-users-cog me-2"></i>Operatörsanalys</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">System</li>
           <li *ngIf="ff.canAccess('admin/underhall')"><a class="dropdown-item" routerLink="/admin/underhall"><i class="fas fa-tools me-2"></i>Underhållslogg</a></li>
@@ -276,10 +271,8 @@
           <li *ngIf="ff.canAccess('admin/news')"><a class="dropdown-item" routerLink="/admin/news"><i class="fas fa-newspaper me-2"></i>Nyheter</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Operator-verktyg</li>
-          <li *ngIf="ff.canAccess('tvattlinje/operator-ranking')"><a class="dropdown-item" routerLink="/tvattlinje/operator-ranking"><i class="fas fa-medal me-2" style="color:#68d391"></i>Tvättlinje IBC/h Ranking</a></li>
           <li *ngIf="ff.canAccess('tvattlinje/operator-prestation')"><a class="dropdown-item" routerLink="/tvattlinje/operator-prestation"><i class="fas fa-chart-line me-2" style="color:#68d391"></i>Tvättlinje Operatörsprestation</a></li>
-          <li *ngIf="ff.canAccess('rebotling/operator-scores')"><a class="dropdown-item" routerLink="/rebotling/operator-scores"><i class="fas fa-medal me-2" style="color:#4299e1"></i>Rebotling IBC/h Ranking</a></li>
-          <li *ngIf="ff.canAccess('rebotling/operator-ranking')"><a class="dropdown-item" routerLink="/rebotling/operator-ranking"><i class="fas fa-trophy me-2" style="color:#4299e1"></i>Rebotling Poängranking</a></li>
+          <li *ngIf="ff.canAccess('rebotling/operator-ranking')"><a class="dropdown-item" routerLink="/rebotling/operator-prestation"><i class="fas fa-chart-line me-2" style="color:#4299e1"></i>Rebotling Operatörsprestation</a></li>
           <li *ngIf="ff.canAccess('bemanning-optimerare')"><a class="dropdown-item" routerLink="/bemanning-optimerare"><i class="fas fa-users-cog me-2" style="color:#ed8936"></i>Bemanning-optimerare</a></li>
           <li><hr class="dropdown-divider"></li>
           <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Utveckling</li>

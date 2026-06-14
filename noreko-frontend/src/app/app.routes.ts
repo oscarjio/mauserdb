@@ -252,6 +252,7 @@ export const routes: Routes = [
       { path: 'admin/operator-trend', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-trend/operator-trend').then(m => m.OperatorTrendPage) },
       { path: 'admin/kvalitetstrend', canActivate: [adminGuard], loadComponent: () => import('./pages/kvalitetstrend/kvalitetstrend').then(m => m.KvalitetstrendComponent) },
       { path: 'admin/stopporsak-trend', canActivate: [adminGuard], loadComponent: () => import('./pages/stopporsak-trend/stopporsak-trend').then(m => m.StopporsakTrendComponent) },
+      { path: 'admin/operatorsanalys', canActivate: [adminGuard], loadComponent: () => import('./pages/operatorsanalys-hub/operatorsanalys-hub').then(m => m.OperatorsanalysHubPage) },
       { path: 'admin/operator/:id', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-detail/operator-detail').then(m => m.OperatorDetailPage) },
       { path: 'admin/underhall', canActivate: [adminGuard], loadComponent: () => import('./pages/maintenance-log/maintenance-log').then(m => m.MaintenanceLogPage) },
       { path: 'admin/feature-flags', canActivate: [adminGuard], canDeactivate: [pendingChangesGuard], loadComponent: () => import('./pages/feature-flag-admin/feature-flag-admin').then(m => m.FeatureFlagAdminPage) },
