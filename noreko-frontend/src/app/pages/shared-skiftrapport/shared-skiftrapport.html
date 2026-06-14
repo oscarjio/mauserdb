@@ -334,13 +334,13 @@
                   [checked]="selectedIds.size === filteredReports.length && filteredReports.length > 0"
                   (change)="toggleSelectAll()" />
               </th>
-              <th>DATUM</th>
-              <th class="text-center">SKIFT</th>
+              <th>Datum</th>
+              <th class="d-none d-md-table-cell">Produkter</th>
+              <th class="d-none d-md-table-cell">Operatörer</th>
               <th class="text-center">IBC</th>
               <th class="text-center" title="Effektivitet: målcykeltid / faktisk cykeltid × 100">EFF%</th>
-              <th class="d-none d-lg-table-cell">DRIFTTID</th>
-              <th class="d-none d-md-table-cell">OPERATÖRER</th>
-              <th class="d-none d-md-table-cell">PRODUKTER</th>
+              <th class="d-none d-lg-table-cell">Drifttid</th>
+              <th class="text-center">Skift</th>
               <th></th>
             </tr>
           </thead>
@@ -357,15 +357,13 @@
                 <td class="fw-semibold text-info" data-label="Datum">
                   <i class="fas fa-calendar-day me-2 text-muted" style="font-size:.8rem;"></i>{{ day.date }}
                 </td>
-                <td class="text-center" data-label="Skift">
-                  <span class="badge bg-secondary">{{ day.submittedCount > 0 ? 1 : 0 }} skift</span>
-                  <span *ngIf="day.submittedCount > 1" class="badge bg-warning text-dark ms-1" style="font-size:.72rem;" title="{{ day.submittedCount }} PLC-rapporter slogs ihop till ett skift">⚠ {{ day.submittedCount }} poster</span>
-                  <span *ngIf="day.hasPreliminary" class="badge bg-warning text-dark ms-1" style="font-size:.72rem;">
-                    <i class="fas fa-circle fa-beat me-1" style="font-size:.6rem;"></i>Pågående
-                  </span>
-                  <span *ngIf="day.unreportedCount > 0" class="badge bg-danger ms-1" style="font-size:.72rem;">
-                    {{ day.unreportedCount }} ej inskickad{{ day.unreportedCount > 1 ? 'a' : '' }}
-                  </span>
+                <td class="d-none d-md-table-cell">
+                  <span *ngFor="let prod of day.products" class="badge bg-secondary me-1">{{ prod }}</span>
+                  <span *ngIf="day.products.length === 0" class="text-muted">–</span>
+                </td>
+                <td class="d-none d-md-table-cell">
+                  <span *ngFor="let op of day.operators" class="badge bg-dark me-1">{{ op }}</span>
+                  <span *ngIf="day.operators.length === 0" class="text-muted">–</span>
                 </td>
                 <td class="text-center fw-semibold text-success" data-label="IBC">
                   {{ day.totalIbc }}
@@ -383,13 +381,15 @@
                   {{ day.totalDrift > 0 ? formatDrifttid(day.totalDrift) : '–' }}
                   <span *ngIf="day.driftWarning" class="badge bg-warning text-dark ms-1" title="Drifttid överstiger 10h i databasen — cappat till 10h">⚠</span>
                 </td>
-                <td class="d-none d-md-table-cell">
-                  <span *ngFor="let op of day.operators" class="badge bg-dark me-1">{{ op }}</span>
-                  <span *ngIf="day.operators.length === 0" class="text-muted">–</span>
-                </td>
-                <td class="d-none d-md-table-cell">
-                  <span *ngFor="let prod of day.products" class="badge bg-secondary me-1">{{ prod }}</span>
-                  <span *ngIf="day.products.length === 0" class="text-muted">–</span>
+                <td class="text-center" data-label="Skift">
+                  <span class="badge bg-secondary">{{ day.submittedCount > 0 ? 1 : 0 }} skift</span>
+                  <span *ngIf="day.submittedCount > 1" class="badge bg-warning text-dark ms-1" style="font-size:.72rem;" title="{{ day.submittedCount }} PLC-rapporter slogs ihop till ett skift">⚠ {{ day.submittedCount }} poster</span>
+                  <span *ngIf="day.hasPreliminary" class="badge bg-warning text-dark ms-1" style="font-size:.72rem;">
+                    <i class="fas fa-circle fa-beat me-1" style="font-size:.6rem;"></i>Pågående
+                  </span>
+                  <span *ngIf="day.unreportedCount > 0" class="badge bg-danger ms-1" style="font-size:.72rem;">
+                    {{ day.unreportedCount }} ej inskickad{{ day.unreportedCount > 1 ? 'a' : '' }}
+                  </span>
                 </td>
                 <td class="text-end pe-3">
                   <i class="fas"
