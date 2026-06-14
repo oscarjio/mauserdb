@@ -244,45 +244,57 @@
           <!-- Admin (bara admin/developer) -->
           <ng-container *ngIf="user?.role === 'admin' || user?.role === 'developer'">
             <li><hr class="dropdown-divider" /></li>
-            <li class="dropdown-header">Admin</li>
-            <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Översikt</li>
-            <li *ngIf="ff.canAccess('oversikt')"><a class="dropdown-item text-info" routerLink="/oversikt"><i class="fas fa-tachometer-alt me-2"></i>Översikt</a></li>
-            <li *ngIf="ff.canAccess('rebotling/alerts')">
-              <a class="dropdown-item" routerLink="/rebotling/alerts">
-                <i class="fas fa-bell me-2 text-warning"></i>Varningar
-                <span class="badge bg-danger ms-1" *ngIf="activeAlertsCount > 0">{{ activeAlertsCount }}</span>
+            <li>
+              <a class="dropdown-item d-flex justify-content-between align-items-center"
+                 href="#adminCollapse" data-bs-toggle="collapse" role="button"
+                 aria-expanded="false" aria-controls="adminCollapse"
+                 (click)="$event.stopPropagation()">
+                <span><i class="fas fa-cogs me-2"></i>Admin</span>
+                <i class="fas fa-chevron-down small"></i>
               </a>
             </li>
-            <li *ngIf="ff.canAccess('stopporsaker')"><a class="dropdown-item" routerLink="/stopporsaker"><i class="fas fa-exclamation-triangle me-2"></i>Stopporsaker</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Användare &amp; behörighet</li>
-            <li *ngIf="ff.canAccess('admin/users')"><a class="dropdown-item" routerLink="/admin/users">Användare</a></li>
-            <li *ngIf="ff.canAccess('admin/create-user')"><a class="dropdown-item" routerLink="/admin/create-user">Skapa användare</a></li>
-            <li *ngIf="ff.canAccess('admin/operators')"><a class="dropdown-item" routerLink="/admin/operators"><i class="fas fa-id-badge me-2"></i>Operatörer</a></li>
-            <li *ngIf="ff.canAccess('admin/skiftplan')"><a class="dropdown-item" routerLink="/admin/skiftplan"><i class="fas fa-calendar-week me-2"></i>Skiftplan</a></li>
-            <li *ngIf="ff.canAccess('admin/certifiering')">
-              <a class="dropdown-item" routerLink="/admin/certifiering">
-                <i class="fas fa-certificate me-2"></i>Certifiering
-                <span class="badge bg-warning text-dark ms-1" *ngIf="certExpiryCount > 0">{{ certExpiryCount }}</span>
-              </a>
+            <li>
+              <ul class="list-unstyled collapse mb-0" id="adminCollapse">
+                <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Översikt</li>
+                <li *ngIf="ff.canAccess('oversikt')"><a class="dropdown-item text-info" routerLink="/oversikt"><i class="fas fa-tachometer-alt me-2"></i>Översikt</a></li>
+                <li *ngIf="ff.canAccess('rebotling/alerts')">
+                  <a class="dropdown-item" routerLink="/rebotling/alerts">
+                    <i class="fas fa-bell me-2 text-warning"></i>Varningar
+                    <span class="badge bg-danger ms-1" *ngIf="activeAlertsCount > 0">{{ activeAlertsCount }}</span>
+                  </a>
+                </li>
+                <li *ngIf="ff.canAccess('stopporsaker')"><a class="dropdown-item" routerLink="/stopporsaker"><i class="fas fa-exclamation-triangle me-2"></i>Stopporsaker</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Användare &amp; behörighet</li>
+                <li *ngIf="ff.canAccess('admin/users')"><a class="dropdown-item" routerLink="/admin/users">Användare</a></li>
+                <li *ngIf="ff.canAccess('admin/create-user')"><a class="dropdown-item" routerLink="/admin/create-user">Skapa användare</a></li>
+                <li *ngIf="ff.canAccess('admin/operators')"><a class="dropdown-item" routerLink="/admin/operators"><i class="fas fa-id-badge me-2"></i>Operatörer</a></li>
+                <li *ngIf="ff.canAccess('admin/skiftplan')"><a class="dropdown-item" routerLink="/admin/skiftplan"><i class="fas fa-calendar-week me-2"></i>Skiftplan</a></li>
+                <li *ngIf="ff.canAccess('admin/certifiering')">
+                  <a class="dropdown-item" routerLink="/admin/certifiering">
+                    <i class="fas fa-certificate me-2"></i>Certifiering
+                    <span class="badge bg-warning text-dark ms-1" *ngIf="certExpiryCount > 0">{{ certExpiryCount }}</span>
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Operatörsanalys</li>
+                <li><a class="dropdown-item" routerLink="/admin/operatorsanalys"><i class="fas fa-users-cog me-2"></i>Operatörsanalys</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">System</li>
+                <li *ngIf="ff.canAccess('admin/underhall')"><a class="dropdown-item" routerLink="/admin/underhall"><i class="fas fa-tools me-2"></i>Underhållslogg</a></li>
+                <li *ngIf="ff.canAccess('admin/vpn')"><a class="dropdown-item" routerLink="/admin/vpn"><i class="fas fa-network-wired me-2"></i>VPN</a></li>
+                <li *ngIf="ff.canAccess('admin/audit')"><a class="dropdown-item" routerLink="/admin/audit"><i class="fas fa-history me-2"></i>Aktivitetslogg</a></li>
+                <li *ngIf="ff.canAccess('admin/news')"><a class="dropdown-item" routerLink="/admin/news"><i class="fas fa-newspaper me-2"></i>Nyheter</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Operator-verktyg</li>
+                <li *ngIf="ff.canAccess('tvattlinje/operator-prestation')"><a class="dropdown-item" routerLink="/tvattlinje/operator-prestation"><i class="fas fa-chart-line me-2" style="color:#68d391"></i>Tvättlinje Operatörsprestation</a></li>
+                <li *ngIf="ff.canAccess('rebotling/operator-ranking')"><a class="dropdown-item" routerLink="/rebotling/operator-prestation"><i class="fas fa-chart-line me-2" style="color:#4299e1"></i>Rebotling Operatörsprestation</a></li>
+                <li *ngIf="ff.canAccess('bemanning-optimerare')"><a class="dropdown-item" routerLink="/bemanning-optimerare"><i class="fas fa-users-cog me-2" style="color:#ed8936"></i>Bemanning-optimerare</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Utveckling</li>
+                <li *ngIf="ff.canAccess('admin/feature-flags')"><a class="dropdown-item text-info" routerLink="/admin/feature-flags"><i class="fas fa-toggle-on me-2"></i>Feature Flags</a></li>
+              </ul>
             </li>
-            <li><hr class="dropdown-divider"></li>
-            <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Operatörsanalys</li>
-            <li><a class="dropdown-item" routerLink="/admin/operatorsanalys"><i class="fas fa-users-cog me-2"></i>Operatörsanalys</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">System</li>
-            <li *ngIf="ff.canAccess('admin/underhall')"><a class="dropdown-item" routerLink="/admin/underhall"><i class="fas fa-tools me-2"></i>Underhållslogg</a></li>
-            <li *ngIf="ff.canAccess('admin/vpn')"><a class="dropdown-item" routerLink="/admin/vpn"><i class="fas fa-network-wired me-2"></i>VPN</a></li>
-            <li *ngIf="ff.canAccess('admin/audit')"><a class="dropdown-item" routerLink="/admin/audit"><i class="fas fa-history me-2"></i>Aktivitetslogg</a></li>
-            <li *ngIf="ff.canAccess('admin/news')"><a class="dropdown-item" routerLink="/admin/news"><i class="fas fa-newspaper me-2"></i>Nyheter</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Operator-verktyg</li>
-            <li *ngIf="ff.canAccess('tvattlinje/operator-prestation')"><a class="dropdown-item" routerLink="/tvattlinje/operator-prestation"><i class="fas fa-chart-line me-2" style="color:#68d391"></i>Tvättlinje Operatörsprestation</a></li>
-            <li *ngIf="ff.canAccess('rebotling/operator-ranking')"><a class="dropdown-item" routerLink="/rebotling/operator-prestation"><i class="fas fa-chart-line me-2" style="color:#4299e1"></i>Rebotling Operatörsprestation</a></li>
-            <li *ngIf="ff.canAccess('bemanning-optimerare')"><a class="dropdown-item" routerLink="/bemanning-optimerare"><i class="fas fa-users-cog me-2" style="color:#ed8936"></i>Bemanning-optimerare</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li class="dropdown-header" style="color:#718096;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">Utveckling</li>
-            <li *ngIf="ff.canAccess('admin/feature-flags')"><a class="dropdown-item text-info" routerLink="/admin/feature-flags"><i class="fas fa-toggle-on me-2"></i>Feature Flags</a></li>
           </ng-container>
 
           <li><hr class="dropdown-divider" /></li>
