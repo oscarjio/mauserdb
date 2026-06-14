@@ -291,7 +291,7 @@ class TvattlinjeController {
                     );
                     $wg->execute([$isoDay]);
                     $wgRow = $wg->fetch(\PDO::FETCH_ASSOC);
-                    if ($wgRow && (int)$wgRow['mal'] > 0) {
+                    if ($wgRow && $wgRow['mal'] !== null) {
                         $dagmal = (int)$wgRow['mal'];
                     }
                 } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot weekdayGoal: ' . $e->getMessage()); }
@@ -555,7 +555,7 @@ class TvattlinjeController {
                 $wg = $this->pdo->prepare("SELECT mal FROM tvattlinje_weekday_goals WHERE weekday = ?");
                 $wg->execute([$isoDay]);
                 $wgRow = $wg->fetch(\PDO::FETCH_ASSOC);
-                if ($wgRow && (int)$wgRow['mal'] > 0) {
+                if ($wgRow && $wgRow['mal'] !== null) {
                     $ibcTarget = (int)$wgRow['mal'];
                 }
             } catch (\Throwable $e) {
