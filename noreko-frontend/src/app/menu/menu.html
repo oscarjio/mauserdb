@@ -53,7 +53,7 @@
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="tvattlinjeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           <span class="line-dot" [class.line-dot-on]="tvattlinjeRunning" [class.line-dot-off]="!tvattlinjeRunning"></span>
-          Tvatt
+          Tvätt
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="tvattlinjeDropdown">
           <li *ngIf="ff.canAccess('tvattlinje/live')"><a class="dropdown-item" routerLink="/tvattlinje/live">Live</a></li>
@@ -67,7 +67,7 @@
       </li>
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="saglinjeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-          Sag
+          Såg
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="saglinjeDropdown">
           <li *ngIf="ff.canAccess('saglinje/live')"><a class="dropdown-item" routerLink="/saglinje/live">Live</a></li>
@@ -150,8 +150,16 @@
           {{ user?.username }}
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="userDropdown">
-          <li class="dropdown-header">Mitt konto</li>
-          <li class="px-3 py-2 account-settings">
+          <li>
+            <a class="dropdown-item d-flex justify-content-between align-items-center"
+               href="#accountCollapse" data-bs-toggle="collapse" role="button"
+               aria-expanded="false" aria-controls="accountCollapse"
+               (click)="$event.stopPropagation()">
+              <span><i class="fas fa-user-circle me-2"></i>Mitt konto</span>
+              <i class="fas fa-chevron-down small"></i>
+            </a>
+          </li>
+          <li id="accountCollapse" class="collapse px-3 py-2 account-settings">
             <form (ngSubmit)="updateProfile()" (click)="$event.stopPropagation()" novalidate>
               <div class="mb-2">
                 <label class="form-label account-label" for="accountEmail">E-post</label>
