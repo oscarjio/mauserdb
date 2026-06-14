@@ -405,7 +405,7 @@ class TvattlinjeOperatorController {
 
             // Tempobonus: om IBC/h > snitt
             $tempoBonus = 0.0;
-            if ($ibcPerH > $avgIbcPerH && $avgIbcPerH > 0) {
+            if ($ibcPerH > $avgIbcPerH && $avgIbcPerH > 0 && $totalIbc >= 10 && $totalTimmar >= 1.0) {
                 $tempoBonus = round(($ibcPerH - $avgIbcPerH) * 20, 1);
             }
 
