@@ -45,7 +45,9 @@
     <button type="button" class="btn-close float-end" aria-label="Stäng" (click)="errorMessage=''"></button>
   </div>
 
+  <div class="skiftrapport-layout" [class.table-first]="config.line === 'tvattlinje'">
   <!-- Sammanfattningskort -->
+  <div class="summary-section">
   <div class="row g-3 mb-4" *ngIf="filteredReports.length > 0">
     <div class="col-6 col-md-2">
       <div class="summary-card">
@@ -137,6 +139,8 @@
       </div>
     </div>
   </div>
+  </div><!-- /summary-section -->
+  <div class="table-section">
 
   <!-- Tom-tillstånd -->
   <div class="empty-state" *ngIf="!loading && filteredReports.length === 0 && reports.length === 0">
@@ -1332,4 +1336,6 @@
 
     </div>
   </div>
+  </div><!-- /table-section -->
+  </div><!-- /skiftrapport-layout -->
 </div>

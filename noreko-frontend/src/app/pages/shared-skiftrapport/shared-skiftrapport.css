@@ -1,3 +1,11 @@
+/* ---- Layout order: table-first (tvättlinje) visar tabellen ovanför korten ---- */
+.skiftrapport-layout {
+  display: flex;
+  flex-direction: column;
+}
+.skiftrapport-layout.table-first .summary-section { order: 2; }
+.skiftrapport-layout.table-first .table-section   { order: 1; }
+
 /* ---- Summary Cards ---- */
 .summary-card {
   background: #1a202c;
