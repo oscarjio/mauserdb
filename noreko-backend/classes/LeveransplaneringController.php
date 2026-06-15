@@ -429,7 +429,7 @@ class LeveransplaneringController {
 
     private function uppdateraKonfiguration(): void {
         // Konfigurationsandringar kraver admin-behorighet
-        if (empty($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
+        if (empty($_SESSION['role']) || !in_array($_SESSION['role'], ['admin','developer'], true)) {
             $this->sendError('Admin-behörighet krävs för att ändra konfiguration', 403);
             return;
         }

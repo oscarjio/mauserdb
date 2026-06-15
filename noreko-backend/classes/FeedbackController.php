@@ -105,7 +105,7 @@ class FeedbackController {
     // GET: summary — aggregering senaste 30 dagar (kräver admin)
     // ================================================================
     private function summary(): void {
-        if (empty($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
+        if (empty($_SESSION['role']) || !in_array($_SESSION['role'], ['admin','developer'], true)) {
             error_log('FeedbackController::summary: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);

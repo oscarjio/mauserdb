@@ -72,7 +72,7 @@ class ShiftPlanController {
         if (session_status() === PHP_SESSION_NONE) {
             session_start(['read_and_close' => true]);
         }
-        if (!isset($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
+        if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['admin','developer'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             exit;
