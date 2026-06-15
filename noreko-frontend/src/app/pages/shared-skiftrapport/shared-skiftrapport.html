@@ -401,13 +401,12 @@
 
               <!-- EXPANDERADE SUB-SKIFT -->
               <tr *ngIf="isDayExpanded(day.date)" class="day-expanded-row">
-                <td [attr.colspan]="isAdmin ? 12 : 11" class="p-0">
+                <td [attr.colspan]="isAdmin ? 11 : 10" class="p-0">
                   <div class="day-shift-panel p-3">
                     <table class="table shift-detail-table">
                       <thead>
                         <tr>
                           <th title="Tidpunkt och status">TID</th>
-                          <th class="text-center" title="Löpnummer">LOPNR</th>
                           <th>Produkt</th>
                           <th>Operatörer</th>
                           <th title="Godkända IBC">IBC</th>
@@ -425,7 +424,7 @@
 
                           <!-- FLERDAGARS-INFO -->
                           <tr *ngIf="!report._isDagligSlice && report.flerdagars == 1" style="background:rgba(60,50,10,0.35);">
-                            <td [attr.colspan]="isAdmin ? 12 : 11" class="py-1 px-3" style="border-left:3px solid #d69e2e; border-bottom:none;">
+                            <td [attr.colspan]="isAdmin ? 11 : 10" class="py-1 px-3" style="border-left:3px solid #d69e2e; border-bottom:none;">
                               <div class="d-flex align-items-center gap-2 flex-wrap" style="font-size:.78rem;">
                                 <i class="fas fa-info-circle text-warning"></i>
                                 <span class="text-warning fw-semibold">Sen rapport</span>
@@ -470,7 +469,6 @@
                                 Sen rapport · {{ report.antal_dagar }} dagar
                               </span>
                             </td>
-                            <td class="text-center small text-muted" data-label="Lopnr">{{ report.lopnummer || '–' }}</td>
                             <td data-label="Produkt">
                               <span class="badge bg-secondary">{{ getProductName(report.product_id) || '–' }}</span>
                             </td>
@@ -546,7 +544,7 @@
 
                           <!-- EXPANDERAD DETALJ: Daglig slice (förenklad) -->
                           <tr *ngIf="report._isDagligSlice && expanded[report._parentId]">
-                            <td [attr.colspan]="isAdmin ? 12 : 11" class="p-0">
+                            <td [attr.colspan]="isAdmin ? 11 : 10" class="p-0">
                               <div class="expand-panel px-4 py-3">
                                 <div class="d-flex align-items-center gap-2 mb-2">
                                   <span class="badge bg-info text-dark"><i class="fas fa-calendar-day me-1"></i>Daglig andel</span>
@@ -565,7 +563,7 @@
 
                           <!-- EXPANDERAD DETALJ -->
                           <tr *ngIf="!report._isDagligSlice && expanded[report.id]">
-                            <td [attr.colspan]="isAdmin ? 12 : 11" class="p-0">
+                            <td [attr.colspan]="isAdmin ? 11 : 10" class="p-0">
                               <div class="expand-panel p-0">
 
                                 <!-- HERO ROW -->
