@@ -453,15 +453,16 @@ class TvattlinjeController {
             CREATE TABLE IF NOT EXISTS tvattlinje_weekday_goals (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 weekday TINYINT NOT NULL UNIQUE COMMENT '0=Måndag, 6=Söndag',
-                mal INT NOT NULL DEFAULT 80,
+                mal INT NOT NULL DEFAULT 140,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
-        $defaults = [[0,80],[1,80],[2,80],[3,80],[4,80],[5,60],[6,0]];
+        $defaults = [[0,140],[1,140],[2,140],[3,140],[4,140],[5,60],[6,0]];
         $stmt = $this->pdo->prepare("INSERT IGNORE INTO tvattlinje_weekday_goals (weekday, mal) VALUES (?, ?)");
         foreach ($defaults as [$wd, $mal]) {
             $stmt->execute([$wd, $mal]);
         }
+        $this->pdo->exec("UPDATE tvattlinje_weekday_goals SET mal=140 WHERE weekday IN (0,1,2,3,4) AND mal=80");
     }
 
     private function getWeekdayGoals() {
