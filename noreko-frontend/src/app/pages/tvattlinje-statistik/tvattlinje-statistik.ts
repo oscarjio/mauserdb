@@ -52,6 +52,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   selectedPeriods: Date[] = [];
 
   ibcPerDag: Record<string, number> = {};
+  skiftrapportDays: Record<string, number> = {};
   periodCells: PeriodCell[] = [];
   // Cachad filtrerad lista — uppdateras i generatePeriodCells/updatePeriodCellsData, undviker .filter() i template
   visiblePeriodCells: PeriodCell[] = [];
@@ -233,7 +234,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.currentMonth = month;
     }
     const datesStr = q['dates'];
-    if (datesStr && typeof datesStr === 'string') {
+    if (datesStr && typeof datesStr === 'string' && this.viewMode === 'day') {
       const parts = datesStr.split(',').map((s: string) => s.trim()).filter(Boolean);
       this.selectedPeriods = parts
         .map((s: string) => {
@@ -246,6 +247,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         this.currentYear = first.getFullYear();
         this.currentMonth = first.getMonth();
       }
+    } else if (!datesStr || this.viewMode !== 'day') {
+      this.selectedPeriods = [];
     }
   }
 
@@ -630,6 +633,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     // Bygg merged IBC-per-dag: PLC fyller in reportlösa dagar (inkl idag), skiftrapport är source of truth
     const ibcPlc: Record<string, number> = data.summary?.ibc_per_dag_plc || {};
     const ibcSr:  Record<string, number> = data.summary?.ibc_per_dag_skiftrapport || {};
+    this.skiftrapportDays = ibcSr;
     this.ibcPerDag = { ...ibcPlc, ...ibcSr };
     // IBC Producerade: summa av merged-kartan (inkl PLC-dagar utan rapport), fallback till backend-total
     const mergedSum = Object.values(this.ibcPerDag).reduce((s, v) => s + Number(v), 0);
@@ -718,7 +722,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     } else if (events.length > 0) {
       capMin = events[events.length - 1].min;
     } else {
-      capMin = 1440;
+      capMin = 600;
     }
     this.timelineEndPct = Math.min(100, (capMin / 1440) * 100);
 
@@ -932,9 +936,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     });
   }
 
+  private parseDatum(s: string | undefined | null): Date {
+    return new Date(String(s ?? '').replace(' ', 'T'));
+  }
+
   formatDateTime(dateStr: string): string {
     if (!dateStr) return '–';
-    const d = new Date(dateStr);
+    const d = this.parseDatum(dateStr);
     return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
   }
 
@@ -983,7 +991,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   get plcDaysWithoutReport(): string[] {
     if (this.viewMode !== 'month') return [];
     return this.tableData
-      .filter(row => row.cycles > 0 && !(this.formatDate(row.date) in this.ibcPerDag))
+      .filter(row => row.cycles > 0 && !(this.formatDate(row.date) in this.skiftrapportDays))
       .map(row => this.formatDate(row.date));
   }
 
@@ -1086,7 +1094,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const periods: Array<{start: number; end: number}> = [];
     let rastStart: number | null = null;
     for (const evt of rast_events) {
-      const t = new Date(evt.datum).getTime();
+      const t = this.parseDatum(evt.datum).getTime();
       if ((evt.rast_status === 1 || evt.rast_status === '1') && rastStart === null) {
         rastStart = t;
       } else if ((evt.rast_status === 0 || evt.rast_status === '0') && rastStart !== null) {
@@ -1102,7 +1110,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const periods: Array<{start: number; end: number}> = [];
     let offStart: number | null = null;
     for (const evt of onoff_events) {
-      const t = new Date(evt.datum).getTime();
+      const t = this.parseDatum(evt.datum).getTime();
       const isRunning = evt.running == 1 || evt.running === true || evt.running === '1';
       if (!isRunning && offStart === null) {
         offStart = t;
@@ -1122,16 +1130,16 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const pausePeriods = this.buildPausePeriods(rast_events || []);
     const offPeriods = onoff_events ? this.buildOffPeriods(onoff_events) : [];
     const result: number[] = [];
-    const firstCycleMs = new Date(cycles[0].datum).getTime();
+    const firstCycleMs = this.parseDatum(cycles[0].datum).getTime();
 
     for (let i = 0; i < cycles.length; i++) {
-      const cycleMs = new Date(cycles[i].datum).getTime();
+      const cycleMs = this.parseDatum(cycles[i].datum).getTime();
       const windowStart = cycleMs - WINDOW_MS;
 
       // Räkna giltiga cykler i fönstret
       let windowCount = 0;
       for (let w = i; w >= 0; w--) {
-        const wMs = new Date(cycles[w].datum).getTime();
+        const wMs = this.parseDatum(cycles[w].datum).getTime();
         if (wMs < windowStart) break;
         const wct = parseFloat(cycles[w].cycle_time);
         if (!isNaN(wct) && wct > 0 && wct <= 30) windowCount++;
@@ -1176,7 +1184,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const grouped = new Map<string, any[]>();
 
     cycles.forEach(cycle => {
-      const date = new Date(cycle.datum);
+      const date = this.parseDatum(cycle.datum);
       let key: string;
 
       if (this.viewMode === 'year') {
@@ -1395,7 +1403,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
     // Add cycle data
     cycles.forEach((cycle: any) => {
-      const date = new Date(cycle.datum);
+      const date = this.parseDatum(cycle.datum);
       let key: string;
 
       if (this.viewMode === 'day') {
@@ -1425,7 +1433,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
     // Add running status
     onoff.forEach((event: any) => {
-      const date = new Date(event.datum);
+      const date = this.parseDatum(event.datum);
       let key: string;
 
       if (this.viewMode === 'day') {
@@ -1593,7 +1601,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     }
 
     const labels: string[] = displayCycles.map((c: any) => {
-      const d = new Date(c.datum);
+      const d = this.parseDatum(c.datum);
       return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
     });
 
@@ -1606,7 +1614,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const runningPeriods: any[] = [];
     let cur: any = null;
     displayCycles.forEach((c: any, idx: number) => {
-      const ms = new Date(c.datum).getTime();
+      const ms = this.parseDatum(c.datum).getTime();
       const onRast = pausePeriods.some(p => ms >= p.start && ms <= p.end);
       const running = !onRast;
       if (!cur || cur.running !== running) {
@@ -2100,7 +2108,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       periods.reduce((sum, [a, b]) => sum + Math.max(0, Math.min(b, winEnd) - Math.max(a, winStart)), 0);
 
     data.cycles.forEach((cycle: any) => {
-      const date = new Date(cycle.datum);
+      const date = this.parseDatum(cycle.datum);
       let key: string;
 
       if (this.viewMode === 'year') {
@@ -2126,7 +2134,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     });
 
     grouped.forEach((cycles, _key) => {
-      const date = new Date(cycles[0].datum);
+      const date = this.parseDatum(cycles[0].datum);
       let period: string;
       let rastMin = 0;
       let dsMin = 0;

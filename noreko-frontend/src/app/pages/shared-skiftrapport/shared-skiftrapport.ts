@@ -386,14 +386,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get summaryAvgIbcH(): number | null {
-    const totalDrift = this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
+    const totalDrift = this.filteredReports.reduce((s, r) => s + Math.min(r.drifttid || 0, 600), 0);
     const totalIbc = this.filteredReports.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
     if (totalDrift <= 0 || totalIbc <= 0) return null;
     return Math.round(totalDrift / totalIbc * 10) / 10;
   }
 
   get summaryAvgEfficiency(): number | null {
-    const totalDrift    = this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
+    const totalDrift    = this.filteredReports.reduce((s, r) => s + Math.min(r.drifttid || 0, 600), 0);
     const totalDriftstopp = this.filteredReports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
     if (totalDrift <= 0) return null;
     const schema = totalDrift + totalDriftstopp;
@@ -1338,7 +1338,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
                     { text: 'Drifttid', style: 'cellLabel' },
                     { text: 'Netto drifttid', style: 'cellLabel' },
                     { text: 'Tillgänglighet', style: 'cellLabel' },
-                    { text: 'IBC / timme', style: 'cellLabel' }
+                    { text: 'Min / IBC', style: 'cellLabel' }
                   ],
                   [
                     { text: report.drifttid ? this.formatDrifttid(report.drifttid) : '\u2013', alignment: 'center' as const, style: 'cellValueBold' },
@@ -1405,7 +1405,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           { text: [r.op1, r.op2, r.op3].filter(Boolean).map((n: number) => this.getOpName(n)).join(', ') || '–' },
           { text: String(r.antal_ok), alignment: 'center' as const, bold: true },
           { text: String(r.antal_ej_ok || 0), alignment: 'center' as const },
-          { text: r.drifttid ? this.formatDrifttid(r.drifttid) : '–', alignment: 'center' as const },
+          { text: r.drifttid ? this.formatDrifttid(Math.min(r.drifttid, 600)) : '–', alignment: 'center' as const },
           { text: r.kommentar || '' }
         ]);
         pdfMake.createPdf({

@@ -935,6 +935,16 @@ class TvattlinjeController {
             $isRunning = $result && isset($result['running']) ? (bool)$result['running'] : false;
             $lastUpdate = $result && isset($result['datum']) ? $result['datum'] : null;
 
+            // Åldersgrind: om linjen verkar köra men PLC-data är >15 min gammal → markera som ej körning
+            if ($isRunning && $lastUpdate !== null) {
+                $lastDt = new \DateTime($lastUpdate, new \DateTimeZone('Europe/Stockholm'));
+                $nowDt  = new \DateTime('now', new \DateTimeZone('Europe/Stockholm'));
+                $diffMin = ($nowDt->getTimestamp() - $lastDt->getTimestamp()) / 60;
+                if ($diffMin > 15) {
+                    $isRunning = false;
+                }
+            }
+
             // Hämta rast-status från tvattlinje_rast (fallback tvattlinje_runtime)
             $onRast = false;
             $rastMinutesToday = 0;

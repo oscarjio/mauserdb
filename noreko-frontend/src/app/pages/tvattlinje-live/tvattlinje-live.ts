@@ -138,6 +138,10 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
       .subscribe((res: LineStatusResponse | null) => {
         if (res?.success && res.data) {
           this.isLineRunning = res.data.running;
+          if (res.data['lastUpdate']) {
+            this.lastDataUpdate = new Date(String(res.data['lastUpdate']).replace(' ', 'T'));
+            this.dataAgeSec = Math.round((Date.now() - this.lastDataUpdate.getTime()) / 1000);
+          }
           this.updateStatusBar();
         }
       });
@@ -156,8 +160,6 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
       )
       .subscribe((res: TvattlinjeLiveStatsResponse | null) => {
         if (res?.success && res.data) {
-          this.lastDataUpdate = new Date();
-          this.dataAgeSec = 0;
           this.ibcToday = res.data.ibcToday;
           this.ibcTarget = res.data.ibcTarget;
           this.utetemperatur = res.data.utetemperatur;

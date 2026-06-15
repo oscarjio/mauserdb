@@ -289,7 +289,7 @@ class TvattlinjeOperatorController {
                 SELECT
                     id, datum, totalt, antal_ok, antal_ej_ok,
                     op1, op2, op3,
-                    drifttid, rasttime, skiftraknare
+                    drifttid, driftstopptime, rasttime, skiftraknare
                 FROM tvattlinje_skiftrapport
                 WHERE datum >= :from AND datum <= :to
                   AND totalt > 0
