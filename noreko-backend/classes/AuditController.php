@@ -19,7 +19,7 @@ class AuditController {
     public function handle() {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
 
-        if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        if (empty($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
             error_log('AuditController::handle: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);

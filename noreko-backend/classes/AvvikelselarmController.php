@@ -443,7 +443,7 @@ class AvvikelselarmController {
         if (session_status() === PHP_SESSION_NONE) {
             session_start(['read_and_close' => true]);
         }
-        if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        if (empty($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
             $this->sendError('Admin-behörighet kravs', 403);
             return;
         }

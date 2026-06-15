@@ -56,7 +56,7 @@ class TvattlinjeController {
         if ($method === 'POST') {
             if ($action === 'admin-settings') {
                 if (session_status() === PHP_SESSION_NONE) session_start();
-                if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                if (!isset($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                     return;
@@ -67,7 +67,7 @@ class TvattlinjeController {
 
             if ($action === 'settings') {
                 if (session_status() === PHP_SESSION_NONE) session_start();
-                if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                if (!isset($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                     return;
@@ -78,7 +78,7 @@ class TvattlinjeController {
 
             if ($action === 'weekday-goals') {
                 if (session_status() === PHP_SESSION_NONE) session_start();
-                if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                if (!isset($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                     return;
@@ -89,7 +89,7 @@ class TvattlinjeController {
 
             if ($action === 'save-alert-thresholds') {
                 if (session_status() === PHP_SESSION_NONE) session_start();
-                if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                if (!isset($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                     return;

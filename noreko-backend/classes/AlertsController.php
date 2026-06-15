@@ -287,7 +287,7 @@ class AlertsController {
 
     private function saveSettings(): void {
         // Admin-kontroll
-        if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        if (empty($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
             $this->sendError('Otillräckliga behörigheter', 403);
             return;
         }

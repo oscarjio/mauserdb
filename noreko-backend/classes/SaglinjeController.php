@@ -39,7 +39,7 @@ class SaglinjeController {
         if ($method === 'POST') {
             if ($action === 'settings') {
                 if (session_status() === PHP_SESSION_NONE) session_start();
-                if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                if (!isset($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                     return;
@@ -50,7 +50,7 @@ class SaglinjeController {
 
             if ($action === 'weekday-goals') {
                 if (session_status() === PHP_SESSION_NONE) session_start();
-                if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                if (!isset($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                     return;

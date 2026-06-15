@@ -19,7 +19,7 @@ class OperatorCompareController {
         if (session_status() === PHP_SESSION_NONE) {
             session_start(['read_and_close' => true]);
         }
-        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        if (!isset($_SESSION['role']) || !in_array(, ['admin','developer'], true)) {
             error_log('OperatorCompareController::handle: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             $this->sendError('Endast admin har behörighet.', 403);
             return;
