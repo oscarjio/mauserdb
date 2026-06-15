@@ -1265,7 +1265,7 @@ class TvattlinjeController {
                     FROM (
                         SELECT LEAST(
                             SUM(sr.drifttid),
-                            COALESCE(plc.span_min, 1440)
+                            COALESCE(plc.span_min, 600)
                         ) AS capped
                         FROM tvattlinje_skiftrapport sr
                         LEFT JOIN (
@@ -1392,7 +1392,7 @@ class TvattlinjeController {
             } else {
                 $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);
             }
-            $total_runtime_hours = $totalRuntimeMinutes / 60;
+            $total_runtime_hours = $netRuntimeMinutes / 60;
 
             // Snitt cykeltid
             $avg_cycle_time = 0;
@@ -1425,6 +1425,21 @@ class TvattlinjeController {
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics ibc_per_dag_sr: ' . $e->getMessage()); }
 
+            // Per-dag IBC-karta från PLC (MAX(ibc_count) per dag — fyller in dagar utan skiftrapport inkl idag)
+            $ibcPerDagPlc = [];
+            try {
+                $plcDagStmt = $this->pdo->prepare("
+                    SELECT DATE(datum) AS dag, MAX(ibc_count) AS ibc
+                    FROM tvattlinje_ibc
+                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum)
+                ");
+                $plcDagStmt->execute(['s' => $start, 'e' => $end]);
+                foreach ($plcDagStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $ibcPerDagPlc[$row['dag']] = (int)$row['ibc'];
+                }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics ibc_per_dag_plc: ' . $e->getMessage()); }
+
             echo json_encode([
                 'success' => true,
                 'data' => [
@@ -1447,6 +1462,7 @@ class TvattlinjeController {
                         'days_with_production'      => $days_with_production,
                         'runtime_source'            => $runtimeSource,
                         'ibc_per_dag_skiftrapport'  => $ibcPerDagSr,
+                        'ibc_per_dag_plc'           => $ibcPerDagPlc,
                     ]
                 ]
             ], JSON_UNESCAPED_UNICODE);
@@ -1520,8 +1536,9 @@ class TvattlinjeController {
                 // Cap drifttid mot PLC-spann om det finns — sanerar felaktiga databasposter
                 $rawDrift = (int)($r['drifttid'] ?? 0);
                 $dag      = substr($r['datum'] ?? '', 0, 10);
-                if ($rawDrift > 0 && $dag && isset($plcSpanPerDag[$dag])) {
-                    $capped = min($rawDrift, max($plcSpanPerDag[$dag], 1));
+                if ($rawDrift > 0) {
+                    $plcCap = isset($plcSpanPerDag[$dag]) ? max($plcSpanPerDag[$dag], 1) : 600;
+                    $capped = min($rawDrift, $plcCap);
                     if ($capped < $rawDrift) {
                         $r['drifttid'] = $capped;
                         $r['drifttid_saniterad'] = true;
@@ -1678,6 +1695,7 @@ class TvattlinjeController {
                     $diff  = $first->diff($last);
                     $runtimeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                     if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
+                    $runtimeMinutes = min($runtimeMinutes, 600);
                 }
             } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getReport runtime: ' . $e->getMessage());

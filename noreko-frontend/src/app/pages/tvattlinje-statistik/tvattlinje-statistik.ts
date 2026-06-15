@@ -627,10 +627,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   updateStatistics(data: any) {
     this.rawCycles = data.cycles || [];
     this.rawCyclesSorted = [...this.rawCycles].reverse();
-    // IBC Producerade: använd skiftrapport-summa (D4004-råvärde) om tillgänglig — matchar skiftrapportlistan
-    this.totalCycles = data.summary.total_ibc_skiftrapport > 0
-      ? data.summary.total_ibc_skiftrapport
-      : data.summary.total_cycles;
+    // Bygg merged IBC-per-dag: PLC fyller in reportlösa dagar (inkl idag), skiftrapport är source of truth
+    const ibcPlc: Record<string, number> = data.summary?.ibc_per_dag_plc || {};
+    const ibcSr:  Record<string, number> = data.summary?.ibc_per_dag_skiftrapport || {};
+    this.ibcPerDag = { ...ibcPlc, ...ibcSr };
+    // IBC Producerade: summa av merged-kartan (inkl PLC-dagar utan rapport), fallback till backend-total
+    const mergedSum = Object.values(this.ibcPerDag).reduce((s, v) => s + Number(v), 0);
+    this.totalCycles = mergedSum > 0 ? mergedSum : data.summary.total_cycles;
     this.missedWebhooks = data.summary.missed_webhooks || 0;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
 
@@ -643,7 +646,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.avgEfficiency = Math.min(Math.round(data.summary.avg_production_percent || 0), 200);
     }
 
-    this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
+    this.totalRuntimeHours = Math.round((data.summary.total_runtime_hours || 0) * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
 
     this.totalRastMinutes = data.summary?.total_rast_minutes || 0;
@@ -665,8 +668,6 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.buildShiftSummaries(data.cycles || []);
     this.computeDayMetrics(data);
 
-    this.ibcPerDag = data.summary?.ibc_per_dag_skiftrapport || {};
-    console.log('[ibcPerDag]', this.ibcPerDag);
     this.updatePeriodCellsData(data.cycles);
   }
 
@@ -822,7 +823,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     if (onoff.length === 0) { this.dayLongestStopMinutes = 0; this.dayUtilizationPct = 0; return; }
 
     const events = onoff
-      .map((e: any) => ({ min: new Date(e.datum).getHours() * 60 + new Date(e.datum).getMinutes(), running: !!e.running }))
+      .map((e: any) => {
+        const m = /(\d{2}):(\d{2})/.exec(e.datum || '');
+        const minOfDay = m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
+        return { min: minOfDay, running: !!e.running };
+      })
       .sort((a: any, b: any) => a.min - b.min);
 
     let firstRunMin: number | null = null;

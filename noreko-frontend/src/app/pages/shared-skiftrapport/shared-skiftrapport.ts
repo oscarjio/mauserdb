@@ -191,7 +191,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.cachedAvgIbcPerSkift = filtered.length === 0 ? 0 : Math.round((totalIbc / filtered.length) * 10) / 10;
     this.rebuildReportCache();
     // Expandera dagens grupp automatiskt
-    const today = new Date().toISOString().substring(0, 10);
+    const today = localToday();
     if (this.expandedDays[today] === undefined) this.expandedDays[today] = true;
     // Daglig-fördelning laddas enbart vid explicit expand (ingen auto-load)
   }
@@ -255,7 +255,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
       // Tillgänglighet: drifttid / (drifttid + rast + driftstopp)
       // Planerad tid = drifttid + rasttime; driftstopp är oplanerade stopp
-      const drifttidMin  = r.drifttid ?? 0;
+      const drifttidMin  = Math.min(r.drifttid ?? 0, 600);
       const rasttime     = r.rasttime ?? 0;
       const driftstopp   = r.driftstopptime ?? 0;
       const plannadTid   = drifttidMin + rasttime + driftstopp;
