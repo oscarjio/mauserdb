@@ -1217,176 +1217,444 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const vfsFonts = vfsFontsModule.default || vfsFontsModule;
         pdfMake.vfs = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || vfsFonts;
 
-        const q       = this.getQualityPct(report);
-        const eff     = this.getEfficiencyPct(report);
-        const ibcH    = this.getIbcPerHour(report);
-        const netDt   = this.getNetDrifttidMin(report);
-        const datum   = (report.datum || '').substring(0, 10);
-        const tid     = this.getShiftTid(report);
-        const produkt = this.getProductName(report.product_id) || '\u2013';
-        const lopnr   = this.lopnummerMap[report.id] || '\u2013';
-        const lopLoading = this.lopnummerLoading[report.id];
+        // ── Palett ──────────────────────────────────────────────────────────
+        const C_PRIMARY = '#0d3b66';
+        const C_GREEN   = '#10b981';
+        const C_RED     = '#ef4444';
+        const C_YELLOW  = '#f59e0b';
+        const C_TEAL    = '#14b8c4';
+        const C_BLUE    = '#0d6efd';
+        const C_PURPLE  = '#8b5cf6';
+        const C_LIGHTBG = '#f1f5f9';
+        const C_BORDER  = '#e2e8f0';
+        const C_DARK    = '#1e293b';
+        const C_MUTED   = '#64748b';
+        const C_WHITE   = '#ffffff';
 
-        // Operatörer
-        const ops = [report.op1, report.op2, report.op3]
-          .filter(Boolean)
-          .map((n: number) => this.getOpName(n))
-          .filter(Boolean);
+        // ── Basdata ─────────────────────────────────────────────────────────
+        const datum       = (report.datum || '').substring(0, 10);
+        const totalt      = report.totalt ?? ((report.antal_ok || 0) + (report.antal_ej_ok || 0));
+        const antalOk     = report.antal_ok ?? 0;
+        const antalEjOk   = report.antal_ej_ok ?? 0;
+        const omtvaatt    = report.omtvaatt ?? 0;
+        const drifttidRaw = Math.min(report.drifttid || 0, 600);
+        const driftstopp  = report.driftstopptime ?? 0;
+        const rasttime    = report.rasttime ?? 0;
+        const nettoMin    = Math.max(0, drifttidRaw - rasttime);
+        const produkt     = this.getProductName(report.product_id) || '\u2013';
+        const lopnr       = this.lopnummerMap[report.id] || '\u2013';
+        const kommentar   = report.kommentar || 'Ingen kommentar l\u00e4mnad';
 
-        const totalt   = report.totalt ?? ((report.antal_ok || 0) + (report.antal_ej_ok || 0));
-        const qColor   = q == null ? '#333' : (q >= 90 ? '#1a6e2e' : (q < 70 ? '#b91c1c' : '#333'));
-        const effColor = eff == null ? '#333' : (eff >= 90 ? '#1a6e2e' : (eff < 70 ? '#b91c1c' : '#333'));
+        // ── Operatörer ───────────────────────────────────────────────────────
+        const opNums  = [report.op1, report.op2, report.op3].filter(Boolean);
+        const opNames: string[] = opNums.map((n: number) => this.getOpName(n)).filter(Boolean);
+        const activeOps = opNames.length;
 
+        // ── Datum-formatering ────────────────────────────────────────────────
+        const veckodag = (() => {
+          const dagar = ['S\u00f6ndag', 'M\u00e5ndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'L\u00f6rdag'];
+          const manader = ['januari', 'februari', 'mars', 'april', 'maj', 'juni', 'juli', 'augusti', 'september', 'oktober', 'november', 'december'];
+          try {
+            const d = new Date(datum + 'T00:00:00');
+            if (isNaN(d.getTime())) return datum;
+            return `${dagar[d.getDay()]} ${d.getDate()} ${manader[d.getMonth()]} ${d.getFullYear()}`;
+          } catch { return datum; }
+        })();
+
+        // ── Inskickad-tid ────────────────────────────────────────────────────
+        const inskickadStr = (() => {
+          const src = report.created_at || report.datum || '';
+          try {
+            const d = new Date(String(src).replace(' ', 'T'));
+            if (isNaN(d.getTime())) return '\u2013';
+            return d.toTimeString().substring(0, 5);
+          } catch { return '\u2013'; }
+        })();
+
+        // ── KPI-ber\u00e4kningar ──────────────────────────────────────────────
+        // Tillg\u00e4nglighet: drifttid / (drifttid + driftstopp)
+        const plannadTid = drifttidRaw + driftstopp;
+        const tillgPct = (plannadTid > 0)
+          ? Math.min(100, Math.max(0, Math.round((drifttidRaw / plannadTid) * 100)))
+          : 0;
+
+        // Effektivitet: via _computeEfficiencyPct
+        const effRaw  = this._computeEfficiencyPct(report);
+        const effPct  = effRaw != null ? Math.min(100, Math.max(0, Math.round(effRaw))) : 0;
+
+        // Kvalitet: antal_ok / totalt
+        const kvalRaw = this._computeQualityPct(report);
+        const kvalPct = kvalRaw != null ? Math.min(100, Math.max(0, Math.round(kvalRaw))) : 0;
+
+        // OEE: via _computeOeePct
+        const oeeRaw  = this._computeOeePct(report);
+        const oeePct  = oeeRaw != null ? Math.min(100, Math.max(0, Math.round(oeeRaw))) : 0;
+
+        // ── M\u00e5l-ber\u00e4kning (baserat p\u00e5 cykeltid x drifttid) ──────────────────────
+        const product        = this.products.find((p: any) => p.id === (report.product_id ?? null));
+        const targetCycleMin = product?.cycle_time_minutes ?? this.fallbackCycleMin;
+        const malIbc         = (drifttidRaw > 0 && targetCycleMin > 0)
+          ? Math.round(drifttidRaw / targetCycleMin)
+          : 0;
+        const malUppnatt  = malIbc > 0 && totalt >= malIbc;
+        const malPct      = malIbc > 0 ? Math.min(100, Math.round((totalt / malIbc) * 100)) : 0;
+
+        // ── IBC/h och min/IBC ────────────────────────────────────────────────
+        const ibcH = (nettoMin > 0 && totalt > 0)
+          ? Math.round((totalt / (nettoMin / 60)) * 10) / 10
+          : null;
+        const minPerIbc    = (totalt > 0 && nettoMin > 0)
+          ? (nettoMin / totalt).toFixed(1)
+          : '\u2013';
+        const malMinPerIbc = targetCycleMin > 0 ? targetCycleMin.toFixed(1) : '\u2013';
+
+        // ── PLC-signaler ─────────────────────────────────────────────────────
+        const plcKpi       = this.getPlcKpi(report.id);
+        const totalCycles  = plcKpi.totalCycles > 0 ? String(plcKpi.totalCycles) : '\u2013';
+
+        // ── Stopporsaker ─────────────────────────────────────────────────────
+        const detectedStops = this.getDetectedStops(report.id);
+
+        // ── SVG-donut-hj\u00e4lpfunktion ──────────────────────────────────────────
+        const buildDonutSvg = (pct: number, color: string, label: string): string => {
+          const circumference = 326.726;
+          const filled = Math.max(0, Math.min(pct, 100)) * circumference / 100;
+          return `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="130" viewBox="0 0 120 130">` +
+            `<circle cx="60" cy="60" r="52" fill="none" stroke="#eef2f6" stroke-width="13"/>` +
+            `<circle cx="60" cy="60" r="52" fill="none" stroke="${color}" stroke-width="13"` +
+            ` stroke-dasharray="${filled.toFixed(2)} ${circumference.toFixed(2)}"` +
+            ` stroke-linecap="round" transform="rotate(-90 60 60)"/>` +
+            `<text x="60" y="66" text-anchor="middle" font-size="18" font-weight="bold" fill="${color}" font-family="Helvetica">${pct}%</text>` +
+            `<text x="60" y="118" text-anchor="middle" font-size="9" fill="#64748b" font-family="Helvetica">${label}</text>` +
+            `</svg>`;
+        };
+
+        // ── Progressbar-hj\u00e4lpfunktion ────────────────────────────────────────
+        const buildProgressBar = (pct: number, barWidth: number): any[] => {
+          const filled = Math.min(pct, 100) / 100 * barWidth;
+          return [
+            {
+              canvas: [
+                { type: 'rect' as const, x: 0, y: 0, w: barWidth, h: 8, r: 4, color: C_BORDER },
+                ...(filled > 0 ? [{ type: 'rect' as const, x: 0, y: 0, w: filled, h: 8, r: 4, color: C_GREEN }] : [])
+              ],
+              margin: [0, 6, 0, 0] as [number, number, number, number]
+            }
+          ];
+        };
+
+        // ── Operatörs-chip ───────────────────────────────────────────────────
+        const buildOpChips = (): any => {
+          if (!opNames.length) {
+            return { text: 'Inga operat\u00f6rer registrerade', fontSize: 9, color: C_MUTED, italics: true };
+          }
+          return {
+            columns: opNames.map((name: string) => ({
+              table: {
+                widths: [16, '*'],
+                body: [[
+                  {
+                    canvas: [{ type: 'ellipse' as const, x: 8, y: 9, r1: 8, r2: 8, color: C_PRIMARY }],
+                    width: 16, height: 18
+                  },
+                  {
+                    text: name, fontSize: 8, bold: true, color: C_DARK,
+                    margin: [4, 2, 4, 2] as [number, number, number, number]
+                  }
+                ]]
+              },
+              layout: 'noBorders',
+              margin: [0, 0, 6, 0] as [number, number, number, number]
+            })),
+            columnGap: 4
+          };
+        };
+
+        // ── Stopp-lista ──────────────────────────────────────────────────────
+        const buildStops = (): any => {
+          if (!detectedStops.length) {
+            return { text: 'Inga driftstopp registrerade', fontSize: 9, color: C_MUTED, italics: true };
+          }
+          const rows: any[][] = [[
+            { text: 'Fr\u00e5n', bold: true, fontSize: 8, fillColor: C_LIGHTBG },
+            { text: 'Till', bold: true, fontSize: 8, fillColor: C_LIGHTBG },
+            { text: 'Minuter', bold: true, fontSize: 8, fillColor: C_LIGHTBG }
+          ]];
+          for (const s of detectedStops) {
+            rows.push([
+              { text: s.start, fontSize: 8 },
+              { text: s.end, fontSize: 8 },
+              { text: String(s.durationMin) + ' min', fontSize: 8 }
+            ]);
+          }
+          return {
+            table: { widths: ['*', '*', '*'], body: rows },
+            layout: 'lightHorizontalLines',
+            margin: [0, 4, 0, 0] as [number, number, number, number]
+          };
+        };
+
+        // ── Chip-celle (f\u00f6r meta-rad) ────────────────────────────────────────
+        const chip = (label: string, value: string): any => ({
+          table: {
+            widths: ['*'],
+            body: [
+              [{ text: label, fontSize: 7, color: C_MUTED, bold: true, fillColor: C_LIGHTBG,
+                 margin: [6, 4, 6, 0] as [number, number, number, number] }],
+              [{ text: value, fontSize: 11, bold: true, color: C_DARK, fillColor: C_LIGHTBG,
+                 margin: [6, 0, 6, 6] as [number, number, number, number] }]
+            ]
+          },
+          layout: {
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0.5,
+            hLineColor: () => C_BORDER,
+            vLineColor: () => C_BORDER
+          }
+        });
+
+        // ── TID & TAKT-cell ──────────────────────────────────────────────────
+        const taktCell = (label: string, value: string, warn = false): any => ({
+          table: {
+            widths: ['*'],
+            body: [
+              [{ text: label, fontSize: 7, color: C_MUTED, bold: true, fillColor: C_LIGHTBG,
+                 margin: [5, 4, 5, 0] as [number, number, number, number] }],
+              [{ text: value, fontSize: 10, bold: true,
+                 color: warn ? C_YELLOW : C_DARK, fillColor: C_LIGHTBG,
+                 margin: [5, 0, 5, 5] as [number, number, number, number] }]
+            ]
+          },
+          layout: {
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0.5,
+            hLineColor: () => C_BORDER,
+            vLineColor: () => C_BORDER
+          }
+        });
+
+        // ── Tal-med-prick (f\u00f6r produktion-sektion) ──────────────────────────
+        const dotRow = (dotColor: string, label: string, value: number): any => ({
+          columns: [
+            { canvas: [{ type: 'ellipse' as const, x: 5, y: 5, r1: 4, r2: 4, color: dotColor }],
+              width: 14, height: 12 },
+            { text: `${label}: `, fontSize: 9, color: C_MUTED, width: 'auto' },
+            { text: String(value), fontSize: 9, bold: true, color: C_WHITE }
+          ],
+          columnGap: 3,
+          margin: [0, 2, 0, 2] as [number, number, number, number]
+        });
+
+        // ── Idag-datum f\u00f6r footer ────────────────────────────────────────────
+        const todayStr = new Date().toLocaleDateString('sv-SE');
+
+        // ── DOKUMENT ─────────────────────────────────────────────────────────
         pdfMake.createPdf({
           pageSize: 'A4' as const,
-          pageMargins: [40, 50, 40, 50] as [number, number, number, number],
+          pageMargins: [28, 28, 28, 28] as [number, number, number, number],
           content: [
-            // ── Header ──────────────────────────────────────────────────────
+
+            // ── (1) HEADER ─────────────────────────────────────────────────
             {
               columns: [
                 {
                   stack: [
-                    { text: this.config.lineName, style: 'header' },
-                    { text: 'Skiftrapport', style: 'headerSub' }
-                  ]
+                    { text: 'NOREKO \u00c4LV\u00c4NGEN \u00b7 MAUSER PACKAGING SOLUTIONS',
+                      fontSize: 7.5, color: C_MUTED, bold: true,
+                      margin: [0, 0, 0, 2] as [number, number, number, number] },
+                    { text: `Skiftrapport \u2014 ${this.config.lineName}`,
+                      fontSize: 22, bold: true, color: C_PRIMARY,
+                      margin: [0, 0, 0, 2] as [number, number, number, number] },
+                    { text: 'Daglig produktionssammanst\u00e4llning',
+                      fontSize: 9, color: C_MUTED }
+                  ],
+                  width: '*'
                 },
                 {
                   stack: [
-                    { text: datum, style: 'headerRight', alignment: 'right' as const },
-                    { text: tid ? 'Tid: ' + tid : '', style: 'headerRightSmall', alignment: 'right' as const }
-                  ]
+                    { text: veckodag, fontSize: 10, bold: true, color: C_DARK,
+                      alignment: 'right' as const },
+                    { text: `Skift #${lopnr} \u00b7 ETT skift/dag`,
+                      fontSize: 8, color: C_MUTED, alignment: 'right' as const,
+                      margin: [0, 2, 0, 4] as [number, number, number, number] },
+                    {
+                      table: {
+                        widths: ['*'],
+                        body: [[{
+                          text: malUppnatt ? 'GODK\u00c4ND' : 'EJ GODK\u00c4ND',
+                          fontSize: 8, bold: true, color: C_WHITE,
+                          fillColor: malUppnatt ? C_GREEN : C_YELLOW,
+                          alignment: 'center' as const,
+                          margin: [10, 4, 10, 4] as [number, number, number, number]
+                        }]]
+                      },
+                      layout: 'noBorders',
+                      alignment: 'right' as const
+                    }
+                  ],
+                  width: 180
                 }
-              ]
+              ],
+              margin: [0, 0, 0, 6] as [number, number, number, number]
             },
-            { canvas: [{ type: 'line' as const, x1: 0, y1: 2, x2: 515, y2: 2, lineWidth: 2, lineColor: '#2d3748' }], margin: [0, 6, 0, 14] as [number, number, number, number] },
-
-            // ── Identifikation ───────────────────────────────────────────────
-            { text: 'Identifikation', style: 'sectionHeader' },
+            // 3pt PRIMARY-linje
             {
-              table: {
-                widths: ['*', '*', '*'],
-                body: [
-                  [
-                    { text: 'Löpnummer', style: 'cellLabel' },
-                    { text: 'Produkt', style: 'cellLabel' },
-                    { text: 'Skiftansvarig', style: 'cellLabel' }
-                  ],
-                  [
-                    { text: lopLoading ? 'Laddar\u2026' : lopnr, style: 'cellValueBold' },
-                    { text: produkt, style: 'cellValue' },
-                    { text: report.user_name || '\u2013', style: 'cellValue' }
-                  ]
-                ]
-              },
-              layout: 'lightHorizontalLines',
-              margin: [0, 4, 0, 12] as [number, number, number, number]
+              canvas: [{ type: 'rect' as const, x: 0, y: 0, w: 536, h: 3, color: C_PRIMARY }],
+              margin: [0, 0, 0, 10] as [number, number, number, number]
             },
 
-            // ── Operatörer ───────────────────────────────────────────────────
-            { text: 'Operatörer', style: 'sectionHeader' },
-            {
-              table: {
-                widths: ['*', '*', '*'],
-                body: [
-                  [
-                    { text: 'Op 1', style: 'cellLabel' },
-                    { text: 'Op 2', style: 'cellLabel' },
-                    { text: 'Op 3', style: 'cellLabel' }
-                  ],
-                  [
-                    { text: ops[0] || '\u2013', style: 'cellValue' },
-                    { text: ops[1] || '\u2013', style: 'cellValue' },
-                    { text: ops[2] || '\u2013', style: 'cellValue' }
-                  ]
-                ]
-              },
-              layout: 'lightHorizontalLines',
-              margin: [0, 4, 0, 12] as [number, number, number, number]
-            },
-
-            // ── IBC-statistik ────────────────────────────────────────────────
-            { text: 'IBC-statistik', style: 'sectionHeader' },
-            {
-              table: {
-                widths: ['*', '*', '*', '*'],
-                body: [
-                  [
-                    { text: 'Godkända IBC', style: 'cellLabel' },
-                    { text: 'Ej godkända', style: 'cellLabel' },
-                    { text: 'Totalt', style: 'cellLabel' },
-                    { text: 'Kvalitet %', style: 'cellLabel' }
-                  ],
-                  [
-                    { text: String(report.antal_ok ?? 0), alignment: 'center' as const, bold: true, fontSize: 16, color: '#1a6e2e', margin: [0, 4, 0, 4] as [number, number, number, number] },
-                    { text: String(report.antal_ej_ok ?? 0), alignment: 'center' as const, bold: true, fontSize: 16, color: (report.antal_ej_ok > 0 ? '#b91c1c' : '#555'), margin: [0, 4, 0, 4] as [number, number, number, number] },
-                    { text: String(totalt), alignment: 'center' as const, bold: true, fontSize: 16, color: '#1a202c', margin: [0, 4, 0, 4] as [number, number, number, number] },
-                    { text: q != null ? String(q) + '%' : '\u2013', alignment: 'center' as const, bold: true, fontSize: 16, color: qColor, margin: [0, 4, 0, 4] as [number, number, number, number] }
-                  ]
-                ]
-              },
-              layout: 'lightHorizontalLines',
-              margin: [0, 4, 0, 12] as [number, number, number, number]
-            },
-
-            // ── Drifttid & Prestanda ─────────────────────────────────────────
-            { text: 'Drifttid & Prestanda', style: 'sectionHeader' },
-            {
-              table: {
-                widths: ['*', '*', '*', '*'],
-                body: [
-                  [
-                    { text: 'Drifttid', style: 'cellLabel' },
-                    { text: 'Netto drifttid', style: 'cellLabel' },
-                    { text: 'Tillgänglighet', style: 'cellLabel' },
-                    { text: 'Min / IBC', style: 'cellLabel' }
-                  ],
-                  [
-                    { text: report.drifttid ? this.formatDrifttid(report.drifttid) : '\u2013', alignment: 'center' as const, style: 'cellValueBold' },
-                    { text: netDt > 0 ? this.formatDrifttid(netDt) : '\u2013', alignment: 'center' as const, style: 'cellValue' },
-                    { text: eff != null ? String(eff) + '%' : '\u2013', alignment: 'center' as const, bold: true, fontSize: 14, color: effColor, margin: [0, 3, 0, 3] as [number, number, number, number] },
-                    { text: ibcH != null ? ibcH.toFixed(1) : '\u2013', alignment: 'center' as const, style: 'cellValueBold' }
-                  ]
-                ]
-              },
-              layout: 'lightHorizontalLines',
-              margin: [0, 4, 0, 12] as [number, number, number, number]
-            },
-
-            // ── Kommentar (valfri) ────────────────────────────────────────────
-            ...(report.kommentar ? [
-              { text: 'Kommentar', style: 'sectionHeader' } as any,
-              {
-                table: {
-                  widths: ['*'],
-                  body: [[{ text: report.kommentar, fontSize: 11, margin: [4, 4, 4, 4] as [number, number, number, number] }]]
-                },
-                layout: 'lightHorizontalLines',
-                margin: [0, 4, 0, 12] as [number, number, number, number]
-              } as any
-            ] : []),
-
-            // ── Footer ────────────────────────────────────────────────────────
-            { canvas: [{ type: 'line' as const, x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#cccccc' }], margin: [0, 8, 0, 6] as [number, number, number, number] },
+            // ── (2) META-RAD ──────────────────────────────────────────────
             {
               columns: [
-                { text: 'Inlagd i lager: ' + (report.inlagd == 1 ? 'Ja' : 'Nej'), style: 'footer' },
-                { text: 'Genererad: ' + new Date().toLocaleString('sv-SE'), style: 'footer', alignment: 'right' as const }
+                chip('PRODUKT', produkt),
+                chip('L\u00d6PNUMMER', '#' + lopnr),
+                chip('OPERAT\u00d6RER', String(activeOps)),
+                chip('INSKICKAD', inskickadStr)
+              ],
+              columnGap: 8,
+              margin: [0, 0, 0, 10] as [number, number, number, number]
+            },
+
+            // ── (3) NYCKELTAL ─ 4 donuts ──────────────────────────────────
+            {
+              columns: [
+                { svg: buildDonutSvg(tillgPct, C_GREEN,  'Tillg\u00e4nglighet'), width: 120, height: 130 },
+                { svg: buildDonutSvg(oeePct,   C_BLUE,   'OEE'),                  width: 120, height: 130 },
+                { svg: buildDonutSvg(effPct,   C_TEAL,   'Effektivitet'),          width: 120, height: 130 },
+                { svg: buildDonutSvg(kvalPct,  C_PURPLE, 'Kvalitet'),              width: 120, height: 130 }
+              ],
+              columnGap: 14,
+              margin: [0, 0, 0, 10] as [number, number, number, number]
+            },
+
+            // ── (4) PRODUKTION ─ stor box ──────────────────────────────────
+            {
+              table: {
+                widths: ['*', 180],
+                body: [[
+                  {
+                    stack: [
+                      { text: 'IBC TOTALT', fontSize: 9, color: C_WHITE, bold: true,
+                        margin: [0, 0, 0, 2] as [number, number, number, number] },
+                      { text: String(totalt), fontSize: 36, bold: true, color: C_WHITE,
+                        margin: [0, 0, 0, 2] as [number, number, number, number] },
+                      { text: malIbc > 0
+                          ? `M\u00e5l ${malIbc} \u00b7 M\u00e5luppfyllnad ${malPct}%`
+                          : 'Inget produktionsm\u00e5l ber\u00e4knat',
+                        fontSize: 8, color: C_WHITE,
+                        margin: [0, 0, 0, 6] as [number, number, number, number] },
+                      ...buildProgressBar(malPct, 270)
+                    ],
+                    fillColor: C_PRIMARY,
+                    margin: [12, 12, 12, 12] as [number, number, number, number]
+                  },
+                  {
+                    stack: [
+                      dotRow(C_GREEN,  'Godk\u00e4nda OK', antalOk),
+                      dotRow(C_RED,    'Ej godk\u00e4nda',  antalEjOk),
+                      dotRow(C_YELLOW, 'Omtv\u00e4tt',      omtvaatt)
+                    ],
+                    fillColor: C_DARK,
+                    margin: [12, 12, 12, 12] as [number, number, number, number]
+                  }
+                ]]
+              },
+              layout: 'noBorders',
+              margin: [0, 0, 0, 10] as [number, number, number, number]
+            },
+
+            // ── (5) TID & TAKT ─ 4x2 ──────────────────────────────────────
+            {
+              columns: [
+                taktCell('DRIFTTID', drifttidRaw > 0 ? this.formatDrifttid(drifttidRaw) : '\u2013', drifttidRaw >= 600),
+                taktCell('DRIFTSTOPP', driftstopp > 0 ? `${driftstopp} min` : '0 min', driftstopp > 120),
+                taktCell('RAST', rasttime > 0 ? `${rasttime} min` : '0 min'),
+                taktCell('IBC / TIMME', ibcH != null ? ibcH.toFixed(1) : '\u2013')
+              ],
+              columnGap: 6,
+              margin: [0, 0, 0, 6] as [number, number, number, number]
+            },
+            {
+              columns: [
+                taktCell('SNITT CYKELTID', totalt > 0 && nettoMin > 0 ? `${minPerIbc} min/IBC` : '\u2013'),
+                taktCell('M\u00c5LTAKT', malMinPerIbc !== '\u2013' ? `${malMinPerIbc} min/IBC` : '\u2013'),
+                taktCell('MIN / IBC', minPerIbc !== '\u2013' ? `${minPerIbc} min` : '\u2013'),
+                taktCell('DRIFTTID-STATUS',
+                  drifttidRaw >= 600 ? '\u26a0 Max 10h' : (drifttidRaw > 0 ? 'OK' : '\u2013'),
+                  drifttidRaw >= 600)
+              ],
+              columnGap: 6,
+              margin: [0, 0, 0, 10] as [number, number, number, number]
+            },
+
+            // ── (6) TV\u00c5 KORT ──────────────────────────────────────────────
+            {
+              columns: [
+                {
+                  stack: [
+                    { text: 'OPERAT\u00d6RER', fontSize: 8, bold: true, color: C_MUTED,
+                      margin: [0, 0, 0, 4] as [number, number, number, number] },
+                    buildOpChips(),
+                    { text: 'DRIFTSTOPP', fontSize: 8, bold: true, color: C_MUTED,
+                      margin: [0, 10, 0, 4] as [number, number, number, number] },
+                    buildStops()
+                  ],
+                  width: '50%'
+                },
+                {
+                  stack: [
+                    { text: 'PLC-SIGNALER', fontSize: 8, bold: true, color: C_MUTED,
+                      margin: [0, 0, 0, 4] as [number, number, number, number] },
+                    {
+                      table: {
+                        widths: ['*', '*'],
+                        body: [
+                          [
+                            { text: 'Cykler (PLC)', fontSize: 7, color: C_MUTED, bold: true, fillColor: C_LIGHTBG,
+                              margin: [4, 3, 4, 0] as [number, number, number, number] },
+                            { text: 'Median cykeltid', fontSize: 7, color: C_MUTED, bold: true, fillColor: C_LIGHTBG,
+                              margin: [4, 3, 4, 0] as [number, number, number, number] }
+                          ],
+                          [
+                            { text: totalCycles, fontSize: 10, bold: true, color: C_DARK, fillColor: C_LIGHTBG,
+                              margin: [4, 0, 4, 4] as [number, number, number, number] },
+                            { text: plcKpi.medianCycleMin > 0 ? `${plcKpi.medianCycleMin} min` : '\u2013',
+                              fontSize: 10, bold: true, color: C_DARK, fillColor: C_LIGHTBG,
+                              margin: [4, 0, 4, 4] as [number, number, number, number] }
+                          ]
+                        ]
+                      },
+                      layout: {
+                        hLineWidth: () => 0.5, vLineWidth: () => 0.5,
+                        hLineColor: () => C_BORDER, vLineColor: () => C_BORDER
+                      },
+                      margin: [0, 0, 0, 10] as [number, number, number, number]
+                    },
+                    { text: 'KOMMENTAR', fontSize: 8, bold: true, color: C_MUTED,
+                      margin: [0, 0, 0, 4] as [number, number, number, number] },
+                    { text: kommentar, fontSize: 9, color: C_MUTED, italics: true }
+                  ],
+                  width: '50%'
+                }
+              ],
+              columnGap: 16,
+              margin: [0, 0, 0, 10] as [number, number, number, number]
+            },
+
+            // ── (7) FOOTER ─────────────────────────────────────────────────
+            { canvas: [{ type: 'rect' as const, x: 0, y: 0, w: 536, h: 0.5, color: C_BORDER }],
+              margin: [0, 0, 0, 4] as [number, number, number, number] },
+            {
+              columns: [
+                { text: `Genererad ${todayStr} \u00b7 dev.mauserdb.com`,
+                  fontSize: 8, color: C_MUTED },
+                { text: `${this.config.lineName} \u00b7 Skiftrapport ${datum} \u00b7 Sida 1/1`,
+                  fontSize: 8, color: C_MUTED, alignment: 'right' as const }
               ]
             }
           ],
-          styles: {
-            header:           { fontSize: 22, bold: true, color: '#1a202c' },
-            headerSub:        { fontSize: 11, color: '#718096', margin: [0, 2, 0, 0] as [number, number, number, number] },
-            headerRight:      { fontSize: 16, bold: true, color: '#2d3748' },
-            headerRightSmall: { fontSize: 10, color: '#718096', margin: [0, 2, 0, 0] as [number, number, number, number] },
-            sectionHeader:    { fontSize: 11, bold: true, color: '#2d3748', margin: [0, 0, 0, 3] as [number, number, number, number], decoration: 'underline' as const },
-            cellLabel:        { bold: true, fillColor: '#f0f0f0', fontSize: 9, color: '#555' },
-            cellValue:        { fontSize: 11, margin: [0, 2, 0, 2] as [number, number, number, number] },
-            cellValueBold:    { fontSize: 13, bold: true, margin: [0, 3, 0, 3] as [number, number, number, number], alignment: 'center' as const },
-            footer:           { fontSize: 9, color: '#999' }
-          },
-          defaultStyle: { fontSize: 10 }
-        }).download(`${this.config.line}-skiftrapport-${datum}-${report.id}.pdf`);
+          defaultStyle: { font: 'Roboto', fontSize: 10 }
+        }).download(`Skiftrapport_${this.config.lineName}_${datum}.pdf`);
       });
     });
   }
