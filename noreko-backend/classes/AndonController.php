@@ -440,7 +440,7 @@ class AndonController {
             $targetIbcH = round($avgIbcPerH * 1.15, 1); // 15% över snitt
             if ($targetIbcH > 0) {
                 $challenges[] = [
-                    'text'     => "Na {$targetIbcH} IBC/h idag!",
+                    'text'     => "Nå {$targetIbcH} IBC/h idag!",
                     'icon'     => 'fa-rocket',
                     'target'   => $targetIbcH,
                     'type'     => 'ibc_per_h',
