@@ -471,6 +471,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return c !== undefined ? c.oeePct : this._computeOeePct(r);
   }
 
+  getCappedDrifttid(r: any): number {
+    return Math.min(r?.drifttid || 0, 600);
+  }
+
+  getCappedSubRuntime(sub: any): number {
+    return Math.min(sub?.runtime_plc ?? 0, 600);
+  }
+
   formatDrifttid(min: number): string {
     if (!min || min <= 0) return '–';
     const h = Math.floor(min / 60);
@@ -1744,11 +1752,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return `/${this.config.line}/plc-diagnostik${date ? '?datum=' + date : ''}`;
   }
 
-  getSubIbcPerHour(sub: any): string {
-    const ok = sub.ibc_ok ?? 0;
-    const dt = sub.runtime_plc ?? 0;
-    if (ok <= 0 || dt <= 0) return '–';
-    return (ok / (dt / 60)).toFixed(1);
+  getSubMinPerIbc(sub: any): string {
+    const ok = sub?.ibc_ok ?? 0;
+    const dt = Math.min(sub?.runtime_plc ?? 0, 600);
+    return ok > 0 && dt > 0 ? (dt / ok).toFixed(1) : '-';
   }
 
   get groupedDays(): Array<{ date: string; reports: any[]; totalIbc: number; totalDrift: number; driftWarning: boolean; avgEff: number | null; operators: string[]; products: string[]; submittedCount: number; hasPreliminary: boolean; unreportedCount: number; }> {

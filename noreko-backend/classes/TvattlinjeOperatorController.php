@@ -327,7 +327,7 @@ class TvattlinjeOperatorController {
             $hadStopp     = $stoppMin > 0 ? 1 : 0;
 
             // drifttid antas vara i minuter (standard för tvattlinje)
-            $drifttidMin = (float)($s['drifttid'] ?? 0);
+            $drifttidMin = min((float)($s['drifttid'] ?? 0), 600.0);
             $rastMin     = (float)($s['rasttime'] ?? 0);
             $nettoMin    = max(0, $drifttidMin - $rastMin);
             $nettotimMin = $nettoMin / $antalAktiva; // tid per operatör

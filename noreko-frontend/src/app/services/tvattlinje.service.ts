@@ -22,6 +22,9 @@ export interface TvattlinjeLiveStatsResponse {
     ibcTarget: number;
     productionPercentage: number;
     utetemperatur: number | null;
+    taktPerH?: number;
+    hourlyTarget?: number;
+    taktPercentage?: number;
   };
 }
 

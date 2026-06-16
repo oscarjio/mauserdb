@@ -516,22 +516,32 @@ class TvattlinjeController {
 
     private function getLiveStats() {
         try {
-            // Primär källa: skiftrapport (operatörsbekräftad data)
-            $stmt = $this->pdo->prepare('
+            // Primär källa: PLC (MAX(ibc_count) = kumulativ räknare, nollställs varje dag)
+            $stmtPlc = $this->pdo->query('
+                SELECT COALESCE(MAX(ibc_count), 0)
+                FROM tvattlinje_ibc
+                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+            ');
+            $plcToday = (int)$stmtPlc->fetchColumn();
+
+            // Fallback: inskickade skiftrapporter (operatörsbekräftad data)
+            $stmtSr = $this->pdo->query('
                 SELECT COALESCE(SUM(totalt), 0)
                 FROM tvattlinje_skiftrapport
                 WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
             ');
-            $stmt->execute();
-            $ibcToday = (int)$stmt->fetchColumn();
-            // Fallback: om inga skiftrapporter finns idag, räkna Shelly-pulser från tvattlinje_ibc
-            if ($ibcToday === 0) {
-                $fb = $this->pdo->query('
-                    SELECT COALESCE(COUNT(*), 0)
-                    FROM tvattlinje_ibc
-                    WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
-                ');
-                $ibcToday = (int)$fb->fetchColumn();
+            $skiftrapportToday = (int)$stmtSr->fetchColumn();
+
+            // Välj värde: PLC primär, skiftrapport som fallback
+            $ibcToday = $plcToday > 0 ? $plcToday : $skiftrapportToday;
+
+            // Beräkna metadata för klienten
+            $dataSource  = $plcToday > 0 ? 'plc' : 'skiftrapport';
+            $ibcEmpty    = $plcToday === 0 && $skiftrapportToday === 0;
+            $divergent   = false;
+            if ($plcToday > 0 && $skiftrapportToday > 0) {
+                $maxVal    = max($plcToday, $skiftrapportToday);
+                $divergent = (abs($plcToday - $skiftrapportToday) / $maxVal) > 0.20;
             }
             
             // Läs dagmål — försöker key-value-tabellen (ny kod) och faller tillbaka på gamla kolumnen
@@ -634,6 +644,18 @@ class TvattlinjeController {
                 $productionPercentage = round(($ibcToday / $ibcTarget) * 100, 1);
             }
 
+            // Momentan takt: antal rader tvattlinje_ibc senaste 2h / 2.0
+            $taktPerH       = 0.0;
+            $taktPercentage = 0.0;
+            try {
+                $taktStmt = $this->pdo->query("SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)");
+                $taktPer2h = (int)$taktStmt->fetchColumn();
+                $taktPerH  = round($taktPer2h / 2.0, 1);
+                $taktPercentage = $hourlyTarget > 0 ? round($taktPerH / $hourlyTarget * 100, 1) : 0.0;
+            } catch (\Throwable $e) {
+                error_log('TvattlinjeController::getLiveStats taktPerH: ' . $e->getMessage());
+            }
+
             $utetemperatur = null;
             try {
                 $stmt = $this->pdo->prepare('
@@ -654,10 +676,18 @@ class TvattlinjeController {
             $response = [
                 'success' => true,
                 'data' => [
-                    'ibcToday' => $ibcToday,
-                    'ibcTarget' => $ibcTarget,
+                    'ibcToday'          => $ibcToday,
+                    'ibcTarget'         => $ibcTarget,
                     'productionPercentage' => $productionPercentage,
-                    'utetemperatur' => $utetemperatur
+                    'utetemperatur'     => $utetemperatur,
+                    'dataSource'        => $dataSource,
+                    'plcToday'          => $plcToday,
+                    'skiftrapportToday' => $skiftrapportToday,
+                    'divergent'         => $divergent,
+                    'empty'             => $ibcEmpty,
+                    'taktPerH'          => $taktPerH,
+                    'hourlyTarget'      => round($hourlyTarget, 1),
+                    'taktPercentage'    => $taktPercentage,
                 ]
             ];
             
@@ -1530,10 +1560,11 @@ class TvattlinjeController {
             $totalOk       = 0;
             $totalEjOk     = 0;
             $totalOmtvaatt = 0;
-            $totalDrifttid = 0;
             $bastaDag      = null;
             $bastaDagIbc   = 0;
-            $cycleTimes    = [];
+
+            // Aggregera rå drifttid per dag — för att kunna cappa dygnssumman mot PLC-spann
+            $driftPerDag   = [];
 
             // Daglig aggregering för bästa dag
             $dagMap = [];
@@ -1543,42 +1574,39 @@ class TvattlinjeController {
                 $omtv     = (int)($r['omtvaatt']    ?? 0);
                 $tot      = (int)($r['totalt']      ?? ($ok + $ejOk + $omtv));
 
-                // Cap drifttid mot PLC-spann om det finns — sanerar felaktiga databasposter
-                $rawDrift = (int)($r['drifttid'] ?? 0);
                 $dag      = substr($r['datum'] ?? '', 0, 10);
-                if ($rawDrift > 0) {
-                    $plcCap = isset($plcSpanPerDag[$dag]) ? max($plcSpanPerDag[$dag], 1) : 600;
-                    $capped = min($rawDrift, $plcCap);
-                    if ($capped < $rawDrift) {
-                        $r['drifttid'] = $capped;
-                        $r['drifttid_saniterad'] = true;
-                    }
+
+                // Ackumulera rå drifttid per dag (cappa per dag EFTER loopen)
+                $rawDrift = (float)($r['drifttid'] ?? 0);
+                if ($rawDrift > 0 && $dag) {
+                    $driftPerDag[$dag] = ($driftPerDag[$dag] ?? 0) + $rawDrift;
                 }
 
                 $totalOk       += $ok;
                 $totalEjOk     += $ejOk;
                 $totalOmtvaatt += $omtv;
-                $totalDrifttid += (int)($r['drifttid'] ?? 0);
-
-                // Cykeltid per skift
-                if ($tot > 0 && ($r['drifttid'] ?? 0) > 0) {
-                    $cycleTimes[] = (float)$r['drifttid'] / $tot;
-                }
 
                 // Godkänd % per rad
                 $r['godkand_pct'] = $tot > 0 ? round($ok / $tot * 100, 1) : null;
 
                 // Samla per dag för bästa dag (totalt inkl. omtvätt)
-                $dag = substr($r['datum'] ?? '', 0, 10);
                 if ($dag) {
                     $dagMap[$dag] = ($dagMap[$dag] ?? 0) + $tot;
                 }
             }
             unset($r);
 
+            // Cappa dygnssumman mot PLC-spann och summera till total_drifttid
+            $totalDrifttid = 0;
+            foreach ($driftPerDag as $d => $sum) {
+                $plcSpan = isset($plcSpanPerDag[$d]) ? max($plcSpanPerDag[$d], 1) : 600;
+                $totalDrifttid += min($sum, $plcSpan);
+            }
+
             $totalIbc = $totalOk + $totalEjOk + $totalOmtvaatt;
             $avgGodkandPct = $totalIbc > 0 ? round($totalOk / $totalIbc * 100, 1) : null;
-            $avgCycleTime  = count($cycleTimes) > 0 ? round(array_sum($cycleTimes) / count($cycleTimes), 2) : null;
+            // Viktat snitt cykeltid: total drifttid / totalt antal IBC
+            $avgCycleTime  = $totalIbc > 0 ? round($totalDrifttid / $totalIbc, 2) : null;
 
             // Bästa dag = dag med flest totala IBC
             if (!empty($dagMap)) {
@@ -1951,14 +1979,28 @@ class TvattlinjeController {
             if ($row && $row['last_ping']) {
                 $plcLastSeen = $row['last_ping'];
                 $lastDt = new \DateTime($plcLastSeen, $tz);
-                $diff   = $now->diff($lastDt);
-                $plcAgeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
+                // Signed delta: positiv = data är gammalt, negativ = klockor ur synk (framtida ts)
+                $signedSec = (int)$now->getTimestamp() - $lastDt->getTimestamp();
+                // Om -60 <= signedSec <= 0: data är i synk, sätt age till 0
+                $plcAgeMinutes = ($signedSec <= 0 && $signedSec >= -60) ? 0 : round($signedSec / 60, 1);
             }
         } catch (\Throwable $e) { error_log('TvattlinjeController::getPlcDiagnostics plcLastSeen: ' . $e->getMessage()); }
 
         // Rådata IBC-poster för valt period
-        $latestIbc = [];
+        $latestIbc  = [];
+        $periodTotal = 0;
+        $truncated   = false;
         try {
+            // Räkna totalt antal poster i perioden (utan LIMIT) för truncated-flagga
+            $cntStmt = $this->pdo->prepare("
+                SELECT COUNT(*)
+                FROM tvattlinje_ibc
+                WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+            ");
+            $cntStmt->execute(['start' => $start, 'end' => $end]);
+            $periodTotal = (int)$cntStmt->fetchColumn();
+            $truncated   = $periodTotal > 500;
+
             $stmt = $this->pdo->prepare("
                 SELECT
                     datum, ibc_count, s_count, ibc_ok, ibc_ej_ok, omtvaatt,
@@ -1994,9 +2036,15 @@ class TvattlinjeController {
         $nullCycleCount = 0;
         $intervals     = [];
         $prevTs        = null;
+        $nowTs         = time();
         foreach (array_reverse($latestIbc) as $r) {
             $ts = strtotime($r['datum']);
-            if ($prevTs !== null) $intervals[] = round(($ts - $prevTs) / 60.0, 1);
+            // Hoppa rader med framtida timestamp (mer än 60s in i framtiden)
+            if ($ts > $nowTs + 60) { $prevTs = $ts; continue; }
+            if ($prevTs !== null) {
+                $delta = round(max(0, ($ts - $prevTs)) / 60.0, 1);
+                $intervals[] = $delta;
+            }
             $prevTs = $ts;
             $ct = $r['cycle_time'];
             if ($ct === null || $ct <= 0 || $ct > 30) $nullCycleCount++;
@@ -2030,6 +2078,8 @@ class TvattlinjeController {
                 ],
                 'data_quality' => [
                     'total_records'    => $totalCount,
+                    'period_total'     => $periodTotal,
+                    'truncated'        => $truncated,
                     'null_cycle_count' => $nullCycleCount,
                     'valid_pct'        => $totalCount > 0 ? round(($totalCount - $nullCycleCount) / $totalCount * 100, 1) : 0,
                     'avg_interval_min' => $avgInterval,

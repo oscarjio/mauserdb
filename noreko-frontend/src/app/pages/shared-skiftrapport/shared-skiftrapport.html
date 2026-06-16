@@ -600,7 +600,7 @@
                                     </div>
                                     <div class="hero-divider d-none d-sm-block" *ngIf="report.drifttid > 0"></div>
                                     <div class="hero-stat" *ngIf="report.drifttid > 0">
-                                      <span class="hero-num text-info">{{ formatDrifttid(report.drifttid) }}</span>
+                                      <span class="hero-num text-info">{{ formatDrifttid(getCappedDrifttid(report)) }}</span>
                                       <span class="hero-lbl">Drifttid</span>
                                     </div>
                                     <div class="ms-auto d-flex gap-2 align-items-center" *ngIf="report.op1 || report.op2 || report.op3">
@@ -718,7 +718,7 @@
                                         <div class="col-6 col-md-3">
                                           <div class="kpi-card">
                                             <div class="kpi-label">Drifttid</div>
-                                            <div class="kpi-value text-success">{{ report.drifttid > 0 ? formatDrifttid(report.drifttid) : '–' }}</div>
+                                            <div class="kpi-value text-success">{{ report.drifttid > 0 ? formatDrifttid(getCappedDrifttid(report)) : '–' }}</div>
                                           </div>
                                         </div>
                                         <div class="col-6 col-md-3">
@@ -850,7 +850,7 @@
                                       <div class="col-6 col-md-2" *ngIf="report.drifttid > 0">
                                         <div class="kpi-card">
                                           <div class="kpi-label">Drifttid (D4007)</div>
-                                          <div class="kpi-value text-success">{{ formatMinutes(report.drifttid) }}</div>
+                                          <div class="kpi-value text-success">{{ formatMinutes(getCappedDrifttid(report)) }}</div>
                                         </div>
                                       </div>
                                       <div class="col-6 col-md-2" *ngIf="report.rasttime != null">
@@ -988,7 +988,7 @@
                                                   <span *ngIf="!sub.op1 && !sub.op2 && !sub.op3" class="text-muted">–</span>
                                                 </td>
                                                 <td class="text-success fw-semibold">{{ sub.ibc_ok ?? '–' }}</td>
-                                                <td>{{ getSubIbcPerHour(sub) }}</td>
+                                                <td>{{ getSubMinPerIbc(sub) }}</td>
                                                 <td>
                                                   <ng-container *ngIf="getSubCycleEff(subShiftsMap[report.id], subI, report.product_id) as cycleEff; else noEff">
                                                     <span class="badge"
@@ -1000,7 +1000,7 @@
                                                   </ng-container>
                                                   <ng-template #noEff><span class="text-muted">–</span></ng-template>
                                                 </td>
-                                                <td>{{ formatDrifttid(sub.runtime_plc) }}</td>
+                                                <td>{{ formatDrifttid(getCappedSubRuntime(sub)) }}</td>
                                               </tr>
                                             </tbody>
                                           </table>
@@ -1235,7 +1235,7 @@
                         <span class="mobile-hero-lbl">min/IBC</span>
                       </div>
                       <div class="mobile-hero-stat" *ngIf="report.drifttid > 0">
-                        <span class="mobile-hero-num text-info" style="font-size:1.2rem;">{{ formatDrifttid(report.drifttid) }}</span>
+                        <span class="mobile-hero-num text-info" style="font-size:1.2rem;">{{ formatDrifttid(getCappedDrifttid(report)) }}</span>
                         <span class="mobile-hero-lbl">Drifttid</span>
                       </div>
                       <div *ngIf="report.op1 || report.op2 || report.op3" class="d-flex gap-1 align-items-center ms-auto flex-shrink-0">

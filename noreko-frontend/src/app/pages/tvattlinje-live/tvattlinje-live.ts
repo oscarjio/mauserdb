@@ -52,6 +52,7 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   ibcTarget: number = 0;
   utetemperatur: number | null = null;
   productionPercentage: number = 0;
+  taktPercentage: number = 0;
 
   // Rast status
   onRast: boolean = false;
@@ -164,6 +165,7 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
           this.ibcTarget = res.data.ibcTarget;
           this.utetemperatur = res.data.utetemperatur;
           this.productionPercentage = res.data.productionPercentage ?? 0;
+          this.taktPercentage = res.data.taktPercentage ?? 0;
           this.updateSpeedometer();
         }
       });
@@ -212,7 +214,7 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   }
 
   private updateSpeedometer() {
-    const pct = Math.min(Math.max(this.productionPercentage, 0), 200);
+    const pct = Math.min(Math.max(this.taktPercentage, 0), 200);
     this.needleRotation = -90 + (pct / 200) * 180;
   }
 }

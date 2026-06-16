@@ -2,11 +2,12 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, Hos
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subject, of } from 'rxjs';
+import { Subject, Subscription, of } from 'rxjs';
 import { takeUntil, catchError, timeout, skip } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { TvattlinjeService, OeeTrendDay, OeeTrendSummary } from '../../services/tvattlinje.service';
 import { PdfExportService } from '../../services/pdf-export.service';
+import { localToday } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -163,6 +164,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   private chartUpdateTimer: any = null;
   private oeeTrendChartTimer: any = null;
   private chartViewKey = '';
+  // FIX10: race-condition guards
+  private statSub?: Subscription;
+  private oeeTrendSub?: Subscription;
+  private navInProgress = false;
 
   constructor(
     private tvattlinjeService: TvattlinjeService,
@@ -191,6 +196,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     }, 60000);
     // ROUTING-BUGG 2: prenumerera på URL-ändringar (back/forward) — skippa första emit som ngOnInit redan hanterat
     this.route.queryParams.pipe(skip(1), takeUntil(this.destroy$)).subscribe(params => {
+      // FIX10A: ignorera emits som orsakas av intern syncStateToUrl (undviker dubbel-fetch)
+      if (this.navInProgress) return;
       this.applyStateFromUrl();
       this.updateBreadcrumb();
       this.generatePeriodCells();
@@ -206,7 +213,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       }
     });
     // Sätt standardintervall för skiftrapport-statistik (senaste 30 dagarna)
-    const today = new Date().toISOString().split('T')[0];
+    const today = localToday();
     this.skiftStatTo = today;
     const d = new Date(today);
     d.setDate(d.getDate() - 30);
@@ -267,12 +274,14 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         .map(d => this.formatDate(d))
         .join(',');
     }
+    // FIX10A: sätt flagga så queryParams-subscriber vet att det är intern navigering
+    this.navInProgress = true;
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: params,
       queryParamsHandling: 'merge',
       replaceUrl: replace
-    });
+    }).then(() => { this.navInProgress = false; });
   }
 
   ngAfterViewInit() {}
@@ -282,6 +291,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     clearTimeout(this.oeeTrendChartTimer);
     clearInterval(this.plcDiagRefreshInterval);
     clearInterval(this.statistikPollingId);
+    this.statSub?.unsubscribe();
+    this.oeeTrendSub?.unsubscribe();
     try { this.productionChart?.destroy(); } catch (e) {}
     this.productionChart = null;
     try { this.oeeTrendChart?.destroy(); } catch (e) {}
@@ -551,12 +562,14 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
 
   loadStatistics(silent = false) {
+    // FIX10A: avbryt eventuell pågående request för att undvika stale-response race
+    this.statSub?.unsubscribe();
     if (!silent) this.loading = true;
     this.error = null;
 
     const { start, end } = this.getDateRange();
 
-    this.tvattlinjeService.getStatistics(start, end).pipe(
+    this.statSub = this.tvattlinjeService.getStatistics(start, end).pipe(
       timeout(15000),
       catchError(() => {
         this.error = 'Kunde inte ladda statistik från backend';
@@ -875,6 +888,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   setTab(tab: 'overview' | 'skiftrapporter' | 'analys' | 'avancerat' | 'plc-diag', skipUrlSync = false) {
     this.activeTab = tab;
     if (!skipUrlSync) this.syncStateToUrl(false);
+    // Återritning av produktionsgrafen när användaren byter tillbaka till Översikt
+    if (tab === 'overview' && this.lastStatisticsData) {
+      clearTimeout(this.chartUpdateTimer);
+      this.chartUpdateTimer = setTimeout(() => {
+        if (!this.destroy$.closed) this.updateChart(this.lastStatisticsData);
+      }, 80);
+    }
     if (tab === 'analys' && this.oeeTrendLoaded && !this.oeeTrendEmpty) {
       clearTimeout(this.oeeTrendChartTimer);
       this.oeeTrendChartTimer = setTimeout(() => {
@@ -1279,11 +1299,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const viewKey = `${this.viewMode}_${this.currentYear}_${this.currentMonth}_${this.selectedPeriods.map(d => d.toISOString()).join(',')}`;
 
     // Silent poll + same view/period + chart alive → incremental update, ingen blink
-    if (silent && this.productionChart && viewKey === this.chartViewKey) {
+    // Kör INTE incremental i dag-vy (datasets struktur skiljer sig — full recreate krävs)
+    if (silent && this.viewMode !== 'day' && this.productionChart && viewKey === this.chartViewKey) {
       try {
-        const chartData = this.viewMode === 'day'
-          ? this.preparePerCycleChartData(data)
-          : this.prepareChartData(data);
+        const chartData = this.prepareChartData(data);
         const chart = this.productionChart;
         const newLabels: string[] = chartData.labels;
         const prevLen = chart.data.labels?.length ?? 0;
@@ -1291,14 +1310,14 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
           // Ersätt hela labels + data (vy oförändrad men punktantal ändrats — dag-vy)
           chart.data.labels = newLabels;
           chart.data.datasets.forEach((ds: any, i: number) => {
-            const src = chartData.datasets?.[i]?.data ?? chartData.cycleCountArr ?? [];
-            ds.data = src;
+            const cd: any = chartData;
+            ds.data = cd.datasets?.[i]?.data ?? cd.efficiencyArr ?? cd.cycleCountArr ?? [];
           });
         } else {
           // Uppdatera bara värden
           chart.data.datasets.forEach((ds: any, i: number) => {
-            const src = chartData.datasets?.[i]?.data ?? chartData.cycleCountArr ?? [];
-            ds.data = src;
+            const cd: any = chartData;
+            ds.data = cd.datasets?.[i]?.data ?? cd.efficiencyArr ?? cd.cycleCountArr ?? [];
           });
         }
         chart.update('none');
@@ -2267,8 +2286,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   // =========================================================
 
   loadOeeTrend() {
+    // FIX10B: avbryt eventuell pågående request + guard mot parallella anrop
+    this.oeeTrendSub?.unsubscribe();
+    if (this.oeeTrendLoading) return;
     this.oeeTrendLoading = true;
-    this.tvattlinjeService.getOeeTrend(this.oeeTrendDagar)
+    this.oeeTrendSub = this.tvattlinjeService.getOeeTrend(this.oeeTrendDagar)
       .pipe(
         timeout(15000),
         catchError(() => of({ success: true, empty: true, message: 'Linjen ej i drift', data: [], summary: { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, snitt_kvalitet: 0, basta_dag: null, basta_ibc: 0 } } as any)),
