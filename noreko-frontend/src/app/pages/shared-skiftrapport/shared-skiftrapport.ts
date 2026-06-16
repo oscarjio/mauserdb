@@ -231,7 +231,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeIbcPerHour(r: any): number | null {
-    const netMin = Math.max(0, (r.drifttid || 0) - (r.rasttime || 0));
+    const netMin = Math.max(0, Math.min(r.drifttid || 0, 600) - (r.rasttime || 0));
     const totalt = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0));
     if (!(netMin > 0) || !(totalt > 0)) return null;
     const v = Math.round(netMin / totalt * 10) / 10;
@@ -279,7 +279,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   private _computeMinPerIbc(r: any): string {
     const ok = r.antal_ok ?? 0;
-    const dt = r.drifttid ?? 0;
+    const dt = Math.min(r.drifttid ?? 0, 600);
     if (ok <= 0 || dt <= 0) return '–';
     const v = dt / ok;
     return isFinite(v) ? v.toFixed(1) : '–';
@@ -1730,7 +1730,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   getNetDrifttidMin(r: any): number {
-    return Math.max(0, (r?.drifttid || 0) - (r?.rasttime || 0));
+    return Math.max(0, Math.min(r?.drifttid || 0, 600) - (r?.rasttime || 0));
   }
 
   formatNetDrifttid(r: any): string {
