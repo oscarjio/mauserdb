@@ -139,23 +139,21 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - RebotlingStationsdetaljController: getIbcData() — samma mönster
 - Korrekt mönster: SELECT DATE(datum) AS dag, MAX(ibc_count) AS day_total FROM rebotling_ibc GROUP BY DATE(datum) → SUM day_total i PHP
 
-**Kvar att fixa (övriga, prioritetsordning):**
+**Baklogg-status (verifierat 2026-06-16):**
 
-1. **ibc-forlust chart Nettopåverkan tom** — sidan visar 175 forlorat men stapeldiagrammet ar blankt. Rotorsak: `declare const Chart: any` (global) istallet for `import { Chart, registerables } from 'chart.js'`. Fix: byt till proper Chart.js-import + `Chart.register(...registerables)` i ibc-forlust.ts, precis som operator-inlarning.ts gor.
+- ~~ibc-forlust chart~~ — FIXAT: ibc-forlust.ts har korrekt Chart.js-import (rad 8-11).
+- ~~Månadsrapport orealistisk %~~ — FIXAT 2026-06-16: getManadsJamforelse delta_pct null om b_ibch < 2 IBC/h; getMonthCompare kräver >= 10 IBC. Commit 965ad73c.
+- ~~Andon-tavla encoding~~ — FIXAT 2026-06-16: "Na" → "Nå" i getDailyChallenge. Commit 30479a52.
+- ~~operator-produkt Elite-stjarna~~ — VERIFIERAT ej bugg: isBestForProduct() visar stjärna bara om bäst OCH vs_team >= 0. Avsiktlig design.
+- ~~saglinje/ root 404~~ — FIXAT: redirect `saglinje → saglinje/statistik` finns i app.routes.ts.
+- ~~formatCost(0) tom~~ — FIXAT: maintenance-log.helpers.ts rad 15 returnerar '0 kr'.
+- ~~Op 444 visas utan namn~~ — FIXAT commit b653c86e: array_merge + 'Operatör N' fallback.
+- **Skiftöverlämning feature-flag** — DELVIS VERIFIERAT: meny-länken använder `rebotling/overlamning` (ej `/skiftoverlamning`). Flaggan `rebotling/overlamning` satt till 'admin' i INSTALL_ALL.sql. Troligen OK. Kräver live-DB-verifiering.
 
-2. **Månadsrapport visar orealistiskt stora %** — procentsiffror i manadsrapporten ar orimliga (troligen >1000%). Trolig orsak: division pa fel namnare. Granska ManadsrapportController, sarskilt vs_snitt-berakningar.
-
-3. **Andon-tavla visar orealistisk takt** — PLC-takt-varden ar orimliga pa andon-tavlan. Granska AndonController.php + encoding (å/ä/ö saknas i strangarna "Na dagsmalet", "Sla igars rekord").
-
-4. **operator-produkt Elite-stjarna pa lag prestanda** — badge/stjarna for "Elite" visas trots att operatoren presterar under snittet. Granska troskelvaerdet for Elite-klassificering i getOperatorProdukt() och frontend-logiken for badge-tilldelning.
-
-5. **saglinje/ root 404** — `/saglinje` ger 404. Granska app.routes.ts for saglinje-routes.
-
-6. **admin/underhall KPI "Pagaende" och "Total kostnad" tom** — formatCost(0) returnerar '' (tom strang) istallet for "0 kr". Fix i maintenance-log.helpers.ts.
-
-7. **Op 444 visas utan namn** — operator-nummer 444 finns i skiftrapporter men saknas i operators-tabellen. Lagg till COALESCE-fallback i getOperatorScores, getLiveRanking, getPersonalBests.
-
-8. **Skiftoverlamning v2 menylink** — kan vara feature-flag-problem. Kontrollera feature-flag-konfigurationen i databasen for nyckeln 'rebotling/skiftoverlamning'.
+**Ovrigt backlog (lagre prioritet, ej verifierat):**
+- Rapport-sidor — granska veckorapport, kvartal, export-funktioner
+- Gamification — teamspelare, achievements
+- OEE-berakningar mot prod DB
 
 **Ovrigt backlog (lagre prioritet):**
 - Rapport-sidor — granska veckorapport, manadsrapport, kvartalsrapport
