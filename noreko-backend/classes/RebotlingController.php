@@ -3960,7 +3960,9 @@ class RebotlingController {
 
             $results = [];
 
-            foreach ($opNames as $num => $name) {
+            $allOpNums = array_unique(array_merge(array_keys($opNames), array_keys($opTotals)));
+            foreach ($allOpNums as $num) {
+                $name = $opNames[$num] ?? ('Operatör ' . $num);
                 if (!isset($opTotals[$num])) continue;
                 $tot = $opTotals[$num];
                 if ($tot['count'] < 3) continue;

@@ -1,4 +1,6 @@
 # MauserDB Dev Log
+2026-06-16 | fix(op 444): getOperatorScores itererade bara $opNames (aktiva i operators-tabell) — operator 444 (och andra utanför tabellen) ignorerades. Ändrat till array_merge(opNames, opTotals-keys) med COALESCE-fallback 'Operatör N'. Backend deployed. Commit pending.
+2026-06-14 | feat(navbar-slim): Toppmenyn slimmad — adminDropdown, rapporterDropdown, infoDropdown borttagna från toppraden, alla poster samlade i userDropdown under Admin/Rapporter/Information-sektioner. Linjenamnen kortade: Tvättlinje→Tvatt, Såglinje→Sag, Klassificeringslinje→Klassificering. Commit 5ac82c12, pushad.
 2026-06-13 | rule(helgproduktion domänregel): Helger körs bara ibland (inte varje helg), ett skift — "0 skift på helg" är korrekt, visa ej varning. Missade-skift-badge ska bara flagga helger med PLC-aktivitet (cycles>0) utan skiftrapport, aldrig tomma helger. Snitt/bästa-dag dividerar med dagar med faktisk produktion. Sparat i CLAUDE.md + memory. Watch-deploy omstartad (deadlock via head-40 pipe).
 2026-06-13 | feat(tvattlinje-operator-ranking): Ny Angular-sida TvattlinjeOperatorRankingPage (kombination ranking+topplista+poäng) för routes /tvattlinje/operator-ranking, /tvattlinje/operator-topplista, /tvattlinje/operator-poang. Ny TvattlinjeOperatorService. TS-fix bemanning-optimerare.ts linjeOptions explicit type. CLAUDE.md skapad med build-regler. Build OK, deployed till dev.
 2026-06-13 | feat(DEL3 bemanning-optimerare): Ny BemanningController.php (operator-stats GET + foreslag POST) för tvattlinje och rebotling. Greedy-allokering väljer bästa op per position baserat på avg_ibc_per_h (confidence: high/medium/low/none). Ny Angular-sida BemanningOptimerarePage med operatörscheckboxar, linjeväxling, resultat-kort med IBC/h + confidence-dots. Route /bemanning-optimerare (authGuard). Menyrad "Bemanning" tillagd i Rebotling- och Tvättlinje-dropdowns.
@@ -6808,3 +6810,25 @@ Systematisk granskning av 164 HTML-filer och 170 TS-filer.
 - "Sent inskickad"-badge om submitted > 2h efter sista cykeln
 
 Commit: 3555a2a4 | Deployed to dev.mauserdb.com
+
+## 2026-06-13 — Tvättlinje operator-ranking visuell paritet
+
+**Portad:** Bonusformel (produktionsPoang×10, kvalitetsBonus max 50, tempoBonus, stoppBonus 0/30/50) till `TvattlinjeOperatorController.php` + ny `mvp()`-endpoint.
+
+**Frontend (operator-ranking.component.html):**
+- KPI-block tvättlinje: ersatt med samma 4 KPI:er som rebotling (Totalt IBC, Högsta poäng, Aktiva, Genomsnittlig poäng)
+- MVP-sektion: `*ngIf="line === 'rebotling'"` borttagen → visas för båda
+- Rankingtabell: samma kolumner för båda (Poäng/Kvalitetsbonus/Tempo-bonus/Stopp-bonus/Total bonus/Svit) — tvättlinje-specifika Skift/Snitt-kolumner borttagna
+- Podium: redan line-agnostiskt via `podiumPrimary()`/`podiumSecondary()`
+
+**Buggfixar i samma session:**
+- #110: URL ?month= nu 1-indexerad (fixat i rebotling-statistik.ts)
+- #115: EFF% / Effektivitet terminologi i shared-skiftrapport
+- #120: BemanningController HY093 (:from1/:from2/:from3)
+- #151: tvattlinje-statistik activeTab 'produktion'→'skiftrapporter'
+- #112: ej-i-drift-banner i saglinje/klassificeringslinje
+
+**Pushad:** commit 62d96513
+
+## 2026-06-15 — 9-fix sweep (commit 776bde4d)
+FIX1 skiftrapportDays separat property · FIX2 parseDatum helper (12 ställen) · FIX3 capMin 1440→600 · FIX4 getRunningStatus åldersgrind 15 min · FIX5 live freshness från PLC-tid + etiketter · FIX6 PDF-kolumn Min/IBC · FIX7 drifttid cap 600 i skiftrapport-summering + PDF · FIX8 driftstopptime i SELECT · FIX9 dates-parsning bara i dag-vy
