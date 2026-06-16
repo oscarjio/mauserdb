@@ -12989,7 +12989,10 @@ class RebotlingController {
                 $bIbch = $entry['b_ibch'] ?? null;
                 $delta = ($aIbch !== null && $bIbch !== null && $bIbch > 0)
                     ? round($aIbch - $bIbch, 2) : null;
-                $deltaPct = ($aIbch !== null && $bIbch !== null && $bIbch > 0)
+                // Kräv minst 2 IBC/h i jämförelsemånaden för meningsfull %-förändring.
+                // Lägre värden (t.ex. inlärningsoperatör med 2 korta skift) ger artificiellt
+                // stora %-tal (>1000 %) som är missvisande.
+                $deltaPct = ($aIbch !== null && $bIbch !== null && $bIbch >= 2.0)
                     ? round(($aIbch - $bIbch) / $bIbch * 100, 1) : null;
                 $opComparison[] = [
                     'op_num'    => $entry['op_num'],

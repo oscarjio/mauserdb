@@ -2248,13 +2248,14 @@ class RebotlingAnalyticsController {
             $thisMonthData = $fetchMonthData($monthParam);
             $prevMonthData = $fetchMonthData($prevMonth);
 
-            // Beräkna diff
+            // Beräkna diff — kräv minst 10 IBC föregående månad för meningsfull %.
+            // Startvärden nära noll ger artificiellt stora %-tal (>1000 %) i jämförelsevy.
             $diffIbcPct = null;
-            if ($prevMonthData['total_ibc'] > 0) {
+            if ($prevMonthData['total_ibc'] >= 10) {
                 $diffIbcPct = round(($thisMonthData['total_ibc'] - $prevMonthData['total_ibc']) / $prevMonthData['total_ibc'] * 100, 1);
             }
             $diffAvgIbcPerDayPct = null;
-            if ($prevMonthData['avg_ibc_per_day'] > 0) {
+            if ($prevMonthData['avg_ibc_per_day'] >= 5) {
                 $diffAvgIbcPerDayPct = round(($thisMonthData['avg_ibc_per_day'] - $prevMonthData['avg_ibc_per_day']) / $prevMonthData['avg_ibc_per_day'] * 100, 1);
             }
             $diffOee     = round($thisMonthData['avg_oee_pct'] - $prevMonthData['avg_oee_pct'], 1);
