@@ -422,7 +422,7 @@ class TvattlinjeOperatorController {
 
             $result[] = [
                 'op_id'             => $opId,
-                'operator_namn'     => $namn[$opId] ?? ('Operator ' . $opId),
+                'operator_namn'     => $namn[$opId] ?? ('Operatör ' . $opId),
                 'total_ibc'         => (int)round($totalIbc),
                 'ok_ibc'            => (int)round($okIbc),
                 'ok_pct'            => round($okPct, 1),
