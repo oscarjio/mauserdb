@@ -123,21 +123,20 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - PrediktivtUnderhallController: stationsnamn med å/ä/ö, "Ökande stoppfrekvens på", "Lång stopptid på" (FIXAT, commit d32c29d0)
 - Frontend NG build klar (2026-04-29) — dist uppdaterad lokalt, ej rsync:ad till servern ännu
 
-**PRIO 0 — FRONTEND DEPLOY KRÄVS (dist klar lokalt, ej på servern):**
-- Login-knapp ej klickbar: fix i login.ts commit cc11bcd7 (ta bort `|| !username || !password` från [disabled])
-- Operatorsportal toast-spam: fix i OperatorsportalController.php + operatorsportal.ts commit e19fcc62
-- operator-inlarning "fryser": trolig orsak = stale dist saknar lazy-loaded chunk. Nytt dist byggt 2026-04-29.
-- Funktioner-cards 404: alla routes finns i app.routes.ts — stale dist saknar chunk-filer. Nytt dist byggt.
-- Produktion-heatmap "Bästa dag = idag": completedDays-fix i produktion-heatmap.ts redan committed
-- DEPLOY: rsync noreko-frontend/dist/noreko-frontend/ till /var/www/mauserdb-dev/noreko-frontend/dist/noreko-frontend/ -e "ssh -p 32546" + rsync noreko-backend/ (--exclude db_config.php)
+~~**PRIO 0 — FRONTEND DEPLOY (KLAR 2026-06-16):**~~
+- ~~Login-knapp ej klickbar: deploy klar~~
+- ~~Operatorsportal toast-spam: deploy klar~~
+- ~~operator-inlarning "fryser": deploy klar~~
+- ~~Funktioner-cards 404: deploy klar~~
+- Deploy kördes: rsync frontend + backend till dev-server 2026-06-16
 
-**PRIO 1 — ibc_count-fixar kvar i 5 controllers (alla visar fel IBC-siffror):**
-- RebotlingTrendanalysController: hamtaDagligData() + veckosammanfattning() använder MAX(ibc_ok) GROUP BY skiftraknare — byt till MAX(ibc_count) per DATE(datum)
-- RebotlingSammanfattningController: getOverview() + getProduktion7d() — samma mönster
-- MorgonrapportController: 5+ metoder — samma mönster
-- KvalitetstrendanalysController: hamtaDagarData() + hamtaVeckoData() — samma mönster
-- RebotlingStationsdetaljController: getIbcData() — samma mönster
-- Korrekt mönster: SELECT DATE(datum) AS dag, MAX(ibc_count) AS day_total FROM rebotling_ibc GROUP BY DATE(datum) → SUM day_total i PHP
+~~**PRIO 1 — ibc_count-fixar (KLAR — verifierat 2026-06-16):**~~
+- Alla 5 controllers granskade i kod — samtliga använder redan korrekt `MAX(ibc_count)` per DATE(datum):
+  - RebotlingTrendanalysController: hamtaDagligData + veckosammanfattning ✓
+  - RebotlingSammanfattningController: getOverview + getProduktion7d ✓
+  - MorgonrapportController: alla metoder ✓
+  - KvalitetstrendanalysController: fetchStationDailyData + heatmap ✓
+  - RebotlingStationsdetaljController: getIbcData ✓
 
 **Baklogg-status (verifierat 2026-06-16):**
 
