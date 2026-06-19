@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, Input, NgZone } from '@angular/core';
-import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
@@ -25,7 +25,7 @@ export interface LineSkiftrapportConfig {
 @Component({
   standalone: true,
   selector: 'app-shared-skiftrapport',
-  imports: [CommonModule, FormsModule, DatePipe, DecimalPipe],
+  imports: [CommonModule, FormsModule, DecimalPipe],
   templateUrl: './shared-skiftrapport.html',
   styleUrl: './shared-skiftrapport.css'
 })
