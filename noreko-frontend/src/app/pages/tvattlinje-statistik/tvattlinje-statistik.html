@@ -548,8 +548,8 @@
         </div>
         <div class="col-6 col-md-2">
           <div class="mini-kpi">
-            <div class="mini-kpi-val" [class.text-muted]="!skiftStatSummary?.avg_cycle_time">
-              {{ skiftStatSummary?.avg_cycle_time ? (skiftStatSummary!.avg_cycle_time | number:'1.1-1') + ' min/st' : '–' }}
+            <div class="mini-kpi-val" [class.text-muted]="!skiftStatSummary.avg_cycle_time">
+              {{ skiftStatSummary.avg_cycle_time ? (skiftStatSummary.avg_cycle_time | number:'1.1-1') + ' min/st' : '–' }}
             </div>
             <div class="mini-kpi-lbl">Avg cykeltid</div>
           </div>

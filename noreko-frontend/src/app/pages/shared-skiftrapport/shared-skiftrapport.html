@@ -1101,9 +1101,9 @@
                 <div class="d-flex align-items-center gap-3">
                   <span class="fw-bold text-success" style="font-size:.95rem;">{{ day.totalIbc }} IBC</span>
                   <span *ngIf="day.avgEff != null" class="badge"
-                    [class.bg-success]="(day.avgEff ?? -1) >= 80"
-                    [class.bg-warning]="(day.avgEff ?? -1) >= 60 && (day.avgEff ?? -1) < 80"
-                    [class.bg-danger]="(day.avgEff ?? -1) >= 0 && (day.avgEff ?? -1) < 60">
+                    [class.bg-success]="day.avgEff >= 80"
+                    [class.bg-warning]="day.avgEff >= 60 && day.avgEff < 80"
+                    [class.bg-danger]="day.avgEff >= 0 && day.avgEff < 60">
                     {{ day.avgEff }}% EFF
                   </span>
                   <span *ngIf="day.totalDrift > 0" class="text-muted small">{{ formatDrifttid(day.totalDrift) }}</span>
