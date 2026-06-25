@@ -290,10 +290,12 @@ class OperatorRankingController {
      */
     private function estimateArbetsTimmar(array $opData, string $from, string $to): float {
         $dagCount = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
-        // Anta 8 timmars skift. Om vi har IBC-data, estimera antal aktiva dagar.
-        $ibcPerDag = $opData['total_ibc'] / $dagCount;
-        // Om operatoren producerar IBC antas hen vara aktiv. Begr ca antal dagar.
-        $aktivaDagar = min($dagCount, max(1, ceil($opData['total_ibc'] / max(1, $ibcPerDag))));
+        // Anvand kalenderspann mellan forsta och sista IBC for denna operator
+        // (first_ibc/last_ibc hamtar fran SQL-queryn i getOperatorIbcData)
+        $firstDate  = new \DateTime($opData['first_ibc'] ?? $from);
+        $lastDate   = new \DateTime($opData['last_ibc']  ?? $to);
+        $spanDagar  = max(1, (int)$firstDate->diff($lastDate)->days + 1);
+        $aktivaDagar = min($spanDagar, $dagCount);
         return $aktivaDagar * 8.0;
     }
 

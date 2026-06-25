@@ -52,6 +52,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   expandedDays: { [date: string]: boolean } = {};
   loading = false;
   errorMessage = '';
+  fetchFailed = false;
   successMessage = '';
   showSuccessMessage = false;
   isAdmin = false;
@@ -1015,7 +1016,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   fetchReports(silent = false) {
-    if (!silent) this.loading = true;
+    if (!silent) { this.loading = true; this.errorMessage = ''; this.fetchFailed = false; }
     this.fetchSub?.unsubscribe();
     this.fetchSub = this.service.getReports(this.config.line)
       .pipe(
@@ -1030,6 +1031,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         next: (res) => {
           if (!silent) this.loading = false;
           if (res.success) {
+            this.fetchFailed = false;
             const nr = res.data || [];
             if (silent) {
               const ec = { ...this.expanded };
@@ -1043,6 +1045,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             this.recomputeKpis();
             this.loadPreliminaryShift();
           } else {
+            this.fetchFailed = true;
             this.errorMessage = res.error || 'Kunde inte hämta rapporter';
           }
         }
@@ -1798,7 +1801,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const effVals = submittedOnly.map(r => this.getEfficiencyPct(r)).filter((v): v is number => v != null);
       const avgEff = effVals.length ? Math.round(effVals.reduce((s, v) => s + v, 0) / effVals.length) : null;
       const opSet = new Set<string>();
-      submittedOnly.forEach(r => { [r.op1, r.op2, r.op3].forEach((n: number | null) => { if (n) { const name = this.getOpName(n); if (name) opSet.add(name); } }); });
+      submittedOnly.forEach(r => {
+        [[r.op1_name, r.op1], [r.op2_name, r.op2], [r.op3_name, r.op3]].forEach(([nm, n]) => {
+          if (n) opSet.add(this.resolveOpName(nm as string | null, n as number));
+        });
+      });
       const prodSet = new Set<string>();
       submittedOnly.forEach(r => { if (r.product_id) { const name = this.getProductName(r.product_id); if (name) prodSet.add(name); } });
       return {
@@ -1863,8 +1870,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return this.subShiftsShowAll[reportId] ? all : all.slice(0, this.SUB_PAGE);
   }
 
-  resolveOpName(nameField: string | null, numField: number | null): string {
-    if (nameField) return nameField;
+  resolveOpName(nameField: string | null | undefined, numField: number | null): string {
+    if (nameField && nameField.trim()) return nameField;
     return this.getOpName(numField);
   }
 

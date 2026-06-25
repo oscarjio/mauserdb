@@ -327,7 +327,7 @@ class NewsController {
             error_log("NewsController::getEvents:rekordag: " . $e->getMessage());
         }
 
-        // 2. Hög OEE-dag — OEE >= 90% de senaste 14 dagarna
+        // 2. Hög Kvalitet-dag — Kvalitet >= 95% de senaste 14 dagarna (volym-guard: dag_ibc >= 50)
         // rebotling_ibc.ibc_ok/ibc_ej_ok är kumulativa per skift — dagtotal = SUM(MAX per skiftraknare).
         try {
             $sql = "
@@ -342,20 +342,22 @@ class NewsController {
                 ),
                 dagdata AS (
                     SELECT dag,
+                           SUM(shift_ibc) + SUM(shift_ej) AS dag_ibc,
                            ROUND(
                                CASE WHEN SUM(shift_ibc) + SUM(shift_ej) > 0
                                     THEN (SUM(shift_ibc) / (SUM(shift_ibc) + SUM(shift_ej))) * 100
                                     ELSE 0 END, 1) AS oee_val
                     FROM per_shift
                     GROUP BY dag
+                    HAVING dag_ibc >= 50
                 )
                 SELECT 'hog_oee' AS typ,
                        dag AS event_datum,
                        CONCAT(dag, ' 12:00:00') AS event_datetime,
                        oee_val AS value,
-                       CONCAT('Utmärkt dag! ', DATE_FORMAT(dag,'%d %b'), ': OEE ', oee_val, '% — över 90%!') AS text
+                       CONCAT('Utmärkt dag! ', DATE_FORMAT(dag,'%d %b'), ': Kvalitet ', oee_val, '% — över 95%!') AS text
                 FROM dagdata
-                WHERE oee_val >= 90
+                WHERE oee_val >= 95
                 ORDER BY event_datum DESC
                 LIMIT 3
             ";
@@ -549,7 +551,7 @@ class NewsController {
             error_log("NewsController::getEvents:produktionsrekord: " . $e->getMessage());
         }
 
-        // 7. OEE-milstolpe — WCM-klass (OEE >= 85%) senaste 14 dagarna
+        // 7. Kvalitet-milstolpe — hög Kvalitet (90–95%) senaste 14 dagarna (volym-guard: dag_ibc >= 50)
         // rebotling_ibc.ibc_ok/ibc_ej_ok är kumulativa per skift — dagtotal = SUM(MAX per skiftraknare).
         try {
             $sql = "
@@ -564,16 +566,18 @@ class NewsController {
                 ),
                 dagdata AS (
                     SELECT dag,
+                           SUM(shift_ibc) + SUM(shift_ej) AS dag_ibc,
                            ROUND(
                                CASE WHEN SUM(shift_ibc) + SUM(shift_ej) > 0
                                     THEN (SUM(shift_ibc) / (SUM(shift_ibc) + SUM(shift_ej))) * 100
                                     ELSE 0 END, 1) AS oee_val
                     FROM per_shift
                     GROUP BY dag
+                    HAVING dag_ibc >= 50
                 )
                 SELECT dag AS event_datum, oee_val
                 FROM dagdata
-                WHERE oee_val >= 85 AND oee_val < 90
+                WHERE oee_val >= 90 AND oee_val < 95
                 ORDER BY event_datum DESC
                 LIMIT 3
             ";
@@ -585,7 +589,7 @@ class NewsController {
                         'typ'      => 'oee_milstolpe',
                         'datum'    => $row['event_datum'],
                         'datetime' => $row['event_datum'] . ' 16:00:00',
-                        'text'     => '🎯 OEE-milstolpe! ' . date('d M', strtotime($row['event_datum']) ?: time()) . ': OEE '
+                        'text'     => '🎯 Kvalitet-milstolpe! ' . date('d M', strtotime($row['event_datum']) ?: time()) . ': Kvalitet '
                                       . $row['oee_val'] . '% — World Class Manufacturing-nivå!',
                         'ikon'     => 'bullseye',
                         'category' => 'produktion',
