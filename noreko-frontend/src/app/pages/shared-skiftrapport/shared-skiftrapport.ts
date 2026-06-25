@@ -429,7 +429,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get summaryTotalDrift(): number {
-    // Cap per dag 1440 min för att förhindra att en felaktig DB-rad blåser upp totalen
+    // Cap per skift 600 min (~10h) för att förhindra att en felaktig DB-rad blåser upp totalen
     return this.groupedDays.reduce((s, d) => s + d.totalDrift, 0);
   }
 
@@ -1870,7 +1870,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   getShiftTid(report: any): string {
     if (!report) return '–';
-    // Prioritera faktiska cykeltider från PLC-cache (spec C) framför rapportfält
+    // Submittad rapport: PLC-data är alltid korrekt — använd plc_start→plc_end direkt
+    const isSubmitted = !report.isPreliminary && !report.isUnreported;
+    if (isSubmitted && report.plc_start && report.plc_end) {
+      return `${String(report.plc_start).substring(11, 16)}→${String(report.plc_end).substring(11, 16)}`;
+    }
+    // Ej inskickad/live: prioritera faktiska cykeltider från PLC-cache (spec C)
     const plcStats = this.plcStatsCache.get(report.id);
     if (plcStats?.firstCycleTime && plcStats?.lastCycleTime) {
       const s = new Date(plcStats.firstCycleTime).toTimeString().substring(0, 5);

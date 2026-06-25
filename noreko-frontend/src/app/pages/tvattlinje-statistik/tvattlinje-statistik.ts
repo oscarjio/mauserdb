@@ -281,7 +281,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       queryParams: params,
       queryParamsHandling: 'merge',
       replaceUrl: replace
-    }).then(() => { this.navInProgress = false; });
+    }).then(() => { this.navInProgress = false; }).catch(() => { this.navInProgress = false; });
   }
 
   ngAfterViewInit() {}
@@ -647,7 +647,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const ibcPlc: Record<string, number> = data.summary?.ibc_per_dag_plc || {};
     const ibcSr:  Record<string, number> = data.summary?.ibc_per_dag_skiftrapport || {};
     this.skiftrapportDays = ibcSr;
-    this.ibcPerDag = { ...ibcPlc, ...ibcSr };
+    // PLC är primär källa för innevarande dag — ta bort dagens datum ur SR så PLC vinner
+    const ibcSrFiltered = { ...ibcSr };
+    delete ibcSrFiltered[localToday()];
+    this.ibcPerDag = { ...ibcPlc, ...ibcSrFiltered };
     // IBC Producerade: summa av merged-kartan (inkl PLC-dagar utan rapport), fallback till backend-total
     const mergedSum = Object.values(this.ibcPerDag).reduce((s, v) => s + Number(v), 0);
     this.totalCycles = mergedSum > 0 ? mergedSum : data.summary.total_cycles;
