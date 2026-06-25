@@ -270,7 +270,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         : null;
       const targetCycleMin = product?.cycle_time_minutes ?? this.fallbackCycleMin;
       const targetIbcH     = 60 / targetCycleMin;
-      const ibcH           = drifttidMin > 0 ? (okIbc / (drifttidMin / 60)) : 0;
+      const netDriftMin    = Math.max(0, drifttidMin - rasttime);
+      const ibcH           = netDriftMin > 0 ? (okIbc / (netDriftMin / 60)) : 0;
       const prestanda      = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
 
       const v = Math.round(tillganglighet * prestanda * kvalitet * 100);

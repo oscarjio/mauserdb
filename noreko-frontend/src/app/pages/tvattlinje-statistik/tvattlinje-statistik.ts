@@ -2197,7 +2197,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.tableData.push({
         period,
         date,
-        cycles: cycles.length,
+        cycles: this.ibcPerDag[this.formatDate(date)] ?? cycles.length,
         avgCycleTime: Math.round(avgCycleTime * 10) / 10,
         efficiency,
         runtime: Math.round(cycles.length * avgCycleTime * 10) / 10,

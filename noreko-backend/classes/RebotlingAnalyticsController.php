@@ -504,7 +504,7 @@ class RebotlingAnalyticsController {
                     $ibcOk   = (float)$r['ibc_ok'];
                     $ibcEjOk = (float)$r['ibc_ej_ok'];
                     $totalIBC = $ibcOk + $ibcEjOk;
-                    $opMin   = max((float)$r['shift_runtime'], 1);
+                    $opMin   = max(min((float)$r['shift_runtime'], 600), 1);
                     $planMin = max($opMin + (float)$r['shift_rast'], 1);
 
                     $avail = min($opMin / $planMin, 1.0);
@@ -559,7 +559,7 @@ class RebotlingAnalyticsController {
                 $ibcOk    = (float)$r['ibc_ok'];
                 $ibcEjOk  = (float)$r['ibc_ej_ok'];
                 $totalIBC = $ibcOk + $ibcEjOk;
-                $opMin    = max((float)$r['runtime_min'], 1);
+                $opMin    = max(min((float)$r['runtime_min'], 600), 1);
                 $planMin  = max($opMin + (float)$r['rast_min'], 1);
 
                 $avail = min($opMin / $planMin, 1.0);

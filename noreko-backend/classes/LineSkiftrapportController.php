@@ -255,9 +255,22 @@ class LineSkiftrapportController {
                 try {
                     $ibcExists = $this->pdo->query("SHOW TABLES LIKE '$ibcTable'")->rowCount() > 0;
                     if ($ibcExists) {
-                        $maxStmt = $this->pdo->query("SELECT DATE(MAX(datum)) AS maxd FROM `$ibcTable`");
-                        $maxRow  = $maxStmt->fetch(PDO::FETCH_ASSOC);
-                        $datumFran = ($maxRow && $maxRow['maxd']) ? $maxRow['maxd'] : date('Y-m-d');
+                        // B6-fix: välj den kalenderdag med FLEST pulser i senaste 16h-spannet
+                        // (undviker felmatchning när nattskift korsar midnatt)
+                        $majStmt = $this->pdo->prepare("
+                            SELECT DATE(datum) AS dag, COUNT(*) AS cnt
+                            FROM `$ibcTable`
+                            WHERE datum >= DATE_SUB(
+                                (SELECT MAX(datum) FROM `$ibcTable`),
+                                INTERVAL 16 HOUR
+                            )
+                            GROUP BY DATE(datum)
+                            ORDER BY cnt DESC
+                            LIMIT 1
+                        ");
+                        $majStmt->execute();
+                        $majRow = $majStmt->fetch(PDO::FETCH_ASSOC);
+                        $datumFran = ($majRow && $majRow['dag']) ? $majRow['dag'] : date('Y-m-d');
                     } else {
                         $datumFran = date('Y-m-d');
                     }

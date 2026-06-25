@@ -1514,7 +1514,7 @@ class RebotlingController {
                     SELECT DATE(datum)                    AS dag,
                            skiftraknare,
                            COUNT(*)                       AS shift_cycles,
-                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                           LEAST(MAX(COALESCE(runtime_plc, 0)), 600) AS shift_runtime,
                            MAX(COALESCE(rasttime,    0)) AS shift_rast,
                            MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
                            MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
@@ -1539,7 +1539,7 @@ class RebotlingController {
             $rastMin = $data['total_rast_min'] ?? 0;        // Rasttid från PLC D4008
 
             // runtime_plc exkluderar redan rast – det är den faktiska driftstiden
-            $operatingMin = max($runtimeMin, 1);
+            $operatingMin = max(min($runtimeMin, 600), 1);
 
             // Planerad tid = driftstid + rasttid (total tid operatörerna var på plats)
             $plannedMin = max($runtimeMin + $rastMin, 1);

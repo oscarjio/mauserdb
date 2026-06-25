@@ -323,7 +323,7 @@ class TvattlinjeOperatorController {
             $antalOk      = (float)($s['antal_ok'] ?? 0);
             $ibcPerOp     = $antalAktiva > 0 ? $totalt / $antalAktiva : 0;
             $okPerOp      = $antalAktiva > 0 ? $antalOk / $antalAktiva : 0;
-            $stoppMin     = (float)($s['driftstopptime'] ?? 0);
+            $stoppMin     = max(0.0, min((float)($s['driftstopptime'] ?? 0), 600.0));
             $hadStopp     = $stoppMin > 0 ? 1 : 0;
 
             // drifttid antas vara i minuter (standard för tvattlinje)
