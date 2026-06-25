@@ -1302,21 +1302,17 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     // Kör INTE incremental i dag-vy (datasets struktur skiljer sig — full recreate krävs)
     if (silent && this.viewMode !== 'day' && this.productionChart && viewKey === this.chartViewKey) {
       try {
-        const chartData = this.prepareChartData(data);
+        const cd: any = this.prepareChartData(data);
         const chart = this.productionChart;
-        const newLabels: string[] = chartData.labels;
+        const newLabels: string[] = cd.labels;
         const prevLen = chart.data.labels?.length ?? 0;
         if (newLabels.length !== prevLen) {
-          // Ersätt hela labels + data (vy oförändrad men punktantal ändrats — dag-vy)
           chart.data.labels = newLabels;
           chart.data.datasets.forEach((ds: any, i: number) => {
-            const cd: any = chartData;
             ds.data = cd.datasets?.[i]?.data ?? cd.efficiencyArr ?? cd.cycleCountArr ?? [];
           });
         } else {
-          // Uppdatera bara värden
           chart.data.datasets.forEach((ds: any, i: number) => {
-            const cd: any = chartData;
             ds.data = cd.datasets?.[i]?.data ?? cd.efficiencyArr ?? cd.cycleCountArr ?? [];
           });
         }

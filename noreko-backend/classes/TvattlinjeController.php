@@ -2180,7 +2180,7 @@ class TvattlinjeController {
                 $totalIbcSum += $tot;
                 $totalOkSum  += $ok;
                 // Bästa dag = flest inskickade IBCer (totalt), exkludera pågående dag
-                if ($tot > $bestaIbc && $r['dag'] < date('Y-m-d')) {
+                if ($tot > $bestaIbc && (int)$r['skift_count'] === 1 && $r['dag'] < date('Y-m-d')) {
                     $bestaIbc = $tot;
                     $bestaDag = $r['dag'];
                 }
