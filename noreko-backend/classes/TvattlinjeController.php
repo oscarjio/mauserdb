@@ -532,11 +532,11 @@ class TvattlinjeController {
             ');
             $skiftrapportToday = (int)$stmtSr->fetchColumn();
 
-            // Välj värde: PLC primär, skiftrapport som fallback
-            $ibcToday = $plcToday > 0 ? $plcToday : $skiftrapportToday;
+            // Välj värde: Skiftrapport primär, PLC som fallback
+            $ibcToday = $skiftrapportToday > 0 ? $skiftrapportToday : $plcToday;
 
             // Beräkna metadata för klienten
-            $dataSource  = $plcToday > 0 ? 'plc' : 'skiftrapport';
+            $dataSource  = $skiftrapportToday > 0 ? 'skiftrapport' : 'plc';
             $ibcEmpty    = $plcToday === 0 && $skiftrapportToday === 0;
             $divergent   = false;
             if ($plcToday > 0 && $skiftrapportToday > 0) {
@@ -2151,6 +2151,9 @@ class TvattlinjeController {
             $bestaIbc    = 0;
 
             foreach ($rows as $r) {
+                if ((int)$r['skift_count'] !== 1) {
+                    continue;
+                }
                 $tot = max(0, (int)$r['total_ibc']);
                 $ok  = max(0, (int)$r['total_ok']);
 
