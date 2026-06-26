@@ -1,4 +1,10 @@
 # MauserDB Dev Log
+2026-06-26 | deploy: backend rsync till dev — PHP-ändringar från commits 195a9744+0bb17511 (LineSkiftrapport/RebotlingAnalytics/RebotlingController/TvattlinjeOperator/News/OperatorRanking). Frontend redan live via watch.
+2026-06-25 | fix(våg2-OEE): drifttid-cap i OEE-beräkning rebotling+tvättlinje; stoppMin-cap; nattskift majority-dag; cycles=ibcPerDag i tabellvy; netDriftMin (drifttid-rasttime) för IBC/h i shared-skiftrapport. Commit 195a9744.
+2026-06-25 | fix(robusthet): fetchFailed-guard i fetchShiftData; resolveOpName fallback på dag-rad; rebotling SUM(shift_ibc) i sammanfattning; aktivaDagar via span; Kvalitet-volym-guard. Commit 0bb17511.
+2026-06-25 | fix(tvattlinje-SR+OEE): SR-primär för getLiveStats IBC; dedup skift_count=1 i getOeeTrend. Commit c32a8b80.
+2026-06-25 | fix(tvattlinje-batch3): rätt tider på submittade rader; PLC-primär idag; OEE nav-fix. Commit 13197e98.
+2026-06-25 | fix(tvattlinje-batch1+2): drifttid cap; PLC-primär datakälla; speedometer takt; stale-race guard. Commit a923db18.
 2026-06-19 | fix(build): eliminera Angular template-varningar — NG8113 (DatePipe oanvänd i SharedSkiftrapport), NG8107 (redundant ?. i tvattlinje-statistik innanför ngIf), NG8102 (redundant ?? i shared-skiftrapport innanför ngIf). Build 0 Angular-varningar. Deploy dev OK.
 2026-06-19 | verify: skiftöverlämning feature-flag — `rebotling/overlamning` finns i feature_flags (min_role=admin, enabled=1). Feature OK.
 2026-06-17 | fix(tvattlinje): getLiveStats primär MAX(ibc_count)+taktPerH; hastighetsmätare → taktPercentage (momentan takt); drifttid cap 600 min i OperatorController+shared-skiftrapport; min/IBC i subshift-tabell; FIX10 race-guards i statistik (statSub/oeeTrendSub/navInProgress); korrekt chart-incremental (efficiencyArr). Build clean. Commit c275e3cd. Deploy dev OK.

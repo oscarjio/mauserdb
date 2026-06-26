@@ -280,10 +280,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeMinPerIbc(r: any): string {
-    const ok = r.antal_ok ?? 0;
-    const dt = Math.min(r.drifttid ?? 0, 600);
-    if (ok <= 0 || dt <= 0) return '–';
-    const v = dt / ok;
+    const ok  = r.antal_ok ?? 0;
+    const net = Math.max(0, Math.min(r.drifttid ?? 0, 600) - (r.rasttime ?? 0));
+    if (ok <= 0 || net <= 0) return '–';
+    const v = net / ok;
     return isFinite(v) ? v.toFixed(1) : '–';
   }
 
@@ -388,10 +388,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get summaryAvgIbcH(): number | null {
-    const totalDrift = this.filteredReports.reduce((s, r) => s + Math.min(r.drifttid || 0, 600), 0);
+    const totalNet = this.filteredReports.reduce(
+      (s, r) => s + Math.max(0, Math.min(r.drifttid || 0, 600) - (r.rasttime || 0)), 0);
     const totalIbc = this.filteredReports.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
-    if (totalDrift <= 0 || totalIbc <= 0) return null;
-    return Math.round(totalDrift / totalIbc * 10) / 10;
+    if (totalNet <= 0 || totalIbc <= 0) return null;
+    return Math.round(totalNet / totalIbc * 10) / 10;
   }
 
   get summaryAvgEfficiency(): number | null {
