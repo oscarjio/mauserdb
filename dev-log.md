@@ -1,4 +1,6 @@
 # MauserDB Dev Log
+2026-06-26 | fix(skiftrapport): _computeMinPerIbc + summaryAvgIbcH subtraherar nu rasttime från drifttid (netDriftMin) — konsistent med PDF-beräkning. Commit 9f4f1391. Deploy dev auto via watch.
+2026-06-26 | audit: Genomgång av OEE (Rebotling/Tvättlinje), PDO-params, lifecycle — inga fler kritiska buggar funna. Baklogg: veckorapport/gamification/OEE-prod-verifiering kvarstår (låg prioritet).
 2026-06-26 | deploy: backend rsync till dev — PHP-ändringar från commits 195a9744+0bb17511 (LineSkiftrapport/RebotlingAnalytics/RebotlingController/TvattlinjeOperator/News/OperatorRanking). Frontend redan live via watch.
 2026-06-25 | fix(våg2-OEE): drifttid-cap i OEE-beräkning rebotling+tvättlinje; stoppMin-cap; nattskift majority-dag; cycles=ibcPerDag i tabellvy; netDriftMin (drifttid-rasttime) för IBC/h i shared-skiftrapport. Commit 195a9744.
 2026-06-25 | fix(robusthet): fetchFailed-guard i fetchShiftData; resolveOpName fallback på dag-rad; rebotling SUM(shift_ibc) i sammanfattning; aktivaDagar via span; Kvalitet-volym-guard. Commit 0bb17511.

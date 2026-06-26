@@ -149,10 +149,8 @@ GRUNDLIG GENOMGANG + FORBATTRING — vi har nu prod_db_schema.sql och deploy-pip
 - ~~Op 444 visas utan namn~~ — FIXAT commit b653c86e: array_merge + 'Operatör N' fallback.
 - **Skiftöverlämning feature-flag** — DELVIS VERIFIERAT: meny-länken använder `rebotling/overlamning` (ej `/skiftoverlamning`). Flaggan `rebotling/overlamning` satt till 'admin' i INSTALL_ALL.sql. Troligen OK. Kräver live-DB-verifiering.
 
-**Ovrigt backlog (lagre prioritet, ej verifierat):**
-- Rapport-sidor — granska veckorapport, kvartal, export-funktioner
-- Gamification — teamspelare, achievements
-- OEE-berakningar mot prod DB
+**Fixat 2026-06-26:**
+- min/IBC och summaryAvgIbcH subtraherar nu rasttime (netDriftMin) — konsistens med PDF. Commit 9f4f1391.
 
 **Ovrigt backlog (lagre prioritet):**
 - Rapport-sidor — granska veckorapport, manadsrapport, kvartalsrapport
