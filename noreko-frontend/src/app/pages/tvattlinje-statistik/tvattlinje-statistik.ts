@@ -188,12 +188,15 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.syncStateToUrl(true);
     this.loadStatistics();
     this.loadOeeTrend();
+    // Statistik-vyn visar aggregerad historik som knappt ändras minut-till-minut,
+    // men varje poll kör en tung fråga (~5s, många round-trips över DB-tunneln).
+    // 60s var alldeles för aggressivt → 5 min räcker gott och drar mycket mindre trafik.
     this.statistikPollingId = setInterval(() => {
       if (!this.loading) {
         this.loadStatistics(true);
         this.loadOeeTrend();
       }
-    }, 60000);
+    }, 300000);
     // ROUTING-BUGG 2: prenumerera på URL-ändringar (back/forward) — skippa första emit som ngOnInit redan hanterat
     this.route.queryParams.pipe(skip(1), takeUntil(this.destroy$)).subscribe(params => {
       // FIX10A: ignorera emits som orsakas av intern syncStateToUrl (undviker dubbel-fetch)
@@ -651,9 +654,19 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const ibcSrFiltered = { ...ibcSr };
     delete ibcSrFiltered[localToday()];
     this.ibcPerDag = { ...ibcPlc, ...ibcSrFiltered };
+    // Bästa dag: räkna från månadsscopade ibcPerDag (inte rullande 30d oee-trend)
+    const _dagEntries = Object.entries(this.ibcPerDag);
+    if (_dagEntries.length) {
+      const _b = _dagEntries.reduce((m, c) => Number(c[1]) > Number(m[1]) ? c : m);
+      this.bastaDagLabel = _b[0];
+      this.bastaDagIbc = Number(_b[1]);
+    } else {
+      this.bastaDagLabel = '–';
+      this.bastaDagIbc = 0;
+    }
     // IBC Producerade: summa av merged-kartan (inkl PLC-dagar utan rapport), fallback till backend-total
     const mergedSum = Object.values(this.ibcPerDag).reduce((s, v) => s + Number(v), 0);
-    this.totalCycles = mergedSum > 0 ? mergedSum : data.summary.total_cycles;
+    this.totalCycles = mergedSum > 0 ? mergedSum : (data.summary.total_cycles || 0);
     this.missedWebhooks = data.summary.missed_webhooks || 0;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
 
@@ -2308,10 +2321,6 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
             this.oeeTrendEmpty = false;
             this.oeeTrendData = res.data || [];
             this.oeeTrendSummary = res.summary || { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, snitt_kvalitet: 0, basta_dag: null, basta_ibc: 0 };
-            if (this.oeeTrendSummary.basta_dag) {
-              this.bastaDagLabel = this.oeeTrendSummary.basta_dag;
-              this.bastaDagIbc = this.oeeTrendSummary.basta_ibc;
-            }
             clearTimeout(this.oeeTrendChartTimer);
             this.oeeTrendChartTimer = setTimeout(() => {
               if (this.destroy$.closed) return;
