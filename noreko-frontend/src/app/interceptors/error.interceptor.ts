@@ -29,8 +29,12 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         if (!safeToRetry || skipRetry) {
           return throwError(() => err);
         }
+        // 503 retry:as INTE. Det är oftast en självförstärkande överbelastnings-
+        // burst — att retry:a (tidigare 3x/anrop) amplifierar bursten (retry-storm
+        // → worker/pool-utmattning → fler 503). Fail fast i stället: polling hämtar
+        // ändå på nästa tick, one-shot-laddningar visar toast.
         if (err.status === 503) {
-          return timer(retryCount * 500);
+          return throwError(() => err);
         }
         if (err.status === 0 || err.status === 502 || err.status === 504) {
           // Bara ett forsok for ovriga gateway-fel

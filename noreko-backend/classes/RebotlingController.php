@@ -149,15 +149,15 @@ class RebotlingController {
             } elseif ($action === 'status') {
                 $this->getRunningStatus();
             } elseif ($action === 'rast') {
-                $this->getRastStatus();
+                $this->cachedRun('rebotling_raststatus', 3, fn() => $this->getRastStatus());
             } elseif ($action === 'driftstopp') {
-                $this->getDriftstoppStatus();
+                $this->cachedRun('rebotling_driftstoppstatus', 3, fn() => $this->getDriftstoppStatus());
             } elseif ($action === 'statistics') {
                 $this->getStatistics();
             } elseif ($action === 'day-stats') {
                 $this->getDayStats();
             } elseif ($action === 'oee') {
-                $this->getOEE();
+                $this->cachedRun('rebotling_oee', 5, fn() => $this->getOEE());
             } elseif ($action === 'cycle-trend') {
                 $this->getCycleTrend();
             } elseif ($action === 'heatmap') {
@@ -786,6 +786,39 @@ class RebotlingController {
      * Tabellen rebotling_runtime innehåller rader med (datum, rast_status)
      * där rast_status=1 = rast börjar, rast_status=0 = rast slutar.
      */
+
+    /**
+     * Kort filcache (dagsnyckel) runt en producent-metod som echo:ar JSON.
+     * Minut-skalig live-status → 3-5s cache är osynligt men kapar DB-round-trips
+     * över den strypta tunneln (färre conns = mindre risk för handshake-burst).
+     * Stampede-skydd: bara EN request regenererar (flock NB), övriga servar stale.
+     */
+    private function cachedRun(string $keyBase, int $ttl, callable $producer): void
+    {
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $day = (new \DateTime('now', new \DateTimeZone('Europe/Stockholm')))->format('Y-m-d');
+        $cf  = $cacheDir . '/' . $keyBase . '_' . $day . '.json';
+        if (is_file($cf) && (time() - filemtime($cf)) < $ttl) {
+            $c = @file_get_contents($cf);
+            if ($c !== false && $c !== '') { header('Content-Type: application/json; charset=utf-8'); echo $c; return; }
+        }
+        $lock = @fopen($cf . '.lock', 'c');
+        $haveLock = $lock && flock($lock, LOCK_EX | LOCK_NB);
+        if (!$haveLock && is_file($cf) && (time() - filemtime($cf)) < 300) {
+            $c = @file_get_contents($cf);
+            if ($c !== false && $c !== '') { if ($lock) { fclose($lock); } header('Content-Type: application/json; charset=utf-8'); echo $c; return; }
+        }
+        ob_start();
+        $producer();
+        $out = ob_get_clean();
+        if (isset($out[0]) && $out[0] === '{' && strpos($out, '"success":true') !== false) {
+            @file_put_contents($cf, $out, LOCK_EX);
+        }
+        echo $out;
+        if ($haveLock) { flock($lock, LOCK_UN); }
+        if ($lock) { fclose($lock); }
+    }
 
     private function getRastStatus() {
         try {

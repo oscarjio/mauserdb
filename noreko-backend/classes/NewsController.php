@@ -259,6 +259,32 @@ class NewsController {
                 return;
             }
         }
+        // Stampede-skydd: vid cache-miss regenererar bara EN request (flock NB);
+        // övriga serverar stale (upp till 5 min) i stället för att köra de tunga
+        // aggregaten samtidigt mot DB-tunneln. Låset auto-släpps vid request-slut.
+        $lock = @fopen($cf . '.lock', 'c');
+        $haveLock = $lock && flock($lock, LOCK_EX | LOCK_NB);
+        if (!$haveLock) {
+            if (is_file($cf) && (time() - filemtime($cf)) < 300) {
+                $c = @file_get_contents($cf);
+                if ($c !== false && $c !== '') {
+                    if ($lock) { fclose($lock); }
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $c;
+                    return;
+                }
+            }
+        } elseif (is_file($cf) && (time() - filemtime($cf)) < 120) {
+            // Dubbelkoll under låset — någon regenererade precis före oss.
+            $c = @file_get_contents($cf);
+            if ($c !== false && $c !== '') {
+                flock($lock, LOCK_UN);
+                fclose($lock);
+                header('Content-Type: application/json; charset=utf-8');
+                echo $c;
+                return;
+            }
+        }
 
         $events = [];
 
@@ -777,6 +803,7 @@ class NewsController {
         $out = json_encode(['success' => true, 'events' => $events], JSON_UNESCAPED_UNICODE);
         @file_put_contents($cf, $out, LOCK_EX);
         echo $out;
+        if (isset($lock) && $lock) { if (!empty($haveLock)) { flock($lock, LOCK_UN); } fclose($lock); }
     }
 
     private function ikonForCategory(string $category): string {

@@ -99,7 +99,30 @@ class FeatureFlagController {
                 return;
             }
         }
+        // Stampede-skydd: vid cache-miss regenererar bara EN request (flock NB).
+        // Övriga serverar stale cache (upp till 5 min) i stället för att alla
+        // samtidigt går mot den strypta DB-tunneln och förstärker 503-bursten.
+        $lock = @fopen($cf . '.lock', 'c');
+        $haveLock = $lock && flock($lock, LOCK_EX | LOCK_NB);
+        if (!$haveLock && is_file($cf) && (time() - filemtime($cf)) < 300) {
+            $c = @file_get_contents($cf);
+            if ($c !== false && $c !== '') {
+                if ($lock) { fclose($lock); }
+                header('Content-Type: application/json; charset=utf-8');
+                echo $c;
+                return;
+            }
+        }
         try {
+            // Dubbelkoll under låset — någon kan ha regenererat precis före oss.
+            if ($haveLock && is_file($cf) && (time() - filemtime($cf)) < 60) {
+                $c = @file_get_contents($cf);
+                if ($c !== false && $c !== '') {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $c;
+                    return;
+                }
+            }
             $stmt = $this->pdo->query(
                 "SELECT feature_key, label, category, min_role, enabled
                  FROM feature_flags
@@ -114,6 +137,9 @@ class FeatureFlagController {
             // så att frontend-appen inte blockeras vid initiering (APP_INITIALIZER).
             error_log('FeatureFlagController::getList: ' . $e->getMessage());
             echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
+        } finally {
+            if ($haveLock) { flock($lock, LOCK_UN); }
+            if ($lock) { fclose($lock); }
         }
     }
 
