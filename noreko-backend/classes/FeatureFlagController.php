@@ -86,6 +86,19 @@ class FeatureFlagController {
     }
 
     private function getList() {
+        // Filcache (60s) — trivial fråga men långsam över DB-tunneln, och den
+        // blockerar Angular-appInitializer (fryser hela app-bootet) om den är seg.
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $cf = $cacheDir . '/feature_flags_list.json';
+        if (is_file($cf) && (time() - filemtime($cf)) < 60) {
+            $c = @file_get_contents($cf);
+            if ($c !== false && $c !== '') {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $c;
+                return;
+            }
+        }
         try {
             $stmt = $this->pdo->query(
                 "SELECT feature_key, label, category, min_role, enabled
@@ -93,7 +106,9 @@ class FeatureFlagController {
                  ORDER BY category, label"
             );
             $flags = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            echo json_encode(['success' => true, 'data' => $flags], JSON_UNESCAPED_UNICODE);
+            $out = json_encode(['success' => true, 'data' => $flags], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cf, $out, LOCK_EX);
+            echo $out;
         } catch (\PDOException $e) {
             // Tabellen kan saknas i ny miljö — returnera tom lista med 200 OK
             // så att frontend-appen inte blockeras vid initiering (APP_INITIALIZER).
@@ -141,6 +156,7 @@ class FeatureFlagController {
             AuditLogger::log($this->pdo, 'update_feature_flag', 'feature_flags', null,
                 "Uppdaterade feature flag: $featureKey -> min_role: $minRole",
                 null, ['feature_key' => $featureKey, 'min_role' => $minRole]);
+            @unlink(dirname(__DIR__) . '/cache/feature_flags_list.json');
             echo json_encode(['success' => true, 'message' => 'Uppdaterad'], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
             error_log('FeatureFlagController::updateFlag: ' . $e->getMessage());
@@ -183,6 +199,7 @@ class FeatureFlagController {
             $this->pdo->commit();
             AuditLogger::log($this->pdo, 'bulk_update_feature_flags', 'feature_flags', null,
                 "Batch-uppdaterade $updated funktionsflaggor");
+            @unlink(dirname(__DIR__) . '/cache/feature_flags_list.json');
             echo json_encode(['success' => true, 'message' => "$updated funktionsflaggor uppdaterade", 'count' => $updated], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
             if ($this->pdo->inTransaction()) {
