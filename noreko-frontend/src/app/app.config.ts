@@ -104,13 +104,18 @@ class GlobalErrorHandler implements ErrorHandler {
 }
 
 // initApp returnerar en Promise som Angular VÄNTAR på innan routing startar.
-// Laddar auth-status och feature flags parallellt.
+// AKUT anti-frys: boot får ALDRIG blockera >3s. Wrappa varje anrop i
+// timeout(3000)+catch så Promise.all alltid resolvar snabbt även om backend
+// ger 503/pending vid boot-burst. status/ff har egen polling som uppdaterar
+// när backend återhämtar sig.
 function initApp() {
   const auth = inject(AuthService);
   const ff = inject(FeatureFlagService);
+  const withTimeout = <T>(p: Promise<T>, ms: number, fb: T): Promise<T> =>
+    Promise.race([p, new Promise<T>(resolve => setTimeout(() => resolve(fb), ms))]);
   return Promise.all([
-    firstValueFrom(auth.fetchStatus()),
-    ff.loadFlags()
+    withTimeout(firstValueFrom(auth.fetchStatus()).catch(() => null), 3000, null),
+    withTimeout(ff.loadFlags().catch(() => undefined), 3000, undefined)
   ]);
 }
 

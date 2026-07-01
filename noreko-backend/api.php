@@ -146,17 +146,20 @@ try {
         exit;
     }
     $db = require $dbConfig;
-    $pdo = new PDO($db['dsn'], $db['user'], $db['pass'], [
+    // LazyPDO: öppna INTE main-DB-anslutningen här — den öppnas först när en
+    // controller faktiskt kör query/prepare/exec/... . Cachade och Pi-proxade
+    // endpoints returnerar innan de rör $pdo → ingen tunnel-conn/PHP-FPM-worker
+    // hålls för dem vid boot-burst (löser 503-burst → "Laddar Mauserdb"-frys).
+    // SET time_zone körs lazy i LazyPDO::lazyConnect(). Autoloadern är inte
+    // registrerad än här, så LazyPDO require:as explicit.
+    require_once __DIR__ . '/classes/LazyPDO.php';
+    $pdo = new LazyPDO($db['dsn'], $db['user'], $db['pass'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
         PDO::MYSQL_ATTR_COMPRESS => true,
         PDO::ATTR_PERSISTENT => true   // Återanvänd DB-anslutningar mellan requests (~5-10ms besparing per request)
     ]);
-    // Synkronisera MySQL-timezone med PHP (Europe/Stockholm) så CURDATE()/NOW()/DATE() är konsekventa.
-    // datum-kolumner i rebotling_ibc/tvattlinje_ibc lagras med MySQL:s server-timestamp → utan denna
-    // inställning kan CURDATE() avvika från PHP:s date() och ge datum off-by-one nära midnatt.
-    try { $pdo->exec("SET time_zone = 'Europe/Stockholm'"); } catch (\Throwable $e) { /* timezone tables ej installerade — ignoreras */ }
 } catch (\Throwable $e) {
     require_once __DIR__ . '/classes/ErrorLogger.php';
     ErrorLogger::log($e, 'api.php: Databasanslutning misslyckades');
