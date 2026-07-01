@@ -1,4 +1,5 @@
 # MauserDB Dev Log
+2026-07-01 | feat(pi-agg FAS 1): internal-api.php (loopback+token, whitelist, TTL-cache) + RemoteAgg passthru på 5 tunga read-actions (Tvattlinje statistics, TvattOperator/OperatorRanking ranking, Bemanning operator-stats/team-komb, OeeTrendanalys). Lokal fallback, PIAGG_INTERNAL recursion-guard. Verifierat dev-staging: proxy==lokal identiskt, fallback OK, auth kvar på edge. Installerade php8.2-curl på dev. Commit 3a4df929. Deploy dev (backend).
 2026-06-26 | fix(skiftrapport): _computeMinPerIbc + summaryAvgIbcH subtraherar nu rasttime från drifttid (netDriftMin) — konsistent med PDF-beräkning. Commit 9f4f1391. Deploy dev auto via watch.
 2026-06-26 | audit: Genomgång av OEE (Rebotling/Tvättlinje), PDO-params, lifecycle — inga fler kritiska buggar funna. Baklogg: veckorapport/gamification/OEE-prod-verifiering kvarstår (låg prioritet).
 2026-06-26 | deploy: backend rsync till dev — PHP-ändringar från commits 195a9744+0bb17511 (LineSkiftrapport/RebotlingAnalytics/RebotlingController/TvattlinjeOperator/News/OperatorRanking). Frontend redan live via watch.
