@@ -98,8 +98,11 @@ class RemoteAgg
         $ch  = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER    => true,
-            CURLOPT_TIMEOUT_MS        => 1500,
+            // Connect-timeout kort → om Pi:n är onåbar faller vi tillbaka snabbt till lokal.
+            // Total-timeout generös → stora (men kompakta) JSON-svar hinner över den
+            // strypta uplinken via proxyn i stället för att timeouta + köra dubbelt lokalt.
             CURLOPT_CONNECTTIMEOUT_MS => 800,
+            CURLOPT_TIMEOUT_MS        => 6000,
             CURLOPT_HTTPHEADER        => ['X-Internal-Token: ' . $token],
         ]);
         $body = curl_exec($ch);

@@ -1,0 +1,35 @@
+# ============================================================================
+# piagg-forward.service.example — reverse-forward Pi:s internal-api upp till VPS
+# ----------------------------------------------------------------------------
+# Kör PÅ PI:n. Exponerar Pi:ns internal-api (127.0.0.1:8091) på VPS:ens
+# 127.0.0.1:8091 via en EGEN, ISOLERAD autossh — separat från DB-tunneln
+# (reversessh-tunnel.service) så att den ALDRIG kan påverka DB-forwarden 33061.
+#
+# VPS:en når då Pi:ns internal-api på http://127.0.0.1:8091 och pekar dit via
+# agg_config.php (base=http://127.0.0.1:8091/internal-api.php, remote=true).
+#
+# Installera på Pi:n:
+#   sudo cp piagg-forward.service.example /etc/systemd/system/piagg-forward.service
+#   (justera VPS-host 207.2.123.136 + port 32546 vid behov)
+#   sudo systemctl daemon-reload && sudo systemctl enable --now piagg-forward.service
+#
+# OBS: VPS-porten 8091 måste vara ledig (ExitOnForwardFailure=yes → tjänsten
+# startar inte om porten är upptagen; den är isolerad så DB-tunneln påverkas ej).
+# ============================================================================
+
+[Unit]
+Description=MauserDB Pi-agg reverse forward (8091 -> VPS)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+Environment=AUTOSSH_GATETIME=0
+ExecStart=/usr/bin/autossh -p 32546 -N -T -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ExitOnForwardFailure=yes -R 8091:127.0.0.1:8091 root@207.2.123.136
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
