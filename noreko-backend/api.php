@@ -398,7 +398,7 @@ if (!headers_sent()) {
     header('Server-Timing: ' . $__st);
     header('X-Response-Time-Ms: ' . $__durMs);
     header('X-Data-Source: ' . $__source);
-    header('Access-Control-Expose-Headers: Server-Timing, X-Response-Time-Ms, X-Data-Source');
+    header('Access-Control-Expose-Headers: Server-Timing, X-Response-Time-Ms, X-Data-Source, X-Data-Ts, X-Data-Stale');
 }
 if ($__durMs >= 500) {
     $__run = $_GET['run'] ?? '';

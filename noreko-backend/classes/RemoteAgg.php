@@ -47,13 +47,13 @@ class RemoteAgg
     private static function isHeavy(string $action, string $run): bool
     {
         static $heavy = [
-            'tvattlinje'          => ['statistics', 'oee-trend'],
+            'tvattlinje'          => ['statistics', 'oee-trend', 'status'],
             'tvattlinje-operator' => ['ranking'],
             'operator-ranking'    => ['*'],
             'bemanning'           => ['operator-stats', 'team-kombinationer'],
             'oee-trendanalys'     => ['*'],
             'lineskiftrapport'    => ['*'],
-            'rebotling'           => ['status'],
+            'rebotling'           => ['status', 'rast', 'driftstopp', 'oee'],
         ];
         if (!isset($heavy[$action])) {
             return false;
@@ -87,21 +87,36 @@ class RemoteAgg
         $c     = self::config();
         $base  = isset($c['base'])  ? (string)$c['base']  : '';
         $token = isset($c['token']) ? (string)$c['token'] : '';
-        if ($base === '' || $token === '') {
+        if ($base === '' || $token === '' || !function_exists('curl_init')) {
             return false;
         }
 
-        if (!function_exists('curl_init')) {
-            return false;
+        // === FAS 2 steg 2: stale-while-revalidate VPS-cache ===
+        // VPS = cachande spegel. Servera cache direkt (ingen länk-trafik); vid stale
+        // refreshar bara EN request (flock NB) medan övriga servar stale; vid länkfel
+        // servera stale (fryskillern — aldrig hänga/rå-SQL). Historisk period = 7 dygn.
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $cf  = $cacheDir . '/swr_' . $action . '_' . md5(json_encode($_GET)) . '.json';
+        $ttl = self::swrTtl($run, $_GET);
+
+        // 1. Färsk VPS-cache → servera direkt, INGEN länk-trafik.
+        if (is_file($cf) && (time() - filemtime($cf)) < $ttl) {
+            return self::serveCache($cf, false);
         }
 
-        $url = $base . '?' . http_build_query($_GET);
-        $ch  = curl_init($url);
+        // 2. Stale/miss → bara EN refreshar (flock NB); övriga servar stale direkt.
+        $lock = @fopen($cf . '.lock', 'c');
+        $haveLock = $lock && flock($lock, LOCK_EX | LOCK_NB);
+        if (!$haveLock && is_file($cf)) {
+            if ($lock) { fclose($lock); }
+            return self::serveCache($cf, true);
+        }
+
+        // 3. Hämta färskt från Pi.
+        $ch = curl_init($base . '?' . http_build_query($_GET));
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER    => true,
-            // Connect-timeout kort → om Pi:n är onåbar faller vi tillbaka snabbt till lokal.
-            // Total-timeout generös → stora (men kompakta) JSON-svar hinner över den
-            // strypta uplinken via proxyn i stället för att timeouta + köra dubbelt lokalt.
             CURLOPT_CONNECTTIMEOUT_MS => 800,
             CURLOPT_TIMEOUT_MS        => 6000,
             CURLOPT_HTTPHEADER        => ['X-Internal-Token: ' . $token],
@@ -112,17 +127,54 @@ class RemoteAgg
         $GLOBALS['__piTtfbMs']  = curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME) * 1000;
         curl_close($ch);
 
-        // Acceptera bara ett giltigt JSON-svar med HTTP 200 — annars fallback.
-        if ($body === false || $code !== 200) {
-            return false;
+        $ok = ($body !== false && $code === 200 && isset($body[0]) && $body[0] === '{');
+        if ($ok) {
+            // Atomisk skrivning (temp+rename) → inga trasiga läsningar av stora svar.
+            $tmp = $cf . '.tmp.' . getmypid();
+            if (@file_put_contents($tmp, $body) !== false) { @rename($tmp, $cf); } else { @unlink($tmp); }
         }
-        if (!isset($body[0]) || $body[0] !== '{') {
-            return false;
-        }
+        if ($lock) { if ($haveLock) { flock($lock, LOCK_UN); } fclose($lock); }
 
+        if ($ok) {
+            header('Content-Type: application/json; charset=utf-8');
+            header('X-Data-Ts: ' . gmdate('c'));
+            $GLOBALS['__dataSource'] = 'pi';
+            echo $body;
+            return true;
+        }
+        // 4. Pi misslyckades → servera stale om den finns (fryskillern).
+        if (is_file($cf)) {
+            return self::serveCache($cf, true);
+        }
+        // 5. Ingen cache + Pi nere → lokal fallback.
+        return false;
+    }
+
+    /** Serverar en VPS-cache-fil; $stale => märk svaret inaktuellt (X-Data-Stale). */
+    private static function serveCache(string $cf, bool $stale): bool
+    {
+        $body = @file_get_contents($cf);
+        if ($body === false || $body === '') {
+            return false;
+        }
         header('Content-Type: application/json; charset=utf-8');
-        $GLOBALS['__dataSource'] = 'pi';
+        header('X-Data-Ts: ' . gmdate('c', @filemtime($cf) ?: time()));
+        if ($stale) { header('X-Data-Stale: 1'); }
+        $GLOBALS['__dataSource'] = $stale ? 'stale' : 'cache';
         echo $body;
         return true;
+    }
+
+    /** SWR-TTL: avslutad period (immutabel) = 7 dygn, live-status = 5s, annars 5 min. */
+    private static function swrTtl(string $run, array $get): int
+    {
+        $end = $get['end'] ?? null;
+        if (is_string($end) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $end) && $end < date('Y-m-d')) {
+            return 604800; // avslutad period ändras aldrig
+        }
+        if (in_array($run, ['status', 'rast', 'driftstopp', 'oee'], true)) {
+            return 5; // live-status
+        }
+        return 300; // statistik/rapporter, löpande period
     }
 }

@@ -28,6 +28,7 @@ class TvattlinjeController {
             } elseif ($action === 'alert-thresholds') {
                 $this->getAlertThresholds();
             } elseif ($action === 'status') {
+                if (class_exists('RemoteAgg') && RemoteAgg::enabled() && RemoteAgg::passthru('tvattlinje')) return;
                 $this->getRunningStatus();
             } elseif ($action === 'rast') {
                 $this->getRastStatus();
@@ -1185,11 +1186,16 @@ class TvattlinjeController {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
 
-            // Filcache 15s TTL — nyckel: start+end (paverkar svaret)
+            // Filcache — nyckel: start+end (paverkar svaret).
+            // HISTORISK IMMUTABILITET: en avslutad period ($end < idag) ändras aldrig
+            // → cacha 7 dygn i st f 15s. Skyddar den strypta 2Mbit-länken: varje
+            // historisk månad hämtas EN gång (rå cykler), sen ~1ms för alla. Löpande
+            // period behåller 15s för färskhet.
             $cacheDir = dirname(__DIR__) . '/cache';
             if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
             $cacheFile = $cacheDir . '/tvattlinje_statistics_' . $start . '_' . $end . '.json';
-            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 15) {
+            $statsTtl = ($end < date('Y-m-d')) ? 604800 : 15;
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $statsTtl) {
                 $cached = file_get_contents($cacheFile);
                 if ($cached !== false) {
                     header('Content-Type: application/json; charset=utf-8');
