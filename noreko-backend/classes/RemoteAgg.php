@@ -47,11 +47,12 @@ class RemoteAgg
     private static function isHeavy(string $action, string $run): bool
     {
         static $heavy = [
-            'tvattlinje'          => ['statistics'],
+            'tvattlinje'          => ['statistics', 'oee-trend'],
             'tvattlinje-operator' => ['ranking'],
             'operator-ranking'    => ['*'],
             'bemanning'           => ['operator-stats', 'team-kombinationer'],
             'oee-trendanalys'     => ['*'],
+            'lineskiftrapport'    => ['*'],
         ];
         if (!isset($heavy[$action])) {
             return false;

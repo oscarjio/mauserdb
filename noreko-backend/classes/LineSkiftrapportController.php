@@ -35,6 +35,7 @@ class LineSkiftrapportController {
 
         if ($method === 'GET') {
             $run = $_GET['run'] ?? '';
+            if (class_exists('RemoteAgg') && RemoteAgg::enabled() && RemoteAgg::passthru('lineskiftrapport')) return;
             if ($run === 'lopnummer') {
                 $this->getLopnummer($line);
                 return;

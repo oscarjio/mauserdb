@@ -39,6 +39,7 @@ class TvattlinjeController {
             } elseif ($action === 'report') {
                 $this->getReport();
             } elseif ($action === 'oee-trend') {
+                if (class_exists('RemoteAgg') && RemoteAgg::enabled() && RemoteAgg::passthru('tvattlinje')) return;
                 $this->getOeeTrend();
             } elseif ($action === 'skiftrapport-statistik') {
                 $this->getSkiftrapportStatistik();

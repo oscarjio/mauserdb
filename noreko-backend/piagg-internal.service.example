@@ -1,0 +1,30 @@
+# ============================================================================
+# piagg-internal.service.example — systemd-mall för Pi-aggregering intern API
+# ----------------------------------------------------------------------------
+# Kör internal-api.php som en php -S-tjänst på loopback, så den startar vid boot
+# och auto-restartar vid krasch (Restart=always). Kopiera till
+# /etc/systemd/system/piagg-internal.service, justera User/paths per server, och:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now piagg-internal.service
+#
+# OBS: DB-tunneln (t.ex. 33061) är SEPARAT infra. På dev är den en reverse
+# SSH-forward från fjärrsidan (ägarens infra), inte systemd-hanterad här. På
+# Pi:n behövs ingen tunnel — DB:n är lokal.
+# ============================================================================
+
+[Unit]
+Description=MauserDB Pi-aggregering intern API (php -S loopback:8091)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/mauserdb/noreko-backend
+ExecStart=/usr/bin/php -S 127.0.0.1:8091 -t /var/www/mauserdb/noreko-backend
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
