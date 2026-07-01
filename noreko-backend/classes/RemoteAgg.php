@@ -107,6 +107,8 @@ class RemoteAgg
         ]);
         $body = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $GLOBALS['__piProxyMs'] = curl_getinfo($ch, CURLINFO_TOTAL_TIME) * 1000;
+        $GLOBALS['__piTtfbMs']  = curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME) * 1000;
         curl_close($ch);
 
         // Acceptera bara ett giltigt JSON-svar med HTTP 200 — annars fallback.
@@ -118,6 +120,7 @@ class RemoteAgg
         }
 
         header('Content-Type: application/json; charset=utf-8');
+        $GLOBALS['__dataSource'] = 'pi';
         echo $body;
         return true;
     }

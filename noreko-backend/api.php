@@ -350,6 +350,9 @@ if (!in_array($actionKey, $publicActions, true) && in_array($_SERVER['REQUEST_ME
     session_write_close();
 }
 
+$__t0 = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
+ob_start();
+
 // Ladda klassen manuellt
 $file = __DIR__ . '/classes/' . $className . '.php';
 if (file_exists($file)) {
@@ -364,6 +367,7 @@ if (class_exists($className)) {
         // Fånga ALLA fel inkl. TypeError, ValueError, Error — inte bara Exception.
         // Förhindrar att interna felmeddelanden/stacktrace läcker till klienten.
         http_response_code(500);
+        if (ob_get_level() > 0) { ob_clean(); }
         echo json_encode([
             'success' => false,
             'error' => 'Internt serverfel'
@@ -378,3 +382,24 @@ if (class_exists($className)) {
         'error' => 'Endpoint hittades inte'
     ], JSON_UNESCAPED_UNICODE);
 }
+
+// --- API timing-instrumentering ---
+$__durMs = round((microtime(true) - $__t0) * 1000, 1);
+$__source = $GLOBALS['__dataSource'] ?? 'local';
+$__st = "app;dur=$__durMs";
+if (isset($GLOBALS['__piProxyMs'])) {
+    $__st .= ', piproxy;dur=' . round((float)$GLOBALS['__piProxyMs'], 1);
+    if (isset($GLOBALS['__piTtfbMs'])) $__st .= ', pittfb;dur=' . round((float)$GLOBALS['__piTtfbMs'], 1);
+}
+if (!headers_sent()) {
+    header('Server-Timing: ' . $__st);
+    header('X-Response-Time-Ms: ' . $__durMs);
+    header('X-Data-Source: ' . $__source);
+    header('Access-Control-Expose-Headers: Server-Timing, X-Response-Time-Ms, X-Data-Source');
+}
+if ($__durMs >= 500) {
+    $__run = $_GET['run'] ?? '';
+    $__ip = $rateLimitIp ?? ($_SERVER['REMOTE_ADDR'] ?? '-');
+    @file_put_contents(__DIR__ . '/logs/timing.log', sprintf("%s\t%.1f\t%s\t%s\t%s\t%s\n", date('c'), $__durMs, $__source, $action, $__run, $__ip), FILE_APPEND | LOCK_EX);
+}
+if (ob_get_level() > 0) { ob_end_flush(); }

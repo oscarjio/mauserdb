@@ -8,6 +8,7 @@ import { firstValueFrom } from 'rxjs';
 import { routes } from './app.routes';
 import { csrfInterceptor } from './interceptors/csrf.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
+import { timingInterceptor } from './interceptors/timing.interceptor';
 import { AuthService } from './services/auth.service';
 import { FeatureFlagService } from './services/feature-flag.service';
 import { ToastService } from './services/toast.service';
@@ -118,7 +119,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes, withPreloading(PreloadAllModules), withInMemoryScrolling({ scrollPositionRestoration: 'enabled', anchorScrolling: 'enabled' })),
-    provideHttpClient(withInterceptors([csrfInterceptor, errorInterceptor]), withFetch()),
+    provideHttpClient(withInterceptors([timingInterceptor, csrfInterceptor, errorInterceptor]), withFetch()),
     provideAppInitializer(initApp),
     { provide: LOCALE_ID, useValue: 'sv' },
     { provide: ErrorHandler, useClass: GlobalErrorHandler }
