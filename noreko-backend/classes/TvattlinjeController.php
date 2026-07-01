@@ -969,6 +969,16 @@ class TvattlinjeController {
     }
 
     private function getRunningStatus() {
+        // Kort filcache (5s) — statusen är minut-skalig (running/idle + dygnsräknare),
+        // så 5s är osynligt men kapar DB-round-trips över den strypta tunneln drastiskt.
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $_cd = (new \DateTime('now', new \DateTimeZone('Europe/Stockholm')))->format('Y-m-d');
+        $cacheFile = $cacheDir . '/tvattlinje_runningstatus_' . $_cd . '.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 5) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) { header('Content-Type: application/json; charset=utf-8'); echo $cached; return; }
+        }
         try {
             $stmt = $this->pdo->prepare('
                 SELECT running, datum
@@ -1040,7 +1050,7 @@ class TvattlinjeController {
                 $rastCountToday = $counts;
             }
 
-            echo json_encode([
+            $out = json_encode([
                 'success' => true,
                 'data' => [
                     'running'            => $isRunning,
@@ -1050,6 +1060,8 @@ class TvattlinjeController {
                     'rast_count_today'   => $rastCountToday,
                 ]
             ], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $out, LOCK_EX);
+            echo $out;
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::getRunningStatus: ' . $e->getMessage());
             http_response_code(500);

@@ -721,6 +721,16 @@ class RebotlingController {
 
 
     private function getRunningStatus() {
+        // Kort filcache (3s) — statusen är minut-skalig (running/rast); 3s är osynligt
+        // för rebotling-live men kapar DB-round-trips över den strypta tunneln.
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $_cd = (new \DateTime('now', new \DateTimeZone('Europe/Stockholm')))->format('Y-m-d');
+        $cacheFile = $cacheDir . '/rebotling_runningstatus_' . $_cd . '.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 3) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) { header('Content-Type: application/json; charset=utf-8'); echo $cached; return; }
+        }
         try {
             // Hämta senaste running status för rebotling
             $stmt = $this->pdo->prepare('
@@ -749,7 +759,7 @@ class RebotlingController {
                 error_log('RebotlingController::getRunningStatus rast-check: ' . $e->getMessage());
             }
 
-            echo json_encode([
+            $out = json_encode([
                 'success' => true,
                 'data' => [
                     'running'    => $isRunning,
@@ -757,6 +767,8 @@ class RebotlingController {
                     'lastUpdate' => $lastUpdate
                 ]
             ], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $out, LOCK_EX);
+            echo $out;
         } catch (\Throwable $e) {
             error_log('RebotlingController::getRunningStatus: ' . $e->getMessage());
             http_response_code(500);
