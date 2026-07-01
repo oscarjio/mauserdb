@@ -138,6 +138,7 @@ class NewsController {
             $id = (int)$this->pdo->lastInsertId();
             AuditLogger::log($this->pdo, 'create_news', 'news', $id,
                 "Skapade nyhet: $title", null, ['title' => $title, 'category' => $category]);
+            foreach (glob(dirname(__DIR__) . '/cache/news_events_*.json') ?: [] as $f) { @unlink($f); }
             echo json_encode(['success' => true, 'id' => $id], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             error_log("NewsController::create: " . $e->getMessage());
@@ -205,6 +206,7 @@ class NewsController {
             ]);
             AuditLogger::log($this->pdo, 'update_news', 'news', $id,
                 "Uppdaterade nyhet (ID: $id): $title", null, ['title' => $title, 'category' => $category]);
+            foreach (glob(dirname(__DIR__) . '/cache/news_events_*.json') ?: [] as $f) { @unlink($f); }
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             error_log("NewsController::update: " . $e->getMessage());
@@ -229,6 +231,7 @@ class NewsController {
             $stmt = $this->pdo->prepare("DELETE FROM news WHERE id = :id");
             $stmt->execute([':id' => $id]);
             AuditLogger::log($this->pdo, 'delete_news', 'news', $id, "Tog bort nyhet (ID: $id)");
+            foreach (glob(dirname(__DIR__) . '/cache/news_events_*.json') ?: [] as $f) { @unlink($f); }
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
             error_log("NewsController::delete: " . $e->getMessage());
@@ -241,6 +244,21 @@ class NewsController {
         $antal = min(20, max(1, intval($_GET['antal'] ?? 15)));
         $filterCategory = trim($_GET['category'] ?? '');
         $allowedCategories = ['produktion', 'bonus', 'system', 'info', 'viktig', 'rekord', 'hog_oee', 'certifiering', 'urgent'];
+
+        // Filcache (120s) — getEvents kör tunga aggregat (rekorddag + hög_oee med
+        // nästlade subqueries) som är segt över DB-tunneln. Ligger på home-sidan.
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $ckey = $filterCategory !== '' ? $filterCategory : 'all';
+        $cf = $cacheDir . '/news_events_' . $antal . '_' . $ckey . '.json';
+        if (is_file($cf) && (time() - filemtime($cf)) < 120) {
+            $c = @file_get_contents($cf);
+            if ($c !== false && $c !== '') {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $c;
+                return;
+            }
+        }
 
         $events = [];
 
@@ -756,7 +774,9 @@ class NewsController {
 
         $events = array_slice($unique, 0, $antal);
 
-        echo json_encode(['success' => true, 'events' => $events], JSON_UNESCAPED_UNICODE);
+        $out = json_encode(['success' => true, 'events' => $events], JSON_UNESCAPED_UNICODE);
+        @file_put_contents($cf, $out, LOCK_EX);
+        echo $out;
     }
 
     private function ikonForCategory(string $category): string {
