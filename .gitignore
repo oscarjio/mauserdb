@@ -29,5 +29,7 @@ Thumbs.db
 noreko-backend/db_config.php
 noreko-backend/cors_origins.php
 noreko-backend/app_config.php
+noreko-backend/agg_config.php
+noreko-backend/internal_token.php
 
 gx*/

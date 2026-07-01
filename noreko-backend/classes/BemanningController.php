@@ -16,11 +16,13 @@ class BemanningController {
         $run    = trim($_GET['run'] ?? '');
 
         if ($method === 'GET' && $run === 'operator-stats') {
+            if (class_exists('RemoteAgg') && RemoteAgg::enabled() && RemoteAgg::passthru('bemanning')) return;
             $this->getOperatorStats();
             return;
         }
 
         if ($method === 'GET' && $run === 'team-kombinationer') {
+            if (class_exists('RemoteAgg') && RemoteAgg::enabled() && RemoteAgg::passthru('bemanning')) return;
             $this->getTeamKombinationer();
             return;
         }

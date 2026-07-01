@@ -68,6 +68,8 @@ class OperatorRankingController {
 
         $run = trim($_GET['run'] ?? '');
 
+        if (class_exists('RemoteAgg') && RemoteAgg::enabled() && RemoteAgg::passthru('operator-ranking')) return;
+
         switch ($run) {
             case 'sammanfattning':  $this->sammanfattning();  break;
             case 'ranking':         $this->ranking();         break;
@@ -344,7 +346,7 @@ class OperatorRankingController {
             // Tempo-bonus: Om IBC/h > snitt
             $ibcPerH = $timmar > 0 ? ($totalIbc / $timmar) : 0;
             $tempoBonus = 0;
-            if ($ibcPerH > $avgIbcPerH && $avgIbcPerH > 0) {
+            if ($ibcPerH > $avgIbcPerH && $avgIbcPerH > 0 && $totalIbc >= 10 && $timmar >= 1.0) {
                 $tempoBonus = round(($ibcPerH - $avgIbcPerH) * 20, 1);
             }
 

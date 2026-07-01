@@ -42,6 +42,8 @@ class OeeTrendanalysController {
 
         $run = trim($_GET['run'] ?? '');
 
+        if (class_exists('RemoteAgg') && RemoteAgg::enabled() && RemoteAgg::passthru('oee-trendanalys')) return;
+
         switch ($run) {
             case 'sammanfattning': $this->sammanfattning(); break;
             case 'per-station':    $this->perStation();     break;

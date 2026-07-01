@@ -34,6 +34,7 @@ class TvattlinjeController {
             } elseif ($action === 'driftstopp') {
                 $this->getDriftstoppStatus();
             } elseif ($action === 'statistics') {
+                if (class_exists('RemoteAgg') && RemoteAgg::enabled() && RemoteAgg::passthru('tvattlinje')) return;
                 $this->getStatistics();
             } elseif ($action === 'report') {
                 $this->getReport();
@@ -515,6 +516,19 @@ class TvattlinjeController {
     // =========================================================
 
     private function getLiveStats() {
+        // Filcache 10s TTL — nyckel: dagens datum (Europe/Stockholm)
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $_cacheDay = (new \DateTime('now', new \DateTimeZone('Europe/Stockholm')))->format('Y-m-d');
+        $cacheFile = $cacheDir . '/tvattlinje_livestats_' . $_cacheDay . '.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 10) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
         try {
             // Primär källa: PLC (MAX(ibc_count) = kumulativ räknare, nollställs varje dag)
             $stmtPlc = $this->pdo->query('
@@ -705,7 +719,9 @@ class TvattlinjeController {
                 ];
             }
             
-            echo json_encode($response, JSON_UNESCAPED_UNICODE);
+            $out = json_encode($response, JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $out, LOCK_EX);
+            echo $out;
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::getLiveStats: ' . $e->getMessage());
             http_response_code(500);
@@ -1156,6 +1172,19 @@ class TvattlinjeController {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
 
+            // Filcache 15s TTL — nyckel: start+end (paverkar svaret)
+            $cacheDir = dirname(__DIR__) . '/cache';
+            if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+            $cacheFile = $cacheDir . '/tvattlinje_statistics_' . $start . '_' . $end . '.json';
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 15) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
+
             // Hämta takt_mal från settings
             $target_cycle_time = 3.0;
             try {
@@ -1305,7 +1334,7 @@ class TvattlinjeController {
                     FROM (
                         SELECT LEAST(
                             SUM(sr.drifttid),
-                            COALESCE(plc.span_min, 600)
+                            LEAST(COALESCE(plc.span_min, 600), 600)
                         ) AS capped
                         FROM tvattlinje_skiftrapport sr
                         LEFT JOIN (
@@ -1480,7 +1509,7 @@ class TvattlinjeController {
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics ibc_per_dag_plc: ' . $e->getMessage()); }
 
-            echo json_encode([
+            $out = json_encode([
                 'success' => true,
                 'data' => [
                     'cycles'             => $cycles,
@@ -1506,6 +1535,8 @@ class TvattlinjeController {
                     ]
                 ]
             ], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $out, LOCK_EX);
+            echo $out;
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::getStatistics: ' . $e->getMessage());
             http_response_code(500);
@@ -1600,7 +1631,7 @@ class TvattlinjeController {
             $totalDrifttid = 0;
             foreach ($driftPerDag as $d => $sum) {
                 $plcSpan = isset($plcSpanPerDag[$d]) ? max($plcSpanPerDag[$d], 1) : 600;
-                $totalDrifttid += min($sum, $plcSpan);
+                $totalDrifttid += min($sum, min($plcSpan, 600));
             }
 
             $totalIbc = $totalOk + $totalEjOk + $totalOmtvaatt;
@@ -1709,11 +1740,13 @@ class TvattlinjeController {
             // Föregående dag
             $prevOk   = 0;
             $prevEjOk = 0;
+            $prevOmtv = 0;
             foreach ($prevRows as $r) {
                 $prevOk   += (int)($r['antal_ok']    ?? 0);
                 $prevEjOk += (int)($r['antal_ej_ok'] ?? 0);
+                $prevOmtv += (int)($r['omtvaatt']    ?? 0);
             }
-            $prevIbc   = $prevOk + $prevEjOk;
+            $prevIbc   = $prevOk + $prevEjOk + $prevOmtv;
             $deltaIbc  = $totalIbc - $prevIbc;
 
             // Hämta runtime från tvattlinje_ibc om det finns

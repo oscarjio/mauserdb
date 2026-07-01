@@ -150,6 +150,7 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
+        PDO::MYSQL_ATTR_COMPRESS => true,
         PDO::ATTR_PERSISTENT => true   // Återanvänd DB-anslutningar mellan requests (~5-10ms besparing per request)
     ]);
     // Synkronisera MySQL-timezone med PHP (Europe/Stockholm) så CURDATE()/NOW()/DATE() är konsekventa.
@@ -169,6 +170,10 @@ spl_autoload_register(function ($class) {
     $file = __DIR__ . '/classes/' . $class . '.php';
     if (file_exists($file)) require $file;
 });
+
+// FAS 1 Pi-aggregering: ladda RemoteAgg i bootstrap så alla controllers ser den
+// (passthru-hook i de tunga read-grenarna). Aktiveras via agg_config.php.
+require_once __DIR__ . '/classes/RemoteAgg.php';
 
 // API Rate Limiting — sliding window 120 req/minut per IP (undantar login/register som har egen begränsning)
 require_once __DIR__ . '/classes/RateLimiter.php';

@@ -98,6 +98,18 @@ class StatusController {
     // Tvattlinje, Saglinje, Klassificeringslinje: statiskt "not_started"
     // ============================================================
     private function getAllLinesStatus(): void {
+        // Filcache 10s TTL — global (inga params)
+        $cacheDir = dirname(__DIR__) . '/cache';
+        if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+        $cacheFile = $cacheDir . '/statuscontroller_all_lines.json';
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 10) {
+            $cached = file_get_contents($cacheFile);
+            if ($cached !== false) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
         try {
             global $pdo;
             $lines = [];
@@ -300,7 +312,9 @@ class StatusController {
                 'ej_i_drift'   => true
             ];
 
-            echo json_encode(['success' => true, 'lines' => $lines], JSON_UNESCAPED_UNICODE);
+            $out = json_encode(['success' => true, 'lines' => $lines], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $out, LOCK_EX);
+            echo $out;
         } catch (\Throwable $e) {
             error_log('StatusController::all-lines: ' . $e->getMessage());
             http_response_code(500);

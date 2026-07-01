@@ -46,7 +46,10 @@ class TvattlinjeOperatorController {
         $run = trim($_GET['run'] ?? '');
 
         switch ($run) {
-            case 'ranking':         $this->ranking();         break;
+            case 'ranking':
+                if (class_exists('RemoteAgg') && RemoteAgg::enabled() && RemoteAgg::passthru('tvattlinje-operator')) return;
+                $this->ranking();
+                break;
             case 'sammanfattning':  $this->sammanfattning();  break;
             case 'topplista':       $this->topplista();       break;
             case 'poangfordelning': $this->poangfordelning(); break;
