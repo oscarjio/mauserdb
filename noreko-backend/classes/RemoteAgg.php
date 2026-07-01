@@ -53,6 +53,7 @@ class RemoteAgg
             'bemanning'           => ['operator-stats', 'team-kombinationer'],
             'oee-trendanalys'     => ['*'],
             'lineskiftrapport'    => ['*'],
+            'rebotling'           => ['status'],
         ];
         if (!isset($heavy[$action])) {
             return false;

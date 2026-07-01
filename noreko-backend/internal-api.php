@@ -88,6 +88,7 @@ $whitelist = [
     'bemanning'           => 'BemanningController',
     'oee-trendanalys'     => 'OeeTrendanalysController',
     'lineskiftrapport'    => 'LineSkiftrapportController',
+    'rebotling'           => 'RebotlingController',
 ];
 $action = strtolower(trim($_GET['action'] ?? ''));
 if (!isset($whitelist[$action])) {

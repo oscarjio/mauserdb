@@ -39,6 +39,12 @@ class RebotlingController {
                 }
             }
 
+            // FAS 2 steg 1: proxa tunga read-runs till Pi internal-api (Pi räknar
+            // lokalt mot DB, returnerar kompakt JSON över den strypta 2Mbit-länken).
+            // Endast runs i RemoteAgg::isHeavy('rebotling') (nu: status). Lokal fallback
+            // (VPS-cache/DB) om Pi onåbar. Placerad efter admin-grinden, före dispatch.
+            if (class_exists('RemoteAgg') && RemoteAgg::enabled() && RemoteAgg::passthru('rebotling')) return;
+
             // --- Admin GET endpoints ---
             if ($action === 'admin-settings') {
                 $this->adminController->getAdminSettings();
