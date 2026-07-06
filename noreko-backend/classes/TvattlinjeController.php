@@ -1924,14 +1924,41 @@ class TvattlinjeController {
             // Range-gräns istället för DATE(datum)= → använder index, undviker fullscan
             $dateNext = date('Y-m-d', strtotime($date . ' +1 day'));
 
-            // Filcache 4s TTL per (datum, limit) — dämpar 2.5-5s-pollning så PHP-FPM
-            // inte köbildar (upplevd 503) mot okachade fullscan-frågor.
+            // Filcache 8s TTL per (datum, limit) — TTL >= pollintervall (5s) så varje poll
+            // träffar färsk cache och den tunga fullscan-frågan körs som mest ~1 gång/8s
+            // oavsett antal tittare. (TTL < poll → cache alltid utgången → FPM-kömättnad = 503.)
             $cacheDir = dirname(__DIR__) . '/cache';
             if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
             $cacheFile = $cacheDir . '/tvattlinje_plcdiag_' . $date . '_' . $limit . '.json';
-            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 4) {
+            $freshTtl  = 8;
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $freshTtl) {
                 $cached = file_get_contents($cacheFile);
                 if ($cached !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
+
+            // Stampede-skydd: vid cache-miss regenererar bara EN request (flock NB).
+            // Övriga serverar stale cache i stället för att alla samtidigt kör fullscan
+            // mot DB:n och förstärker FPM-kömättnaden. Lås släpps vid write/return/exception.
+            $lock = @fopen($cacheFile . '.lock', 'c');
+            $haveLock = $lock && flock($lock, LOCK_EX | LOCK_NB);
+            if (!$haveLock && file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 60) {
+                $cached = @file_get_contents($cacheFile);
+                if ($cached !== false && $cached !== '') {
+                    if ($lock) { fclose($lock); }
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
+            // Dubbelkoll under låset — någon kan ha regenererat precis före oss.
+            if ($haveLock && file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $freshTtl) {
+                $cached = @file_get_contents($cacheFile);
+                if ($cached !== false && $cached !== '') {
+                    @flock($lock, LOCK_UN); @fclose($lock);
                     header('Content-Type: application/json; charset=utf-8');
                     echo $cached;
                     return;
@@ -2092,9 +2119,11 @@ class TvattlinjeController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
             @file_put_contents($cacheFile, $out, LOCK_EX);
+            if (isset($lock) && $lock) { @flock($lock, LOCK_UN); @fclose($lock); }
             header('Content-Type: application/json; charset=utf-8');
             echo $out;
         } catch (\Throwable $e) {
+            if (isset($lock) && $lock) { @flock($lock, LOCK_UN); @fclose($lock); }
             error_log('TvattlinjeController::getPlcDiagnostikStream: ' . $e->getMessage());
             // Returnera 200 med tom data — förhindrar att klienten tolkar det som ett permanent fel
             // och triggar retries som kan orsaka PHP-FPM-köbildning (upplevd 503).
