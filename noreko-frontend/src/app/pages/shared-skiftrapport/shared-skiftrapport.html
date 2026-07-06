@@ -439,7 +439,8 @@
 
                           <!-- SKIFT-RAD -->
                           <tr [class.inlagd-row]="report.inlagd == 1"
-                              [style.border-left]="report.isPreliminary ? '3px solid #d69e2e' : report.isUnreported ? '3px solid #e53e3e' : (!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && (report.drifttid == 0 || report.drifttid == null) && (report.totalt == 0 || report.totalt == null)) ? '3px solid #718096' : '3px solid #38a169'"
+                              [style.border-left]="isAnomalousReport(report) ? '3px solid #e53e3e' : report.isPreliminary ? '3px solid #d69e2e' : report.isUnreported ? '3px solid #e53e3e' : (!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && (report.drifttid == 0 || report.drifttid == null) && (report.totalt == 0 || report.totalt == null)) ? '3px solid #718096' : '3px solid #38a169'"
+                              [style.background]="isAnomalousReport(report) ? 'rgba(229,62,62,0.15)' : null"
                               [style.opacity]="(!report.isPreliminary && !report.isUnreported && report.antal_ok == 0 && report.antal_ej_ok == 0) ? '0.45' : '1'">
                             <td class="text-nowrap small" data-label="Status">
                               <!-- Status-badge -->
@@ -479,8 +480,11 @@
                               <span *ngIf="report.op3" class="badge bg-dark me-1">{{ resolveOpName(report.op3_name, report.op3) }}</span>
                               <span *ngIf="!report.op1 && !report.op2 && !report.op3" class="text-muted">–</span>
                             </td>
-                            <td class="text-success fw-semibold" data-label="IBC">
+                            <td class="fw-semibold" data-label="IBC"
+                                [class.text-success]="!isAnomalousReport(report)"
+                                [class.text-danger]="isAnomalousReport(report)">
                               <span *ngIf="report.ibcEstimated" title="Preliminärt antal — ibc_ok saknas i PLC-data, uppskattat från cykelräkning">~</span>{{ safeDisplay(report.totalt) }}
+                              <span *ngIf="isAnomalousReport(report)" class="ms-1" style="cursor:help;" [title]="anomalyTooltip(report)">⚠</span>
                             </td>
                             <td class="d-none d-md-table-cell">{{ ibcPerHour(report) }}</td>
                             <td data-label="Tillg%">
@@ -495,6 +499,8 @@
                             <td class="d-none d-md-table-cell small">
                               <span *ngIf="getNetDrifttidMin(report) > 0" class="text-success">{{ formatNetDrifttid(report) }}</span>
                               <span *ngIf="getNetDrifttidMin(report) <= 0" class="text-muted">–</span>
+                              <span *ngIf="report.drifttid > 600" class="text-danger ms-1" style="cursor:help;"
+                                    [title]="'Rå drifttid ' + report.drifttid + ' min överstiger 10h-cap (600 min) — trolig korrupt inmatning'">⚠</span>
                             </td>
                             <td class="d-none d-md-table-cell small text-muted">
                               {{ (report.rasttime > 0) ? (report.rasttime + 'm') : '–' }}

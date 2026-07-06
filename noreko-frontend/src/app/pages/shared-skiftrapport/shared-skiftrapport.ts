@@ -409,6 +409,46 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     );
   }
 
+  /** PLC-först dagstotal (backendDayTotals) för postens dag, eller null om okänt. */
+  getDayPlcTotal(report: any): number | null {
+    if (!this.backendDayTotals) return null;
+    const d = (report?.datum || '').substring(0, 10);
+    return d && this.backendDayTotals[d] != null ? this.backendDayTotals[d] : null;
+  }
+
+  /**
+   * Flaggar en enskild skiftrapport-post (sub-rad) som AVVIKANDE / trolig korrupt
+   * inmatning när:
+   *   (a) postens totalt > 1.15× dagens PLC-total (backendDayTotals), ELLER
+   *   (b) postens råa drifttid > 600 min (10h-cap — fysiskt omöjligt för ett skift).
+   * Syntetiska/ofullständiga rader (preliminär, ej inskickad, daglig-slice, flerdagars)
+   * flaggas inte. Dag-totalen är redan PLC-först och opåverkad av råvärdet.
+   */
+  isAnomalousReport(report: any): boolean {
+    if (!report || report.isPreliminary || report.isUnreported || report._isDagligSlice) return false;
+    if (report.flerdagars == 1) return false;
+    if (Number(report.drifttid || 0) > 600) return true;
+    const totalt = Number(report.totalt || 0);
+    const plc = this.getDayPlcTotal(report);
+    return plc != null && plc > 0 && totalt > plc * 1.15;
+  }
+
+  /** Förklarande tooltip för en avvikande post, med PLC-dagsvärde som referens. */
+  anomalyTooltip(report: any): string {
+    const reasons: string[] = [];
+    const drift = Number(report.drifttid || 0);
+    if (drift > 600) {
+      reasons.push(`Drifttid ${drift} min överstiger 10h-cap (600 min)`);
+    }
+    const totalt = Number(report.totalt || 0);
+    const plc = this.getDayPlcTotal(report);
+    if (plc != null && plc > 0 && totalt > plc * 1.15) {
+      reasons.push(`IBC ${totalt} överstiger dagens PLC-total (${plc})`);
+    }
+    if (plc != null) reasons.push(`PLC-referens för dagen: ${plc} IBC`);
+    return 'Avvikande post (trolig korrupt inmatning): ' + reasons.join('. ') + '.';
+  }
+
   get summaryAvgIbcH(): number | null {
     const totalNet = this.filteredReports.reduce(
       (s, r) => s + Math.max(0, Math.min(r.drifttid || 0, 600) - (r.rasttime || 0)), 0);
