@@ -646,14 +646,14 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   updateStatistics(data: any) {
     this.rawCycles = data.cycles || [];
     this.rawCyclesSorted = [...this.rawCycles].reverse();
-    // Bygg merged IBC-per-dag: PLC fyller in reportlösa dagar (inkl idag), skiftrapport är source of truth
+    // KONTINUITET: EN PLC-baserad källa. PLC (MAX ibc_count) vinner för ALLA dagar med
+    // PLC-data (inkl idag); skiftrapport används bara för att fylla PLC-lösa dagar.
+    // Undviker dubbelräknade skiftrapport-snapshots (t.ex. 291 istället för 138 idag)
+    // och gör att overview matchar hem/skiftrapporter/bästa-dag/plc-diagnostik.
     const ibcPlc: Record<string, number> = data.summary?.ibc_per_dag_plc || {};
     const ibcSr:  Record<string, number> = data.summary?.ibc_per_dag_skiftrapport || {};
     this.skiftrapportDays = ibcSr;
-    // PLC är primär källa för innevarande dag — ta bort dagens datum ur SR så PLC vinner
-    const ibcSrFiltered = { ...ibcSr };
-    delete ibcSrFiltered[localToday()];
-    this.ibcPerDag = { ...ibcPlc, ...ibcSrFiltered };
+    this.ibcPerDag = { ...ibcSr, ...ibcPlc };
     // Bästa dag: räkna från månadsscopade ibcPerDag (inte rullande 30d oee-trend)
     const _dagEntries = Object.entries(this.ibcPerDag);
     if (_dagEntries.length) {

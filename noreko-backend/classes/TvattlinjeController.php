@@ -517,6 +517,58 @@ class TvattlinjeController {
     // Befintliga metoder (oförändrade)
     // =========================================================
 
+    /**
+     * Deduplicerad skiftrapport-IBC per dag ['Y-m-d' => ibc].
+     * KONTINUITET: Multipla skiftrapport-poster för samma (datum, skiftraknare) är
+     * snapshots av samma skift — ta senaste posten (MAX id), summera aldrig snapshots.
+     * (SUM över snapshots dubbelräknade dagen: 291 istället för faktiska 138.)
+     */
+    private function skiftrapportIbcPerDag(string $start, string $end): array {
+        $out = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT DATE(sr.datum) AS dag, COALESCE(SUM(sr.totalt), 0) AS ibc
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (
+                    SELECT MAX(id) AS max_id
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) latest ON sr.id = latest.max_id
+                GROUP BY DATE(sr.datum)
+            ");
+            $stmt->execute(['s' => $start, 'e' => $end]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $out[$row['dag']] = (int)$row['ibc'];
+            }
+        } catch (\Throwable $e) {
+            error_log('TvattlinjeController::skiftrapportIbcPerDag: ' . $e->getMessage());
+        }
+        return $out;
+    }
+
+    /**
+     * PLC-IBC per dag ['Y-m-d' => ibc] = MAX(ibc_count) (kumulativ dygnsräknare).
+     */
+    private function plcIbcPerDag(string $start, string $end): array {
+        $out = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT DATE(datum) AS dag, MAX(ibc_count) AS ibc
+                FROM tvattlinje_ibc
+                WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                GROUP BY DATE(datum)
+            ");
+            $stmt->execute(['s' => $start, 'e' => $end]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $out[$row['dag']] = (int)$row['ibc'];
+            }
+        } catch (\Throwable $e) {
+            error_log('TvattlinjeController::plcIbcPerDag: ' . $e->getMessage());
+        }
+        return $out;
+    }
+
     private function getLiveStats() {
         // Filcache 10s TTL — nyckel: dagens datum (Europe/Stockholm)
         $cacheDir = dirname(__DIR__) . '/cache';
@@ -541,18 +593,25 @@ class TvattlinjeController {
             $plcToday = (int)$stmtPlc->fetchColumn();
 
             // Fallback: inskickade skiftrapporter (operatörsbekräftad data)
+            // KONTINUITET: dedup — senaste post per skiftraknare, summera aldrig snapshots
+            // för samma skift (annars dubbelräknades dagen: 291 istället för faktiska 138).
             $stmtSr = $this->pdo->query('
-                SELECT COALESCE(SUM(totalt), 0)
-                FROM tvattlinje_skiftrapport
-                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                SELECT COALESCE(SUM(sr.totalt), 0)
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (
+                    SELECT MAX(id) AS max_id
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                    GROUP BY COALESCE(skiftraknare, 0)
+                ) latest ON sr.id = latest.max_id
             ');
             $skiftrapportToday = (int)$stmtSr->fetchColumn();
 
-            // Välj värde: Skiftrapport primär, PLC som fallback
-            $ibcToday = $skiftrapportToday > 0 ? $skiftrapportToday : $plcToday;
+            // Välj värde: PLC primär (faktisk maskinräknare), skiftrapport som fallback
+            $ibcToday = $plcToday > 0 ? $plcToday : $skiftrapportToday;
 
             // Beräkna metadata för klienten
-            $dataSource  = $skiftrapportToday > 0 ? 'skiftrapport' : 'plc';
+            $dataSource  = $plcToday > 0 ? 'plc' : 'skiftrapport';
             $ibcEmpty    = $plcToday === 0 && $skiftrapportToday === 0;
             $divergent   = false;
             if ($plcToday > 0 && $skiftrapportToday > 0) {
@@ -1430,14 +1489,10 @@ class TvattlinjeController {
             // Matchar "TOTAL IBC"-kolumnen i skiftrapportlistan.
             // Notera: total_cycles (puck-webhooks via ibc_count) kan skilja sig med ~5-10 IBCer
             // (testcykler/rengöring utan inskickad rapport, eller PLC-nollställning mellan dagar).
-            $total_ibc_skiftrapport = 0;
-            try {
-                $srStmt = $this->pdo->prepare(
-                    "SELECT COALESCE(SUM(totalt), 0) FROM tvattlinje_skiftrapport WHERE datum >= :s AND datum <= :e"
-                );
-                $srStmt->execute(['s' => $start, 'e' => $end]);
-                $total_ibc_skiftrapport = (int)$srStmt->fetchColumn();
-            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics sr_ibc: ' . $e->getMessage()); }
+            // KONTINUITET: deduplicerad SR-karta (senaste post per skift) — undvik
+            // dubbelräkning av snapshots. Total = summa över deduplicerade dagar.
+            $ibcPerDagSr = $this->skiftrapportIbcPerDag($start, $end);
+            $total_ibc_skiftrapport = array_sum($ibcPerDagSr);
 
             // Beräkna rasttid
             $totalRastMinutes = 0;
@@ -1498,20 +1553,8 @@ class TvattlinjeController {
             $unique_dates = array_unique(array_map(fn($c) => date('Y-m-d', strtotime($c['datum'])), $cycles));
             $days_with_production = count($unique_dates);
 
-            // Per-dag IBC-karta från skiftrapporter (source of truth för historiska dagar)
-            $ibcPerDagSr = [];
-            try {
-                $srDagStmt = $this->pdo->prepare("
-                    SELECT DATE(datum) AS dag, COALESCE(SUM(totalt), 0) AS ibc
-                    FROM tvattlinje_skiftrapport
-                    WHERE datum BETWEEN :s AND :e
-                    GROUP BY DATE(datum)
-                ");
-                $srDagStmt->execute(['s' => $start, 'e' => $end]);
-                foreach ($srDagStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                    $ibcPerDagSr[$row['dag']] = (int)$row['ibc'];
-                }
-            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics ibc_per_dag_sr: ' . $e->getMessage()); }
+            // Per-dag IBC-karta från skiftrapporter (source of truth för historiska dagar).
+            // Redan deduplicerad ovan ($ibcPerDagSr) — återanvänds här för staplarna.
 
             // Per-dag IBC-karta från PLC (MAX(ibc_count) per dag — fyller in dagar utan skiftrapport inkl idag)
             $ibcPerDagPlc = [];
@@ -1618,7 +1661,30 @@ class TvattlinjeController {
 
             // Daglig aggregering för bästa dag
             $dagMap = [];
+
+            // KONTINUITET: deduplicera per (datum, skiftraknare) — multipla poster för
+            // samma skift är snapshots; ta senaste (MAX id). Summera aldrig snapshots
+            // (annars blev bästa-dag/total dubbelräknad, t.ex. 159/168/135 istället för ~138).
+            $latestPerShift = [];
+            foreach ($rows as $r) {
+                $dagKey = substr($r['datum'] ?? '', 0, 10);
+                if (!$dagKey) continue;
+                $shiftKey = $dagKey . '#' . ($r['skiftraknare'] ?? '0');
+                if (!isset($latestPerShift[$shiftKey]) || (int)$r['id'] > (int)$latestPerShift[$shiftKey]['id']) {
+                    $latestPerShift[$shiftKey] = $r;
+                }
+            }
+
+            // Godkänd % per rad för listvisning (alla rader visas, inte bara deduplicerade)
             foreach ($rows as &$r) {
+                $ok  = (int)($r['antal_ok'] ?? 0);
+                $tot = (int)($r['totalt'] ?? ($ok + (int)($r['antal_ej_ok'] ?? 0) + (int)($r['omtvaatt'] ?? 0)));
+                $r['godkand_pct'] = $tot > 0 ? round($ok / $tot * 100, 1) : null;
+            }
+            unset($r);
+
+            // Summerade KPI:er + dagsaggregat — från deduplicerade skift
+            foreach ($latestPerShift as $r) {
                 $ok       = (int)($r['antal_ok']    ?? 0);
                 $ejOk     = (int)($r['antal_ej_ok'] ?? 0);
                 $omtv     = (int)($r['omtvaatt']    ?? 0);
@@ -1636,15 +1702,11 @@ class TvattlinjeController {
                 $totalEjOk     += $ejOk;
                 $totalOmtvaatt += $omtv;
 
-                // Godkänd % per rad
-                $r['godkand_pct'] = $tot > 0 ? round($ok / $tot * 100, 1) : null;
-
                 // Samla per dag för bästa dag (totalt inkl. omtvätt)
                 if ($dag) {
                     $dagMap[$dag] = ($dagMap[$dag] ?? 0) + $tot;
                 }
             }
-            unset($r);
 
             // Cappa dygnssumman mot PLC-spann och summera till total_drifttid
             $totalDrifttid = 0;
@@ -1653,10 +1715,22 @@ class TvattlinjeController {
                 $totalDrifttid += min($sum, min($plcSpan, 600));
             }
 
-            $totalIbc = $totalOk + $totalEjOk + $totalOmtvaatt;
-            $avgGodkandPct = $totalIbc > 0 ? round($totalOk / $totalIbc * 100, 1) : null;
-            // Viktat snitt cykeltid: total drifttid / totalt antal IBC
-            $avgCycleTime  = $totalIbc > 0 ? round($totalDrifttid / $totalIbc, 2) : null;
+            // EN PLC-baserad källa: PLC (MAX ibc_count) vinner för ALLA dagar med PLC-data
+            // (inkl idag); deduplicerad skiftrapport fyller bara PLC-lösa dagar. Samma
+            // merge-logik som overview-fliken → hem/statistik/bästa-dag/plc-diag matchar.
+            $plcPerDag = $this->plcIbcPerDag($start, $end);
+            foreach ($plcPerDag as $d => $ibc) {
+                $dagMap[$d] = $ibc;
+            }
+
+            // Kvalitets-KPI:er baseras på skiftrapportens OK/ej-OK (PLC saknar den uppdelningen)
+            $srTotalIbc = $totalOk + $totalEjOk + $totalOmtvaatt;
+            $avgGodkandPct = $srTotalIbc > 0 ? round($totalOk / $srTotalIbc * 100, 1) : null;
+            // Viktat snitt cykeltid: total drifttid / totalt antal IBC (SR-baserad)
+            $avgCycleTime  = $srTotalIbc > 0 ? round($totalDrifttid / $srTotalIbc, 2) : null;
+
+            // TOTAL IBC = summa av PLC-baserad dagskarta (kontinuitet med staplar/hem)
+            $totalIbc = array_sum($dagMap);
 
             // Bästa dag = dag med flest totala IBC
             if (!empty($dagMap)) {
@@ -1847,15 +1921,31 @@ class TvattlinjeController {
             $date = $_GET['date'] ?? date('Y-m-d');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) $date = date('Y-m-d');
             $limit = isset($_GET['limit']) ? min(intval($_GET['limit']), 500) : 200;
+            // Range-gräns istället för DATE(datum)= → använder index, undviker fullscan
+            $dateNext = date('Y-m-d', strtotime($date . ' +1 day'));
+
+            // Filcache 4s TTL per (datum, limit) — dämpar 2.5-5s-pollning så PHP-FPM
+            // inte köbildar (upplevd 503) mot okachade fullscan-frågor.
+            $cacheDir = dirname(__DIR__) . '/cache';
+            if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
+            $cacheFile = $cacheDir . '/tvattlinje_plcdiag_' . $date . '_' . $limit . '.json';
+            if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 4) {
+                $cached = file_get_contents($cacheFile);
+                if ($cached !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $cached;
+                    return;
+                }
+            }
 
             $events = [];
 
             // tvattlinje_onoff
             try {
                 $stmt = $this->pdo->prepare(
-                    "SELECT * FROM tvattlinje_onoff WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
+                    "SELECT * FROM tvattlinje_onoff WHERE datum >= :date AND datum < :dateNext ORDER BY datum DESC LIMIT " . $limit
                 );
-                $stmt->execute([':date' => $date]);
+                $stmt->execute([':date' => $date, ':dateNext' => $dateNext]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'onoff';
                     $row['event_type'] = intval($row['running'] ?? 0) === 1 ? 'ON' : 'OFF';
@@ -1866,9 +1956,9 @@ class TvattlinjeController {
             // tvattlinje_ibc
             try {
                 $stmt = $this->pdo->prepare(
-                    "SELECT * FROM tvattlinje_ibc WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
+                    "SELECT * FROM tvattlinje_ibc WHERE datum >= :date AND datum < :dateNext ORDER BY datum DESC LIMIT " . $limit
                 );
-                $stmt->execute([':date' => $date]);
+                $stmt->execute([':date' => $date, ':dateNext' => $dateNext]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'ibc';
                     $row['event_type'] = 'IBC';
@@ -1879,9 +1969,9 @@ class TvattlinjeController {
             // tvattlinje_rast
             try {
                 $stmt = $this->pdo->prepare(
-                    "SELECT id, datum, rast_status FROM tvattlinje_rast WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
+                    "SELECT id, datum, rast_status FROM tvattlinje_rast WHERE datum >= :date AND datum < :dateNext ORDER BY datum DESC LIMIT " . $limit
                 );
-                $stmt->execute([':date' => $date]);
+                $stmt->execute([':date' => $date, ':dateNext' => $dateNext]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'rast';
                     $row['event_type'] = intval($row['rast_status'] ?? 0) === 1 ? 'RAST_START' : 'RAST_END';
@@ -1893,12 +1983,12 @@ class TvattlinjeController {
             try {
                 $dsRows = [];
                 try {
-                    $s = $this->pdo->prepare("SELECT id, datum, status FROM tvattlinje_driftstopp WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit);
-                    $s->execute([':date' => $date]);
+                    $s = $this->pdo->prepare("SELECT id, datum, status FROM tvattlinje_driftstopp WHERE datum >= :date AND datum < :dateNext ORDER BY datum DESC LIMIT " . $limit);
+                    $s->execute([':date' => $date, ':dateNext' => $dateNext]);
                     $dsRows = $s->fetchAll(\PDO::FETCH_ASSOC);
                 } catch (\Throwable $e) {
-                    $s = $this->pdo->prepare("SELECT id, datum, driftstopp_status FROM tvattlinje_driftstopp WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit);
-                    $s->execute([':date' => $date]);
+                    $s = $this->pdo->prepare("SELECT id, datum, driftstopp_status FROM tvattlinje_driftstopp WHERE datum >= :date AND datum < :dateNext ORDER BY datum DESC LIMIT " . $limit);
+                    $s->execute([':date' => $date, ':dateNext' => $dateNext]);
                     foreach ($s->fetchAll(\PDO::FETCH_ASSOC) as $r) {
                         $r['status'] = (int)$r['driftstopp_status'] === 1 ? 'start' : 'slut';
                         $dsRows[] = $r;
@@ -1915,9 +2005,9 @@ class TvattlinjeController {
             // tvattlinje_skiftrapport
             try {
                 $stmt = $this->pdo->prepare(
-                    "SELECT *, created_at AS datum FROM tvattlinje_skiftrapport WHERE DATE(created_at) = :date ORDER BY created_at DESC LIMIT " . $limit
+                    "SELECT *, created_at AS datum FROM tvattlinje_skiftrapport WHERE created_at >= :date AND created_at < :dateNext ORDER BY created_at DESC LIMIT " . $limit
                 );
-                $stmt->execute([':date' => $date]);
+                $stmt->execute([':date' => $date, ':dateNext' => $dateNext]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'skiftrapport';
                     $row['event_type'] = 'SKIFTRAPPORT';
@@ -1928,9 +2018,9 @@ class TvattlinjeController {
             // tvattlinje_plc_raw — append-only raw register log
             try {
                 $stmt = $this->pdo->prepare(
-                    "SELECT * FROM tvattlinje_plc_raw WHERE DATE(datum) = :date ORDER BY datum DESC LIMIT " . $limit
+                    "SELECT * FROM tvattlinje_plc_raw WHERE datum >= :date AND datum < :dateNext ORDER BY datum DESC LIMIT " . $limit
                 );
-                $stmt->execute([':date' => $date]);
+                $stmt->execute([':date' => $date, ':dateNext' => $dateNext]);
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $row['source'] = 'plc_raw';
                     // Parse registers JSON to top-level keys for convenience
@@ -1968,20 +2058,25 @@ class TvattlinjeController {
             try {
                 $latestEventRow = $this->pdo->prepare("
                     SELECT MAX(datum) AS latest FROM (
-                        SELECT MAX(datum) AS datum FROM tvattlinje_onoff WHERE DATE(datum) = :date1
+                        SELECT MAX(datum) AS datum FROM tvattlinje_onoff WHERE datum >= :date1 AND datum < :next1
                         UNION ALL
-                        SELECT MAX(datum) FROM tvattlinje_ibc WHERE DATE(datum) = :date2
+                        SELECT MAX(datum) FROM tvattlinje_ibc WHERE datum >= :date2 AND datum < :next2
                         UNION ALL
-                        SELECT MAX(datum) FROM tvattlinje_rast WHERE DATE(datum) = :date3
+                        SELECT MAX(datum) FROM tvattlinje_rast WHERE datum >= :date3 AND datum < :next3
                         UNION ALL
-                        SELECT MAX(datum) FROM tvattlinje_driftstopp WHERE DATE(datum) = :date4
+                        SELECT MAX(datum) FROM tvattlinje_driftstopp WHERE datum >= :date4 AND datum < :next4
                     ) sub
                 ");
-                $latestEventRow->execute([':date1' => $date, ':date2' => $date, ':date3' => $date, ':date4' => $date]);
+                $latestEventRow->execute([
+                    ':date1' => $date, ':next1' => $dateNext,
+                    ':date2' => $date, ':next2' => $dateNext,
+                    ':date3' => $date, ':next3' => $dateNext,
+                    ':date4' => $date, ':next4' => $dateNext,
+                ]);
                 $latestEventDatum = $latestEventRow->fetchColumn() ?: null;
             } catch (\Throwable $e) {}
 
-            echo json_encode([
+            $out = json_encode([
                 'success' => true,
                 'data' => [
                     'events' => $events,
@@ -1996,6 +2091,9 @@ class TvattlinjeController {
                     'event_count' => count($events),
                 ]
             ], JSON_UNESCAPED_UNICODE);
+            @file_put_contents($cacheFile, $out, LOCK_EX);
+            header('Content-Type: application/json; charset=utf-8');
+            echo $out;
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::getPlcDiagnostikStream: ' . $e->getMessage());
             // Returnera 200 med tom data — förhindrar att klienten tolkar det som ett permanent fel

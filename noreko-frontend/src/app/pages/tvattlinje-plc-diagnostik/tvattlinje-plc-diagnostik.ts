@@ -118,7 +118,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       if (!this.isPaused && this.isToday) {
         this.fetchEvents();
       }
-    }, 2500);
+    }, 5000);
   }
 
   fetchEvents(initialLoad = false): void {
