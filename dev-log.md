@@ -6875,3 +6875,18 @@ kopia har fortf. gammal SUM för sr_per_dag, men frontendens PLC-first-merge öv
 Rotorsak: getPlcDiagnostikStream cache-TTL 4s < frontend-poll 5s → cache alltid utgången →
 varje poll körde tung fullscan → PHP-FPM-kömättnad = 503. Fix: freshTtl 4→8s + flock-stampede-
 vakt (LOCK_EX|LOCK_NB, serverar stale vid contention). Verifierat live: 20 samtidiga + 5s-poll → alla 200.
+
+## 2026-07-07 — #F skiftrapport dubbelräkning + #G settings 500 (commit 467be179)
+#F (HÖG): /tvattlinje/skiftrapport dubbelräknade multi-poster (dag-total 291, grand 1699).
+Sidan använder action=lineskiftrapport = RemoteAgg heavy-passthru → Pi-serverad, så
+backend-fix där är INERT på dev. Lösning: ny VPS-lokal endpoint tvattlinje&run=ibc-per-dag
+(PLC-först day_totals via plcIbcPerDag/skiftrapportIbcPerDag); shared-skiftrapport hämtar
+den för tvattlinje och använder PLC-först dag-/grand-total (fallback rå summa för andra
+linjer). LineSkiftrapportController::getReports levererar day_totals också (aktiveras om
+Pi får ny kod). Verifierat: 2026-07-06 = 138 (ej 291), grand = 1640 (ej 1699).
+#G (MEDEL): run=settings 500 (17s). ROTORSAK: tvattlinje_settings var KRASCHAD + 9,58M rader
+(legacy-tabell saknade unik nyckel → INSERT IGNORE la 4 rader/request i månader). Migration
+2026-07-06_fix_tvattlinje_settings_crashed_bloat.sql: ren InnoDB-tabell + uq_setting + seed +
+atomisk RENAME-swap. Applicerad på dev. Verifierat: 200 på 0.4s.
+⚠️ OSCAR: samma 9,5M-pollning finns troligen i PROD (samma ackumuleringsbugg). Applicera
+migrationen på prod-DB också. _broken_backup kan droppas efter granskning.
