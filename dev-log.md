@@ -6870,3 +6870,8 @@ rebotling (att peka den mot tvättlinje skulle bryta rebotling-nyheter). Rörde 
 OBS2: `statistics`-endpointen serveras av Pi:ns internal-api (RemoteAgg heavy-allowlist). Pi:ns
 kopia har fortf. gammal SUM för sr_per_dag, men frontendens PLC-first-merge överrider det klient-sida
 → ingen Pi-deploy krävdes. Om du vill rensa Pi-koden också: deploy TvattlinjeController.php till Pi.
+
+## 2026-07-06 — plc-diag 503 rotfix: cache-TTL >= pollintervall (commit 9ac9ed42)
+Rotorsak: getPlcDiagnostikStream cache-TTL 4s < frontend-poll 5s → cache alltid utgången →
+varje poll körde tung fullscan → PHP-FPM-kömättnad = 503. Fix: freshTtl 4→8s + flock-stampede-
+vakt (LOCK_EX|LOCK_NB, serverar stale vid contention). Verifierat live: 20 samtidiga + 5s-poll → alla 200.
