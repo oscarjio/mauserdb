@@ -6890,3 +6890,9 @@ Pi får ny kod). Verifierat: 2026-07-06 = 138 (ej 291), grand = 1640 (ej 1699).
 atomisk RENAME-swap. Applicerad på dev. Verifierat: 200 på 0.4s.
 ⚠️ OSCAR: samma 9,5M-pollning finns troligen i PROD (samma ackumuleringsbugg). Applicera
 migrationen på prod-DB också. _broken_backup kan droppas efter granskning.
+
+## 2026-07-07 — Flagga avvikande skiftrapport-poster (commit a6927854)
+Sub-rader kan ha korrupt inmatning (07-06 post #1: IBC=229 mot PLC-dag 138, drifttid=6002min).
+Frontend shared-skiftrapport (.ts+.html): isAnomalousReport() flaggar post när totalt > 1.15×
+PLC-dagstotal ELLER rå drifttid > 600min. ⚠ + rödmarkering (vänsterkant/bakgrund/IBC-siffra/
+drifttid) + tooltip med PLC-referens. Råvärdet kvar synligt. Verifierat: 07-06 #1(229) ⚠, #2(62) ej.
