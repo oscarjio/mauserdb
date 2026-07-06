@@ -6854,3 +6854,19 @@ Commit: 3555a2a4 | Deployed to dev.mauserdb.com
 
 ## 2026-06-15 — 9-fix sweep (commit 776bde4d)
 FIX1 skiftrapportDays separat property · FIX2 parseDatum helper (12 ställen) · FIX3 capMin 1440→600 · FIX4 getRunningStatus åldersgrind 15 min · FIX5 live freshness från PLC-tid + etiketter · FIX6 PDF-kolumn Min/IBC · FIX7 drifttid cap 600 i skiftrapport-summering + PDF · FIX8 driftstopptime i SELECT · FIX9 dates-parsning bara i dag-vy
+
+## 2026-07-06 — tvättlinje KONTINUITET: en PLC-baserad IBC-källa (commit 396063ac)
+Bugg: faktisk PLC idag=138 men hem+statistik visade 291 pga SUM över flera skiftrapport-poster
+samma dag (snapshots, ej additiva — verifierat: 07-06 hade id24=229 + id25=62).
+Fix (TvattlinjeController.php + 2 frontend-filer):
+- #A getLiveStats (hem): PLC primär, skiftrapport dedup (senaste post/skift) fallback
+- #B/#C getStatistics: total_ibc_skiftrapport + ibc_per_dag_skiftrapport deduplicerade via ny helper
+- #D getSkiftrapportStatistik: dedup per (datum,skiftraknare) + PLC-first merge → bästa-dag/total PLC-baserade
+- Frontend overview: PLC-first merge {...sr,...plc} (fixar historiska dubbelräknade staplar utan Pi-deploy)
+- #E getPlcDiagnostikStream: 4s filcache + range-query ist. DATE()=fullscan; poll 2500→5000ms
+Verifierat live dev: hem/overview/skiftrapporter/plc-diag visar ALLA idag=138, total=2028, bästa=07-02/159.
+OBS för Oscar: #D:s ursprungliga NewsController-referens var feldiagnos — NewsController är enbart
+rebotling (att peka den mot tvättlinje skulle bryta rebotling-nyheter). Rörde den ALDRIG.
+OBS2: `statistics`-endpointen serveras av Pi:ns internal-api (RemoteAgg heavy-allowlist). Pi:ns
+kopia har fortf. gammal SUM för sr_per_dag, men frontendens PLC-first-merge överrider det klient-sida
+→ ingen Pi-deploy krävdes. Om du vill rensa Pi-koden också: deploy TvattlinjeController.php till Pi.
