@@ -50,6 +50,8 @@ class TvattlinjeController {
                 $this->getPlcDiagnostikStream();
             } elseif ($action === 'operator-scores') {
                 $this->getOperatorScores();
+            } elseif ($action === 'ibc-per-dag') {
+                $this->getIbcPerDag();
             } else {
                 $this->getLiveStats();
             }
@@ -119,6 +121,10 @@ class TvattlinjeController {
     private function ensureSettingsTable() {
         if (self::$settingsTableEnsured) return;
         self::$settingsTableEnsured = true;
+        // Tabellen har UNIK nyckel på `setting` (uq_setting) — se migration
+        // 2026-07-06_fix_tvattlinje_settings_crashed_bloat.sql. Den unika nyckeln gör
+        // INSERT IGNORE nedan idempotent (annars ackumulerades 4 rader/request → 9.5M
+        // skräprader som kraschade tabellen och fick run=settings att timeouta/500:a).
         $this->pdo->exec("
             CREATE TABLE IF NOT EXISTS tvattlinje_settings (
                 id INT PRIMARY KEY AUTO_INCREMENT,
@@ -567,6 +573,36 @@ class TvattlinjeController {
             error_log('TvattlinjeController::plcIbcPerDag: ' . $e->getMessage());
         }
         return $out;
+    }
+
+    /**
+     * VPS-lokal endpoint: sammanslagen PLC-först IBC per dag för ett datumintervall.
+     * ?action=tvattlinje&run=ibc-per-dag[&start=YYYY-MM-DD][&end=YYYY-MM-DD]
+     * PLC (MAX ibc_count) vinner för alla dagar med PLC-data; deduplicerad skiftrapport
+     * fyller PLC-lösa dagar. Används av skiftrapport-sidan (action=lineskiftrapport är
+     * Pi-passthru och kan inte leverera detta) för korrekta dag-/grand-totaler.
+     */
+    private function getIbcPerDag() {
+        try {
+            $start = $_GET['start'] ?? date('Y-m-d', strtotime('-90 days'));
+            $end   = $_GET['end']   ?? date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d', strtotime('-90 days'));
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
+
+            $merged = $this->skiftrapportIbcPerDag($start, $end);
+            foreach ($this->plcIbcPerDag($start, $end) as $dag => $ibc) {
+                $merged[$dag] = $ibc; // PLC vinner för alla dagar med PLC-data
+            }
+            echo json_encode([
+                'success'         => true,
+                'day_totals'      => $merged,
+                'grand_total_ibc' => array_sum($merged),
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            error_log('TvattlinjeController::getIbcPerDag: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta IBC per dag'], JSON_UNESCAPED_UNICODE);
+        }
     }
 
     private function getLiveStats() {

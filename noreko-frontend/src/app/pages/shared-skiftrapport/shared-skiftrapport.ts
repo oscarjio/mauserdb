@@ -72,6 +72,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // Cachade KPI-värden — beräknas en gång per datahändelse, inte per change-detection-cykel
   cachedFilteredReports: any[] = [];
   cachedTotalIbc = 0;
+  // Backend-levererade PLC-först/deduperade totaler (fallback: rå summa om saknas)
+  backendDayTotals: Record<string, number> | null = null;
+  backendGrandTotalIbc: number | null = null;
   cachedTotalOk = 0;
   cachedTotalEjOk = 0;
   cachedTotalOmtvaatt = 0;
@@ -186,7 +189,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.cachedTotalOmtvaatt = filtered.reduce((s, r) => s + (r.omtvaatt || 0), 0);
     this.cachedTotalOk = filtered.reduce((s, r) => s + (r.antal_ok || 0), 0);
     this.cachedTotalEjOk = filtered.reduce((s, r) => s + (r.antal_ej_ok || 0), 0);
-    const totalIbc = filtered.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
+    // Grand-total: summa av PLC-först dag-totaler över de VISADE dagarna (konsekvent
+    // med dag-grupperna); fallback: rå summa. Aldrig summering av multi-poster-snapshots.
+    const totalIbc = this.computeGrandTotal(filtered);
     this.cachedTotalIbc = totalIbc;
     this.cachedAvgQuality = totalIbc === 0 ? 0 : Math.round((this.cachedTotalOk / totalIbc) * 1000) / 10;
     this.cachedAvgIbcPerSkift = filtered.length === 0 ? 0 : Math.round((totalIbc / filtered.length) * 10) / 10;
@@ -382,7 +387,24 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // ========== KPI getters (computed per change-detection) ==========
 
   get summaryTotalIbc(): number {
-    return this.filteredReports.reduce(
+    return this.computeGrandTotal(this.filteredReports);
+  }
+
+  /**
+   * Grand-total IBC = summa av PLC-först dag-totaler (backendDayTotals) för de dagar
+   * som visas. Fallback: rå summa. Undviker dubbelräkning av multi-poster-snapshots
+   * (t.ex. 291 för en dag som egentligen är 138 enligt PLC).
+   */
+  private computeGrandTotal(filtered: any[]): number {
+    if (this.backendDayTotals) {
+      const days = new Set(
+        filtered.map(r => (r.datum || '').substring(0, 10)).filter(Boolean)
+      );
+      let s = 0;
+      days.forEach(d => { s += this.backendDayTotals![d] ?? 0; });
+      return s;
+    }
+    return filtered.reduce(
       (s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0
     );
   }
@@ -1035,6 +1057,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           if (res.success) {
             this.fetchFailed = false;
             const nr = res.data || [];
+            // Backend PLC-först/deduperade totaler direkt från lineskiftrapport (finns
+            // när Pi kör ny kod). På dev är lineskiftrapport Pi-passthru → saknas här,
+            // hämtas då separat via VPS-lokala fetchDayTotals() nedan.
+            this.backendDayTotals = res.day_totals ?? null;
+            this.backendGrandTotalIbc = (typeof res.grand_total_ibc === 'number') ? res.grand_total_ibc : null;
             if (silent) {
               const ec = { ...this.expanded };
               const sc = new Set(this.selectedIds);
@@ -1046,10 +1073,35 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             }
             this.recomputeKpis();
             this.loadPreliminaryShift();
+            // VPS-lokal PLC-först dag-totaler (lineskiftrapport är Pi-passthru på dev
+            // och kan inte leverera day_totals). Endast tvattlinje har PLC-pipeline.
+            this.fetchDayTotals(nr);
           } else {
             this.fetchFailed = true;
             this.errorMessage = res.error || 'Kunde inte hämta rapporter';
           }
+        }
+      });
+  }
+
+  /**
+   * Hämtar PLC-först/deduperade dag-totaler från VPS-lokala endpointen och sätter
+   * backendDayTotals (source of truth för dag-total + grand-total). Endast tvattlinje;
+   * andra linjer saknar PLC-pipeline och behåller rå summa som fallback.
+   */
+  private fetchDayTotals(rows: any[]): void {
+    if (this.config.line !== 'tvattlinje') return;
+    let start: string | undefined;
+    for (const r of rows) {
+      const d = (r.datum || '').substring(0, 10);
+      if (d && (!start || d < start)) start = d;
+    }
+    this.service.getIbcPerDag(this.config.line, start, localToday())
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        if (res && res.success && res.day_totals) {
+          this.backendDayTotals = res.day_totals;
+          this.recomputeKpis();
         }
       });
   }
@@ -1795,8 +1847,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const tb = b._firstTime ?? new Date(String(b.created_at || '').replace(' ', 'T')).getTime() ?? 0;
         return ta - tb;
       });
-      // Dag-summor: inskickade rapporter visar PLC-värden direkt (D4004/D4007)
-      const totalIbc   = submittedOnly.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
+      // Dag-summor: backend levererar PLC-först/deduperad dag-total (fallback: rå summa)
+      const rawDayIbc  = submittedOnly.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
+      const totalIbc   = (this.backendDayTotals && this.backendDayTotals[date] != null)
+        ? this.backendDayTotals[date]
+        : rawDayIbc;
       const rawDrift   = submittedOnly.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
       const totalDrift = Math.min(rawDrift, 600);
       const driftWarning = rawDrift > 600;

@@ -239,12 +239,64 @@ class LineSkiftrapportController {
             }
             $stmt->execute();
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode(['success' => true, 'data' => $results], JSON_UNESCAPED_UNICODE);
+            $dayTotals = $this->computeDayTotals($table, $ibcTable, $ibcExists);
+            $grand = array_sum($dayTotals);
+            echo json_encode(['success' => true, 'data' => $results, 'day_totals' => $dayTotals, 'grand_total_ibc' => $grand], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log("LineSkiftrapportController::getReports($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta rapporter'], JSON_UNESCAPED_UNICODE);
         }
+    }
+
+    /**
+     * Beräknar deduplicerad IBC-total per dag ['Y-m-d' => ibc].
+     * PLC-först (kontinuitet, jfr commit 396063a): PLC-värdet (MAX(ibc_count) per dag)
+     * skriver över den deduplicerade skiftrapport-summan för varje dag som har PLC-data.
+     * Skiftrapport dedupliceras: senaste post (MAX id) per (dag, skiftraknare) — summera ALDRIG snapshots.
+     */
+    private function computeDayTotals($table, $ibcTable, $ibcExists) {
+        $dayTotals = [];
+        try {
+            // Kolla om skiftraknare-kolumnen finns (samma mönster som ensureTable rad ~181)
+            $hasSkiftraknare = (int)$this->pdo->query(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$table' AND COLUMN_NAME = 'skiftraknare'"
+            )->fetchColumn() > 0;
+            $grp = $hasSkiftraknare ? "DATE(datum), COALESCE(skiftraknare, 0)" : "DATE(datum)";
+
+            // 1) Deduplicerad skiftrapport-summa per dag
+            $stmt = $this->pdo->query("
+                SELECT DATE(sr.datum) AS dag, COALESCE(SUM(sr.totalt), 0) AS ibc
+                FROM `$table` sr
+                INNER JOIN (SELECT MAX(id) AS max_id FROM `$table` GROUP BY $grp) latest
+                    ON sr.id = latest.max_id
+                GROUP BY DATE(sr.datum)
+            ");
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $dayTotals[$row['dag']] = (int)$row['ibc'];
+            }
+        } catch (PDOException $e) {
+            error_log("LineSkiftrapportController::computeDayTotals($table) SR: " . $e->getMessage());
+        }
+
+        // 2) PLC-först: PLC-värdet skriver över SR-värdet för dagar med PLC-data
+        if ($ibcExists) {
+            try {
+                $plc = $this->pdo->query("
+                    SELECT DATE(datum) AS dag, MAX(ibc_count) AS ibc
+                    FROM `$ibcTable`
+                    GROUP BY DATE(datum)
+                ");
+                foreach ($plc->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    $dayTotals[$row['dag']] = (int)$row['ibc'];
+                }
+            } catch (PDOException $e) {
+                // ibc_count kan saknas för andra linjer → behåll SR-dedup
+                error_log("LineSkiftrapportController::computeDayTotals($table) PLC: " . $e->getMessage());
+            }
+        }
+
+        return $dayTotals;
     }
 
     private function createReport($table, $data) {

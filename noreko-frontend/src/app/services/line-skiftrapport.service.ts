@@ -21,6 +21,20 @@ export class LineSkiftrapportService {
       .pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
+  /**
+   * PLC-först/deduperade dag-totaler för skiftrapport-sidan. action=lineskiftrapport
+   * är Pi-passthru (kan ej leverera PLC-totaler); denna VPS-lokala endpoint gör det.
+   * Endast tvattlinje har PLC-pipeline — andra linjer faller tillbaka på rå summa.
+   */
+  getIbcPerDag(line: LineName, start?: string, end?: string): Observable<any> {
+    if (line !== 'tvattlinje') return of(null);
+    let url = `${environment.apiUrl}?action=tvattlinje&run=ibc-per-dag`;
+    if (start) url += `&start=${start}`;
+    if (end)   url += `&end=${end}`;
+    return this.http.get<any>(url, { withCredentials: true })
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  }
+
   createReport(line: LineName, data: any): Observable<any> {
     return this.http.post<any>(this.url(line), { action: 'create', ...data }, { withCredentials: true })
       .pipe(timeout(15000), catchError(err => { console.error('createReport failed', err); return of({ success: false, error: err?.error?.error || 'Nätverksfel' }); }));
