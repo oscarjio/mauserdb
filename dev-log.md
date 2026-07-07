@@ -6906,3 +6906,18 @@ i getLiveStats (VPS-lokal) och hem-kortet (news.ts) tar status därifrån.
 #2 (MEDEL): StatusController all-lines ibc_idag = LAG-delta MAX(idag)-MAX(igår); ibc_count
 nollställs dagligen → igår>idag → 0. Bytt till COALESCE(MAX(ibc_count),0) för dagen.
 Verifierat live: getLiveStats running=true, hem-kort "Igång"; all-lines status="Kor" ibc_idag=42.
+
+## 2026-07-07 — DEV-Pi backend-deploy (Oscar godkänd, ENDAST dev)
+Deployade fixad kod till DEV-Pi:n (internal-api aggregeringsnod, hostname MauserDBAlvangen)
+som dev.mauserdb.com:s RemoteAgg proxar mot (reverse-tunnel 8091). Väg: ssh root@VPS →
+ssh -p 42222 aiab@127.0.0.1 (root-nyckel). internal-api kör i /home/aiab/piagg-backend/
+(php -S :8091, systemd piagg-internal.service, User=aiab, lokal DB 127.0.0.1:33061).
+- Synkade ENDAST 3 kodfiler (scope = mina fix-commits, rör ej rebotling/RemoteAgg/config):
+  classes/TvattlinjeController.php, StatusController.php, LineSkiftrapportController.php
+  (rsync VPS /var/www/mauserdb-dev → Pi, ingen --delete, backuper *.bak-20260707-093447).
+- php -l OK på alla 3, restart piagg-internal.service (active).
+- Aktiverar på Pi: run=status/getRunningStatus (färskhet mot IBC), statistics dedup/PLC-först,
+  oee-trend, lineskiftrapport computeDayTotals.
+Verifierat live (linjen kör, IBC ~47): run=status running=true (lastUpdate 09:36, ej 07:04);
+nav-dot/live/hem/all-lines/plc-diag ALLA Igång; statistics sr_per_dag[07-06]=62 (ej 291);
+ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). Pi-DB = dev, ej prod.
