@@ -6896,3 +6896,13 @@ Sub-rader kan ha korrupt inmatning (07-06 post #1: IBC=229 mot PLC-dag 138, drif
 Frontend shared-skiftrapport (.ts+.html): isAnomalousReport() flaggar post när totalt > 1.15×
 PLC-dagstotal ELLER rå drifttid > 600min. ⚠ + rödmarkering (vänsterkant/bakgrund/IBC-siffra/
 drifttid) + tooltip med PLC-referens. Råvärdet kvar synligt. Verifierat: 07-06 #1(229) ⚠, #2(62) ej.
+
+## 2026-07-07 — #1 tvättlinje "Stoppad" fast den kör + #2 all-lines ibc_idag=0 (commit 0b2c0f85)
+#1 (HÖG): getRunningStatus mätte färskhet mot onoff-tidsstämpeln. onoff loggar bara
+tillståndsändringar → kontinuerligt körande linje har bara ETT ON-event (07:04) → diff
+>15min → felaktigt "Stoppad". Ny computeRunningState() mäter mot senaste IBC-puls
+(tvattlinje_ibc). OBS: run=status är Pi-passthru (inert på dev), så running exponeras även
+i getLiveStats (VPS-lokal) och hem-kortet (news.ts) tar status därifrån.
+#2 (MEDEL): StatusController all-lines ibc_idag = LAG-delta MAX(idag)-MAX(igår); ibc_count
+nollställs dagligen → igår>idag → 0. Bytt till COALESCE(MAX(ibc_count),0) för dagen.
+Verifierat live: getLiveStats running=true, hem-kort "Igång"; all-lines status="Kor" ibc_idag=42.
