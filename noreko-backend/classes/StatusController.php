@@ -238,25 +238,16 @@ class StatusController {
                     }
                 }
 
-                // IBC idag — LAG-delta på MAX(ibc_count) (kumulativt räknerverk) för att få
-                // korrekt daglig produktion. Fallback till MAX(ibc_count) om delta ej går att beräkna.
+                // IBC idag — PLC-först: MAX(ibc_count) för dagen (dygnsräknaren nollställs
+                // dagligen). Den gamla LAG-deltan (idag-igår) blev negativ när igår > idag
+                // → GREATEST(0,...) = 0. Konsekvent med getLiveStats/plcIbcPerDag.
                 $tvIbcIdag = 0;
                 try {
-                    $tvIbcIdag = (int)$pdo->query("
-                        SELECT GREATEST(0, COALESCE(
-                            (SELECT MAX(ibc_count) FROM tvattlinje_ibc
-                             WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY)
-                            -
-                            (SELECT MAX(ibc_count) FROM tvattlinje_ibc
-                             WHERE datum >= CURDATE() - INTERVAL 1 DAY AND datum < CURDATE()),
-                            (SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc
-                             WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY)
-                        ))
-                    ")->fetchColumn();
-                } catch (\Throwable $e) {
                     $tvIbcIdag = (int)$pdo->query(
                         "SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
                     )->fetchColumn();
+                } catch (\Throwable $e) {
+                    error_log('StatusController::all-lines tv_ibc_idag: ' . $e->getMessage());
                 }
 
                 // Om status ännu är not_started men det finns IBC-data idag → linjen kör men

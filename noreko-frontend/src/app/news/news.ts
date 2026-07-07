@@ -198,8 +198,9 @@ export class News implements OnInit, OnDestroy {
       done();
     });
 
-    // Tvättlinje
-    pending += 2;
+    // Tvättlinje — körstatus tas från getLiveStats (VPS-lokal, running mot faktisk
+    // PLC-produktion). run=status är Pi-passthru och kan visa fel "Stoppad" på dev.
+    pending += 1;
     this.tvattlinjeService.getLiveStats().pipe(
       timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: TvattlinjeLiveStatsResponse | null) => {
@@ -207,15 +208,7 @@ export class News implements OnInit, OnDestroy {
         this.tvattlinjeToday = res.data.ibcToday;
         this.tvattlinjeTarget = res.data.ibcTarget;
         this.tvattlinjePercentage = res.data.productionPercentage || 0;
-      }
-      done();
-    });
-
-    this.tvattlinjeService.getRunningStatus().pipe(
-      timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
-    ).subscribe((res: LineStatusResponse | null) => {
-      if (res && res.success && res.data) {
-        this.tvattlinjeStatus = res.data.running;
+        if (res.data.running != null) this.tvattlinjeStatus = res.data.running;
       }
       done();
     });

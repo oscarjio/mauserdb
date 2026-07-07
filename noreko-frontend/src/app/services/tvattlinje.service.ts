@@ -25,6 +25,7 @@ export interface TvattlinjeLiveStatsResponse {
     taktPerH?: number;
     hourlyTarget?: number;
     taktPercentage?: number;
+    running?: boolean;
   };
 }
 

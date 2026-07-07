@@ -605,6 +605,50 @@ class TvattlinjeController {
         }
     }
 
+    /**
+     * Körstatus baserat på FAKTISK PLC-produktion, inte bara onoff.
+     * tvattlinje_onoff loggar bara TILLSTÅNDSÄNDRINGAR — en linje som kört sedan 07:04
+     * har bara ETT onoff-event. Att mäta färskhet mot onoff-tidsstämpeln nedgraderar då
+     * felaktigt en körande linje till "stoppad". Mät i stället mot senaste IBC-puls.
+     * Returnerar ['running'=>bool, 'last_update'=>?string].
+     */
+    private function computeRunningState(): array {
+        $onoffDatum = null; $isOn = false;
+        try {
+            $r = $this->pdo->query("SELECT running, datum FROM tvattlinje_onoff ORDER BY datum DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+            if ($r) { $isOn = (bool)($r['running'] ?? false); $onoffDatum = $r['datum'] ?? null; }
+        } catch (\Throwable $e) { error_log('TvattlinjeController::computeRunningState onoff: ' . $e->getMessage()); }
+
+        $lastIbcDatum = null;
+        try {
+            $v = $this->pdo->query("
+                SELECT MAX(datum) FROM tvattlinje_ibc
+                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+            ")->fetchColumn();
+            $lastIbcDatum = ($v !== false && $v !== null) ? $v : null;
+        } catch (\Throwable $e) { error_log('TvattlinjeController::computeRunningState ibc: ' . $e->getMessage()); }
+
+        // UI-tid = senaste av onoff-event och senaste IBC (visa 08:54, inte 07:04)
+        $lastUpdate = $onoffDatum;
+        if ($lastIbcDatum !== null && ($lastUpdate === null || strtotime($lastIbcDatum) > strtotime($lastUpdate))) {
+            $lastUpdate = $lastIbcDatum;
+        }
+
+        // Åldersgrind mot faktisk produktion: nedgradera bara till "ej körning" om ingen
+        // PLC-aktivitet senaste 15 min (IBC om det finns, annars onoff-eventet).
+        $running = $isOn;
+        if ($running) {
+            $freshRef = $lastIbcDatum ?? $onoffDatum;
+            if ($freshRef !== null) {
+                $tz = new \DateTimeZone('Europe/Stockholm');
+                $diffMin = ((new \DateTime('now', $tz))->getTimestamp()
+                          - (new \DateTime($freshRef, $tz))->getTimestamp()) / 60;
+                if ($diffMin > 15) $running = false;
+            }
+        }
+        return ['running' => $running, 'last_update' => $lastUpdate];
+    }
+
     private function getLiveStats() {
         // Filcache 10s TTL — nyckel: dagens datum (Europe/Stockholm)
         $cacheDir = dirname(__DIR__) . '/cache';
@@ -799,6 +843,8 @@ class TvattlinjeController {
                     'taktPerH'          => $taktPerH,
                     'hourlyTarget'      => round($hourlyTarget, 1),
                     'taktPercentage'    => $taktPercentage,
+                    // Körstatus mot faktisk PLC-produktion (VPS-lokal — run=status är Pi-passthru)
+                    'running'           => $this->computeRunningState()['running'],
                 ]
             ];
             
@@ -1076,27 +1122,11 @@ class TvattlinjeController {
             if ($cached !== false) { header('Content-Type: application/json; charset=utf-8'); echo $cached; return; }
         }
         try {
-            $stmt = $this->pdo->prepare('
-                SELECT running, datum
-                FROM tvattlinje_onoff
-                ORDER BY datum DESC
-                LIMIT 1
-            ');
-            $stmt->execute();
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            $isRunning = $result && isset($result['running']) ? (bool)$result['running'] : false;
-            $lastUpdate = $result && isset($result['datum']) ? $result['datum'] : null;
-
-            // Åldersgrind: om linjen verkar köra men PLC-data är >15 min gammal → markera som ej körning
-            if ($isRunning && $lastUpdate !== null) {
-                $lastDt = new \DateTime($lastUpdate, new \DateTimeZone('Europe/Stockholm'));
-                $nowDt  = new \DateTime('now', new \DateTimeZone('Europe/Stockholm'));
-                $diffMin = ($nowDt->getTimestamp() - $lastDt->getTimestamp()) / 60;
-                if ($diffMin > 15) {
-                    $isRunning = false;
-                }
-            }
+            // Körstatus + färskhet mot FAKTISK PLC-produktion (se computeRunningState):
+            // onoff loggar bara tillståndsändringar, så mät inte färskhet mot onoff-tiden.
+            $state      = $this->computeRunningState();
+            $isRunning  = $state['running'];
+            $lastUpdate = $state['last_update'];
 
             // Hämta rast-status från tvattlinje_rast (fallback tvattlinje_runtime)
             $onRast = false;
