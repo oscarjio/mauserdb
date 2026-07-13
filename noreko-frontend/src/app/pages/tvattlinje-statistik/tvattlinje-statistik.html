@@ -131,7 +131,10 @@
                [class.kpi-hero-red]="avgEfficiency > 0 && avgEfficiency < 60"
                [class.kpi-hero-neutral]="avgEfficiency === 0">
             <div class="kpi-hero-icon"><i class="fas fa-tachometer-alt"></i></div>
-            <div class="kpi-hero-value" [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency | number:'1.0-1' }}%</div>
+            <div class="kpi-hero-value" [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency | number:'1.0-1' }}%
+              <i *ngIf="avgEfficiencyWarning" class="fas fa-exclamation-triangle text-warning ms-1"
+                 title="Beräknad effektivitet översteg 100 % (kapad). Tyder oftast på orimligt kort cykeltid eller ofullständig drifttidsdata."></i>
+            </div>
             <div class="kpi-hero-label">Effektivitet</div>
             <div class="kpi-hero-sub">
               <span *ngIf="avgEfficiency >= 85" class="kpi-status-badge kpi-badge-green">Bra</span>

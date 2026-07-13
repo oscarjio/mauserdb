@@ -1468,35 +1468,63 @@ class TvattlinjeController {
             $totalRuntimeMinutes = 0;
             $runtimeSource = 'none';
 
-            // Primär: SUM(drifttid) från inskickade skiftrapporter (D4007 — netto körtid utan rast).
-            // Cap mot faktiskt PLC-spann (tvattlinje_ibc MIN/MAX per dag) förhindrar att felaktiga
-            // databasposter (t.ex. id=8 med drifttid=1523min) blåser upp körtiden.
-            // Fallback: LEAST(dag_drifttid, 1440) om PLC-spann saknas.
+            // BUGG T1: Drifttid byggs PER DAG över UNIONEN av dagar från tvattlinje_ibc
+            // + tvattlinje_skiftrapport, med källprioritet per dag:
+            //   1) SUM(sr.drifttid) — deduplicerad (senaste post per skiftraknare), D4007 netto körtid
+            //   2) MAX(ibc.runtime_plc) — D4007 netto körtid från PLC (dagar utan inskickad skiftrapport)
+            //   3) MAX(onoff.runtime_today) — sista fallback
+            // Tidigare byggdes drifttid ENBART från skiftrapport-dagar (yttre FROM tvattlinje_skiftrapport
+            // GROUP BY DATE) => dagar med PLC-IBC men utan inskickad rapport (t.ex. 2026-07-02, 159 IBC)
+            // fick 0 min körtid, medan IBC-totalen kom från PLC för ALLA dagar => asymmetrisk statistik
+            // (831 IBC men bara 19.1h). LEAST(day_min, 600) kapar per dag (max ~10h/skift).
             try {
                 $driftStmt = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(capped), 0)
+                    SELECT COALESCE(SUM(LEAST(day_min, 600)), 0)
                     FROM (
-                        SELECT LEAST(
-                            SUM(sr.drifttid),
-                            LEAST(COALESCE(plc.span_min, 600), 600)
-                        ) AS capped
-                        FROM tvattlinje_skiftrapport sr
-                        LEFT JOIN (
-                            SELECT DATE(datum) AS dag,
-                                   GREATEST(1, ROUND(TIMESTAMPDIFF(SECOND, MIN(datum), MAX(datum)) / 60.0)) AS span_min
-                            FROM tvattlinje_ibc
+                        SELECT d.dag,
+                               COALESCE(NULLIF(sr.drift_min, 0), ibc.plc_min, onoff.onoff_min, 0) AS day_min
+                        FROM (
+                            SELECT DATE(datum) AS dag FROM tvattlinje_skiftrapport
+                            WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                            UNION
+                            SELECT DATE(datum) AS dag FROM tvattlinje_ibc
                             WHERE datum >= :s2 AND datum < DATE_ADD(:e2, INTERVAL 1 DAY)
+                        ) d
+                        LEFT JOIN (
+                            SELECT DATE(sr.datum) AS dag, SUM(sr.drifttid) AS drift_min
+                            FROM tvattlinje_skiftrapport sr
+                            INNER JOIN (
+                                SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
+                                WHERE datum >= :s3 AND datum < DATE_ADD(:e3, INTERVAL 1 DAY)
+                                GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                            ) latest ON sr.id = latest.max_id
+                            GROUP BY DATE(sr.datum)
+                        ) sr ON sr.dag = d.dag
+                        LEFT JOIN (
+                            SELECT DATE(datum) AS dag, MAX(runtime_plc) AS plc_min
+                            FROM tvattlinje_ibc
+                            WHERE datum >= :s4 AND datum < DATE_ADD(:e4, INTERVAL 1 DAY)
+                              AND runtime_plc IS NOT NULL AND runtime_plc > 0
                             GROUP BY DATE(datum)
-                        ) plc ON plc.dag = DATE(sr.datum)
-                        WHERE sr.datum >= :s AND sr.datum <= :e
-                        GROUP BY DATE(sr.datum)
+                        ) ibc ON ibc.dag = d.dag
+                        LEFT JOIN (
+                            SELECT DATE(datum) AS dag, MAX(runtime_today) AS onoff_min
+                            FROM tvattlinje_onoff
+                            WHERE datum >= :s5 AND datum < DATE_ADD(:e5, INTERVAL 1 DAY)
+                              AND runtime_today > 0
+                            GROUP BY DATE(datum)
+                        ) onoff ON onoff.dag = d.dag
                     ) per_dag
                 ");
-                $driftStmt->execute(['s' => $start, 'e' => $end, 's2' => $start, 'e2' => $end]);
+                $driftStmt->execute([
+                    's'  => $start, 'e'  => $end, 's2' => $start, 'e2' => $end,
+                    's3' => $start, 'e3' => $end, 's4' => $start, 'e4' => $end,
+                    's5' => $start, 'e5' => $end,
+                ]);
                 $srDrifttid = (float)$driftStmt->fetchColumn();
                 if ($srDrifttid > 0) {
                     $totalRuntimeMinutes = $srDrifttid;
-                    $runtimeSource = 'skiftrapport';
+                    $runtimeSource = 'per_dag';
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics drifttid_primary: ' . $e->getMessage()); }
 
@@ -1594,9 +1622,10 @@ class TvattlinjeController {
                 }
             }
 
-            // netRuntimeMinutes: när källan är skiftrapport (D4007) är rast redan exkluderad av PLC:n —
-            // dra inte av $totalRastMinutes en gång till. Driftstopp dras alltid av.
-            if ($runtimeSource === 'skiftrapport') {
+            // netRuntimeMinutes: när källan är skiftrapport/per_dag (D4007 resp runtime_plc) är rast redan
+            // exkluderad av PLC:n — dra inte av $totalRastMinutes en gång till. Bara onoff-spannet
+            // (wall-clock) innehåller rast och ska dra av den. Driftstopp dras alltid av.
+            if ($runtimeSource === 'skiftrapport' || $runtimeSource === 'per_dag') {
                 $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalDriftstoppMinutes);
             } else {
                 $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);

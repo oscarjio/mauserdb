@@ -64,6 +64,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   missedWebhooks: number = 0;
   avgCycleTime: number = 0;
   avgEfficiency: number = 0;
+  avgEfficiencyWarning: boolean = false; // T5: rått effektivitetsvärde > 100 (kapat till 100)
   totalRuntimeHours: number = 0;
   targetCycleTime: number = 0;
 
@@ -673,11 +674,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     // Effektivitet: target / snitt-cykeltid * 100 (konsekvent med stapeldiagrammet)
     const target = data.summary.target_cycle_time || 3;
     const avgActual = data.summary.avg_cycle_time || 0;
-    if (avgActual > 0 && target > 0) {
-      this.avgEfficiency = Math.min(Math.round((target / avgActual) * 100), 200);
-    } else {
-      this.avgEfficiency = Math.min(Math.round(data.summary.avg_production_percent || 0), 200);
-    }
+    // T5: EN cap-policy — cap 100 överallt (samma som skiftrapporten). Flagga när rått värde > 100
+    // så operatörer inte tror på "överprestation" (oftast bara orimligt kort cykeltid / dålig data).
+    const effRaw = (avgActual > 0 && target > 0)
+      ? Math.round((target / avgActual) * 100)
+      : Math.round(data.summary.avg_production_percent || 0);
+    this.avgEfficiency = Math.min(effRaw, 100);
+    this.avgEfficiencyWarning = effRaw > 100;
 
     this.totalRuntimeHours = Math.round((data.summary.total_runtime_hours || 0) * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
@@ -1209,7 +1212,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
       const netWindowMin = Math.max(1, effectiveWindowMin - pauseMinInWindow - offMinInWindow);
       const pp = windowCount > 0
-        ? Math.min(Math.round((windowCount * targetMin / netWindowMin) * 100), 200)
+        ? Math.min(Math.round((windowCount * targetMin / netWindowMin) * 100), 100) // T5: cap 100
         : 0;
       result.push(pp);
     }
@@ -1274,7 +1277,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
         const avgEff = periodCycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / periodCycles.length;
         cell.avgCycleTime = Math.round(avgCycleTime * 10) / 10;
-        cell.efficiency = Math.min(Math.round(avgEff), 200);
+        cell.efficiency = Math.min(Math.round(avgEff), 100); // T5: cap 100
       }
     });
 
@@ -1601,7 +1604,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         const validTimes: number[] = value.cycleTime;
         if (validTimes.length > 0) {
           const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
-          efficiencyArr.push(Math.min(Math.round((target / avgActual) * 100), 200));
+          efficiencyArr.push(Math.min(Math.round((target / avgActual) * 100), 100)); // T5: cap 100
         } else {
           efficiencyArr.push(0);
         }
@@ -2205,7 +2208,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       const avgCycleTime = validCycleTimes.length > 0
         ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length : 0;
       const taktMal = this.targetCycleTime || 3;
-      const efficiency = avgCycleTime > 0 ? Math.min(Math.round((taktMal / avgCycleTime) * 100), 200) : 0;
+      const efficiency = avgCycleTime > 0 ? Math.min(Math.round((taktMal / avgCycleTime) * 100), 100) : 0; // T5: cap 100
 
       this.tableData.push({
         period,

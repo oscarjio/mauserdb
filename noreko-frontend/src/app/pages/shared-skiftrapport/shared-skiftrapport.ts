@@ -409,6 +409,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     );
   }
 
+  /** Källförklaring för en dags IBC-total (PLC-först deduperad, eller rå skiftrapport-summa). */
+  dayIbcSourceTooltip(date: string): string {
+    if (this.backendDayTotals && this.backendDayTotals[date] != null) {
+      return `IBC-total: PLC-först (deduplicerad per skift). Källa: PLC-räknare med skiftrapport som fallback.`;
+    }
+    return `IBC-total: summa av inskickade skiftrapporter för dagen (ingen PLC-referens).`;
+  }
+
   /** PLC-först dagstotal (backendDayTotals) för postens dag, eller null om okänt. */
   getDayPlcTotal(report: any): number | null {
     if (!this.backendDayTotals) return null;
@@ -430,7 +438,20 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     if (Number(report.drifttid || 0) > 600) return true;
     const totalt = Number(report.totalt || 0);
     const plc = this.getDayPlcTotal(report);
-    return plc != null && plc > 0 && totalt > plc * 1.15;
+    if (plc != null && plc > 0 && totalt > plc * 1.15) return true;
+    // Fysiskt omöjlig takt: netto min/IBC under halva måltakten (=> >200% "effektivitet").
+    // Ex: 170 IBC på 1h 52m = 0.66 min/IBC mot måltakt ~3 min/IBC — kan inte stämma.
+    return this.impliesImpossibleCycle(report);
+  }
+
+  /** True om postens implicerade netto-takt (min/IBC) är under halva produktens måltakt. */
+  private impliesImpossibleCycle(report: any): boolean {
+    const netMin = Math.max(0, Math.min(Number(report.drifttid || 0), 600) - Number(report.rasttime || 0));
+    const t = Number(report.totalt || 0) || (Number(report.antal_ok || 0) + Number(report.antal_ej_ok || 0));
+    if (!(netMin > 0) || !(t > 0)) return false;
+    const product     = this.products.find((p: any) => p.id === (report.product_id ?? null));
+    const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
+    return targetCycle > 0 && (netMin / t) < targetCycle * 0.5;
   }
 
   /** Förklarande tooltip för en avvikande post, med PLC-dagsvärde som referens. */
@@ -444,6 +465,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const plc = this.getDayPlcTotal(report);
     if (plc != null && plc > 0 && totalt > plc * 1.15) {
       reasons.push(`IBC ${totalt} överstiger dagens PLC-total (${plc})`);
+    }
+    if (this.impliesImpossibleCycle(report)) {
+      const netMin = Math.max(0, Math.min(Number(report.drifttid || 0), 600) - Number(report.rasttime || 0));
+      const t = Number(report.totalt || 0) || (Number(report.antal_ok || 0) + Number(report.antal_ej_ok || 0));
+      reasons.push(`Takt ${(netMin / t).toFixed(2)} min/IBC är fysiskt omöjlig (för snabb)`);
     }
     if (plc != null) reasons.push(`PLC-referens för dagen: ${plc} IBC`);
     return 'Avvikande post (trolig korrupt inmatning): ' + reasons.join('. ') + '.';
@@ -503,13 +529,17 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     let totalIdealMin = 0;
     let totalNettoMin = 0;
     for (const r of reports) {
-      const totalt   = (r.totalt || 0) || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
       const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600) - (r.rasttime || 0));
-      if (totalt <= 0 || netMin <= 0) continue;
+      if (netMin <= 0) continue;
+      // T4: ALL nettodrift räknas i nämnaren (även poster med 0 IBC förbrukade körtid) — annars
+      // motsäger EFFEKTIVITET header-KPI:n SNITT min/IBC (summaryAvgIbcH) som delar på all nettodrift.
+      totalNettoMin += netMin;
+      // T4: samma IBC-definition som summaryAvgIbcH (rad 455) — inte + omtvaatt i täljaren.
+      const totalt = (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0)));
+      if (totalt <= 0) continue;
       const product     = this.products.find((p: any) => p.id === (r.product_id ?? null));
       const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
       totalIdealMin += totalt * targetCycle;
-      totalNettoMin += netMin;
     }
     if (totalNettoMin <= 0) return null;
     const v = Math.round((totalIdealMin / totalNettoMin) * 100);
@@ -1855,7 +1885,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return ok > 0 && dt > 0 ? (dt / ok).toFixed(1) : '-';
   }
 
-  get groupedDays(): Array<{ date: string; reports: any[]; totalIbc: number; totalDrift: number; driftWarning: boolean; avgEff: number | null; operators: string[]; products: string[]; submittedCount: number; hasPreliminary: boolean; unreportedCount: number; }> {
+  get groupedDays(): Array<{ date: string; reports: any[]; totalIbc: number; totalDrift: number; driftWarning: boolean; avgEff: number | null; effWarning: boolean; operators: string[]; products: string[]; submittedCount: number; hasPreliminary: boolean; unreportedCount: number; }> {
     const dayMap: { [date: string]: any[] } = {};
 
     // Alla rapporter visas i sin datum-grupp (inlämningsdag)
@@ -1892,11 +1922,38 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const totalIbc   = (this.backendDayTotals && this.backendDayTotals[date] != null)
         ? this.backendDayTotals[date]
         : rawDayIbc;
-      const rawDrift   = submittedOnly.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
+      // T2: Deduplicera drifttid på SAMMA nyckel som backend (senaste post = MAX id per skiftraknare)
+      // INNAN summering. Annars dubbelräknas snapshot-poster för samma skift => dagen kläms till
+      // exakt "10h 0m" (Math.min(rawDrift,600)-cap-artefakt). IBC deduplicerar redan i backend.
+      const dedupById = new Map<number | string, any>();
+      for (const r of submittedOnly) {
+        const key = r.skiftraknare ?? 0;
+        const prev = dedupById.get(key);
+        if (!prev || (Number(r.id) || 0) > (Number(prev.id) || 0)) dedupById.set(key, r);
+      }
+      const dedupedReports = Array.from(dedupById.values());
+      const rawDrift   = dedupedReports.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
       const totalDrift = Math.min(rawDrift, 600);
       const driftWarning = rawDrift > 600;
-      const effVals = submittedOnly.map(r => this.getEfficiencyPct(r)).filter((v): v is number => v != null);
-      const avgEff = effVals.length ? Math.round(effVals.reduce((s, v) => s + v, 0) / effVals.length) : null;
+      const dayNet = totalDrift; // deduperad nettodrift (min) — samma tal som DRIFTTID-kolumnen visar
+      // T3: Dagens EFF beräknas på SAMMA tal som visas (totalIbc / dayNet), inte som medelvärde av
+      // per-post-eff (som använde postens egen drifttid och kunde motsäga IBC/DRIFTTID-kolumnerna).
+      // Vägd måltakt (min/IBC) över dagens deduplicerade poster.
+      let twSum = 0, tSum = 0;
+      for (const r of dedupedReports) {
+        const t = (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0)));
+        if (t <= 0) continue;
+        const product = this.products.find((p: any) => p.id === (r.product_id ?? null));
+        twSum += t * (product?.cycle_time_minutes ?? this.fallbackCycleMin);
+        tSum += t;
+      }
+      const dayTargetCycle = tSum > 0 ? twSum / tSum : this.fallbackCycleMin;
+      const avgEffRaw = (totalIbc > 0 && dayNet > 0 && dayTargetCycle > 0)
+        ? Math.round((dayTargetCycle / (dayNet / totalIbc)) * 100)
+        : null;
+      // T5: Cap 100 överallt; flagga när rått värde > 100 så operatörer inte tror på överprestation.
+      const avgEff = avgEffRaw == null ? null : Math.min(avgEffRaw, 100);
+      const effWarning = avgEffRaw != null && avgEffRaw > 100;
       const opSet = new Set<string>();
       submittedOnly.forEach(r => {
         [[r.op1_name, r.op1], [r.op2_name, r.op2], [r.op3_name, r.op3]].forEach(([nm, n]) => {
@@ -1906,7 +1963,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const prodSet = new Set<string>();
       submittedOnly.forEach(r => { if (r.product_id) { const name = this.getProductName(r.product_id); if (name) prodSet.add(name); } });
       return {
-        date, reports: sorted, totalIbc, totalDrift, driftWarning, avgEff,
+        date, reports: sorted, totalIbc, totalDrift, driftWarning, avgEff, effWarning,
         operators: Array.from(opSet), products: Array.from(prodSet),
         submittedCount: submittedOnly.length,
         hasPreliminary: reports.some((r: any) => r.isPreliminary),

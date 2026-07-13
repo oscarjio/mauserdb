@@ -366,7 +366,7 @@
                   <span *ngFor="let op of day.operators" class="badge bg-dark me-1">{{ op }}</span>
                   <span *ngIf="day.operators.length === 0" class="text-muted">–</span>
                 </td>
-                <td class="text-center fw-semibold text-success" data-label="IBC">
+                <td class="text-center fw-semibold text-success" data-label="IBC" style="cursor:help;" [title]="dayIbcSourceTooltip(day.date)">
                   {{ day.totalIbc }}
                 </td>
                 <td class="text-center" data-label="EFF%">
@@ -377,6 +377,7 @@
                     [class.bg-secondary]="day.avgEff == null">
                     {{ day.avgEff != null ? (day.avgEff + '%') : '–' }}
                   </span>
+                  <span *ngIf="day.effWarning" class="ms-1" style="cursor:help;" title="Beräknad effektivitet översteg 100 % (kapad). Kontrollera drifttid/cykeltid — oftast orimligt kort cykeltid eller ofullständig data.">⚠</span>
                 </td>
                 <td class="d-none d-lg-table-cell text-success small">
                   {{ day.totalDrift > 0 ? formatDrifttid(day.totalDrift) : '–' }}
@@ -1113,6 +1114,7 @@
                     [class.bg-danger]="day.avgEff >= 0 && day.avgEff < 60">
                     {{ day.avgEff }}% EFF
                   </span>
+                  <span *ngIf="day.effWarning" class="ms-1" style="cursor:help;" title="Beräknad effektivitet översteg 100 % (kapad). Oftast orimligt kort cykeltid eller ofullständig drifttidsdata.">⚠</span>
                   <span *ngIf="day.totalDrift > 0" class="text-muted small">{{ formatDrifttid(day.totalDrift) }}</span>
                 </div>
               </div>
