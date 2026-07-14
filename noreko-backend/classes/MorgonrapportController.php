@@ -237,13 +237,18 @@ class MorgonrapportController {
         string $avg30Start,
         string $avg30End
     ): array {
-        // ibc_count = daglig räknare (startar om varje dag) → MAX ger korrekt dagstotal
+        // ibc_count = kumulativ räknare per skift (nollställs vid skiftrapport, skiftraknare++).
+        // MAX per skift, SUM över skift → korrekt dagstotal (tappar inte första skiftet).
         $totalIbc = 0;
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT COALESCE(MAX(ibc_count), 0) AS ibc_total
-                 FROM rebotling_ibc
-                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
+                "SELECT COALESCE(SUM(skift_ibc), 0) AS ibc_total
+                 FROM (
+                     SELECT MAX(ibc_count) AS skift_ibc
+                     FROM rebotling_ibc
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                 ) sub"
             );
             $stmt->execute([$date, $date]);
             $totalIbc = (int)($stmt->fetchColumn() ?: 0);
@@ -255,13 +260,17 @@ class MorgonrapportController {
         $mal = $this->getDailyGoalForDate($date);
         $uppfyllnadPct = $mal > 0 ? round(($totalIbc / $mal) * 100, 1) : 0;
 
-        // Foregaende vecka, samma dag
+        // Foregaende vecka, samma dag — MAX per skift, SUM över skift
         $prevWeekIbc = 0;
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT COALESCE(MAX(ibc_count), 0) AS ibc_total
-                 FROM rebotling_ibc
-                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
+                "SELECT COALESCE(SUM(skift_ibc), 0) AS ibc_total
+                 FROM (
+                     SELECT MAX(ibc_count) AS skift_ibc
+                     FROM rebotling_ibc
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                 ) sub"
             );
             $stmt->execute([$prevWeekDate, $prevWeekDate]);
             $prevWeekIbc = (int)($stmt->fetchColumn() ?: 0);
@@ -275,10 +284,15 @@ class MorgonrapportController {
             $stmt = $this->pdo->prepare(
                 "SELECT ROUND(AVG(dag_ibc), 1) AS snitt
                  FROM (
-                     SELECT DATE(datum) AS dag, MAX(ibc_count) AS dag_ibc
-                     FROM rebotling_ibc
-                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                     GROUP BY DATE(datum)
+                     SELECT dag, SUM(skift_ibc) AS dag_ibc
+                     FROM (
+                         SELECT DATE(datum) AS dag,
+                                MAX(ibc_count) AS skift_ibc
+                         FROM rebotling_ibc
+                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                         GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                     ) sub_inner
+                     GROUP BY dag
                  ) sub_outer"
             );
             $stmt->execute([$avg30Start, $avg30End]);
@@ -315,14 +329,18 @@ class MorgonrapportController {
         $drifttid      = $this->getRuntimeHoursForDate($date);
         $prevDrifttid  = $this->getRuntimeHoursForDate($prevWeekDate);
 
-        // ibc_count = daglig räknare (startar om varje dag) → MAX ger korrekt dagstotal
+        // ibc_count = kumulativ räknare per skift → MAX per skift, SUM över skift
         $totalIbc = 0;
         $prevIbc  = 0;
         try {
             $stmtIbc = $this->pdo->prepare(
-                "SELECT COALESCE(MAX(ibc_count), 0) AS ibc_total
-                 FROM rebotling_ibc
-                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
+                "SELECT COALESCE(SUM(skift_ibc), 0) AS ibc_total
+                 FROM (
+                     SELECT MAX(ibc_count) AS skift_ibc
+                     FROM rebotling_ibc
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                 ) sub"
             );
             $stmtIbc->execute([$date, $date]);
             $totalIbc = (int)($stmtIbc->fetchColumn() ?: 0);
@@ -493,13 +511,18 @@ class MorgonrapportController {
         $prevTotalt     = 0;
         $toppOrsak      = '-';
 
-        // ibc_count = daglig räknare (startar om varje dag) → MAX ger korrekt dagstotal
+        // ibc_count/ibc_ok = kumulativa räknare per skift → MAX per skift, SUM över skift
         try {
             $stmtKval = $this->pdo->prepare(
-                "SELECT COALESCE(MAX(ibc_count), 0) AS total,
-                        COALESCE(MAX(ibc_ok), 0)    AS ok_total
-                 FROM rebotling_ibc
-                 WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)"
+                "SELECT COALESCE(SUM(skift_total), 0) AS total,
+                        COALESCE(SUM(skift_ok), 0)    AS ok_total
+                 FROM (
+                     SELECT MAX(ibc_count) AS skift_total,
+                            MAX(ibc_ok)    AS skift_ok
+                     FROM rebotling_ibc
+                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                 ) sub"
             );
             $stmtKval->execute([$date, $date]);
             $row = $stmtKval->fetch(\PDO::FETCH_ASSOC);

@@ -113,16 +113,24 @@ class KvalitetstrendanalysController {
         $result = [];
         try {
             // rebotling_ibc has no station_id column — aggregate all as station 1
-            // ibc_count = daglig räknare (startar om varje dag) → MAX per dag ger korrekt dagstotal
+            // ibc_count/ibc_ok = kumulativa per skift (nollställs vid skiftrapport, skiftraknare++).
+            // MAX per (dag, skiftraknare) ger per-skift-total; SUM över skift ger dagstotal.
             $stmt = $this->pdo->prepare("
                 SELECT
-                    DATE(datum) AS dag,
+                    dag,
                     1 AS station_id,
-                    COALESCE(MAX(ibc_count), 0) AS total,
-                    GREATEST(0, COALESCE(MAX(ibc_count), 0) - COALESCE(MAX(ibc_ok), 0)) AS kasserade
-                FROM rebotling_ibc
-                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                GROUP BY DATE(datum)
+                    COALESCE(SUM(mx_count), 0) AS total,
+                    GREATEST(0, COALESCE(SUM(mx_count), 0) - COALESCE(SUM(mx_ok), 0)) AS kasserade
+                FROM (
+                    SELECT
+                        DATE(datum)    AS dag,
+                        MAX(ibc_count) AS mx_count,
+                        MAX(ibc_ok)    AS mx_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) AS per_skift
+                GROUP BY dag
                 ORDER BY dag ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -489,24 +497,25 @@ class KvalitetstrendanalysController {
 
         try {
             // rebotling_ibc has no station_id column — aggregate all as station 1
-            // ibc_count = daglig räknare → MAX per dag summeras per vecka
+            // ibc_count/ibc_ok = kumulativa per skift (nollställs vid skiftrapport, skiftraknare++).
+            // MAX per (dag, skiftraknare) ger per-skift-total; SUM över skift/dagar ger veckototal.
             $stmt = $this->pdo->prepare("
                 SELECT
                     1 AS station_id,
                     yearweek,
                     MIN(dag) AS week_start,
-                    COALESCE(SUM(day_total), 0) AS total,
-                    COALESCE(SUM(day_kasserade), 0) AS kasserade
+                    COALESCE(SUM(mx_count), 0) AS total,
+                    GREATEST(0, COALESCE(SUM(mx_count), 0) - COALESCE(SUM(mx_ok), 0)) AS kasserade
                 FROM (
                     SELECT
                         YEARWEEK(datum, 1) AS yearweek,
                         DATE(datum) AS dag,
-                        MAX(ibc_count) AS day_total,
-                        GREATEST(0, MAX(ibc_count) - MAX(COALESCE(ibc_ok, 0))) AS day_kasserade
+                        MAX(ibc_count)           AS mx_count,
+                        MAX(COALESCE(ibc_ok, 0)) AS mx_ok
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY YEARWEEK(datum, 1), DATE(datum)
-                ) AS per_dag
+                    GROUP BY YEARWEEK(datum, 1), DATE(datum), COALESCE(skiftraknare, 0)
+                ) AS per_skift
                 GROUP BY yearweek
                 ORDER BY yearweek ASC
             ");

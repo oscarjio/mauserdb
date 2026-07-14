@@ -556,7 +556,7 @@ class MaintenanceController {
             $intervals = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta nuvarande total IBC (max ibc_ok från rebotling_ibc)
-            $ibcStmt = $this->pdo->query("SELECT COALESCE(MAX(ibc_ok), 0) AS total_ibc FROM rebotling_ibc");
+            $ibcStmt = $this->pdo->query("SELECT COALESCE(SUM(mx),0) AS total_ibc FROM (SELECT MAX(ibc_ok) mx FROM rebotling_ibc GROUP BY DATE(datum), COALESCE(skiftraknare,0)) t");
             $totalIbc = (int)$ibcStmt->fetchColumn();
 
             // Samla alla unika servicedatum och hämta IBC i EN query (undvik N+1)
@@ -570,7 +570,7 @@ class MaintenanceController {
             if (!empty($serviceDatumList)) {
                 $uniqueDates = array_unique($serviceDatumList);
                 $countStmt = $this->pdo->prepare(
-                    "SELECT COALESCE(MAX(ibc_ok), 0) AS ibc_now FROM rebotling_ibc WHERE datum >= :datum"
+                    "SELECT COALESCE(SUM(mx),0) AS ibc_now FROM (SELECT MAX(ibc_ok) mx FROM rebotling_ibc WHERE datum >= :datum GROUP BY DATE(datum), COALESCE(skiftraknare,0)) t"
                 );
                 foreach ($uniqueDates as $d) {
                     $countStmt->execute([':datum' => $d]);
@@ -720,7 +720,7 @@ class MaintenanceController {
             $this->pdo->beginTransaction();
 
             // Hämta aktuell total IBC
-            $ibcStmt = $this->pdo->query("SELECT COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc");
+            $ibcStmt = $this->pdo->query("SELECT COALESCE(SUM(mx),0) FROM (SELECT MAX(ibc_ok) mx FROM rebotling_ibc GROUP BY DATE(datum), COALESCE(skiftraknare,0)) t");
             $currentIbc = (int)$ibcStmt->fetchColumn();
 
             $stmt = $this->pdo->prepare("

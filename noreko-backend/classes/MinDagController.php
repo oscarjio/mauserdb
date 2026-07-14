@@ -338,15 +338,22 @@ class MinDagController {
             // annars beräkna från runtime_plc och ibc_ok per timme
             $stmt = $this->pdo->prepare("
                 SELECT
-                    HOUR(datum)                        AS timme,
-                    COUNT(*)                           AS antal_rader,
-                    MAX(ibc_ok)  - MIN(ibc_ok)         AS ibc_denna_timme,
-                    MAX(runtime_plc) - MIN(runtime_plc) AS runtime_denna_timme_min
-                FROM rebotling_ibc
-                WHERE $opFilter
-                  AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
-
-                GROUP BY HOUR(datum)
+                    timme,
+                    COUNT(*)                                                            AS antal_rader,
+                    SUM(CASE WHEN ibc_ok >= prev_ibc THEN ibc_ok - prev_ibc ELSE ibc_ok END)         AS ibc_denna_timme,
+                    SUM(CASE WHEN runtime_plc >= prev_run THEN runtime_plc - prev_run ELSE runtime_plc END) AS runtime_denna_timme_min
+                FROM (
+                    SELECT
+                        HOUR(datum) AS timme,
+                        ibc_ok,
+                        runtime_plc,
+                        COALESCE(LAG(ibc_ok)      OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev_ibc,
+                        COALESCE(LAG(runtime_plc) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev_run
+                    FROM rebotling_ibc
+                    WHERE $opFilter
+                      AND datum >= :today AND datum < DATE_ADD(:todayb, INTERVAL 1 DAY)
+                ) t
+                GROUP BY timme
                 ORDER BY timme ASC
             ");
             $stmt->execute(['op_id_a' => $opId, 'op_id_b' => $opId, 'op_id_c' => $opId, 'today' => $today, 'todayb' => $today]);

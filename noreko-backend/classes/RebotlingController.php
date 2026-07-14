@@ -3473,17 +3473,24 @@ class RebotlingController {
 
     private function getProductionRate(): void {
         try {
-            // MAX(ibc_ok) per day = korrekt dagstotal (räknaren nollställs vid midnatt)
+            // ibc_ok nollställs per skiftraknare (skiftrapport), inte vid midnatt.
+            // Korrekt dagstotal = SUM över skift av MAX(ibc_ok) per (dag, skiftraknare).
             $stmt = $this->pdo->prepare("
                 SELECT
                     COALESCE(AVG(CASE WHEN dag >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN ibc_total END), 0) as avg_ibc_per_day_7d,
                     COALESCE(AVG(CASE WHEN dag >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN ibc_total END), 0) as avg_ibc_per_day_30d,
                     COALESCE(AVG(ibc_total), 0) as avg_ibc_per_day_90d
                 FROM (
-                    SELECT DATE(datum) AS dag, MAX(COALESCE(ibc_ok, 0)) AS ibc_total
-                    FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-                    GROUP BY DATE(datum)
+                    SELECT dag, SUM(mx) AS ibc_total
+                    FROM (
+                        SELECT DATE(datum) AS dag,
+                               COALESCE(skiftraknare, 0) AS sk,
+                               MAX(COALESCE(ibc_ok, 0)) AS mx
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                        GROUP BY dag, sk
+                    ) q
+                    GROUP BY dag
                     HAVING ibc_total > 0
                 ) t
             ");
@@ -12345,10 +12352,10 @@ class RebotlingController {
                 SELECT
                     datum,
                     DAYOFWEEK(datum) AS dow,
-                    MAX(ibc_ok)     AS ibc_ok,
+                    SUM(ibc_ok)     AS ibc_ok,
                     SUM(drifttid)   AS drifttid_min,
                     SUM(driftstopptime) AS stopp_min,
-                    MAX(ibc_ok + COALESCE(ibc_ej_ok,0) + COALESCE(bur_ej_ok,0)) AS tot_ibc,
+                    SUM(ibc_ok + COALESCE(ibc_ej_ok,0) + COALESCE(bur_ej_ok,0)) AS tot_ibc,
                     COUNT(*)        AS antal_skift
                 FROM (
                     SELECT datum, DAYOFWEEK(datum) AS dow2,
@@ -15903,7 +15910,7 @@ class RebotlingController {
                               UNION SELECT 4 UNION SELECT 5 UNION SELECT 6) nums
                     ) d
                     LEFT JOIN (
-                        SELECT dag, MAX(ibc_ok) AS day_ibc
+                        SELECT dag, SUM(ibc_ok) AS day_ibc
                         FROM (
                             SELECT DATE(MAX(datum)) AS dag, MAX(ibc_ok) AS ibc_ok
                             FROM rebotling_skiftrapport

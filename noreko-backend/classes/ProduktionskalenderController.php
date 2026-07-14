@@ -407,18 +407,27 @@ class ProduktionskalenderController {
 
         $opMap = $this->getOperatorMap();
 
-        // ibc_ok resets at midnight — MAX across all rows for a single day = true daily total
         try {
+            // ibc_ok/ibc_ej_ok = kumulativa per skift (nollställs vid skiftrapport, skiftraknare++).
+            // MAX per (dag, skiftraknare) ger per-skift-total; SUM över skift ger dagstotal.
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(MAX(ibc_ok), 0)    AS ibc_ok,
-                    COALESCE(MAX(ibc_ej_ok), 0) AS ibc_ej_ok,
-                    COALESCE(MAX(ibc_ok) + MAX(ibc_ej_ok), 0) AS ibc_total,
-                    MIN(datum) AS forsta_cykel,
-                    MAX(datum) AS sista_cykel
-                FROM rebotling_ibc
-                WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                  AND lopnummer > 0 AND lopnummer < 998
+                    COALESCE(SUM(mx_ok), 0)              AS ibc_ok,
+                    COALESCE(SUM(mx_ej_ok), 0)           AS ibc_ej_ok,
+                    COALESCE(SUM(mx_ok) + SUM(mx_ej_ok), 0) AS ibc_total,
+                    MIN(forsta_cykel) AS forsta_cykel,
+                    MAX(sista_cykel)  AS sista_cykel
+                FROM (
+                    SELECT
+                        MAX(ibc_ok)    AS mx_ok,
+                        MAX(ibc_ej_ok) AS mx_ej_ok,
+                        MIN(datum)     AS forsta_cykel,
+                        MAX(datum)     AS sista_cykel
+                    FROM rebotling_ibc
+                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                      AND lopnummer > 0 AND lopnummer < 998
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) AS per_skift
             ");
             $stmt->execute([$date, $date]);
             $base = $stmt->fetch(PDO::FETCH_ASSOC);

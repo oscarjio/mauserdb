@@ -265,7 +265,7 @@ export class SkiftDuellPage implements OnInit, OnDestroy {
   }
 
   kpiClass(val: number | null, ref: number | null): string {
-    if (val == null || ref == null) return '';
+    if (val == null || ref == null || !(Number(ref) > 0)) return '';
     const pct = ((val - ref) / ref) * 100;
     if (pct >= 10) return 'kpi-good';
     if (pct <= -10) return 'kpi-bad';

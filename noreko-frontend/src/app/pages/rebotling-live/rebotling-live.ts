@@ -232,7 +232,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
       )
       .subscribe((res: LineStatusResponse | null) => {
         if (res && res.success && res.data) {
-          this.isLineRunning = res.data.running;
+          this.isLineRunning = ((res.data.running as any) == 1 || res.data.running === true);
           this.statusBarClass = this.isLineRunning ? 'status-bar-on' : 'status-bar-off';
         }
       });

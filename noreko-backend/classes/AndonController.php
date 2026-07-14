@@ -498,9 +498,13 @@ class AndonController {
             } elseif ($chosen['type'] === 'ibc_per_h') {
                 // Beräkna dagens IBC/h
                 $stmtToday = $this->pdo->prepare("
-                    SELECT COALESCE(MAX(runtime_plc), 0) / 60.0 AS runtime_h
-                    FROM rebotling_ibc
-                    WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                    SELECT COALESCE(SUM(skift_runtime), 0) / 60.0 AS runtime_h
+                    FROM (
+                        SELECT LEAST(MAX(runtime_plc), 600) AS skift_runtime
+                        FROM rebotling_ibc
+                        WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                    ) sub
                 ");
                 $stmtToday->execute([$datum, $datum]);
                 $todayRuntimeH = floatval($stmtToday->fetchColumn());
@@ -570,18 +574,39 @@ class AndonController {
             $malIdag = $this->getDagsMal($datum);
 
             // ---- 2. Dagens IBC + runtime ----
+            // ibc_ok/ibc_ej_ok/runtime_plc = kumulativa per skift → MAX per skift, SUM över skift.
             $stmt = $this->pdo->prepare("
                 SELECT
-                    MAX(ibc_ok)                                      AS ibc_idag,
-                    MAX(ibc_ej_ok)                                   AS ibc_ej_ok,
-                    MAX(runtime_plc)                                 AS runtime_min_plc,
+                    (SELECT COALESCE(SUM(skift_ok), 0) FROM (
+                        SELECT MAX(ibc_ok) AS skift_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                    ) s_ok)                                          AS ibc_idag,
+                    (SELECT COALESCE(SUM(skift_ej), 0) FROM (
+                        SELECT MAX(ibc_ej_ok) AS skift_ej
+                        FROM rebotling_ibc
+                        WHERE datum >= :datum2 AND datum < DATE_ADD(:datumb2, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                    ) s_ej)                                          AS ibc_ej_ok,
+                    (SELECT COALESCE(SUM(skift_rt), 0) FROM (
+                        SELECT LEAST(MAX(runtime_plc), 600) AS skift_rt
+                        FROM rebotling_ibc
+                        WHERE datum >= :datum3 AND datum < DATE_ADD(:datumb3, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                    ) s_rt)                                          AS runtime_min_plc,
                     MIN(datum)                                       AS forsta_post,
                     MAX(datum)                                       AS senaste_ibc_tid,
                     TIMESTAMPDIFF(MINUTE, MIN(datum), NOW())         AS total_min
                 FROM rebotling_ibc
-                WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                WHERE datum >= :datum0 AND datum < DATE_ADD(:datumb0, INTERVAL 1 DAY)
             ");
-            $stmt->execute([':datum' => $datum, ':datumb' => $datum]);
+            $stmt->execute([
+                ':datum'   => $datum, ':datumb'  => $datum,
+                ':datum2'  => $datum, ':datumb2' => $datum,
+                ':datum3'  => $datum, ':datumb3' => $datum,
+                ':datum0'  => $datum, ':datumb0' => $datum,
+            ]);
             $rad = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $ibcIdag    = (int)($rad['ibc_idag']         ?? 0);

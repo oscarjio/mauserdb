@@ -84,13 +84,20 @@ class RebotlingSammanfattningController {
             $dagensOk = 0;
             $dagensEjOk = 0;
             try {
-                // ibc_count = daglig räknare (startar om varje dag) → MAX ger dagstotal
+                // ibc_count/ibc_ok = kumulativa per skift (nollställs vid skiftrapport, skiftraknare++).
+                // MAX per (dag, skiftraknare) ger per-skift-total; SUM över skift ger dagstotal.
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        COALESCE(MAX(ibc_count), 0) AS ibc_total,
-                        COALESCE(MAX(ibc_ok), 0)    AS ibc_ok
-                    FROM rebotling_ibc
-                    WHERE datum >= :idag AND datum < DATE_ADD(:idagb, INTERVAL 1 DAY)
+                        COALESCE(SUM(mx_count), 0) AS ibc_total,
+                        COALESCE(SUM(mx_ok), 0)    AS ibc_ok
+                    FROM (
+                        SELECT
+                            MAX(ibc_count) AS mx_count,
+                            MAX(ibc_ok)    AS mx_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :idag AND datum < DATE_ADD(:idagb, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                    ) AS per_skift
                 ");
                 $stmt->execute([':idag' => $idag, ':idagb' => $idag]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -204,15 +211,23 @@ class RebotlingSammanfattningController {
             $toDate   = date('Y-m-d');
             $fromDate = date('Y-m-d', strtotime('-6 days'));
 
-            // ibc_count = daglig räknare (startar om varje dag) → MAX per dag ger korrekt dagstotal
+            // ibc_count/ibc_ok = kumulativa per skift (nollställs vid skiftrapport, skiftraknare++).
+            // MAX per (dag, skiftraknare) ger per-skift-total; SUM över skift ger dagstotal.
             $stmt = $this->pdo->prepare("
                 SELECT
-                    DATE(datum)                 AS dag,
-                    COALESCE(MAX(ibc_count), 0) AS ibc_total,
-                    COALESCE(MAX(ibc_ok), 0)    AS ibc_ok
-                FROM rebotling_ibc
-                WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                GROUP BY DATE(datum)
+                    dag,
+                    COALESCE(SUM(mx_count), 0) AS ibc_total,
+                    COALESCE(SUM(mx_ok), 0)    AS ibc_ok
+                FROM (
+                    SELECT
+                        DATE(datum)    AS dag,
+                        MAX(ibc_count) AS mx_count,
+                        MAX(ibc_ok)    AS mx_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) AS per_skift
+                GROUP BY dag
                 ORDER BY dag ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);

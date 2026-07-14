@@ -144,15 +144,24 @@ class VdDashboardController {
         $schemaSek = 8 * 3600;
         $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
 
-        // ibc_count = sekventiell daglig räknare (startar om varje dag).
-        // MAX(ibc_count) ger korrekt dagstotal. ibc_ok nollställs inte per skift → oanvändbar för dagssumma.
+        // ibc_count/ibc_ok = KUMULATIVA räknare som NOLLSTÄLLS per skift (skiftraknare++ vid skiftrapport).
+        // MAX() rakt av över hela dagen tappar första skiftets bidrag när flera skift finns samma dag.
+        // Korrekt: inre MAX() per (dag, skiftraknare), yttre SUM() per dag → per-skift-delta summeras.
         $totalIbc = 0;
         $okIbc = 0;
         try {
-            $sql = "SELECT COALESCE(MAX(ibc_count), 0) AS total_ibc,
-                           COALESCE(MAX(ibc_ok), 0)    AS ok_ibc
-                    FROM rebotling_ibc
-                    WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)";
+            $sql = "SELECT COALESCE(SUM(mx_count), 0) AS total_ibc,
+                           COALESCE(SUM(mx_ok), 0)    AS ok_ibc
+                    FROM (
+                        SELECT DATE(datum) AS dag,
+                               COALESCE(skiftraknare, 0) AS sk,
+                               MAX(ibc_count) AS mx_count,
+                               MAX(ibc_ok)    AS mx_ok
+                        FROM rebotling_ibc
+                        WHERE datum >= :date AND datum < DATE_ADD(:dateb, INTERVAL 1 DAY)
+                        GROUP BY dag, sk
+                    ) q
+                    GROUP BY dag";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':date' => $date, ':dateb' => $date]);
             $ibcRow   = $stmt->fetch(\PDO::FETCH_ASSOC);

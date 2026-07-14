@@ -224,7 +224,7 @@ class ProduktionspulsController {
         $ibcIdag = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COALESCE(MAX(ibc_ok), 0) AS cnt FROM rebotling_ibc WHERE datum >= :today AND datum < DATE_ADD(:today2, INTERVAL 1 DAY)
+                SELECT COALESCE(SUM(mx), 0) AS cnt FROM (SELECT MAX(ibc_ok) mx FROM rebotling_ibc WHERE datum >= :today AND datum < DATE_ADD(:today2, INTERVAL 1 DAY) GROUP BY DATE(datum), COALESCE(skiftraknare,0)) t
             ");
             $stmt->execute([':today' => $today, ':today2' => $today]);
             $ibcIdag = (int)($stmt->fetchColumn() ?: 0);

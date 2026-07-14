@@ -113,7 +113,7 @@ export class OperatorPositionerPage implements OnInit, OnDestroy {
         const positions: PosSpecialty[] = (['op1', 'op2', 'op3'] as const)
           .filter(p => {
             const pd = o.per_position?.[p];
-            return pd && pd.antal_skift >= 2 && pd.ibc_per_h > 0;
+            return pd && pd.antal_skift >= 2 && pd.ibc_per_h > 0 && Number(o.ibc_per_h) > 0;
           })
           .map(p => {
             const pd = o.per_position[p]!;

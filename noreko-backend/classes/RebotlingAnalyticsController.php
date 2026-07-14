@@ -697,8 +697,11 @@ class RebotlingAnalyticsController {
                 // MAX over the day gives the true daily total; runtime_plc/rasttime reset per shift → SUM(MAX per shift).
                 $comboRow = $this->pdo->query("
                     SELECT
-                        (SELECT COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc
-                         WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY AND ibc_ok IS NOT NULL) AS ibc_today,
+                        (SELECT COALESCE(SUM(mx), 0) FROM (
+                            SELECT MAX(ibc_ok) AS mx FROM rebotling_ibc
+                            WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY AND ibc_ok IS NOT NULL
+                            GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                         ) it) AS ibc_today,
                         t.ibc_ok AS today_ibc_ok, t.ibc_ej_ok AS today_ibc_ej_ok,
                         t.runtime_min AS today_runtime, t.rast_min AS today_rast,
                         y.ibc_ok AS yest_ibc_ok, y.ibc_ej_ok AS yest_ibc_ej_ok,
@@ -1588,10 +1591,16 @@ class RebotlingAnalyticsController {
             $stmt = $this->pdo->prepare("
                 SELECT
                     datum,
-                    MAX(ibc_ok) AS ibc_ok
-                FROM rebotling_skiftrapport
-                WHERE YEAR(datum) = :year
-                  AND ibc_ok IS NOT NULL
+                    SUM(mx) AS ibc_ok
+                FROM (
+                    SELECT
+                        datum,
+                        MAX(ibc_ok) AS mx
+                    FROM rebotling_skiftrapport
+                    WHERE YEAR(datum) = :year
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY datum, COALESCE(skiftraknare, 0)
+                ) t
                 GROUP BY datum
                 ORDER BY datum ASC
             ");
@@ -2935,11 +2944,15 @@ class RebotlingAnalyticsController {
 
             // ibc_ok is a PLC daily running counter; MAX per day = true daily total.
             $stmt = $this->pdo->prepare("
-                SELECT DATE(datum) AS event_date, MAX(ibc_ok) AS total_ibc
-                FROM rebotling_skiftrapport
-                WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
-                GROUP BY DATE(datum)
-                HAVING MAX(ibc_ok) < :half_goal AND MAX(ibc_ok) > 0
+                SELECT event_date, SUM(mx) AS total_ibc
+                FROM (
+                    SELECT DATE(datum) AS event_date, MAX(ibc_ok) AS mx
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) t
+                GROUP BY event_date
+                HAVING SUM(mx) < :half_goal AND SUM(mx) > 0
                 ORDER BY event_date
             ");
             $stmt->execute([':start' => $start, ':end' => $end, ':half_goal' => $halfGoal]);
@@ -6758,7 +6771,7 @@ HTML;
                 $today = $now->format('Y-m-d');
 
                 $stmt = $this->pdo->prepare(
-                    "SELECT COALESCE(MAX(ibc_ok), 0) AS cnt FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND produktion_procent > 0"
+                    "SELECT COALESCE(SUM(mx), 0) AS cnt FROM (SELECT MAX(ibc_ok) AS mx FROM rebotling_ibc WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) AND produktion_procent > 0 GROUP BY DATE(datum), COALESCE(skiftraknare, 0)) t"
                 );
                 $stmt->execute([$today, $today]);
                 $actual = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);

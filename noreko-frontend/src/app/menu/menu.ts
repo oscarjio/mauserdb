@@ -198,8 +198,8 @@ export class Menu implements OnInit, OnDestroy {
       tvattlinje: this.http.get<LineStatusApiResponse>(`${environment.apiUrl}?action=tvattlinje&run=status`, { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null)))
     }).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.isFetchingLineStatus = false;
-      this.rebotlingRunning = res.rebotling?.data?.running ?? false;
-      this.tvattlinjeRunning = res.tvattlinje?.data?.running ?? false;
+      this.rebotlingRunning = ((res.rebotling?.data?.running as any) == 1 || res.rebotling?.data?.running === true);
+      this.tvattlinjeRunning = ((res.tvattlinje?.data?.running as any) == 1 || res.tvattlinje?.data?.running === true);
     });
 
     if (!this.lineStatusInterval) {

@@ -470,11 +470,20 @@ class AlertsController {
         try {
             $stmt = $this->pdo->query("
                 SELECT
-                    MAX(ibc_ok)    AS ibc_ok,
-                    MAX(ibc_ej_ok) AS ibc_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
-
+                    (SELECT SUM(CASE WHEN ibc_ok >= prev THEN ibc_ok - prev ELSE ibc_ok END)
+                     FROM (
+                        SELECT ibc_ok,
+                               COALESCE(LAG(ibc_ok) OVER (PARTITION BY COALESCE(skiftraknare,0) ORDER BY datum), 0) AS prev
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                     ) t)    AS ibc_ok,
+                    (SELECT SUM(CASE WHEN ibc_ej_ok >= prev THEN ibc_ej_ok - prev ELSE ibc_ej_ok END)
+                     FROM (
+                        SELECT ibc_ej_ok,
+                               COALESCE(LAG(ibc_ej_ok) OVER (PARTITION BY COALESCE(skiftraknare,0) ORDER BY datum), 0) AS prev
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                     ) t) AS ibc_ej_ok
             ");
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) return null;
@@ -525,11 +534,20 @@ class AlertsController {
         try {
             $stmt = $this->pdo->query("
                 SELECT
-                    MAX(ibc_ok)    AS ibc_ok,
-                    MAX(ibc_ej_ok) AS ibc_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
-
+                    (SELECT SUM(CASE WHEN ibc_ok >= prev THEN ibc_ok - prev ELSE ibc_ok END)
+                     FROM (
+                        SELECT ibc_ok,
+                               COALESCE(LAG(ibc_ok) OVER (PARTITION BY COALESCE(skiftraknare,0) ORDER BY datum), 0) AS prev
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                     ) t)    AS ibc_ok,
+                    (SELECT SUM(CASE WHEN ibc_ej_ok >= prev THEN ibc_ej_ok - prev ELSE ibc_ej_ok END)
+                     FROM (
+                        SELECT ibc_ej_ok,
+                               COALESCE(LAG(ibc_ej_ok) OVER (PARTITION BY COALESCE(skiftraknare,0) ORDER BY datum), 0) AS prev
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                     ) t) AS ibc_ej_ok
             ");
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) return null;

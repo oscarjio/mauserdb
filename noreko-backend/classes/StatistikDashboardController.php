@@ -80,22 +80,20 @@ class StatistikDashboardController {
      */
     private function getDaySummary(string $fromDate, string $toDate): array {
         try {
-            // ibc_count = daglig sekventiell räknare (startar om varje dag).
-            // MAX(ibc_count) GROUP BY DATE(datum) ger korrekt dagstotal per dag.
-            // ibc_ok nollställs inte korrekt per skift → ej användbar för dagssumma.
+            // ibc_count/ibc_ok = kumulativa per skift (nollställs vid skiftrapport, skiftraknare++).
+            // MAX per (dag, skiftraknare) ger per-skift-total; SUM över skift ger dagssumma.
             $stmt = $this->pdo->prepare("
                 SELECT
                     COALESCE(SUM(day_total), 0)    AS ibc_total,
                     COALESCE(SUM(day_ok), 0)       AS ibc_ok
                 FROM (
                     SELECT
-                        DATE(datum)          AS dag,
-                        MAX(ibc_count)       AS day_total,
+                        MAX(ibc_count)           AS day_total,
                         MAX(COALESCE(ibc_ok, 0)) AS day_ok
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum)
-                ) AS per_day
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) AS per_skift
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
