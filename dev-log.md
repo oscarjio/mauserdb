@@ -6977,3 +6977,13 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 - SLUTLEVERANS = DEL A (commit 79233bd1) + DEL B (commit d10be557). Signerad ±%-visning, okappad, OEE orord.
 - **MEDVETET VAL:** Visad effektivitet (tvattlinje statistik + skiftrapport) ar nu SIGNERAD avvikelse mot mal, okappad. BONUSEN ar OFORANDRAD och anvander fortfarande den gamla 0-100 stored-effektiviteten (rebotling_ibc.effektivitet). Bonus-skala pa signerad grund beslutas SENARE av Oscar.
 - Verifierat denna session: INGA andringar i BonusController / BonusAdminController / LineSkiftrapportController eller nagon bonus-poang/troskel. git diff 4700b8dd..HEAD ror bara: TvattlinjeController.php (EFF-visning), tvattlinje-statistik.ts/.html, shared-skiftrapport.ts/.html, dev-log.md. Prod + prod-DB ORORDA.
+
+## 2026-07-14 Tvattlinje EFF-buggar (visning) — BUG1/2 commit 17a2f946, BUG3 commit 3d3ad7a8
+- Kontext: D4007/drifttid ar REDAN netto (rast+stopp exkl av PLC) — inget dubbelavdrag gjort.
+- **BUG1** (shared-skiftrapport.ts groupedDays): dag-header EFF != per-rad EFF (06-30 dag +48% vs rad +6%). Orsak: dag delade nettodrift pa PLC-dagssumman (totalIbc=108) medan raden delar pa SR-IBC (60). Fix: dayActualCycle = dayNet/rawDayIbc (SR-summan), guard >0. IBC-KOLUMNEN oforandrad (visar totalIbc).
+- **BUG2a** (_computeEfficiencyPct): return null om drifttid>600 (kapat/kumulativt) -> "-" istf -171%.
+- **BUG2b** (groupedDays): avgEff=null vid driftWarning (rawDrift>600) -> "-" istf -246%.
+- **BUG3a** (TvattlinjeController.php ~1764): $avg_cycle_time = netRuntimeMinutes/total_ibc_skiftrapport (samma netto-def som korten), ej medel av wall-clock-gap.
+- **BUG3b** (TvattlinjeController.php): mal-cykel = tvattlinje_products.cycle_time_minutes, IBC-viktad over perioden (ny helper weightedTargetCycleTvattlinje, dedup som SR-IBC, fallback settings takt_mal). Emitterat target_cycle_time speglar nu korten.
+- Verifierat LIVE (statistics-endpoint): target_cycle_time 3.0->3.4, avg_cycle_time 3.03 (=397/131 netto), avg_production_percent +10.9% = (3.4-3.03)/3.4 -> POSITIV & konsistent med korten. php -l rent, tsc exit 0, watch-rebuild + deploy OK.
+- Bonus ORORD (0-100 stored). Prod + prod-DB ORORDA.
