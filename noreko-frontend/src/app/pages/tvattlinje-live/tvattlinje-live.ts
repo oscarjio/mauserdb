@@ -138,7 +138,7 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
       )
       .subscribe((res: LineStatusResponse | null) => {
         if (res?.success && res.data) {
-          this.isLineRunning = res.data.running;
+          this.isLineRunning = ((res.data.running as any) == 1 || res.data.running === true);
           if (res.data['lastUpdate']) {
             this.lastDataUpdate = new Date(String(res.data['lastUpdate']).replace(' ', 'T'));
             this.dataAgeSec = Math.round((Date.now() - this.lastDataUpdate.getTime()) / 1000);

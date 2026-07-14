@@ -207,7 +207,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const totalIbc = this.computeGrandTotal(filtered);
     this.cachedTotalIbc = totalIbc;
     this.cachedAvgQuality = totalIbc === 0 ? 0 : Math.min(100, Math.round((this.cachedTotalOk / totalIbc) * 1000) / 10);
-    this.cachedAvgIbcPerSkift = filtered.length === 0 ? 0 : Math.round((totalIbc / filtered.length) * 10) / 10;
+    this.cachedAvgIbcPerSkift = dedupedForQual.length === 0 ? 0 : Math.round((totalIbc / dedupedForQual.length) * 10) / 10;
     this.rebuildReportCache();
     // Expandera dagens grupp automatiskt
     const today = localToday();

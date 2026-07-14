@@ -408,7 +408,9 @@ class TvattlinjeOperatorController {
             $antalStopp     = $d['antal_stopp'];
             $stoppMin       = $d['stopp_min'];
             $stoppSek       = $stoppMin * 60;
-            $skiftSek       = $skiftCount * 8 * 3600; // 8h per skift
+            // J: nämnare = faktisk drifttid (total_min), inte hårdkodat 8h-skift (verklig skiftlängd
+            // 495/480 min). Rad 430 guardar redan $skiftSek > 0 mot division med noll.
+            $skiftSek       = $d['total_min'] * 60;
 
             // Produktionspoäng: 10 per IBC
             $produktionsPoang = $totalIbc * 10;

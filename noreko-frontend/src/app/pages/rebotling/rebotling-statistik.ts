@@ -145,6 +145,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   totalCycles: number = 0;
   avgCycleTime: number = 0;
   avgEfficiency: number = 0;
+  avgEfficiencyWarning: boolean = false; // G: rått effektivitetsvärde > 100 (kapat till 100)
   avgProdPct: number = 0;
   totalRuntimeHours: number = 0;
   totalIbcPerHour: number = 0;
@@ -904,11 +905,14 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         || (data.summary.total_runtime_hours * 60)
         || 0;
     }
-    const properEff = (netRtMin > 0 && totalCyc > 0)
+    // G: cappa till 100 (kan ej överprestera mål) + varningsflagga när rått värde > 100.
+    const properEffRaw = (netRtMin > 0 && totalCyc > 0)
       ? Math.round(totalCyc * targetCt / netRtMin * 100)
       : 0;
+    const properEff = Math.min(100, properEffRaw);
     this.avgEfficiency = properEff;
     this.avgProdPct = properEff;
+    this.avgEfficiencyWarning = properEffRaw > 100;
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
     this.totalRastMinutes = data.summary.total_rast_minutes || 0;
@@ -960,7 +964,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     let wasRunning = false;
     for (const ev of sortedOnoff) {
       const t = new Date(ev.datum).getTime();
-      const running = !!ev.running;
+      const running = (ev.running == 1 || ev.running === true || ev.running === '1');
       if (running && !wasRunning) { segStart = t; wasRunning = true; }
       else if (!running && wasRunning && segStart !== null) {
         let netMs = t - segStart;
@@ -1007,7 +1011,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     let wasRunning2 = false;
     for (const ev of sortedOnoff) {
       const t = new Date(ev.datum).getTime();
-      const running = !!ev.running;
+      const running = (ev.running == 1 || ev.running === true || ev.running === '1');
       if (running && !wasRunning2) { segStart2 = t; wasRunning2 = true; }
       else if (!running && wasRunning2 && segStart2 !== null) {
         let netMs = t - segStart2;
@@ -1104,9 +1108,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         // Kräv minst 5 min netto-drifttid för att undvika explosiv eff% vid korta testdagar (BUG-013)
         const netMin = netRuntimeByKey.get(key) || 0;
         if (netMin >= 5) {
-          cell.efficiency = Math.min(250, Math.round(periodCycles.length * avgTarget / netMin * 100));
+          cell.efficiency = Math.min(100, Math.round(periodCycles.length * avgTarget / netMin * 100));
         } else {
-          cell.efficiency = avgCycleTime > 0 ? Math.min(250, Math.round((avgTarget / avgCycleTime) * 100)) : 0;
+          cell.efficiency = avgCycleTime > 0 ? Math.min(100, Math.round((avgTarget / avgCycleTime) * 100)) : 0;
         }
       }
     });
@@ -1393,7 +1397,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     let wasRunning = false;
     for (const ev of sortedOnoff) {
       const t = new Date(ev.datum).getTime();
-      const running = !!ev.running;
+      const running = (ev.running == 1 || ev.running === true || ev.running === '1');
       if (running && !wasRunning) { segStart = t; wasRunning = true; }
       else if (!running && wasRunning && segStart !== null) {
         let netMs = t - segStart;
@@ -1422,14 +1426,14 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         const netMin = netRuntimeByKey.get(key) || 0;
         // Kräv minst 5 min netto-drifttid för att undvika explosiv eff% vid korta testdagar (BUG-013)
         if (netMin >= 5) {
-          efficiencyArr.push(Math.min(250, Math.round(count * avgTarget / netMin * 100)));
+          efficiencyArr.push(Math.min(100, Math.round(count * avgTarget / netMin * 100)));
         } else {
           // Fallback om inga onoff-events finns eller för kort drifttid: target / avg_cykeltid
           const validTimes = value.cycles
             .map((c: any) => parseFloat(c.cycle_time))
             .filter((t: number) => !isNaN(t) && t > 0 && t <= 30);
           efficiencyArr.push(validTimes.length > 0
-            ? Math.min(250, Math.round((avgTarget / (validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length)) * 100))
+            ? Math.min(100, Math.round((avgTarget / (validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length)) * 100))
             : 0);
         }
       } else {
@@ -1548,7 +1552,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       }
       const netWindowMin = Math.max(1, WINDOW_MINUTES - pauseMinInWindow);
 
-      const pp = windowCount > 0 ? Math.round((windowCount * effTargetVal / netWindowMin) * 100) : 0;
+      const pp = windowCount > 0 ? Math.min(100, Math.round((windowCount * effTargetVal / netWindowMin) * 100)) : 0;
       prodPct.push(pp);
       totalProdPct += pp;
       targetCycleTimeArr.push(!isNaN(target) && target > 0 ? Math.round(target * 10) / 10 : 0);
@@ -2283,7 +2287,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     // Sortera händelser kronologiskt
     const events = onoff
-      .map((e: any) => ({ min: new Date(e.datum).getHours() * 60 + new Date(e.datum).getMinutes(), running: !!e.running }))
+      .map((e: any) => ({ min: new Date(e.datum).getHours() * 60 + new Date(e.datum).getMinutes(), running: (e.running == 1 || e.running === true || e.running === '1') }))
       .sort((a: any, b: any) => a.min - b.min);
 
     // Hitta tidsspannet som maskinen var aktiv (från första start till sista stopp/slut)

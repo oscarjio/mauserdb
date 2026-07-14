@@ -220,7 +220,7 @@ export class News implements OnInit, OnDestroy {
     ).subscribe((res: LineReportsResponse | null) => {
       if (res?.success && res.data) {
         const today = localToday();
-        const reps = res.data.filter((r: LineSkiftrapportReport) => (r.datum || '').substring(0, 10) === today);
+        const reps = this.dedupByShift(res.data.filter((r: LineSkiftrapportReport) => (r.datum || '').substring(0, 10) === today));
         this.saglinjeSkiftCount = reps.length;
         this.saglinjeToday = reps.reduce((s: number, r: LineSkiftrapportReport) => s + (r.antal_ok || 0), 0);
         this.saglinjeTarget = reps.reduce((s: number, r: LineSkiftrapportReport) => s + (r.antal_ej_ok || 0), 0) + this.saglinjeToday;
@@ -238,7 +238,7 @@ export class News implements OnInit, OnDestroy {
     ).subscribe((res: LineReportsResponse | null) => {
       if (res?.success && res.data) {
         const today = localToday();
-        const reps = res.data.filter((r: LineSkiftrapportReport) => (r.datum || '').substring(0, 10) === today);
+        const reps = this.dedupByShift(res.data.filter((r: LineSkiftrapportReport) => (r.datum || '').substring(0, 10) === today));
         this.klassificeringslinjeSkiftCount = reps.length;
         this.klassificeringslinjeToday = reps.reduce((s: number, r: LineSkiftrapportReport) => s + (r.antal_ok || 0), 0);
         this.klassificeringslinjeTarget = reps.reduce((s: number, r: LineSkiftrapportReport) => s + (r.antal_ej_ok || 0), 0) + this.klassificeringslinjeToday;
@@ -425,5 +425,17 @@ export class News implements OnInit, OnDestroy {
     if (pct >= 60) return 'bg-warning';
     return 'bg-danger';
   }
+  /** H: dedupliesera skiftrapporter per (datum, skiftraknare) — behåll högsta id — så samma skift
+   * inte dubbelräknas när det finns flera snapshot-poster (samma mönster som shared-skiftrapport). */
+  private dedupByShift(rows: LineSkiftrapportReport[]): LineSkiftrapportReport[] {
+    const m = new Map<string, LineSkiftrapportReport>();
+    for (const r of rows) {
+      const key = (r.datum || '').substring(0, 10) + '#' + ((r as any).skiftraknare ?? 0);
+      const prev = m.get(key);
+      if (!prev || (Number((r as any).id) || 0) > (Number((prev as any).id) || 0)) m.set(key, r);
+    }
+    return Array.from(m.values());
+  }
+
   trackByIndex(index: number, item: any): any { return item?.id ?? index; }
 }

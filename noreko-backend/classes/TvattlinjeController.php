@@ -283,7 +283,7 @@ class TvattlinjeController {
             $ibcIdag = 0;
             try {
                 $ibcIdag = (int)$this->pdo->query(
-                    "SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
+                    "SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) FROM (SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) t"
                 )->fetchColumn();
             } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot ibcIdag: ' . $e->getMessage()); }
 
@@ -591,10 +591,14 @@ class TvattlinjeController {
         $out = [];
         try {
             $stmt = $this->pdo->prepare("
-                SELECT DATE(datum) AS dag, MAX(ibc_count) AS ibc
-                FROM tvattlinje_ibc
-                WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
-                GROUP BY DATE(datum)
+                SELECT dag, COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS ibc
+                FROM (
+                    SELECT DATE(datum) AS dag, ibc_count,
+                           COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                    FROM tvattlinje_ibc
+                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                ) t
+                GROUP BY dag
             ");
             $stmt->execute(['s' => $start, 'e' => $end]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
@@ -697,9 +701,12 @@ class TvattlinjeController {
         try {
             // Primär källa: PLC (MAX(ibc_count) = kumulativ räknare, nollställs varje dag)
             $stmtPlc = $this->pdo->query('
-                SELECT COALESCE(MAX(ibc_count), 0)
-                FROM tvattlinje_ibc
-                WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0)
+                FROM (
+                    SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                    FROM tvattlinje_ibc
+                    WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                ) t
             ');
             $plcToday = (int)$stmtPlc->fetchColumn();
 
@@ -1549,7 +1556,7 @@ class TvattlinjeController {
             // (831 IBC men bara 19.1h). LEAST(day_min, 600) kapar per dag (max ~10h/skift).
             try {
                 $driftStmt = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(LEAST(day_min, 600)), 0)
+                    SELECT COALESCE(SUM(day_min), 0)
                     FROM (
                         SELECT d.dag,
                                COALESCE(NULLIF(sr.drift_min, 0), ibc.plc_min, onoff.onoff_min, 0) AS day_min
@@ -1561,7 +1568,7 @@ class TvattlinjeController {
                             WHERE datum >= :s2 AND datum < DATE_ADD(:e2, INTERVAL 1 DAY)
                         ) d
                         LEFT JOIN (
-                            SELECT DATE(sr.datum) AS dag, SUM(sr.drifttid) AS drift_min
+                            SELECT DATE(sr.datum) AS dag, SUM(LEAST(GREATEST(0, COALESCE(sr.drifttid, 0)), 600)) AS drift_min
                             FROM tvattlinje_skiftrapport sr
                             INNER JOIN (
                                 SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
@@ -1571,14 +1578,14 @@ class TvattlinjeController {
                             GROUP BY DATE(sr.datum)
                         ) sr ON sr.dag = d.dag
                         LEFT JOIN (
-                            SELECT DATE(datum) AS dag, MAX(runtime_plc) AS plc_min
+                            SELECT DATE(datum) AS dag, LEAST(MAX(runtime_plc), 600) AS plc_min
                             FROM tvattlinje_ibc
                             WHERE datum >= :s4 AND datum < DATE_ADD(:e4, INTERVAL 1 DAY)
                               AND runtime_plc IS NOT NULL AND runtime_plc > 0
                             GROUP BY DATE(datum)
                         ) ibc ON ibc.dag = d.dag
                         LEFT JOIN (
-                            SELECT DATE(datum) AS dag, MAX(runtime_today) AS onoff_min
+                            SELECT DATE(datum) AS dag, LEAST(MAX(runtime_today), 600) AS onoff_min
                             FROM tvattlinje_onoff
                             WHERE datum >= :s5 AND datum < DATE_ADD(:e5, INTERVAL 1 DAY)
                               AND runtime_today > 0
@@ -1633,10 +1640,15 @@ class TvattlinjeController {
                 $stmtTrue = $this->pdo->prepare('
                     SELECT COALESCE(SUM(day_max), 0), COALESCE(SUM(day_count), 0)
                     FROM (
-                        SELECT MAX(ibc_count) AS day_max, COUNT(*) AS day_count
-                        FROM tvattlinje_ibc
-                        WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
-                        GROUP BY DATE(datum)
+                        SELECT SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END) AS day_max,
+                               COUNT(*) AS day_count
+                        FROM (
+                            SELECT DATE(datum) AS dag, ibc_count,
+                                   COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                            FROM tvattlinje_ibc
+                            WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                        ) x
+                        GROUP BY dag
                     ) per_dag
                 ');
                 $stmtTrue->execute(['start' => $start, 'end' => $end]);
@@ -1658,6 +1670,10 @@ class TvattlinjeController {
             $ibcPerDagSr = $this->skiftrapportIbcPerDag($start, $end);
             $total_ibc_skiftrapport = array_sum($ibcPerDagSr);
 
+            // A: samla rast+driftstopp-INTERVALL (unix-ts) så cykeltiden kan exkludera cykler vars
+            // wall-clock-gap överlappar en paus (annars läcker rasten in i cycle_time → för högt snitt).
+            $pauseIntervals = [];
+
             // Beräkna rasttid
             $totalRastMinutes = 0;
             if (count($rast_events) > 0) {
@@ -1670,6 +1686,9 @@ class TvattlinjeController {
                     } elseif ($status === 0 && $rastStart !== null) {
                         $diff = $rastStart->diff($t);
                         $spanMin = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        // A: registrera pausintervallet (även långa/midnattsspann — inga cykler ligger
+                        // ändå inuti dem, så det är ofarligt) för cykeltids-exkludering nedan.
+                        $pauseIntervals[] = [$rastStart->getTimestamp(), $t->getTimestamp()];
                         // Guard: PLC auto-stänger ett öppet spann först vid NÄSTA IBC → ett spann
                         // fre 15:00 → mån 06:15 blir ~3855 min. Hoppa över spann som korsar midnatt
                         // eller är längre än 480 min (10h) — det är artefakter, inte verklig rast.
@@ -1693,6 +1712,8 @@ class TvattlinjeController {
                     } elseif ($status === 0 && $dsStart !== null) {
                         $diff = $dsStart->diff($t);
                         $spanMin = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        // A: registrera driftstopp-intervallet för cykeltids-exkludering.
+                        $pauseIntervals[] = [$dsStart->getTimestamp(), $t->getTimestamp()];
                         // Guard: PLC auto-stänger ett öppet stopp först vid NÄSTA IBC → ett stopp
                         // fre 15:00 → mån 06:15 blir ~3855 min och nollar TOTAL DRIFTTID. Hoppa över
                         // spann som korsar midnatt eller är längre än 480 min (10h) — artefakter.
@@ -1715,17 +1736,30 @@ class TvattlinjeController {
             }
             $total_runtime_hours = $netRuntimeMinutes / 60;
 
-            // Snitt cykeltid
+            // Snitt cykeltid — A: exkludera cykler vars wall-clock-gap överlappar ett rast-/
+            // driftstopp-intervall (cycle_time är rått gap mellan IBC-rader; en rast mellan två IBC
+            // blåser annars upp snittet, medan KÖRTID är netto D4007). Rätt: bara "körande" cykler.
+            $cycle_times = [];
+            foreach ($cycles as $c) {
+                $ct = $c['cycle_time'] ?? null;
+                if ($ct === null || $ct <= 0) continue;
+                $gapEnd   = strtotime($c['datum']);
+                $gapStart = $gapEnd - (int)round($ct * 60);
+                $overlapsPause = false;
+                foreach ($pauseIntervals as $pi) {
+                    if ($gapStart < $pi[1] && $gapEnd > $pi[0]) { $overlapsPause = true; break; }
+                }
+                if (!$overlapsPause) { $cycle_times[] = $ct; }
+            }
             $avg_cycle_time = 0;
-            $cycle_times = array_filter(array_column($cycles, 'cycle_time'), fn($v) => $v !== null && $v > 0);
             if (count($cycle_times) > 0) {
                 $avg_cycle_time = array_sum($cycle_times) / count($cycle_times);
             }
 
-            // Effektivitet: target_cycle_time / avg_cycle_time * 100
+            // Effektivitet: target_cycle_time / avg_cycle_time * 100 (cappa 100 — kan ej överprestera mål)
             $avg_production_percent = 0;
             if ($avg_cycle_time > 0 && $target_cycle_time > 0) {
-                $avg_production_percent = round(($target_cycle_time / $avg_cycle_time) * 100, 1);
+                $avg_production_percent = min(100.0, round(($target_cycle_time / $avg_cycle_time) * 100, 1));
             }
 
             $unique_dates = array_unique(array_map(fn($c) => date('Y-m-d', strtotime($c['datum'])), $cycles));
@@ -1738,10 +1772,14 @@ class TvattlinjeController {
             $ibcPerDagPlc = [];
             try {
                 $plcDagStmt = $this->pdo->prepare("
-                    SELECT DATE(datum) AS dag, MAX(ibc_count) AS ibc
-                    FROM tvattlinje_ibc
-                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum)
+                    SELECT dag, COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS ibc
+                    FROM (
+                        SELECT DATE(datum) AS dag, ibc_count,
+                               COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                        FROM tvattlinje_ibc
+                        WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                    ) t
+                    GROUP BY dag
                 ");
                 $plcDagStmt->execute(['s' => $start, 'e' => $end]);
                 foreach ($plcDagStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
@@ -2028,9 +2066,12 @@ class TvattlinjeController {
             if ($totalIbc === 0) {
                 try {
                     $stmtPlc = $this->pdo->prepare("
-                        SELECT MAX(ibc_count) AS plc_ibc
-                        FROM tvattlinje_ibc
-                        WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                        SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS plc_ibc
+                        FROM (
+                            SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                            FROM tvattlinje_ibc
+                            WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                        ) t
                     ");
                     $stmtPlc->execute(['datum' => $datum, 'datumb' => $datum]);
                     $plc = (int)$stmtPlc->fetchColumn();
@@ -2068,9 +2109,12 @@ class TvattlinjeController {
             if ($prevIbc === 0) {
                 try {
                     $stmtPrevPlc = $this->pdo->prepare("
-                        SELECT MAX(ibc_count) AS plc_ibc
-                        FROM tvattlinje_ibc
-                        WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                        SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS plc_ibc
+                        FROM (
+                            SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                            FROM tvattlinje_ibc
+                            WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                        ) t
                     ");
                     $stmtPrevPlc->execute(['datum' => $prevDatum, 'datumb' => $prevDatum]);
                     $prevPlc = (int)$stmtPrevPlc->fetchColumn();
@@ -2088,9 +2132,11 @@ class TvattlinjeController {
             $rastMinutes    = $totalRast;
             $sumDrift = 0;
             foreach (array_values($latestPerShift) as $r) {
-                $sumDrift += max(0, (int)($r['drifttid'] ?? 0));
+                // D: cappa PER SKIFT (600 min), inte på dagssumman — annars trunkeras en legitim
+                // 2-skiftsdag → ibc_per_hour blåses upp.
+                $sumDrift += min(600, max(0, (int)($r['drifttid'] ?? 0)));
             }
-            $runtimeMinutes = min(600, $sumDrift);
+            $runtimeMinutes = $sumDrift;
             if ($runtimeMinutes <= 0) {
                 try {
                     $stmt = $this->pdo->prepare("
@@ -2317,7 +2363,7 @@ class TvattlinjeController {
 
             $ibcToday = 0;
             try {
-                $ibcToday = (int)$this->pdo->query("SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY")->fetchColumn();
+                $ibcToday = (int)$this->pdo->query("SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) FROM (SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) t")->fetchColumn();
             } catch (\Throwable $e) {}
 
             // Senaste event från valfri källa (onoff, ibc, rast, driftstopp) för vald dag
@@ -2595,10 +2641,14 @@ class TvattlinjeController {
                         GROUP BY DATE(sr.datum)
                     ) sr ON sr.dag = alldays.dag
                     LEFT JOIN (
-                        SELECT DATE(datum) AS dag, MAX(ibc_count) AS ibc_max
-                        FROM tvattlinje_ibc
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar4 DAY) AND datum < CURDATE() + INTERVAL 1 DAY
-                        GROUP BY DATE(datum)
+                        SELECT dag, COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS ibc_max
+                        FROM (
+                            SELECT DATE(datum) AS dag, ibc_count,
+                                   COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                            FROM tvattlinje_ibc
+                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar4 DAY) AND datum < CURDATE() + INTERVAL 1 DAY
+                        ) t
+                        GROUP BY dag
                     ) ibcmax ON ibcmax.dag = alldays.dag
                     LEFT JOIN (
                         SELECT DATE(datum) AS dag, MAX(runtime_plc) AS plc_runtime_min
@@ -2674,7 +2724,9 @@ class TvattlinjeController {
                 // ej_ok=0) är INGEN kvalitetsdata (INTE 100% kassation) → null. qual = ok / sr_total_ibc
                 // (SR-INTERN nämnare — ej PLC-$tot, som återinför ok(SR)/ibc(PLC)-buggen).
                 $hasQualData = !$isPlcOnly && (($ok + $ejOk) > 0);
-                $qual_pct = $hasQualData ? round($ok / max(1, $srTot) * 100, 1) : null;
+                // C: nämnare = max(srTot, ok+ejOk) så kvaliteten aldrig >100 när sr.totalt < antal_ok
+                // (känt 06-25: ok=101 > totalt) — annars inflateras OEE=A×P×Q. Cappa dessutom 100.
+                $qual_pct = $hasQualData ? min(100.0, round($ok / max(1, max($srTot, $ok + $ejOk)) * 100, 1)) : null;
 
                 // C: Körtid = skiftrapportens drifttid (D4007, exkl rast); fallback MAX(runtime_plc)
                 // från tvattlinje_ibc. Ingen körtidskälla alls → 0% tillgänglighet (ej 100).
