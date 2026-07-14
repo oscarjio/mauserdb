@@ -118,7 +118,7 @@ class HeatmapController {
                         dag AS date,
                         hour,
                         skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag, skiftraknare ORDER BY hour), 0)) AS ibc_delta
+                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare, hour), 0)) AS ibc_delta
                     FROM (
                         SELECT
                             DATE(datum) AS dag,
@@ -239,7 +239,7 @@ class HeatmapController {
                             dag,
                             hour,
                             skiftraknare,
-                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag, skiftraknare ORDER BY hour), 0)) AS ibc_delta
+                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare, hour), 0)) AS ibc_delta
                         FROM (
                             SELECT
                                 DATE(datum) AS dag,

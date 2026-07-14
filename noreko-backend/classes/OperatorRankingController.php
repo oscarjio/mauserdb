@@ -172,7 +172,8 @@ class OperatorRankingController {
                        SUM(delta_total) AS total_ibc,
                        SUM(delta_ok) AS ok_ibc,
                        MIN(dag) AS first_ibc,
-                       MAX(dag) AS last_ibc
+                       MAX(dag) AS last_ibc,
+                       COUNT(DISTINCT dag) AS prod_dagar
                 FROM (
                     SELECT op1 AS op_id, delta_ok, delta_total, dag FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
                     UNION ALL
@@ -195,6 +196,7 @@ class OperatorRankingController {
                     'ok_ibc'        => (int)$row['ok_ibc'], // verkligt ok-delta (LAG av ibc_ok)
                     'first_ibc'     => $row['first_ibc'],
                     'last_ibc'      => $row['last_ibc'],
+                    'prod_dagar'    => (int)$row['prod_dagar'], // distinkta produktionsdagar
                 ];
             }
         } catch (\PDOException $e) {
@@ -211,7 +213,8 @@ class OperatorRankingController {
                         SUM(COALESCE(r.antal, 1)) AS total_ibc,
                         SUM(COALESCE(r.antal, 1)) AS ok_ibc,
                         MIN(r.datum) AS first_ibc,
-                        MAX(r.datum) AS last_ibc
+                        MAX(r.datum) AS last_ibc,
+                        COUNT(DISTINCT DATE(r.datum)) AS prod_dagar
                     FROM rebotling_data r
                     LEFT JOIN users u ON r.user_id = u.id
                     WHERE r.datum >= :from AND r.datum < DATE_ADD(:to, INTERVAL 1 DAY)
@@ -231,6 +234,7 @@ class OperatorRankingController {
                         'ok_ibc'        => (int)$row['ok_ibc'],
                         'first_ibc'     => $row['first_ibc'],
                         'last_ibc'      => $row['last_ibc'],
+                        'prod_dagar'    => (int)$row['prod_dagar'], // distinkta produktionsdagar
                     ];
                 }
             } catch (\PDOException $e) {
@@ -259,10 +263,14 @@ class OperatorRankingController {
                 SELECT
                     u.operator_id AS op_number,
                     SUM(
-                        TIMESTAMPDIFF(SECOND,
+                        GREATEST(0, TIMESTAMPDIFF(SECOND,
                             sr.start_time,
-                            COALESCE(sr.end_time, NOW())
-                        )
+                            LEAST(
+                                COALESCE(sr.end_time, NOW()),
+                                :periodEnd,
+                                sr.start_time + INTERVAL 8 HOUR
+                            )
+                        ))
                     ) AS total_stopp_sek,
                     COUNT(*) AS antal_stopp
                 FROM stopporsak_registreringar sr
@@ -273,8 +281,9 @@ class OperatorRankingController {
                   AND u.operator_id > 0
                 GROUP BY u.operator_id
             ";
+            $periodEnd = date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00';
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':from' => $from . ' 00:00:00', ':to' => date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00']);
+            $stmt->execute([':from' => $from . ' 00:00:00', ':to' => $periodEnd, ':periodEnd' => $periodEnd]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $uid = (int)$row['op_number'];
                 $result[$uid] = [
@@ -291,16 +300,23 @@ class OperatorRankingController {
 
     /**
      * Berakna drifttimmar for en operator under perioden.
-     * Estimeras fran forsta till sista IBC, men max 8h/dag.
+     * Baseras pa antal FAKTISKA produktionsdagar (distinkta dagar med produktion)
+     * for operatoren x 8h/dag — INTE kalenderspannet (som rakna in helger/lediga dagar).
      */
     private function estimateArbetsTimmar(array $opData, string $from, string $to): float {
         $dagCount = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
-        // Anvand kalenderspann mellan forsta och sista IBC for denna operator
-        // (first_ibc/last_ibc hamtar fran SQL-queryn i getOperatorIbcData)
-        $firstDate  = new \DateTime($opData['first_ibc'] ?? $from);
-        $lastDate   = new \DateTime($opData['last_ibc']  ?? $to);
-        $spanDagar  = max(1, (int)$firstDate->diff($lastDate)->days + 1);
-        $aktivaDagar = min($spanDagar, $dagCount);
+        // Anvand antal distinkta produktionsdagar for operatoren (prod_dagar fran
+        // COUNT(DISTINCT dag) i getOperatorIbcData). Fallback till kalenderspann bara
+        // om prod_dagar saknas (aldre cache/data).
+        if (isset($opData['prod_dagar']) && (int)$opData['prod_dagar'] > 0) {
+            $aktivaDagar = min((int)$opData['prod_dagar'], $dagCount);
+        } else {
+            $firstDate  = new \DateTime($opData['first_ibc'] ?? $from);
+            $lastDate   = new \DateTime($opData['last_ibc']  ?? $to);
+            $spanDagar  = max(1, (int)$firstDate->diff($lastDate)->days + 1);
+            $aktivaDagar = min($spanDagar, $dagCount);
+        }
+        $aktivaDagar = max(1, $aktivaDagar);
         return $aktivaDagar * 8.0;
     }
 
@@ -395,8 +411,8 @@ class OperatorRankingController {
         }
         unset($r);
 
-        // Berakna streaks
-        $this->calcStreaks($result);
+        // Berakna streaks (dagGrans skalas mot periodens faktiska langd)
+        $this->calcStreaks($result, $dagCount);
 
         // Cacha resultatet
         $this->cacheSet($cacheKey, $result);
@@ -408,11 +424,14 @@ class OperatorRankingController {
      * Berakna streak (dagar i rad med poang over snittet) for operatorer.
      * Optimerad: en enda batch-query for alla operatorer istallet for N+1.
      */
-    private function calcStreaks(array &$ranking): void {
+    private function calcStreaks(array &$ranking, int $periodDagar = 30): void {
         if (empty($ranking)) return;
 
         $avgPoang = array_sum(array_column($ranking, 'total_poang')) / count($ranking);
-        $dagGrans = max(1, $avgPoang / 30);
+        // Skala snittpoangen till per-dag-niva mot periodens FAKTISKA dagantal
+        // (tidigare hardkodat 30 — fel for period=idag/vecka).
+        $periodDagar = max(1, $periodDagar);
+        $dagGrans = max(1, $avgPoang / $periodDagar);
 
         $userIds = array_column($ranking, 'user_id');
         if (empty($userIds)) return;
@@ -468,13 +487,23 @@ class OperatorRankingController {
             $streak = 0;
             $dagData = $allDagData[$op['user_id']] ?? [];
 
+            // dagData ar ORDER BY dag DESC (senaste forst). Bryt streaken bade nar
+            // dagpoangen faller under gransen OCH nar det finns ett glapp > 1 dag
+            // mellan tva pa varandra foljande produktionsdagar (helg/ledigt).
+            $prevTs = null;
             foreach ($dagData as $d) {
+                $curTs = strtotime($d['dag']);
+                if ($curTs === false) break;
+                if ($prevTs !== null && ($prevTs - $curTs) > 86400) {
+                    break; // glapp storre an en dag -> streaken bruten
+                }
                 $dagPoang = $d['ibc_count'] * 10;
                 if ($dagPoang >= $dagGrans) {
                     $streak++;
                 } else {
                     break;
                 }
+                $prevTs = $curTs;
             }
 
             $op['streak'] = $streak;

@@ -326,12 +326,23 @@ class TvattlinjeController {
             } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot isRunning: ' . $e->getMessage()); }
 
             // Takt: IBC per timme senaste 2 timmar
+            // BUGG A: ibc_count är kumulativ dygnsräknare → antal IBC = MAX-MIN i fönstret (INTE
+            // COUNT(*) som räknar databasrader). Fönstret klampas till dagens start (GREATEST med
+            // CURDATE så det inte korsar midnatt) och divideras med FAKTISK tid sedan första posten,
+            // inte alltid 2.0h — samma mönster som getLiveStats.
             $taktPerTimme = 0.0;
             try {
-                $cnt = (int)$this->pdo->query(
-                    "SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)"
-                )->fetchColumn();
-                $taktPerTimme = round($cnt / 2.0, 1);
+                $taktRow = $this->pdo->query(
+                    "SELECT MAX(ibc_count) - MIN(ibc_count) AS ibc_delta, MIN(datum) AS min_datum
+                     FROM tvattlinje_ibc
+                     WHERE datum >= GREATEST(DATE_SUB(NOW(), INTERVAL 2 HOUR), CURDATE())"
+                )->fetch(\PDO::FETCH_ASSOC);
+                $ibcDelta = $taktRow ? max(0, (int)$taktRow['ibc_delta']) : 0;
+                $minDatum = $taktRow['min_datum'] ?? null;
+                $hours = $minDatum
+                    ? min(2.0, max(0.0167, (time() - strtotime($minDatum)) / 3600.0))
+                    : 2.0;
+                $taktPerTimme = round($ibcDelta / $hours, 1);
             } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot taktPerTimme: ' . $e->getMessage()); }
 
             // Skiftlängd
@@ -1786,7 +1797,7 @@ class TvattlinjeController {
                     SELECT DATE(datum) AS dag,
                            ROUND(TIMESTAMPDIFF(SECOND, MIN(datum), MAX(datum)) / 60.0) AS span_min
                     FROM tvattlinje_ibc
-                    WHERE datum >= :s AND datum <= DATE_ADD(:e, INTERVAL 1 DAY)
+                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
                     GROUP BY DATE(datum)
                     HAVING span_min > 0
                 ");
@@ -1900,7 +1911,9 @@ class TvattlinjeController {
                     'total_ej_ok'     => $totalEjOk,
                     'total_omtvaatt'  => $totalOmtvaatt,
                     'total_drifttid'  => $totalDrifttid,
-                    'skift_count'     => count($rows),
+                    // D: räkna deduplicerade skift (senaste post per dag+skiftraknare), inte
+                    // snapshot-rader — annars överräknas skift_count på multi-snapshot-dagar.
+                    'skift_count'     => count($latestPerShift),
                     'avg_godkand_pct' => $avgGodkandPct,
                     'avg_cycle_time'  => $avgCycleTime,
                     'basta_dag'       => $bastaDag,
@@ -1988,6 +2001,26 @@ class TvattlinjeController {
             $totalIbc  = $totalOk + $totalEjOk + $totalOmtv;
             $kvalitetPct = $totalIbc > 0 ? round(($totalOk / $totalIbc) * 100, 1) : 0;
 
+            // BUGG B: PLC-only-dag (IBC i tvattlinje_ibc men ingen inskickad skiftrapport) visades
+            // som 0 IBC + "linjen ej i drift". Fallback: använd dygnsräknaren MAX(ibc_count).
+            // Kvalitet lämnas 0 (ingen ok/ej_ok-uppdelning finns utan skiftrapport).
+            if ($totalIbc === 0) {
+                try {
+                    $stmtPlc = $this->pdo->prepare("
+                        SELECT MAX(ibc_count) AS plc_ibc
+                        FROM tvattlinje_ibc
+                        WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                    ");
+                    $stmtPlc->execute(['datum' => $datum, 'datumb' => $datum]);
+                    $plc = (int)$stmtPlc->fetchColumn();
+                    if ($plc > 0) {
+                        $totalIbc = $plc;
+                    }
+                } catch (\Throwable $e) {
+                    error_log('TvattlinjeController::getReport plcFallback: ' . $e->getMessage());
+                }
+            }
+
             // Föregående dag — samma dedupe (senaste snapshot per skift), annars
             // dubbelfel i delta_ibc på multi-snapshot-dagar.
             $prevLatestPerShift = [];
@@ -2009,27 +2042,28 @@ class TvattlinjeController {
             $prevIbc   = $prevOk + $prevEjOk + $prevOmtv;
             $deltaIbc  = $totalIbc - $prevIbc;
 
-            // Hämta runtime från tvattlinje_ibc om det finns
-            $runtimeMinutes = 0;
+            // BUGG C: runtime tidigare = väggklockespann MIN(datum)..MAX(datum) → inkluderade rast +
+            // stillestånd. Använd istället summan av drifttid (D4007 netto) över de deduplicerade
+            // skiften, cappad till 600 min. Fallback till PLC-räknarens runtime_plc om ingen
+            // skiftrapport-drifttid finns.
             $rastMinutes    = $totalRast;
-            try {
-                $stmt = $this->pdo->prepare("
-                    SELECT MIN(datum) as first_ts, MAX(datum) as last_ts, COUNT(*) as cnt
-                    FROM tvattlinje_ibc
-                    WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
-                ");
-                $stmt->execute(['datum' => $datum, 'datumb' => $datum]);
-                $ibcRange = $stmt->fetch(\PDO::FETCH_ASSOC);
-                if ($ibcRange && $ibcRange['cnt'] > 0 && $ibcRange['first_ts']) {
-                    $first = new \DateTime($ibcRange['first_ts']);
-                    $last  = new \DateTime($ibcRange['last_ts']);
-                    $diff  = $first->diff($last);
-                    $runtimeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
-                    if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
-                    $runtimeMinutes = min($runtimeMinutes, 600);
+            $sumDrift = 0;
+            foreach (array_values($latestPerShift) as $r) {
+                $sumDrift += max(0, (int)($r['drifttid'] ?? 0));
+            }
+            $runtimeMinutes = min(600, $sumDrift);
+            if ($runtimeMinutes <= 0) {
+                try {
+                    $stmt = $this->pdo->prepare("
+                        SELECT MAX(runtime_plc) AS runtime_plc
+                        FROM tvattlinje_ibc
+                        WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                    ");
+                    $stmt->execute(['datum' => $datum, 'datumb' => $datum]);
+                    $runtimeMinutes = min(600, max(0, (int)$stmt->fetchColumn()));
+                } catch (\Throwable $e) {
+                    error_log('TvattlinjeController::getReport runtime: ' . $e->getMessage());
                 }
-            } catch (\Throwable $e) {
-                error_log('TvattlinjeController::getReport runtime: ' . $e->getMessage());
             }
 
             // Snitt IBC/h
@@ -2055,7 +2089,7 @@ class TvattlinjeController {
                     'ibc_per_hour'    => $ibcPerHour,
                     'delta_ibc'       => $deltaIbc,
                     'prev_ibc'        => $prevIbc,
-                    'skift_count'     => count($rows),
+                    'skift_count'     => count($latestPerShift),
                     'skift_data'      => $rows,
                 ],
             ], JSON_UNESCAPED_UNICODE);
@@ -2487,7 +2521,7 @@ class TvattlinjeController {
                             SUM(GREATEST(0, COALESCE(sr.antal_ok,   0))) AS total_ok,
                             SUM(GREATEST(0, COALESCE(sr.antal_ej_ok, 0))) AS total_ej_ok,
                             COUNT(*)                                     AS skift_count,
-                            SUM(GREATEST(0, COALESCE(sr.drifttid,   0))) AS total_runtime_min
+                            SUM(LEAST(GREATEST(0, COALESCE(sr.drifttid, 0)), 600)) AS total_runtime_min
                         FROM tvattlinje_skiftrapport sr
                         INNER JOIN (
                             SELECT MAX(id) AS max_id
