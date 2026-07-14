@@ -913,7 +913,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.avgEfficiency = properEff;
     this.avgProdPct = properEff;
     this.avgEfficiencyWarning = properEffRaw > 100;
-    this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
+    this.totalRuntimeHours = Math.round((data.summary.total_runtime_hours || 0) * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
     this.totalRastMinutes = data.summary.total_rast_minutes || 0;
 
@@ -1280,7 +1280,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         key = this.monthNames[date.getMonth()].substring(0, 3);
       }
 
-      if (grouped.has(key) && event.running) {
+      if (grouped.has(key) && (event.running == 1 || event.running === true || event.running === '1')) {
         grouped.get(key).running = true;
       }
     });
@@ -2129,7 +2129,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     onoff.forEach((e: any) => {
       const d = new Date(e.datum);
       const min = d.getHours() * 60 + d.getMinutes();
-      events.push({ min, type: e.running ? 'run_start' : 'run_end' });
+      events.push({ min, type: (e.running == 1 || e.running === true || e.running === '1') ? 'run_start' : 'run_end' });
     });
     rast.forEach((e: any) => {
       const d = new Date(e.datum);
@@ -2333,9 +2333,11 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       totalRunMinutes += lastEventMin - runStartMin;
     }
 
-    // Utnyttjandegrad = körtid / (sista - första) händelse * 100
+    // Utnyttjandegrad = netto körtid / (sista - första) händelse * 100
+    // Rast/driftstopp genererar inga onoff-event → dra av dem från täljaren så utnyttjandet inte låses ~100%.
+    const netRun = Math.max(0, totalRunMinutes - (this.totalRastMinutes || 0) - (Number(data?.summary?.total_driftstopp_minutes) || 0));
     const spanMin = (lastEventMin ?? 0) - firstRunMin;
-    const utilization = spanMin > 0 ? Math.min(100, Math.round((totalRunMinutes / spanMin) * 100)) : 0;
+    const utilization = spanMin > 0 ? Math.min(100, Math.round((netRun / spanMin) * 100)) : 0;
 
     this.dayLongestStopMinutes = longestStop;
     this.dayUtilizationPct = utilization;
@@ -2352,7 +2354,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.showPlcOverview = true;
 
     // 1. KPI
-    const totalIbc = cycles.reduce((s: number, c: any) => s + (parseInt(c.ibc_ok) || 0), 0);
+    const totalIbc = cycles.length;
     const cycleTimes = cycles
       .map((c: any) => parseFloat(c.cycle_time))
       .filter((v: number) => !isNaN(v) && v > 0 && v <= 60);
@@ -2380,7 +2382,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     for (const c of cycles) {
       if (!c.datum) continue;
       const h = new Date(c.datum).getHours();
-      hourMap.set(h, (hourMap.get(h) || 0) + (parseInt(c.ibc_ok) || 0));
+      hourMap.set(h, (hourMap.get(h) || 0) + 1);
     }
     this.plcTimvisData = Array.from(hourMap.entries())
       .map(([hour, count]) => ({ hour, count }))

@@ -1242,11 +1242,18 @@ class TvattlinjeController {
                         $rastStart = null;
                     }
                 }
-                // Pågående rast
+                // Pågående rast — spegla getRastStatus-guarden (max 8h). PLC auto-stänger
+                // öppna rastspann först vid nästa IBC; utan tak blåses rast_minutes_today upp.
                 if ($rastStart !== null) {
                     $now = new \DateTime();
                     $diff = $rastStart->diff($now);
-                    $rastMinutesToday += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $minutesOpen = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $minutesOpen = max(0, (int)round($minutesOpen));
+                    if ($minutesOpen <= 480) {
+                        $rastMinutesToday += $minutesOpen;
+                    } else {
+                        $onRast = false;
+                    }
                 }
                 $rastCountToday = $counts;
             }
@@ -1578,11 +1585,14 @@ class TvattlinjeController {
                             GROUP BY DATE(sr.datum)
                         ) sr ON sr.dag = d.dag
                         LEFT JOIN (
-                            SELECT DATE(datum) AS dag, LEAST(MAX(runtime_plc), 600) AS plc_min
-                            FROM tvattlinje_ibc
-                            WHERE datum >= :s4 AND datum < DATE_ADD(:e4, INTERVAL 1 DAY)
-                              AND runtime_plc IS NOT NULL AND runtime_plc > 0
-                            GROUP BY DATE(datum)
+                            SELECT dag, SUM(skift_runtime) AS plc_min
+                            FROM (
+                                SELECT DATE(datum) AS dag, LEAST(MAX(runtime_plc), 600) AS skift_runtime
+                                FROM tvattlinje_ibc
+                                WHERE datum >= :s4 AND datum < DATE_ADD(:e4, INTERVAL 1 DAY)
+                                  AND runtime_plc IS NOT NULL AND runtime_plc > 0
+                                GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                            ) t GROUP BY dag
                         ) ibc ON ibc.dag = d.dag
                         LEFT JOIN (
                             SELECT DATE(datum) AS dag, LEAST(MAX(runtime_today), 600) AS onoff_min
@@ -1912,7 +1922,9 @@ class TvattlinjeController {
                 // Ackumulera rå drifttid per dag (cappa per dag EFTER loopen)
                 $rawDrift = (float)($r['drifttid'] ?? 0);
                 if ($rawDrift > 0 && $dag) {
-                    $driftPerDag[$dag] = ($driftPerDag[$dag] ?? 0) + $rawDrift;
+                    // D: cappa PER POST/SKIFT (600 min), inte på dygnssumman — annars
+                    // trunkeras en legitim 2-skiftsdag (2×495) till 600.
+                    $driftPerDag[$dag] = ($driftPerDag[$dag] ?? 0) + min(600, $rawDrift);
                 }
 
                 $totalOk       += $ok;
@@ -1929,7 +1941,7 @@ class TvattlinjeController {
             $totalDrifttid = 0;
             foreach ($driftPerDag as $d => $sum) {
                 $plcSpan = isset($plcSpanPerDag[$d]) ? max($plcSpanPerDag[$d], 1) : 600;
-                $totalDrifttid += min($sum, min($plcSpan, 600));
+                $totalDrifttid += min($sum, $plcSpan);
             }
 
             // EN PLC-baserad källa: PLC (MAX ibc_count) vinner för ALLA dagar med PLC-data
@@ -2140,12 +2152,17 @@ class TvattlinjeController {
             if ($runtimeMinutes <= 0) {
                 try {
                     $stmt = $this->pdo->prepare("
-                        SELECT MAX(runtime_plc) AS runtime_plc
-                        FROM tvattlinje_ibc
-                        WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                        SELECT SUM(skift_runtime) AS runtime_plc
+                        FROM (
+                            SELECT LEAST(MAX(runtime_plc), 600) AS skift_runtime
+                            FROM tvattlinje_ibc
+                            WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                              AND runtime_plc IS NOT NULL AND runtime_plc > 0
+                            GROUP BY COALESCE(skiftraknare, 0)
+                        ) t
                     ");
                     $stmt->execute(['datum' => $datum, 'datumb' => $datum]);
-                    $runtimeMinutes = min(600, max(0, (int)$stmt->fetchColumn()));
+                    $runtimeMinutes = min(1200, max(0, (int)$stmt->fetchColumn()));
                 } catch (\Throwable $e) {
                     error_log('TvattlinjeController::getReport runtime: ' . $e->getMessage());
                 }
@@ -2651,11 +2668,14 @@ class TvattlinjeController {
                         GROUP BY dag
                     ) ibcmax ON ibcmax.dag = alldays.dag
                     LEFT JOIN (
-                        SELECT DATE(datum) AS dag, MAX(runtime_plc) AS plc_runtime_min
-                        FROM tvattlinje_ibc
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar5 DAY) AND datum < CURDATE() + INTERVAL 1 DAY
-                          AND runtime_plc IS NOT NULL AND runtime_plc > 0
-                        GROUP BY DATE(datum)
+                        SELECT dag, SUM(skift_runtime) AS plc_runtime_min
+                        FROM (
+                            SELECT DATE(datum) AS dag, LEAST(MAX(runtime_plc), 600) AS skift_runtime
+                            FROM tvattlinje_ibc
+                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar5 DAY) AND datum < CURDATE() + INTERVAL 1 DAY
+                              AND runtime_plc IS NOT NULL AND runtime_plc > 0
+                            GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                        ) t GROUP BY dag
                     ) plc ON plc.dag = alldays.dag
                     ORDER BY alldays.dag ASC
                 ");

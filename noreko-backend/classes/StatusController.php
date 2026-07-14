@@ -238,13 +238,19 @@ class StatusController {
                     }
                 }
 
-                // IBC idag — PLC-först: MAX(ibc_count) för dagen (dygnsräknaren nollställs
-                // dagligen). Den gamla LAG-deltan (idag-igår) blev negativ när igår > idag
-                // → GREATEST(0,...) = 0. Konsekvent med getLiveStats/plcIbcPerDag.
+                // IBC idag — reset-säker LAG-delta: ibc_count är KUMULATIVT och nollställs
+                // vid skiftrapport. MAX() visade bara största segmentet på reset-dagar.
+                // Summera positiva deltan; vid reset (ibc_count < prev) räknas hela ibc_count
+                // som ny ackumulering. Konsekvent med TvattlinjeController::getLiveStats.
                 $tvIbcIdag = 0;
                 try {
                     $tvIbcIdag = (int)$pdo->query(
-                        "SELECT COALESCE(MAX(ibc_count), 0) FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY"
+                        "SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0)
+                         FROM (
+                             SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                             FROM tvattlinje_ibc
+                             WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+                         ) t"
                     )->fetchColumn();
                 } catch (\Throwable $e) {
                     error_log('StatusController::all-lines tv_ibc_idag: ' . $e->getMessage());

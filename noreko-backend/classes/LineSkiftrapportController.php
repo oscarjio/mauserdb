@@ -280,13 +280,42 @@ class LineSkiftrapportController {
         }
 
         // 2) PLC-först: PLC-värdet skriver över SR-värdet för dagar med PLC-data
+        // ibc_count är KUMULATIVT och nollställs per skift → MAX(ibc_count) per dag
+        // undervärderar dagar med >1 skift. Reset-säker LAG-delta i stället (jfr
+        // TvattlinjeController::plcIbcPerDag). Om _ibc-tabellen har skiftraknare
+        // partitioneras deltat per (dag, skiftraknare); annars radbaserad LAG över datum.
         if ($ibcExists) {
             try {
-                $plc = $this->pdo->query("
-                    SELECT DATE(datum) AS dag, MAX(ibc_count) AS ibc
-                    FROM `$ibcTable`
-                    GROUP BY DATE(datum)
-                ");
+                $ibcHasSkiftraknare = (int)$this->pdo->query(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '$ibcTable' AND COLUMN_NAME = 'skiftraknare'"
+                )->fetchColumn() > 0;
+
+                if ($ibcHasSkiftraknare) {
+                    // MAX(ibc_count) per (dag, skiftraknare) → LAG-delta över skiftraknare → SUM per dag
+                    $plcSql = "
+                        SELECT dag, COALESCE(SUM(CASE WHEN ibc_end >= prev THEN ibc_end - prev ELSE ibc_end END), 0) AS ibc
+                        FROM (
+                            SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_count) AS ibc_end,
+                                   COALESCE(LAG(MAX(ibc_count)) OVER (PARTITION BY DATE(datum) ORDER BY skiftraknare), 0) AS prev
+                            FROM `$ibcTable`
+                            GROUP BY DATE(datum), skiftraknare
+                        ) t
+                        GROUP BY dag
+                    ";
+                } else {
+                    // Ingen skiftraknare → radbaserad LAG över datum (fångar reset inom dagen)
+                    $plcSql = "
+                        SELECT dag, COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS ibc
+                        FROM (
+                            SELECT DATE(datum) AS dag, ibc_count,
+                                   COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                            FROM `$ibcTable`
+                        ) t
+                        GROUP BY dag
+                    ";
+                }
+
+                $plc = $this->pdo->query($plcSql);
                 foreach ($plc->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     $dayTotals[$row['dag']] = (int)$row['ibc'];
                 }
