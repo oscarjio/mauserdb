@@ -6972,3 +6972,8 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
   - Den bonus som finns (REBOTLING) laser rebotling_ibc.effektivitet (stored) och matar bonus_poang/ranking/troskar (multiplikatorer 70/80/90/95 — antar 0-100-skala). Att gora rebotling-bonusen signerad/okappad skulle skjuta in negativa varden i medel/poang/troskar designade for 0-100 = affarslogik-omdesign (vad ger -12%? negativa poang?). Enligt "gor INGEN gissning pa bonus" -> kraver Oscars explicita beslut.
   - Utanfor DEL C-scope: ovriga icke-bonus-analyskontroller (Produktionseffektivitet/ProduktTypEffektivitet/Effektivitet/Morgonrapport/Avvikelselarm) kan lasa stored tvattlinje effektivitet — ej rord (Oscar scopade C till bonus).
 - Verifiering A+B: php -l rent, tsc watch-config exit 0, watch-rebuild 3.4s + deploy OK. Prod + prod-DB ORORDA.
+
+## 2026-07-14 Tvattlinje EFF — SLUTLEVERANS (Oscar-beslut: DEL C avbruten)
+- SLUTLEVERANS = DEL A (commit 79233bd1) + DEL B (commit d10be557). Signerad ±%-visning, okappad, OEE orord.
+- **MEDVETET VAL:** Visad effektivitet (tvattlinje statistik + skiftrapport) ar nu SIGNERAD avvikelse mot mal, okappad. BONUSEN ar OFORANDRAD och anvander fortfarande den gamla 0-100 stored-effektiviteten (rebotling_ibc.effektivitet). Bonus-skala pa signerad grund beslutas SENARE av Oscar.
+- Verifierat denna session: INGA andringar i BonusController / BonusAdminController / LineSkiftrapportController eller nagon bonus-poang/troskel. git diff 4700b8dd..HEAD ror bara: TvattlinjeController.php (EFF-visning), tvattlinje-statistik.ts/.html, shared-skiftrapport.ts/.html, dev-log.md. Prod + prod-DB ORORDA.
