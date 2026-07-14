@@ -24,9 +24,37 @@ class MaintenanceController {
     private const VALID_TYPES = ['planerat', 'akut', 'inspektion', 'kalibrering', 'rengoring', 'ovrigt'];
     private const VALID_STATUSES = ['planerat', 'pagaende', 'klart', 'avbokat'];
 
+    // iter30 bug E: whitelist av IBC-källtabell per linje. Endast rebotling och
+    // tvattlinje har egna _ibc-tabeller; övriga linjer saknar IBC-data och faller
+    // tillbaka på rebotling_ibc via resolveLine(). Konstanten gör tabellnamnet
+    // injektionssäkert när det interpoleras i SQL (aldrig från användarinput direkt).
+    private const IBC_TABLE_PER_LINE = [
+        'rebotling'  => 'rebotling_ibc',
+        'tvattlinje' => 'tvattlinje_ibc',
+    ];
+
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
+    }
+
+    /** Normalisera linjenamn till en känd linje med IBC-tabell (default: rebotling). */
+    private function resolveLine(?string $line): string {
+        $l = strtolower(trim((string)$line));
+        return isset(self::IBC_TABLE_PER_LINE[$l]) ? $l : 'rebotling';
+    }
+
+    /**
+     * True om service_intervals har linje-kolumnen (migration körd).
+     * Gör koden robust mot deploy-ordning: dev-DB kan sakna kolumnen tills
+     * migrationsfilen körts manuellt av ägaren — då faller allt tillbaka på rebotling.
+     */
+    private function serviceIntervalsHasLine(): bool {
+        try {
+            return $this->pdo->query("SHOW COLUMNS FROM service_intervals LIKE 'linje'")->fetch() !== false;
+        } catch (\PDOException $e) {
+            return false;
+        }
     }
 
     public function handle(): void {
@@ -548,33 +576,48 @@ class MaintenanceController {
 
     private function getServiceIntervals(): void {
         try {
+            // iter30 bug E: välj IBC-källtabell per maskins linje. Om linje-kolumnen
+            // ännu inte finns i dev-DB (migration ej körd) → alla rader = 'rebotling'.
+            $hasLine    = $this->serviceIntervalsHasLine();
+            $lineSelect = $hasLine ? 'linje' : "'rebotling' AS linje";
+
             $stmt = $this->pdo->query("
-                SELECT id, maskin_namn, intervall_ibc, senaste_service_datum, senaste_service_ibc, skapad, uppdaterad
+                SELECT id, maskin_namn, intervall_ibc, senaste_service_datum, senaste_service_ibc, {$lineSelect}, skapad, uppdaterad
                 FROM service_intervals
                 ORDER BY maskin_namn
             ");
             $intervals = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Hämta nuvarande total IBC (max ibc_ok från rebotling_ibc)
-            $ibcStmt = $this->pdo->query("SELECT COALESCE(SUM(mx),0) AS total_ibc FROM (SELECT MAX(ibc_ok) mx FROM rebotling_ibc GROUP BY DATE(datum), COALESCE(skiftraknare,0)) t");
-            $totalIbc = (int)$ibcStmt->fetchColumn();
+            // Normalisera linje till en känd linje med IBC-tabell.
+            foreach ($intervals as &$row) {
+                $row['linje'] = $this->resolveLine($row['linje'] ?? null);
+            }
+            unset($row);
 
-            // Samla alla unika servicedatum och hämta IBC i EN query (undvik N+1)
-            $serviceDatumList = [];
+            // Total IBC per linje som faktiskt förekommer (max ibc_ok per skift, summerat).
+            $totalIbcPerLine = [];
+            foreach (array_unique(array_column($intervals, 'linje')) as $ln) {
+                $tbl = self::IBC_TABLE_PER_LINE[$ln]; // säkert efter resolveLine()
+                $q = $this->pdo->query("SELECT COALESCE(SUM(mx),0) AS total_ibc FROM (SELECT MAX(ibc_ok) mx FROM {$tbl} GROUP BY DATE(datum), COALESCE(skiftraknare,0)) t");
+                $totalIbcPerLine[$ln] = (int)$q->fetchColumn();
+            }
+
+            // Samla unika servicedatum per linje och hämta IBC (undvik N+1).
+            $datesPerLine = [];
             foreach ($intervals as $row) {
                 if (!empty($row['senaste_service_datum'])) {
-                    $serviceDatumList[] = $row['senaste_service_datum'];
+                    $datesPerLine[$row['linje']][$row['senaste_service_datum']] = true;
                 }
             }
-            $ibcPerDatum = [];
-            if (!empty($serviceDatumList)) {
-                $uniqueDates = array_unique($serviceDatumList);
+            $ibcPerLineDatum = []; // nyckel: "linje|datum"
+            foreach ($datesPerLine as $ln => $dates) {
+                $tbl = self::IBC_TABLE_PER_LINE[$ln];
                 $countStmt = $this->pdo->prepare(
-                    "SELECT COALESCE(SUM(mx),0) AS ibc_now FROM (SELECT MAX(ibc_ok) mx FROM rebotling_ibc WHERE datum >= :datum GROUP BY DATE(datum), COALESCE(skiftraknare,0)) t"
+                    "SELECT COALESCE(SUM(mx),0) AS ibc_now FROM (SELECT MAX(ibc_ok) mx FROM {$tbl} WHERE datum >= :datum GROUP BY DATE(datum), COALESCE(skiftraknare,0)) t"
                 );
-                foreach ($uniqueDates as $d) {
+                foreach (array_keys($dates) as $d) {
                     $countStmt->execute([':datum' => $d]);
-                    $ibcPerDatum[$d] = (int)$countStmt->fetchColumn();
+                    $ibcPerLineDatum[$ln . '|' . $d] = (int)$countStmt->fetchColumn();
                 }
             }
 
@@ -583,9 +626,12 @@ class MaintenanceController {
                 $row['intervall_ibc'] = (int)$row['intervall_ibc'];
                 $row['senaste_service_ibc'] = (int)$row['senaste_service_ibc'];
 
-                // Räkna IBC sedan senaste service (från förberäknad cache)
-                if (!empty($row['senaste_service_datum']) && isset($ibcPerDatum[$row['senaste_service_datum']])) {
-                    $ibcSinceService = $ibcPerDatum[$row['senaste_service_datum']];
+                $ln       = $row['linje'];
+                $totalIbc = $totalIbcPerLine[$ln] ?? 0;
+
+                // Räkna IBC sedan senaste service (från förberäknad cache, per linje).
+                if (!empty($row['senaste_service_datum']) && isset($ibcPerLineDatum[$ln . '|' . $row['senaste_service_datum']])) {
+                    $ibcSinceService = $ibcPerLineDatum[$ln . '|' . $row['senaste_service_datum']];
                 } else {
                     $ibcSinceService = $totalIbc - $row['senaste_service_ibc'];
                 }
@@ -612,9 +658,11 @@ class MaintenanceController {
             unset($row);
 
             echo json_encode([
-                'success'   => true,
-                'intervals' => $intervals,
-                'total_ibc' => $totalIbc
+                'success'            => true,
+                'intervals'          => $intervals,
+                // Bakåtkompatibelt fält: rebotling-linjens total. Per-linje-karta bredvid.
+                'total_ibc'          => $totalIbcPerLine['rebotling'] ?? 0,
+                'total_ibc_per_linje' => $totalIbcPerLine
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::getServiceIntervals: ' . $e->getMessage());
@@ -647,21 +695,28 @@ class MaintenanceController {
                 $senasteDatum = substr(str_replace('T', ' ', $senasteDatum), 0, 19);
             }
 
+            // iter30 bug E: koppla intervallet till en linje (default rebotling).
+            // Skrivs bara om kolumnen finns i DB:t (migration körd).
+            $hasLine = $this->serviceIntervalsHasLine();
+            $linje   = $this->resolveLine($data['linje'] ?? 'rebotling');
+
             if ($id > 0) {
                 // Uppdatera befintligt
-                $stmt = $this->pdo->prepare("
-                    UPDATE service_intervals
+                $sql = "UPDATE service_intervals
                     SET maskin_namn = :maskin_namn, intervall_ibc = :intervall_ibc,
-                        senaste_service_datum = :senaste_datum, senaste_service_ibc = :senaste_ibc
-                    WHERE id = :id
-                ");
-                $stmt->execute([
+                        senaste_service_datum = :senaste_datum, senaste_service_ibc = :senaste_ibc"
+                    . ($hasLine ? ", linje = :linje" : "")
+                    . " WHERE id = :id";
+                $params = [
                     ':maskin_namn'    => $maskinNamn,
                     ':intervall_ibc'  => $intervallIbc,
                     ':senaste_datum'  => $senasteDatum,
                     ':senaste_ibc'    => $senasteIbc,
                     ':id'             => $id
-                ]);
+                ];
+                if ($hasLine) { $params[':linje'] = $linje; }
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute($params);
             } else {
                 // Race condition-skydd: SELECT FOR UPDATE + INSERT inom transaktion
                 // förhindrar att parallella requests skapar dubbletter.
@@ -676,16 +731,19 @@ class MaintenanceController {
                         return;
                     }
                     // Skapa ny
-                    $stmt = $this->pdo->prepare("
-                        INSERT INTO service_intervals (maskin_namn, intervall_ibc, senaste_service_datum, senaste_service_ibc)
-                        VALUES (:maskin_namn, :intervall_ibc, :senaste_datum, :senaste_ibc)
-                    ");
-                    $stmt->execute([
+                    $cols = "maskin_namn, intervall_ibc, senaste_service_datum, senaste_service_ibc"
+                          . ($hasLine ? ", linje" : "");
+                    $vals = ":maskin_namn, :intervall_ibc, :senaste_datum, :senaste_ibc"
+                          . ($hasLine ? ", :linje" : "");
+                    $stmt = $this->pdo->prepare("INSERT INTO service_intervals ($cols) VALUES ($vals)");
+                    $insParams = [
                         ':maskin_namn'    => $maskinNamn,
                         ':intervall_ibc'  => $intervallIbc,
                         ':senaste_datum'  => $senasteDatum,
                         ':senaste_ibc'    => $senasteIbc
-                    ]);
+                    ];
+                    if ($hasLine) { $insParams[':linje'] = $linje; }
+                    $stmt->execute($insParams);
                     $id = (int)$this->pdo->lastInsertId();
                     $this->pdo->commit();
                 } catch (\PDOException $txE) {
@@ -719,8 +777,15 @@ class MaintenanceController {
 
             $this->pdo->beginTransaction();
 
-            // Hämta aktuell total IBC
-            $ibcStmt = $this->pdo->query("SELECT COALESCE(SUM(mx),0) FROM (SELECT MAX(ibc_ok) mx FROM rebotling_ibc GROUP BY DATE(datum), COALESCE(skiftraknare,0)) t");
+            // iter30 bug E: hämta aktuell total IBC från maskinens egen linje-tabell.
+            $ln = 'rebotling';
+            if ($this->serviceIntervalsHasLine()) {
+                $lineStmt = $this->pdo->prepare("SELECT linje FROM service_intervals WHERE id = :id");
+                $lineStmt->execute([':id' => $id]);
+                $ln = $this->resolveLine($lineStmt->fetchColumn() ?: null);
+            }
+            $tbl = self::IBC_TABLE_PER_LINE[$ln];
+            $ibcStmt = $this->pdo->query("SELECT COALESCE(SUM(mx),0) FROM (SELECT MAX(ibc_ok) mx FROM {$tbl} GROUP BY DATE(datum), COALESCE(skiftraknare,0)) t");
             $currentIbc = (int)$ibcStmt->fetchColumn();
 
             $stmt = $this->pdo->prepare("
