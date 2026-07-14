@@ -241,6 +241,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const totalt   = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
     const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600));
     if (totalt <= 0 || netMin <= 0) return null;
+    // BUG2a: korrupt/kumulativ drifttid (>600 min = >10h) -> okänd cykeltid, visa "-" istf absurt negativt.
+    if ((r.drifttid || 0) > 600) return null;
     const actualCycle = netMin / totalt;
     const product     = this.products.find((p: any) => p.id === (r.product_id ?? null));
     const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
@@ -2039,9 +2041,13 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         tSum += t;
       }
       const dayTargetCycle = tSum > 0 ? twSum / tSum : this.fallbackCycleMin;
-      const dayActualCycle = totalIbc > 0 ? dayNet / totalIbc : 0;
+      // BUG1: dag-EFF måste dela nettodriften på RAPPORTSUMMAN (rawDayIbc, samma bas som
+      // per-rad-EFF) — inte på PLC-dagssumman (totalIbc), annars motsäger dag-headern raden
+      // (06-30: dag +48% vs rad +6%). IBC-KOLUMNEN visar fortfarande totalIbc oförändrat.
+      const dayActualCycle = rawDayIbc > 0 ? dayNet / rawDayIbc : 0;
       // Effektivitet mot mål: (mål - faktisk)/mål * 100 — SIGNAD, ingen cap.
-      const avgEff = (totalIbc > 0 && dayNet > 0 && dayTargetCycle > 0 && dayActualCycle > 0)
+      // BUG2b: korrupt drifttid (rawDrift>600) -> visa "-" istf att räkna på 600-min-artefakten.
+      const avgEff = (!driftWarning && rawDayIbc > 0 && dayNet > 0 && dayTargetCycle > 0 && dayActualCycle > 0)
         ? Math.round(((dayTargetCycle - dayActualCycle) / dayTargetCycle) * 100)
         : null;
       const effWarning = false; // obsolet efter cap-borttag (signerad skala)
