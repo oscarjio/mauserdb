@@ -152,7 +152,8 @@ class OperatorRankingController {
             $sql = "
                 WITH lag_base AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(ibc_ok) AS ibc_end,
+                           MAX(ibc_ok) AS ok_end,
+                           MAX(ibc_ok + COALESCE(ibc_ej_ok, 0)) AS tot_end,
                            MIN(op1) AS op1, MIN(op2) AS op2, MIN(op3) AS op3
                     FROM rebotling_ibc
                     WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
@@ -161,21 +162,23 @@ class OperatorRankingController {
                 ),
                 lag_shifts AS (
                     SELECT dag, skiftraknare,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           GREATEST(0, ok_end - COALESCE(LAG(ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
+                           GREATEST(0, tot_end - COALESCE(LAG(tot_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_total,
                            op1, op2, op3
                     FROM lag_base
                 )
                 SELECT op_id,
                        COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
-                       SUM(delta_ibc) AS total_ibc,
+                       SUM(delta_total) AS total_ibc,
+                       SUM(delta_ok) AS ok_ibc,
                        MIN(dag) AS first_ibc,
                        MAX(dag) AS last_ibc
                 FROM (
-                    SELECT op1 AS op_id, delta_ibc, dag FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
+                    SELECT op1 AS op_id, delta_ok, delta_total, dag FROM lag_shifts WHERE op1 IS NOT NULL AND op1 > 0
                     UNION ALL
-                    SELECT op2 AS op_id, delta_ibc, dag FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
+                    SELECT op2 AS op_id, delta_ok, delta_total, dag FROM lag_shifts WHERE op2 IS NOT NULL AND op2 > 0
                     UNION ALL
-                    SELECT op3 AS op_id, delta_ibc, dag FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
+                    SELECT op3 AS op_id, delta_ok, delta_total, dag FROM lag_shifts WHERE op3 IS NOT NULL AND op3 > 0
                 ) AS sub
                 LEFT JOIN operators o ON o.number = sub.op_id
                 GROUP BY op_id, o.name
@@ -189,7 +192,7 @@ class OperatorRankingController {
                     'user_id'       => $uid,
                     'operator_namn' => $row['operator_namn'],
                     'total_ibc'     => (int)$row['total_ibc'],
-                    'ok_ibc'        => (int)$row['total_ibc'], // each row = 1 IBC cycle
+                    'ok_ibc'        => (int)$row['ok_ibc'], // verkligt ok-delta (LAG av ibc_ok)
                     'first_ibc'     => $row['first_ibc'],
                     'last_ibc'      => $row['last_ibc'],
                 ];
@@ -488,6 +491,63 @@ class OperatorRankingController {
         unset($r);
     }
 
+    /**
+     * Verklig total producerade IBC för perioden — utan operatörs-dubbelräkning.
+     * Summerar skift-deltat EN gång per unikt (dag, skiftraknare), till skillnad från
+     * getOperatorIbcData() som via UNION ALL ger varje aktiv operatör hela skiftets delta.
+     * Använder samma LAG-mönster och filter (ibc_ok > 0) som getOperatorIbcData().
+     */
+    private function getPeriodTotalIbc(string $from, string $to): int {
+        try {
+            $sql = "
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok + COALESCE(ibc_ej_ok, 0)) AS tot_end
+                    FROM rebotling_ibc
+                    WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
+                      AND ibc_ok > 0
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT GREATEST(0, tot_end - COALESCE(LAG(tot_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_total
+                    FROM lag_base
+                )
+                SELECT COALESCE(SUM(delta_total), 0) AS total_ibc
+                FROM lag_shifts
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':from' => $from, ':to' => $to]);
+            $val = $stmt->fetchColumn();
+            if ($val !== false && $val !== null) {
+                return (int)$val;
+            }
+        } catch (\PDOException $e) {
+            error_log('OperatorRankingController::getPeriodTotalIbc primary: ' . $e->getMessage());
+        }
+
+        // Fallback: rebotling_data (matchar getOperatorIbcData-fallback)
+        if ($this->tableExists('rebotling_data')) {
+            try {
+                $sql = "
+                    SELECT COALESCE(SUM(COALESCE(antal, 1)), 0) AS total_ibc
+                    FROM rebotling_data
+                    WHERE datum >= :from AND datum < DATE_ADD(:to, INTERVAL 1 DAY)
+                      AND user_id IS NOT NULL AND user_id > 0
+                ";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([':from' => $from, ':to' => $to]);
+                $val = $stmt->fetchColumn();
+                if ($val !== false && $val !== null) {
+                    return (int)$val;
+                }
+            } catch (\PDOException $e) {
+                error_log('OperatorRankingController::getPeriodTotalIbc fallback: ' . $e->getMessage());
+            }
+        }
+
+        return 0;
+    }
+
     // ================================================================
     // run=sammanfattning
     // ================================================================
@@ -497,7 +557,11 @@ class OperatorRankingController {
             [$from, $to, $period] = $this->getDateRange();
             $ranking = $this->calcRanking($from, $to);
 
-            $totalIbc = array_sum(array_column($ranking, 'total_ibc'));
+            // D2-fix: total_ibc per operatörsrad innehåller HELA skiftets delta (UNION ALL utan
+            // delning på antal aktiva operatörer). Att summera per operatör dubbel-/trippelräknar
+            // produktionen. Räkna istället verklig total genom att summera skift-deltan EN gång
+            // per unikt (dag, skiftraknare).
+            $totalIbc = $this->getPeriodTotalIbc($from, $to);
             $hogstaPoang = !empty($ranking) ? $ranking[0]['total_poang'] : 0;
             $antalOperatorer = count($ranking);
             $avgPoang = $antalOperatorer > 0 ? round(array_sum(array_column($ranking, 'total_poang')) / $antalOperatorer, 1) : 0;

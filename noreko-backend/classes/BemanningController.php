@@ -78,14 +78,14 @@ class BemanningController {
                         (CASE WHEN sr.op1 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN sr.op2 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN sr.op3 > 0 THEN 1 ELSE 0 END)) AS ibc_share,
-                    GREATEST(1, LEAST(sr.drifttid, 600)) AS drifttid
+                    LEAST(sr.drifttid, 600) AS drifttid
                 FROM tvattlinje_skiftrapport sr
                 INNER JOIN (
                     SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
                     WHERE datum >= :from1
                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                 ) latest ON sr.id = latest.max_id
-                WHERE sr.op1 > 0 AND sr.totalt > 0
+                WHERE sr.op1 > 0 AND sr.totalt > 0 AND sr.drifttid > 0
                 UNION ALL
                 SELECT
                     sr.op2, 2,
@@ -93,14 +93,14 @@ class BemanningController {
                         (CASE WHEN sr.op1 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN sr.op2 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN sr.op3 > 0 THEN 1 ELSE 0 END)),
-                    GREATEST(1, LEAST(sr.drifttid, 600))
+                    LEAST(sr.drifttid, 600)
                 FROM tvattlinje_skiftrapport sr
                 INNER JOIN (
                     SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
                     WHERE datum >= :from2
                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                 ) latest ON sr.id = latest.max_id
-                WHERE sr.op2 > 0 AND sr.totalt > 0
+                WHERE sr.op2 > 0 AND sr.totalt > 0 AND sr.drifttid > 0
                 UNION ALL
                 SELECT
                     sr.op3, 3,
@@ -108,14 +108,14 @@ class BemanningController {
                         (CASE WHEN sr.op1 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN sr.op2 > 0 THEN 1 ELSE 0 END +
                          CASE WHEN sr.op3 > 0 THEN 1 ELSE 0 END)),
-                    GREATEST(1, LEAST(sr.drifttid, 600))
+                    LEAST(sr.drifttid, 600)
                 FROM tvattlinje_skiftrapport sr
                 INNER JOIN (
                     SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
                     WHERE datum >= :from3
                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                 ) latest ON sr.id = latest.max_id
-                WHERE sr.op3 > 0 AND sr.totalt > 0
+                WHERE sr.op3 > 0 AND sr.totalt > 0 AND sr.drifttid > 0
             ) sub
             LEFT JOIN operators o ON o.number = sub.op_id
             GROUP BY sub.op_id, o.name, sub.position
@@ -162,7 +162,7 @@ class BemanningController {
                     DATE(datum) AS dag,
                     skiftraknare,
                     MAX(ibc_ok)      AS ibc_end,
-                    MAX(runtime_plc) AS runtime,
+                    MAX(runtime_plc) AS runtime_end,
                     MIN(op1)         AS op1,
                     MIN(op2)         AS op2,
                     MIN(op3)         AS op3
@@ -170,27 +170,36 @@ class BemanningController {
                 WHERE datum >= :from
                 GROUP BY DATE(datum), skiftraknare
             ),
+            per_skift_delta AS (
+                SELECT
+                    dag,
+                    skiftraknare,
+                    GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_end,
+                    GREATEST(0, runtime_end - COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS runtime,
+                    op1, op2, op3
+                FROM per_skift
+            ),
             unioned AS (
                 SELECT op1 AS op_id, 1 AS position,
                        ibc_end, runtime,
                        (CASE WHEN op1 > 0 THEN 1 ELSE 0 END +
                         CASE WHEN op2 > 0 THEN 1 ELSE 0 END +
                         CASE WHEN op3 > 0 THEN 1 ELSE 0 END) AS nops
-                FROM per_skift WHERE op1 > 0 AND ibc_end > 0
+                FROM per_skift_delta WHERE op1 > 0 AND ibc_end > 0
                 UNION ALL
                 SELECT op2, 2,
                        ibc_end, runtime,
                        (CASE WHEN op1 > 0 THEN 1 ELSE 0 END +
                         CASE WHEN op2 > 0 THEN 1 ELSE 0 END +
                         CASE WHEN op3 > 0 THEN 1 ELSE 0 END)
-                FROM per_skift WHERE op2 > 0 AND ibc_end > 0
+                FROM per_skift_delta WHERE op2 > 0 AND ibc_end > 0
                 UNION ALL
                 SELECT op3, 3,
                        ibc_end, runtime,
                        (CASE WHEN op1 > 0 THEN 1 ELSE 0 END +
                         CASE WHEN op2 > 0 THEN 1 ELSE 0 END +
                         CASE WHEN op3 > 0 THEN 1 ELSE 0 END)
-                FROM per_skift WHERE op3 > 0 AND ibc_end > 0
+                FROM per_skift_delta WHERE op3 > 0 AND ibc_end > 0
             )
             SELECT
                 u.op_id,

@@ -186,14 +186,27 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   private recomputeKpis(): void {
     const filtered = this.filteredReports;
     this.cachedFilteredReports = filtered;
-    this.cachedTotalOmtvaatt = filtered.reduce((s, r) => s + (r.omtvaatt || 0), 0);
-    this.cachedTotalOk = filtered.reduce((s, r) => s + (r.antal_ok || 0), 0);
-    this.cachedTotalEjOk = filtered.reduce((s, r) => s + (r.antal_ej_ok || 0), 0);
+    // Deduplicera snapshot-poster per (dag, skiftraknare) — behåll högsta id (senaste posten)
+    // INNAN ok/ejOk/omtvaatt summeras. Annars dubbelräknas samma skift som skickats in
+    // flera gånger, vilket kan ge kvalitet > 100 % (ok summeras rått, medan totalIbc är
+    // dedupad via computeGrandTotal/backendDayTotals). Samma nyckelmönster som groupedDays,
+    // men med datumet i nyckeln eftersom raderna spänner flera dagar.
+    const qualDedup = new Map<string, any>();
+    for (const r of filtered) {
+      const dateStr = (r.datum || '').substring(0, 10);
+      const key = dateStr + '#' + (r.skiftraknare ?? 0);
+      const prev = qualDedup.get(key);
+      if (!prev || (Number(r.id) || 0) > (Number(prev.id) || 0)) qualDedup.set(key, r);
+    }
+    const dedupedForQual = Array.from(qualDedup.values());
+    this.cachedTotalOmtvaatt = dedupedForQual.reduce((s, r) => s + (r.omtvaatt || 0), 0);
+    this.cachedTotalOk = dedupedForQual.reduce((s, r) => s + (r.antal_ok || 0), 0);
+    this.cachedTotalEjOk = dedupedForQual.reduce((s, r) => s + (r.antal_ej_ok || 0), 0);
     // Grand-total: summa av PLC-först dag-totaler över de VISADE dagarna (konsekvent
     // med dag-grupperna); fallback: rå summa. Aldrig summering av multi-poster-snapshots.
     const totalIbc = this.computeGrandTotal(filtered);
     this.cachedTotalIbc = totalIbc;
-    this.cachedAvgQuality = totalIbc === 0 ? 0 : Math.round((this.cachedTotalOk / totalIbc) * 1000) / 10;
+    this.cachedAvgQuality = totalIbc === 0 ? 0 : Math.min(100, Math.round((this.cachedTotalOk / totalIbc) * 1000) / 10);
     this.cachedAvgIbcPerSkift = filtered.length === 0 ? 0 : Math.round((totalIbc / filtered.length) * 10) / 10;
     this.rebuildReportCache();
     // Expandera dagens grupp automatiskt
@@ -254,7 +267,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     try {
       const totalIbc   = r.totalt ?? 0;
       const okIbc      = r.antal_ok ?? 0;
-      if (totalIbc <= 0 || okIbc <= 0) return null;
+      // A2: gate på totalIbc, INTE okIbc — en helt kasserad dag (okIbc=0, totalIbc>0)
+      // ska ge OEE 0 (via kvalitetsfaktorn), inte null (som dolde dagen helt).
+      if (totalIbc <= 0) return null;
 
       // Kvalitet: godkända / totalt (kassationsförlust)
       const kvalitet = okIbc / totalIbc;
@@ -268,7 +283,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       if (plannadTid <= 0) return null;
       const tillganglighet = Math.min(drifttidMin / plannadTid, 1);
 
-      // Prestanda: faktisk IBC/h (okIbc) / mål IBC/h (baserat på cykeltid)
+      // Prestanda: faktisk IBC/h (totalt = antal_ok + antal_ej_ok) / mål IBC/h (baserat på cykeltid)
+      // Använd totalIbc, INTE okIbc — kvalitetsfaktorn straffar redan kassation, så okIbc här
+      // skulle dubbelbestraffa. Systermetoden summaryAvgOee använder (antal_ok + antal_ej_ok).
       // Drifttid är nettotid inkl. rast; använd drifttidMin som bas för IBC/h
       const product = this.productNameMap.size > 0
         ? this.products.find(p => p.id === (r.product_id ?? null))
@@ -276,7 +293,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const targetCycleMin = product?.cycle_time_minutes ?? this.fallbackCycleMin;
       const targetIbcH     = 60 / targetCycleMin;
       const netDriftMin    = Math.max(0, drifttidMin - rasttime);
-      const ibcH           = netDriftMin > 0 ? (okIbc / (netDriftMin / 60)) : 0;
+      const ibcH           = netDriftMin > 0 ? (totalIbc / (netDriftMin / 60)) : 0;
       const prestanda      = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
 
       const v = Math.round(tillganglighet * prestanda * kvalitet * 100);
