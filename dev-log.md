@@ -6999,3 +6999,8 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 - Steg1 wall-clock-guard (+5 min) var for aggressiv: 07-13 (3h4m span, drifttid 3h9m = 5 min over) flaggades korrupt -> "-" fast anvandbar (+7%). Aven 06-10/06-09 doldes. 5-min-skew = klock-skew PLC vs inskickade tider, ej korrupt.
 - FIX _isDrifttidCorrupt(): behall harda `>= 600`, byt `+5 min` -> `d > span * 1.5` (bara grova brott, t.ex. 06-29: 600 vs 30min-span). Sma overskjutningar far tillbaka EFF.
 - Forvantat: 07-13 +7%, 06-29/06-25/06-05 "-" (kapade 600 -> harda capen), 07-07 ~+7%. tsc exit 0, watch-rebuild 3.7s + deploy OK. Bara visning.
+
+## 2026-07-15 Tvattlinje statistik Steg2 (dag-vy Produktionsanalys) — commit 76a1f4c1
+- Problem: view=day KPI-kort signerat (+10.9%) men intradags-diagrammets rullande "Effektivitet % (30 min)"-linje last platt pa 100% (kapad kvot + 0-100 hoger-axel).
+- FIX (bara denna serie + yEff-axel): calcRollingEfficiency -> signerad okappad (targetMin - netWindowMin/windowCount)/targetMin*100. yEff-axel: bort med beginAtZero/suggestedMin:0/100-tak -> symmetrisk kring 0 (±maxAbs), tecken-ticks. Etikett -> "Effektivitet mot mal % (30 min)". Mal-linjen = 0%-gridlinjen (mitten).
+- OEE + ovriga serier + periodCells-heatmap (1307) ororda. tsc exit 0, watch 2.7s + deploy OK. Bara visning; backend/bonus/prod ororda.
