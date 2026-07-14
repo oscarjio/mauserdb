@@ -6987,3 +6987,10 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 - **BUG3b** (TvattlinjeController.php): mal-cykel = tvattlinje_products.cycle_time_minutes, IBC-viktad over perioden (ny helper weightedTargetCycleTvattlinje, dedup som SR-IBC, fallback settings takt_mal). Emitterat target_cycle_time speglar nu korten.
 - Verifierat LIVE (statistics-endpoint): target_cycle_time 3.0->3.4, avg_cycle_time 3.03 (=397/131 netto), avg_production_percent +10.9% = (3.4-3.03)/3.4 -> POSITIV & konsistent med korten. php -l rent, tsc exit 0, watch-rebuild + deploy OK.
 - Bonus ORORD (0-100 stored). Prod + prod-DB ORORDA.
+
+## 2026-07-15 Tvattlinje skiftrapport drifttid Steg1 (visning) — commit 9acda8d5
+- **BUG A (off-by-one)**: korrupt-drifttid-guarden var `> 600` men korrupta dagar har drifttid = EXAKT 600 (10h0m) -> slank igenom (06-29 -171%, 06-25 -36%, 06-05 -419%). Fix: per-rad (_computeEfficiencyPct) + per-dag (groupedDays) -> `>= 600` -> null -> "-". Bonus: ny `_isDrifttidCorrupt()` flaggar aven drifttid > skiftets wall-clock-spann (plc_start->plc_end +5 min tolerans).
+- **BUG B (fler-post-dagar)**: dedup-pa-skiftraknare kollapsade genuina fler-pass-dagar (07-07: 4h49m + 3h11m -> visade bara post#2 3h11m parat med hela dagens 150 IBC -> falsk EFF +62%). Fix: dag-drifttid = SUMMAN av alla giltiga posters netto-drifttid (submittedOnly minus korrupta); EFF raknar taljare(drifttid) OCH namnare(IBC) pa SAMMA post-uppsattning; dagssumman cappas INTE vid 600. IBC-KOLUMNEN oforandrad (totalIbc).
+- Forvantat efter fix: 07-07 dag drifttid 8h0m + EFF ~+5%; 06-29/06-25/06-05 EFF "-"; en-post-dagar oforandrade (06-30 +6%).
+- OBS trade-off: per-dag drifttid summerar nu submittedOnly (ej deduperad pa skiftraknare). Genuina fler-pass-dagar blir korrekta; om nagon dag har akta SNAPSHOT-poster (samma skift sparat flera ggr) skulle drifttiden kunna dubbelrakna. IBC-summan (rawDayIbc=150 pa 07-07) tyder pa att aktuell data har genuina pass, ej snapshots. dedupSnapshots anvands fortf for header-KPI (summaryAvgEff) + computeGrandTotal.
+- tsc exit 0, watch-rebuild 2.9s + deploy OK. Bara VISNING. Backend/bonus/prod/prod-DB ORORDA.
