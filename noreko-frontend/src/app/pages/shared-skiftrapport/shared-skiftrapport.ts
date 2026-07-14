@@ -237,12 +237,34 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   // ===== Privata compute-metoder (kallas ALDRIG från template) =====
 
+  /** Skiftets wall-clock-spann (minuter) från plc_start/plc_end, annars null. */
+  private _shiftSpanMin(r: any): number | null {
+    if (!r?.plc_start || !r?.plc_end) return null;
+    const s = new Date(String(r.plc_start).replace(' ', 'T')).getTime();
+    const e = new Date(String(r.plc_end).replace(' ', 'T')).getTime();
+    if (isNaN(s) || isNaN(e) || e <= s) return null;
+    return (e - s) / 60000;
+  }
+
+  /**
+   * Korrupt drifttid för EN post: >= 600 min (10h+, kumulativt/trasigt värde) ELLER netto-drift
+   * som överstiger skiftets wall-clock-spann (netto kan aldrig vara > spannet). 5 min tolerans.
+   */
+  private _isDrifttidCorrupt(r: any): boolean {
+    const d = r?.drifttid || 0;
+    if (d >= 600) return true;
+    const span = this._shiftSpanMin(r);
+    return span !== null && d > span + 5;
+  }
+
   private _computeEfficiencyPct(r: any): number | null {
     const totalt   = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
     const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600));
     if (totalt <= 0 || netMin <= 0) return null;
-    // BUG2a: korrupt/kumulativ drifttid (>600 min = >10h) -> okänd cykeltid, visa "-" istf absurt negativt.
-    if ((r.drifttid || 0) > 600) return null;
+    // BUG2a/A: korrupt/kumulativ drifttid (>=600 min = 10h+, eller > skiftets spann) -> okänd
+    // cykeltid, visa "-" istf absurt negativt. >=600 (inte >600): korrupta dagar landar på EXAKT
+    // 600 (10h0m) och slank annars igenom.
+    if (this._isDrifttidCorrupt(r)) return null;
     const actualCycle = netMin / totalt;
     const product     = this.products.find((p: any) => p.id === (r.product_id ?? null));
     const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
@@ -2015,25 +2037,24 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const totalIbc   = (this.backendDayTotals && this.backendDayTotals[date] != null)
         ? this.backendDayTotals[date]
         : rawDayIbc;
-      // T2: Deduplicera drifttid på SAMMA nyckel som backend (senaste post = MAX id per skiftraknare)
-      // INNAN summering. Annars dubbelräknas snapshot-poster för samma skift => dagen kläms till
-      // exakt "10h 0m" (Math.min(rawDrift,600)-cap-artefakt). IBC deduplicerar redan i backend.
-      const dedupById = new Map<number | string, any>();
-      for (const r of submittedOnly) {
-        const key = r.skiftraknare ?? 0;
-        const prev = dedupById.get(key);
-        if (!prev || (Number(r.id) || 0) > (Number(prev.id) || 0)) dedupById.set(key, r);
-      }
-      const dedupedReports = Array.from(dedupById.values());
-      const rawDrift   = dedupedReports.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
-      const totalDrift = Math.min(rawDrift, 600);
-      const driftWarning = rawDrift > 600;
-      const dayNet = totalDrift; // deduperad nettodrift (min) — samma tal som DRIFTTID-kolumnen visar
-      // T3: Dagens EFF beräknas på SAMMA tal som visas (totalIbc / dayNet), inte som medelvärde av
-      // per-post-eff (som använde postens egen drifttid och kunde motsäga IBC/DRIFTTID-kolumnerna).
-      // Vägd måltakt (min/IBC) över dagens deduplicerade poster.
+      // BUG B: dag-drifttid = SUMMAN av ALLA posters netto-drifttid (submittedOnly), inte deduperad
+      // på skiftraknare. Dedup-på-skiftraknare kollapsade genuina fler-pass-dagar där passen delar
+      // skiftraknare (07-07: 4h49m + 3h11m visades som bara post#2 = 3h11m, parat med hela dagens IBC
+      // => falsk EFF +62%). BUG A: uteslut per-post korrupt drifttid (>=600 min = 10h+, kumulativt/
+      // trasigt) INNAN summering — exakt 600 (10h0m) räknas som korrupt, inte bara >600.
+      const validPosts = submittedOnly.filter((r: any) => !this._isDrifttidCorrupt(r));
+      const anyCorrupt = submittedOnly.some((r: any) => this._isDrifttidCorrupt(r));
+
+      // Både visad DRIFTTID-kolumn och EFF använder per-post-summan över SAMMA giltiga poster
+      // (täljare = drifttid-summa, nämnare = IBC-summa). Dagssumman cappas INTE vid 600 —
+      // 600-capen är en per-post-giltighetskoll, inte ett tak på dagen (07-07 -> 8h0m).
+      const dayNet = validPosts.reduce((s, r) => s + this.getNetDrifttidMin(r), 0);
+      const effIbc = validPosts.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
+      const totalDrift = dayNet;
+      const driftWarning = anyCorrupt;
+      // Vägd måltakt (min/IBC) över dagens giltiga poster.
       let twSum = 0, tSum = 0;
-      for (const r of dedupedReports) {
+      for (const r of validPosts) {
         const t = (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0)));
         if (t <= 0) continue;
         const product = this.products.find((p: any) => p.id === (r.product_id ?? null));
@@ -2041,13 +2062,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         tSum += t;
       }
       const dayTargetCycle = tSum > 0 ? twSum / tSum : this.fallbackCycleMin;
-      // BUG1: dag-EFF måste dela nettodriften på RAPPORTSUMMAN (rawDayIbc, samma bas som
-      // per-rad-EFF) — inte på PLC-dagssumman (totalIbc), annars motsäger dag-headern raden
-      // (06-30: dag +48% vs rad +6%). IBC-KOLUMNEN visar fortfarande totalIbc oförändrat.
-      const dayActualCycle = rawDayIbc > 0 ? dayNet / rawDayIbc : 0;
+      const dayActualCycle = effIbc > 0 ? dayNet / effIbc : 0;
       // Effektivitet mot mål: (mål - faktisk)/mål * 100 — SIGNAD, ingen cap.
-      // BUG2b: korrupt drifttid (rawDrift>600) -> visa "-" istf att räkna på 600-min-artefakten.
-      const avgEff = (!driftWarning && rawDayIbc > 0 && dayNet > 0 && dayTargetCycle > 0 && dayActualCycle > 0)
+      // Fullt korrupta dagar (inga giltiga poster kvar) -> effIbc/dayNet = 0 -> null -> "-".
+      const avgEff = (effIbc > 0 && dayNet > 0 && dayTargetCycle > 0 && dayActualCycle > 0)
         ? Math.round(((dayTargetCycle - dayActualCycle) / dayTargetCycle) * 100)
         : null;
       const effWarning = false; // obsolet efter cap-borttag (signerad skala)
