@@ -112,7 +112,8 @@ export class VdDashboardPage implements OnInit, OnDestroy {
 
   // ---- Helpers ----
 
-  getOeeColor(oee: number): string {
+  getOeeColor(oee: number | null): string {
+    if (oee == null) return '#a0aec0';
     if (oee >= 80) return '#48bb78';
     if (oee >= 60) return '#ecc94b';
     return '#fc8181';

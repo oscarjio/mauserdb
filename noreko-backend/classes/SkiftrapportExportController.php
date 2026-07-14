@@ -186,7 +186,7 @@ class SkiftrapportExportController {
             $stopptidPct = $skiftMin > 0
                 ? round(($stopptid / $skiftMin) * 100, 1) : 0.0;
             $drifttidPct = $skiftMin > 0
-                ? round(($totalRuntime / $skiftMin) * 100, 1) : 0.0;
+                ? round(min(100.0, ($totalRuntime / $skiftMin) * 100), 1) : 0.0;
 
             // ---- Cykeltider (via LAG) ----
             $cykelStmt = $this->pdo->prepare(
@@ -222,7 +222,7 @@ class SkiftrapportExportController {
             // Kvalitet = ibc_ok / ibc_total
             $teoretiskMaxIbcPerH = 60.0; // justera efter faktiskt mål
             $tillganglighet = $skiftMin > 0
-                ? round(($totalRuntime / $skiftMin) * 100, 1) : 0.0;
+                ? round(min(100.0, ($totalRuntime / $skiftMin) * 100), 1) : 0.0;
             $prestanda = ($totalRuntime > 0 && $teoretiskMaxIbcPerH > 0)
                 ? round(min(100.0, ($ibcPerH / $teoretiskMaxIbcPerH) * 100), 1) : 0.0;
             $oeeKvalitet = $kvalitet;
@@ -476,7 +476,7 @@ class SkiftrapportExportController {
                 $skiftPlanMin = (int)$r['antal_skiften'] * 480;
                 $stopptid     = max(0, $skiftPlanMin - $runtime);
                 $drifttidPct  = $skiftPlanMin > 0
-                    ? round(($runtime / $skiftPlanMin) * 100, 1) : 0.0;
+                    ? round(min(100.0, ($runtime / $skiftPlanMin) * 100), 1) : 0.0;
 
                 $tillganglighet  = $drifttidPct;
                 $prestanda       = $runtime > 0

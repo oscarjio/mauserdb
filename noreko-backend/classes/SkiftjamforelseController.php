@@ -15,8 +15,9 @@
  *   EM   = 14:00-22:00
  *   Natt = 22:00-06:00
  *
- * Tabeller: rebotling_ibc, rebotling_onoff, rebotling_stationer,
- *           stopporsak_registreringar, operators
+ * Tabeller: rebotling_ibc / tvattlinje_ibc (valjs via linje-parametern),
+ *           stopporsak_registreringar, stopporsak_kategorier, operators,
+ *           maskin_register
  */
 class SkiftjamforelseController {
     private $pdo;
@@ -37,23 +38,43 @@ class SkiftjamforelseController {
     ];
     private const TEORIETISK_MAX_IBC_H_DEFAULT = 30.0;
 
+    // FIX (A): whitelist linje -> ibc-tabell. Tabellnamn kan INTE bindas som
+    // prepared-param, darfor stram whitelist. Bada tabellerna har kolumnerna
+    // datum, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc.
+    private const IBC_TABLE_PER_LINE = [
+        'tvattlinje' => 'tvattlinje_ibc',
+        'rebotling'  => 'rebotling_ibc',
+    ];
+    private const IBC_TABLE_DEFAULT = 'rebotling_ibc';
+
     private const PLANERAD_MIN = 480;
 
     private $line = 'rebotling';
     private $teoretiskMaxIbcH = self::TEORIETISK_MAX_IBC_H_DEFAULT;
+    private $ibcTable = self::IBC_TABLE_DEFAULT;
+    private $hasData = true;
 
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
 
-        // FIX (B): valj teoretisk max IBC/h utifran linje-parametern.
-        // Denna controller ar rebotling-specifik (frontend skickar ingen
-        // linje-parameter), men vi laser den anda for framtida bruk och
-        // faller tillbaka pa rebotling (30.0).
+        // FIX (A/B): valj teoretisk max IBC/h OCH ibc-tabell utifran linje-param.
+        // Tidigare byttes bara TEORIETISK_MAX medan datan alltid last fran
+        // rebotling_ibc -> tvattlinje och rebotling gav identisk produktion men
+        // olika OEE. Nu propageras $linje till bade maxvarde och tabellval.
         $line = strtolower(trim($_GET['line'] ?? $_GET['linje'] ?? 'rebotling'));
         $this->line = $line !== '' ? $line : 'rebotling';
         $this->teoretiskMaxIbcH = self::TEORIETISK_MAX_IBC_H_PER_LINE[$this->line]
             ?? self::TEORIETISK_MAX_IBC_H_DEFAULT;
+        // Kand linje -> anvand dess tabell. Okand linje -> ingen data (tom
+        // respons) i stallet for att visa rebotlings siffror.
+        if (isset(self::IBC_TABLE_PER_LINE[$this->line])) {
+            $this->ibcTable = self::IBC_TABLE_PER_LINE[$this->line];
+            $this->hasData = true;
+        } else {
+            $this->ibcTable = self::IBC_TABLE_DEFAULT;
+            $this->hasData = false;
+        }
     }
 
     public function handle(): void {
@@ -141,7 +162,7 @@ class SkiftjamforelseController {
                         MAX(ibc_ok)      AS ibc_end,
                         MAX(ibc_ej_ok)   AS ej_end,
                         MAX(runtime_plc) AS max_runtime
-                    FROM rebotling_ibc
+                    FROM {$this->ibcTable}
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 ) shifts
@@ -184,6 +205,11 @@ class SkiftjamforelseController {
             // Genomsnittlig cykeltid
             $avgCykelSek = ($ibcOk > 0 && $runtime > 0) ? round(($runtime * 60) / $ibcOk, 1) : 0;
 
+            // FIX (C): skift utan pass (antal_pass=0, t.ex. Natt) har ingen
+            // meningsfull kvalitet/prestanda/tillganglighet/OEE -> returnera
+            // null i stallet for 0. null-skift utesluts ur alla snitt.
+            $harPass = $antalPass > 0;
+
             $result[$skift] = [
                 'skift'              => $skift,
                 'label'              => self::SKIFT[$skift]['label'],
@@ -193,10 +219,10 @@ class SkiftjamforelseController {
                 'ibc_total'          => $ibcTotal,
                 'runtime_min'        => $runtime,
                 'ibc_per_h'          => $ibcPerH,
-                'kvalitet_pct'       => $kvalitet,
-                'oee_pct'            => round($oee * 100, 1),
-                'tillganglighet_pct' => round($tillganglighet * 100, 1),
-                'prestanda_pct'      => round($prestanda * 100, 1),
+                'kvalitet_pct'       => $harPass ? $kvalitet : null,
+                'oee_pct'            => $harPass ? round($oee * 100, 1) : null,
+                'tillganglighet_pct' => $harPass ? round($tillganglighet * 100, 1) : null,
+                'prestanda_pct'      => $harPass ? round($prestanda * 100, 1) : null,
                 'avg_cykeltid_sek'   => $avgCykelSek,
             ];
         }
@@ -204,18 +230,48 @@ class SkiftjamforelseController {
         return $result;
     }
 
-    private function getStopptidPerSkift(string $fromDate, string $toDate): array {
+    /**
+     * FIX (B): stopptid per skift = SAMMA definition som detaljlistan:
+     * stopptid_min = max(0, PLANERAD_MIN * antal_pass - runtime_min).
+     *
+     * Tidigare last stopptiden fran stopporsak_registreringar (manuella regg)
+     * med hardkodat WHERE linje = 'rebotling', vilket gav stopptid_min = 0 for
+     * alla skift trots att tillgangligheten var ~36 %. Nu harleds stopptiden
+     * ur produktionsdatan (planerad tid - drifttid), precis som detaljlistan.
+     *
+     * @param array $prod resultat fran getProduktionPerSkift()
+     * @return array skift => stopptid_min (int)
+     */
+    private function getStopptidPerSkift(array $prod): array {
+        $stoppResult = ['FM' => 0, 'EM' => 0, 'Natt' => 0];
+        foreach (array_keys(self::SKIFT) as $skift) {
+            $antalPass = (int)($prod[$skift]['antal_pass']  ?? 0);
+            $runtime   = (int)($prod[$skift]['runtime_min'] ?? 0);
+            $planMin   = $antalPass * self::PLANERAD_MIN;
+            $stoppResult[$skift] = max(0, $planMin - $runtime);
+        }
+        return $stoppResult;
+    }
+
+    /**
+     * FIX (B): stopporsak_registreringar behalls ENBART som orsaksfordelning
+     * (manuellt registrerade stopporsaker per kategori), parametriserad pa
+     * $linje (inget hardkodat 'rebotling'). Anvands ej for total stopptid.
+     *
+     * @return array skift => [ ['kategori' => string|null, 'min' => int], ... ]
+     */
+    private function getStopporsakPerSkift(string $fromDate, string $toDate): array {
+        $result = ['FM' => [], 'EM' => [], 'Natt' => []];
         try {
             $check = $this->pdo->query("SHOW TABLES LIKE 'stopporsak_registreringar'");
             if (!$check || $check->rowCount() === 0) {
-                return ['FM' => 0, 'EM' => 0, 'Natt' => 0];
+                return $result;
             }
         } catch (\PDOException $e) {
-            error_log('SkiftjamforelseController::getStopptidPerSkift: ' . $e->getMessage());
-            return ['FM' => 0, 'EM' => 0, 'Natt' => 0];
+            error_log('SkiftjamforelseController::getStopporsakPerSkift: ' . $e->getMessage());
+            return $result;
         }
 
-        // Optimerad: en enda query for alla skift (istallet for 3 separata)
         $stmt = $this->pdo->prepare(
             "SELECT
                 CASE
@@ -223,29 +279,39 @@ class SkiftjamforelseController {
                     WHEN HOUR(start_time) >= 14 AND HOUR(start_time) < 22 THEN 'EM'
                     ELSE 'Natt'
                 END AS skift,
+                k.namn AS kategori,
                 COALESCE(ROUND(SUM(
                     TIMESTAMPDIFF(
                         MINUTE,
                         start_time,
-                        LEAST(COALESCE(end_time, NOW()), DATE_ADD(?, INTERVAL 1 DAY))
+                        LEAST(COALESCE(end_time, NOW()), DATE_ADD(:cap, INTERVAL 1 DAY))
                     )
                 ), 0), 0) AS total_min
-             FROM stopporsak_registreringar
-             WHERE linje = 'rebotling'
-               AND start_time >= ? AND start_time < DATE_ADD(?, INTERVAL 1 DAY)
-             GROUP BY skift"
+             FROM stopporsak_registreringar sr
+             LEFT JOIN stopporsak_kategorier k ON k.id = sr.kategori_id
+             WHERE sr.linje = :linje
+               AND start_time >= :from AND start_time < DATE_ADD(:to, INTERVAL 1 DAY)
+             GROUP BY skift, k.namn"
         );
-        // FIX (I): kapa oppna stopp (end_time IS NULL) vid periodens slut sa att
-        // ett ostangt stopp fran flera manader tillbaka inte ger ~150000 min.
-        // Bindningsordning: forsta ? = LEAST-cap (toDate), sedan WHERE-parametrarna.
-        $stmt->execute([$toDate, $fromDate, $toDate]);
+        // Kapa oppna stopp (end_time IS NULL) vid periodens slut. EMULATE_PREPARES=false
+        // -> distinkta named params for :to och :cap aven om de har samma varde.
+        $stmt->execute([
+            ':cap'   => $toDate,
+            ':linje' => $this->line,
+            ':from'  => $fromDate,
+            ':to'    => $toDate,
+        ]);
 
-        $stoppResult = ['FM' => 0, 'EM' => 0, 'Natt' => 0];
         foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-            $stoppResult[$row['skift']] = (int)$row['total_min'];
+            $skift = $row['skift'];
+            if (!isset($result[$skift])) $result[$skift] = [];
+            $result[$skift][] = [
+                'kategori' => $row['kategori'],
+                'min'      => (int)$row['total_min'],
+            ];
         }
 
-        return $stoppResult;
+        return $result;
     }
 
     private function getStationer(): array {
@@ -276,12 +342,28 @@ class SkiftjamforelseController {
             $today   = date('Y-m-d');
             $from    = date('Y-m-d', strtotime("-{$days} days"));
 
+            // FIX (A): okand linje -> ingen data-tabell finns i denna controller.
+            if (!$this->hasData) {
+                $this->sendSuccess([
+                    'ingen_data_for_linje' => true,
+                    'linje'                => $this->line,
+                    'mest_produktiva_idag' => null,
+                    'snitt_oee'            => [],
+                    'mest_forbattrad'      => null,
+                    'antal_skift'          => 0,
+                    'days'                 => $days,
+                    'from_date'            => $from,
+                    'to_date'              => $today,
+                ]);
+                return;
+            }
+
             // Dagens data
             $dagensData = $this->getProduktionPerSkift($today, $today);
 
             // Periodens data
             $periodData = $this->getProduktionPerSkift($from, $today);
-            $stopp      = $this->getStopptidPerSkift($from, $today);
+            $stopp      = $this->getStopptidPerSkift($periodData);
             foreach (array_keys(self::SKIFT) as $s) {
                 $periodData[$s]['stopptid_min'] = $stopp[$s] ?? 0;
             }
@@ -310,7 +392,12 @@ class SkiftjamforelseController {
             $mestForbattrad = null;
             $maxDelta = -999;
             foreach ($periodData as $skift => $d) {
+                // FIX (C): uteslut skift utan pass (oee_pct = null) ur trend-snittet.
+                if ($d['oee_pct'] === null || (int)($d['antal_pass'] ?? 0) === 0) {
+                    continue;
+                }
                 $prevOee = $prevData[$skift]['oee_pct'] ?? 0;
+                if ($prevOee === null) $prevOee = 0;
                 $delta = $d['oee_pct'] - $prevOee;
                 if ($delta > $maxDelta) {
                     $maxDelta = $delta;
@@ -358,8 +445,24 @@ class SkiftjamforelseController {
             $today   = date('Y-m-d');
             $from    = date('Y-m-d', strtotime("-{$days} days"));
 
+            // FIX (A): okand linje -> ingen data-tabell finns i denna controller.
+            if (!$this->hasData) {
+                $this->sendSuccess([
+                    'ingen_data_for_linje' => true,
+                    'linje'      => $this->line,
+                    'skift'      => [],
+                    'radar'      => [],
+                    'days'       => $days,
+                    'from_date'  => $from,
+                    'to_date'    => $today,
+                ]);
+                return;
+            }
+
             $prod  = $this->getProduktionPerSkift($from, $today);
-            $stopp = $this->getStopptidPerSkift($from, $today);
+            $stopp = $this->getStopptidPerSkift($prod);
+            // FIX (B): orsaksfordelning fran manuella stopporsaker (parametr. pa $linje).
+            $stopporsaker = $this->getStopporsakPerSkift($from, $today);
 
             foreach (array_keys(self::SKIFT) as $s) {
                 $prod[$s]['stopptid_min'] = $stopp[$s] ?? 0;
@@ -389,7 +492,7 @@ class SkiftjamforelseController {
                             MAX(ibc_ok)      AS ibc_end,
                             MAX(ibc_ej_ok)   AS ej_end,
                             MAX(runtime_plc) AS max_runtime
-                        FROM rebotling_ibc
+                        FROM {$this->ibcTable}
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
                     ) shifts
@@ -420,6 +523,11 @@ class SkiftjamforelseController {
             }
 
             foreach (array_keys(self::SKIFT) as $skift) {
+                // FIX (C): skift utan pass -> stabilitet = null (tidigare pahittat 50).
+                if ((int)($prod[$skift]['antal_pass'] ?? 0) === 0) {
+                    $stabilitet[$skift] = null;
+                    continue;
+                }
                 $dagOee = $dagOeeMap[$skift] ?? [];
                 if (count($dagOee) >= 2) {
                     $mean = array_sum($dagOee) / count($dagOee);
@@ -431,27 +539,32 @@ class SkiftjamforelseController {
                     $stddev = sqrt($variance);
                     $stabilitet[$skift] = max(0, min(100, round(100 - $stddev * 2, 1)));
                 } else {
+                    // Skiftet har pass men <2 dagar -> for lite for att mata
+                    // varians. Behall neutral 50 (endast antal_pass=0 -> null).
                     $stabilitet[$skift] = 50;
                 }
             }
 
             $radarData = [];
             foreach ($prod as $skift => $d) {
+                $harPass = (int)($d['antal_pass'] ?? 0) > 0;
                 $radarData[$skift] = [
                     'tillganglighet' => $d['tillganglighet_pct'],
                     'prestanda'      => $d['prestanda_pct'],
                     'kvalitet'       => $d['kvalitet_pct'],
-                    'volym'          => round(($d['ibc_per_h'] / $maxIbcH) * 100, 1),
-                    'stabilitet'     => $stabilitet[$skift],
+                    // FIX (C): volym = null nar skiftet saknar pass i stallet for 0.
+                    'volym'          => $harPass ? round(($d['ibc_per_h'] / $maxIbcH) * 100, 1) : null,
+                    'stabilitet'     => $stabilitet[$skift] ?? null,
                 ];
             }
 
             $this->sendSuccess([
-                'skift'      => array_values($prod),
-                'radar'      => $radarData,
-                'days'       => $days,
-                'from_date'  => $from,
-                'to_date'    => $today,
+                'skift'        => array_values($prod),
+                'radar'        => $radarData,
+                'stopporsaker' => $stopporsaker,
+                'days'         => $days,
+                'from_date'    => $from,
+                'to_date'      => $today,
             ]);
 
         } catch (\Throwable $e) {
@@ -469,6 +582,17 @@ class SkiftjamforelseController {
             $days  = $this->getDays();
             $today = date('Y-m-d');
             $from  = date('Y-m-d', strtotime("-{$days} days"));
+
+            // FIX (A): okand linje -> ingen data-tabell finns i denna controller.
+            if (!$this->hasData) {
+                $this->sendSuccess([
+                    'ingen_data_for_linje' => true,
+                    'linje' => $this->line,
+                    'trend' => [],
+                    'days'  => $days,
+                ]);
+                return;
+            }
 
             $stmt = $this->pdo->prepare(
                 "SELECT dag, skift,
@@ -488,7 +612,7 @@ class SkiftjamforelseController {
                             MAX(ibc_ok)      AS ibc_end,
                             MAX(ibc_ej_ok)   AS ej_end,
                             MAX(runtime_plc) AS max_runtime
-                        FROM rebotling_ibc
+                        FROM {$this->ibcTable}
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
                     ) shifts
@@ -552,6 +676,19 @@ class SkiftjamforelseController {
             $today   = date('Y-m-d');
             $from    = date('Y-m-d', strtotime("-{$days} days"));
 
+            // FIX (A): okand linje -> ingen data-tabell finns i denna controller.
+            if (!$this->hasData) {
+                $this->sendSuccess([
+                    'ingen_data_for_linje' => true,
+                    'linje'     => $this->line,
+                    'practices' => [],
+                    'days'      => $days,
+                    'from_date' => $from,
+                    'to_date'   => $today,
+                ]);
+                return;
+            }
+
             $stationer = $this->getStationer();
             $stationMap = [];
             foreach ($stationer as $st) {
@@ -582,7 +719,7 @@ class SkiftjamforelseController {
                             MAX(ibc_ok)      AS ibc_end,
                             MAX(ibc_ej_ok)   AS ej_end,
                             MAX(runtime_plc) AS max_runtime
-                        FROM rebotling_ibc
+                        FROM {$this->ibcTable}
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
                     ) shifts
@@ -596,9 +733,10 @@ class SkiftjamforelseController {
                 $allStationSkift[$key] = $row;
             }
 
-            // Hamta stopptid och produktion en gang (utanfor loopen)
-            $stoppData = $this->getStopptidPerSkift($from, $today);
+            // Hamta produktion en gang (utanfor loopen). FIX (B): stopptid
+            // harleds ur produktionsdatan (samma def som detaljlistan).
             $prodData  = $this->getProduktionPerSkift($from, $today);
+            $stoppData = $this->getStopptidPerSkift($prodData);
 
             // For varje skift, hitta basta station
             foreach (array_keys(self::SKIFT) as $skift) {
@@ -636,18 +774,20 @@ class SkiftjamforelseController {
                 $stoppMin  = $stoppData[$skift] ?? 0;
 
                 $skiftData = $prodData[$skift];
+                // FIX (C): skift utan pass har inga meningsfulla insikter.
+                $harPass = (int)($skiftData['antal_pass'] ?? 0) > 0;
 
                 $insights = [];
-                if ($bastaStation && $bastaOee > 0) {
+                if ($harPass && $bastaStation && $bastaOee > 0) {
                     $insights[] = "Bast pa {$bastaStation} (OEE {$bastaOee}%)";
                 }
-                if ($skiftData['kvalitet_pct'] >= 98) {
+                if ($harPass && $skiftData['kvalitet_pct'] !== null && $skiftData['kvalitet_pct'] >= 98) {
                     $insights[] = "Utmarkt kvalitet ({$skiftData['kvalitet_pct']}%)";
                 }
-                if ($stoppMin < 30) {
+                if ($harPass && $stoppMin < 30) {
                     $insights[] = "Lag stopptid ({$stoppMin} min)";
                 }
-                if ($skiftData['ibc_per_h'] > 0) {
+                if ($harPass && $skiftData['ibc_per_h'] > 0) {
                     $insights[] = "{$skiftData['ibc_per_h']} IBC/h";
                 }
 
@@ -690,6 +830,20 @@ class SkiftjamforelseController {
             $today   = date('Y-m-d');
             $from    = date('Y-m-d', strtotime("-{$days} days"));
 
+            // FIX (A): okand linje -> ingen data-tabell finns i denna controller.
+            if (!$this->hasData) {
+                $this->sendSuccess([
+                    'ingen_data_for_linje' => true,
+                    'linje'     => $this->line,
+                    'detaljer'  => [],
+                    'days'      => $days,
+                    'from_date' => $from,
+                    'to_date'   => $today,
+                    'total'     => 0,
+                ]);
+                return;
+            }
+
             // Hamta per skiftraknare: datum, skifttyp, station, operator, IBC, OEE, stopptid
             $stmt = $this->pdo->prepare(
                 "SELECT
@@ -701,7 +855,7 @@ class SkiftjamforelseController {
                     MAX(ibc_ej_ok)   AS ibc_ej_ok,
                     MAX(runtime_plc) AS runtime_min,
                     MIN(NULLIF(op1, 0)) AS op_num
-                 FROM rebotling_ibc
+                 FROM {$this->ibcTable}
                  WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                  GROUP BY DATE(datum), skiftraknare
                  ORDER BY MIN(datum) DESC

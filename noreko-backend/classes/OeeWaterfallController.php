@@ -435,7 +435,9 @@ class OeeWaterfallController {
             'oee_trend'              => round(($curr['oee'] - $prev['oee']) * 100, 1),
             'tillganglighet_trend'   => round(($curr['tillganglighet'] - $prev['tillganglighet']) * 100, 1),
             'prestanda_trend'        => round(($curr['prestanda'] - $prev['prestanda']) * 100, 1),
-            'kvalitet_trend'         => round(($curr['kvalitet'] - $prev['kvalitet']) * 100, 1),
+            'kvalitet_trend'         => (!empty($curr['kvalitet_saknas']) || !empty($prev['kvalitet_saknas']))
+                                          ? null
+                                          : round(($curr['kvalitet'] - $prev['kvalitet']) * 100, 1),
 
             // Status
             'oee_klass'              => $oeeKlass,

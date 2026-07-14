@@ -226,7 +226,7 @@ class MaskinhistorikController {
         $total   = $ibcData['total'];
         $okAntal = $ibcData['ok'];
 
-        $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0.0;
+        $tillganglighet = $planeradSek > 0 ? min(1.0, $drifttidSek / $planeradSek) : 0.0;
         $prestanda = $drifttidSek > 0
             ? min(1.0, ($total * self::IDEAL_CYCLE_SEC) / $drifttidSek)
             : 0.0;
@@ -427,7 +427,7 @@ class MaskinhistorikController {
             $total   = $ibcData['total'];
             $okAntal = $ibcData['ok'];
 
-            $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0.0;
+            $tillganglighet = $planeradSek > 0 ? min(1.0, $drifttidSek / $planeradSek) : 0.0;
             $prestanda = $drifttidSek > 0
                 ? min(1.0, ($total * self::IDEAL_CYCLE_SEC) / $drifttidSek)
                 : 0.0;

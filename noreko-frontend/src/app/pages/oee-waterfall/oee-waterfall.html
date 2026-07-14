@@ -83,7 +83,7 @@
         </div>
         <div class="kpi-label">Kvalitet</div>
         <div class="kpi-sub">Godkänd IBC / total IBC</div>
-        <div class="kpi-trend" [style.color]="trendFarg(summary.kvalitet_trend)">
+        <div class="kpi-trend" *ngIf="summary.kvalitet_trend !== null" [style.color]="trendFarg(summary.kvalitet_trend)">
           {{ trendPil(summary.kvalitet_trend) }} {{ summary.kvalitet_trend > 0 ? '+' : '' }}{{ summary.kvalitet_trend }}pp
         </div>
       </div>

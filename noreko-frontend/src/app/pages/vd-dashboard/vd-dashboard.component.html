@@ -306,7 +306,7 @@
         <div class="card-body text-center py-3">
           <small style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.7rem;">Kvalitet</small>
           <div class="vd-oee-breakdown-value" [style.color]="getOeeColor(oversikt.kvalitet_pct)">
-            {{ oversikt.kvalitet_pct }}%
+            {{ oversikt.kvalitet_pct != null ? oversikt.kvalitet_pct + '%' : '–' }}
           </div>
         </div>
       </div>

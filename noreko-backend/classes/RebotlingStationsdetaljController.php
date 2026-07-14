@@ -173,7 +173,7 @@ class RebotlingStationsdetaljController {
         $total   = $ibcData['total'];
         $okAntal = $ibcData['ok'];
 
-        $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0.0;
+        $tillganglighet = $planeradSek > 0 ? min(1.0, $drifttidSek / $planeradSek) : 0.0;
         $prestanda = $drifttidSek > 0
             ? min(1.0, ($total * self::IDEAL_CYCLE_SEC) / $drifttidSek)
             : 0.0;
@@ -216,7 +216,7 @@ class RebotlingStationsdetaljController {
         $oee = $this->calcOee($fromDt, $toDt);
 
         $drifttidProcent = $oee['planerad_h'] > 0
-            ? round($oee['drifttid_h'] / $oee['planerad_h'] * 100, 1)
+            ? round(min(100.0, $oee['drifttid_h'] / $oee['planerad_h'] * 100), 1)
             : 0.0;
 
         $this->sendSuccess([

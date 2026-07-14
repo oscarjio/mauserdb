@@ -45,9 +45,9 @@ class VeckotrendController {
             $stmt = $this->pdo->prepare("
                 WITH lag_base AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
-                           MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
-                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end,
-                           AVG(runtime_plc)             AS avg_cykeltid
+                           MAX(COALESCE(ibc_ok, 0))     AS ibc_end,
+                           MAX(COALESCE(ibc_ej_ok, 0))  AS ibc_ej_end,
+                           MAX(COALESCE(runtime_plc, 0)) AS runtime_end
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
@@ -56,13 +56,17 @@ class VeckotrendController {
                     SELECT dag, skiftraknare,
                            CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc_ok,
                            CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ibc_ej_ok,
-                           avg_cykeltid
+                           CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN runtime_end - COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE runtime_end END AS shift_runtime_min
                     FROM lag_base
                 )
                 SELECT dag,
-                       COALESCE(SUM(shift_ibc_ok), 0)           AS ibc_ok,
-                       COALESCE(SUM(shift_ibc_ej_ok), 0)        AS ibc_ej_ok,
-                       ROUND(COALESCE(AVG(avg_cykeltid), 0), 2) AS snitt_cykeltid
+                       COALESCE(SUM(shift_ibc_ok), 0)    AS ibc_ok,
+                       COALESCE(SUM(shift_ibc_ej_ok), 0) AS ibc_ej_ok,
+                       ROUND(
+                           CASE WHEN SUM(shift_ibc_ok) > 0
+                                THEN LEAST(600, SUM(shift_runtime_min)) / SUM(shift_ibc_ok)
+                                ELSE 0 END
+                       , 2) AS snitt_cykeltid
                 FROM lag_shifts
                 GROUP BY dag
                 ORDER BY dag ASC

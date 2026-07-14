@@ -295,7 +295,7 @@ class SkiftoverlamningController {
 
             // OEE-beräkning
             $planeradSek = 8 * 3600;
-            $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0;
+            $tillganglighet = $planeradSek > 0 ? min(1.0, $drifttidSek / $planeradSek) : 0;
             $prestanda = $drifttidSek > 0 ? min(1.0, ($total * 120) / $drifttidSek) : 0;
             $kvalitet = $total > 0 ? ($okAntal / $total) : 0;
             $oee = $tillganglighet * $prestanda * $kvalitet;
@@ -396,14 +396,14 @@ class SkiftoverlamningController {
 
             // OEE
             $planeradSek = 8 * 3600;
-            $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0;
+            $tillganglighet = $planeradSek > 0 ? min(1.0, $drifttidSek / $planeradSek) : 0;
             $prestanda = $drifttidSek > 0 ? min(1.0, ($total * 120) / $drifttidSek) : 0;
             $kvalitet = $total > 0 ? ($okAntal / $total) : 0;
             $oee = $tillganglighet * $prestanda * $kvalitet;
 
             $kassationsgrad = $total > 0 ? round(($kasserade / $total) * 100, 1) : 0;
             $drifttidH = round($drifttidSek / 3600, 1);
-            $drifttidPct = round(($drifttidSek / $planeradSek) * 100, 1);
+            $drifttidPct = round(min(100.0, ($drifttidSek / $planeradSek) * 100), 1);
 
             // Hämta ev. överlämning som gjordes för detta skift
             $overlamning = null;
@@ -1111,7 +1111,7 @@ class SkiftoverlamningController {
 
             // OEE-berakning
             $planeradSek = 8 * 3600;
-            $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0;
+            $tillganglighet = $planeradSek > 0 ? min(1.0, $drifttidSek / $planeradSek) : 0;
             $prestanda = $drifttidSek > 0 ? min(1.0, ($total * 120) / $drifttidSek) : 0;
             $kvalitet = $total > 0 ? ($okAntal / $total) : 0;
             $oee = round($tillganglighet * $prestanda * $kvalitet * 100, 2);

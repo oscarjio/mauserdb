@@ -211,7 +211,11 @@ class RebotlingAnalyticsController {
                              THEN SUM(ibc_ok) * 100.0 / (SUM(ibc_ok) + SUM(ibc_ej_ok))
                              ELSE 0 END
                     , 1) AS snitt_produktion_pct,
-                    ROUND(AVG(avg_runtime_plc), 1) AS snitt_cykeltid,
+                    ROUND(
+                        CASE WHEN SUM(ibc_ok) > 0
+                             THEN SUM(shift_runtime) / SUM(ibc_ok)
+                             ELSE 0 END
+                    , 2) AS snitt_cykeltid,
                     SUM(shift_runtime) AS kortid_minuter
                 FROM (
                     SELECT
@@ -221,8 +225,7 @@ class RebotlingAnalyticsController {
                         MAX(COALESCE(ibc_ok,    0)) AS ibc_ok,
                         MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
                         MAX(COALESCE(bur_ej_ok,  0)) AS bur_ej_ok,
-                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
-                        AVG(runtime_plc)             AS avg_runtime_plc
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime
                     FROM rebotling_ibc
                     WHERE datum >= ?
                     GROUP BY DATE(datum), skiftraknare
@@ -6997,7 +7000,6 @@ HTML;
                     MAX(COALESCE(bur_ej_ok, 0))   AS bur_ej_ok,
                     MAX(COALESCE(runtime_plc, 0)) AS runtime_min,
                     MAX(COALESCE(rasttime, 0))    AS rast_min,
-                    AVG(COALESCE(runtime_plc, 0)) AS avg_cykeltid,
                     HOUR(MIN(datum))              AS start_hour
                 FROM rebotling_ibc
                 WHERE datum >= ?
@@ -7100,8 +7102,9 @@ HTML;
                     ? round($avail * $perf * $qual * 100, 1)
                     : null;
 
-                $avgCykel = ($agg['cykeltid_count'] > 0)
-                    ? round($agg['cykeltid_sum'] / $agg['cykeltid_count'], 2)
+                // Snitt-cykeltid = total drifttid / total IBC (min/IBC), reset-säker per skift.
+                $avgCykel = ($ibcOk > 0 && $rtMin > 0)
+                    ? round($rtMin / $ibcOk, 2)
                     : null;
                 $stopptid = ($rtMin > 0) ? max(0, round(($nSkift * 480) - $rtMin - $rastMin, 0)) : null;
 
@@ -7136,11 +7139,11 @@ HTML;
                     'datum'       => $d,
                     'dag_ibc'     => $dagEntry  ? $dagEntry['ibc_ok']  : null,
                     'natt_ibc'    => $nattEntry ? $nattEntry['ibc_ok'] : null,
-                    'dag_cykeltid'  => ($dagEntry && $dagEntry['cykeltid_count'] > 0)
-                        ? round($dagEntry['cykeltid_sum'] / $dagEntry['cykeltid_count'], 2)
+                    'dag_cykeltid'  => ($dagEntry && $dagEntry['ibc_ok'] > 0 && $dagEntry['runtime_min'] > 0)
+                        ? round($dagEntry['runtime_min'] / $dagEntry['ibc_ok'], 2)
                         : null,
-                    'natt_cykeltid' => ($nattEntry && $nattEntry['cykeltid_count'] > 0)
-                        ? round($nattEntry['cykeltid_sum'] / $nattEntry['cykeltid_count'], 2)
+                    'natt_cykeltid' => ($nattEntry && $nattEntry['ibc_ok'] > 0 && $nattEntry['runtime_min'] > 0)
+                        ? round($nattEntry['runtime_min'] / $nattEntry['ibc_ok'], 2)
                         : null,
                     'dag_kvalitet'  => ($dagEntry && $dagEntry['totalt'] > 0)
                         ? round($dagEntry['ibc_ok'] / $dagEntry['totalt'] * 100, 1)
