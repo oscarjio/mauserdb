@@ -247,14 +247,17 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Korrupt drifttid för EN post: >= 600 min (10h+, kumulativt/trasigt värde) ELLER netto-drift
-   * som överstiger skiftets wall-clock-spann (netto kan aldrig vara > spannet). 5 min tolerans.
+   * Korrupt drifttid för EN post: >= 600 min (10h+, hård kumulativ/trasig-cap-artefakt) ELLER
+   * netto-drift som GROVT överstiger skiftets wall-clock-spann (> span × 1.5). Marginalen är rundlig
+   * med flit: en liten överskjutning (t.ex. 07-13: 3h9m mot 3h4m-span) är klock-skew mellan
+   * PLC-räknare och inskickade tider, INTE korrupt data — bara grova brott (06-29: 600min mot
+   * 30min-span) ska döljas.
    */
   private _isDrifttidCorrupt(r: any): boolean {
     const d = r?.drifttid || 0;
     if (d >= 600) return true;
     const span = this._shiftSpanMin(r);
-    return span !== null && d > span + 5;
+    return span !== null && d > span * 1.5;
   }
 
   private _computeEfficiencyPct(r: any): number | null {
