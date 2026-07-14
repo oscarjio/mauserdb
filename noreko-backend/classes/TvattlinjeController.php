@@ -1808,11 +1808,13 @@ class TvattlinjeController {
                 }
                 if (!$overlapsPause) { $cycle_times[] = $ct; }
             }
-            // BUG3a: snittcykeltid ska ha SAMMA netto-def som skiftrapportkorten
-            // (nettodrift / SR-IBC), inte medel av enskilda wall-clock-gap. Annars pekar
-            // statistik-EFF åt annat håll än korten. netRuntimeMinutes (rad ~1743) är redan netto.
-            $avg_cycle_time = $total_ibc_skiftrapport > 0
-                ? $netRuntimeMinutes / $total_ibc_skiftrapport
+            // Steg3: snittcykeltid = netto-körtid / IBC med SAMMA scope i täljare och nämnare.
+            // netRuntimeMinutes är PLC-brett (byggs per dag över UNIONEN av SR- + PLC-dagar, se
+            // driftStmt) => nämnaren måste också vara PLC-IBC över alla dagar, inte bara SR-IBC.
+            // total_cycles = reset-säker SUM av ibc_count-delta från tvattlinje_ibc = PLC:s IBC-antal.
+            // (Föregående version delade PLC-körtid på SR-IBC => olika scope => uppblåst cykel => -44%.)
+            $avg_cycle_time = $total_cycles > 0
+                ? $netRuntimeMinutes / $total_cycles
                 : 0;
 
             // BUG3b: använd produktens cykeltid (tvattlinje_products.cycle_time_minutes),
