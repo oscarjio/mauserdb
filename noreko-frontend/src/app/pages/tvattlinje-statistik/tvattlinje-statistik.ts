@@ -862,7 +862,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       .map((e: any) => {
         const m = /(\d{2}):(\d{2})/.exec(e.datum || '');
         const minOfDay = m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
-        return { min: minOfDay, running: !!e.running };
+        // A: PDO ger running som strängen "0" (truthy) → !!"0" === true. Jämför explicit.
+        return { min: minOfDay, running: (e.running == 1 || e.running === true || e.running === '1') };
       })
       .sort((a: any, b: any) => a.min - b.min);
 
@@ -1268,8 +1269,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       if (periodCycles.length > 0) {
         // Filtrera bort NULL och 0 värden när vi beräknar genomsnitt
         const validCycleTimes = periodCycles
-          .map(c => c.cycle_time)
-          .filter(t => t !== null && t !== undefined && t > 0);
+          .map(c => parseFloat(c.cycle_time))
+          .filter(t => !isNaN(t) && t > 0 && t <= 30);
 
         const avgCycleTime = validCycleTimes.length > 0
           ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
@@ -1482,7 +1483,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         key = this.monthNames[date.getMonth()].substring(0, 3);
       }
 
-      if (grouped.has(key) && event.running) {
+      if (grouped.has(key) && (event.running == 1 || event.running === true || event.running === '1')) {
         grouped.get(key).running = true;
       }
     });
@@ -2204,7 +2205,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         dsMin   = Math.round(overlapMin(dsPeriods, winStart, winEnd) * 10) / 10;
       }
 
-      const validCycleTimes = cycles.map(c => c.cycle_time).filter(t => t !== null && t !== undefined && t > 0);
+      const validCycleTimes = cycles.map(c => parseFloat(c.cycle_time)).filter(t => !isNaN(t) && t > 0 && t <= 30);
       const avgCycleTime = validCycleTimes.length > 0
         ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length : 0;
       const taktMal = this.targetCycleTime || 3;

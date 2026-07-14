@@ -2575,6 +2575,7 @@ class TvattlinjeController {
             $dagData     = [];
             $totalIbcSum = 0;
             $totalOkSum  = 0;
+            $srIbcSum    = 0; // D: IBC-summa BARA för SR-dagar (med ok-data) — kvalitetssnittets nämnare
             $bestaDag    = null;
             $bestaIbc    = 0;
 
@@ -2641,7 +2642,9 @@ class TvattlinjeController {
                 if ($tot > 0) { $producerandeDagar++; }
 
                 $totalIbcSum += $tot;
-                $totalOkSum  += $ok;
+                // D: kvalitetssnittet ska bara räkna dagar med faktisk ok-data (SR-dagar). PLC-only-
+                // dagar (qual_pct=null, ok tvingat till 0) skulle annars trycka ned snittet artificiellt.
+                if ($hasOkData) { $srIbcSum += $tot; $totalOkSum += $ok; }
                 // A: Bästa dag = flest inskickade IBCer (dedupliceras i SQL); exkludera pågående dag.
                 if ($tot > $bestaIbc && $r['dag'] < date('Y-m-d')) {
                     $bestaIbc = $tot;
@@ -2669,8 +2672,9 @@ class TvattlinjeController {
             if (count($oeeVals) > 0) {
                 $snittOee = round(array_sum($oeeVals) / count($oeeVals), 1);
             }
-            // Viktat snitt: SUM(ok) / SUM(totalt) — konsekvent med skiftrapport-sidan och statistik-fliken
-            $snittKvalitet = $totalIbcSum > 0 ? round($totalOkSum / $totalIbcSum * 100, 1) : 0;
+            // D: Viktat kvalitetssnitt = SUM(ok) / SUM(IBC på SR-dagar). Delar på $srIbcSum (ej
+            // $totalIbcSum) så PLC-only-dagar inte späder ned kvaliteten (samma villkor som qual_pct=null).
+            $snittKvalitet = $srIbcSum > 0 ? round($totalOkSum / $srIbcSum * 100, 1) : 0;
 
             echo json_encode([
                 'success' => true,

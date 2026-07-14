@@ -274,12 +274,13 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       // Kvalitet: godkända / totalt (kassationsförlust)
       const kvalitet = okIbc / totalIbc;
 
-      // Tillgänglighet: drifttid / (drifttid + rast + driftstopp)
-      // Planerad tid = drifttid + rasttime; driftstopp är oplanerade stopp
+      // Tillgänglighet: drifttid / (drifttid + driftstopp)
+      // C: drifttid (D4007) är REDAN netto exkl rast → rast räknas INTE som tillgänglighetsförlust
+      // här (annars blir per-rad-OEE systematiskt lägre än header-KPI:n summaryAvgOee som använder
+      // schema = drift + driftstopp utan rast). driftstopp = oplanerade stopp.
       const drifttidMin  = Math.min(r.drifttid ?? 0, 600);
-      const rasttime     = r.rasttime ?? 0;
       const driftstopp   = r.driftstopptime ?? 0;
-      const plannadTid   = drifttidMin + rasttime + driftstopp;
+      const plannadTid   = drifttidMin + driftstopp;
       if (plannadTid <= 0) return null;
       const tillganglighet = Math.min(drifttidMin / plannadTid, 1);
 

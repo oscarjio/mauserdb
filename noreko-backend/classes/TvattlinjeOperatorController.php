@@ -340,7 +340,11 @@ class TvattlinjeOperatorController {
             $drifttidMin = min((float)($s['drifttid'] ?? 0), 600.0);
             // D4007 (drifttid) exkluderar redan rast — inget dubbelavdrag av rasttime.
             $nettoMin    = $drifttidMin;
-            $nettotimMin = $nettoMin / $antalAktiva; // tid per operatör
+            // E: alla aktiva operatörer arbetar HELA skiftet parallellt (Op1+Op2+Op3 delar samma
+            // drifttid) — IBC delas per operatör (tot/n) men TIDEN ska ALDRIG delas. Att dela tiden
+            // gav (tot/n)/((min/n)/60) = hela linjens takt (~20/h) per op istället för ~7/h, och
+            // motsade TvattlinjeController::getOperatorScores som ackumulerar full skiftminut per op.
+            $nettotimMin = $nettoMin;
 
             foreach ($aktiva as $opId) {
                 if (!isset($opData[$opId])) {
