@@ -6942,3 +6942,11 @@ ssh -p 42222 aiab@127.0.0.1 (root-nyckel). internal-api kör i /home/aiab/piagg-
 Verifierat live (linjen kör, IBC ~47): run=status running=true (lastUpdate 09:36, ej 07:04);
 nav-dot/live/hem/all-lines/plc-diag ALLA Igång; statistics sr_per_dag[07-06]=62 (ej 291);
 ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). Pi-DB = dev, ej prod.
+
+## 2026-07-14 iter29 (A-D) — commit 8233c4e2, CODE_VERSION=8233c4e2 (dev)
+- **A** SkiftjamforelseController.php ~373: `$maxIbcH -1 -> 0` (strikt `>`). Skift med 0 IBC/h utses ej till "mest produktiv" nar alla=0 -> `mestProduktiv=null` -> frontend "-". LIVE-bevisad.
+- **B** SkiftjamforelseController.php ~394: mest_forbattrad hoppar over skift utan baslinje i foreg. period (`oee_pct===null || antal_pass===0`). Utan baslinje blev delta = hela OEE -> alltid "mest forbattrad".
+- **C** frontend skiftjamforelse: SkiftRow.oee_pct/tillganglighet_pct/prestanda_pct/avg_cykeltid_sek -> `number|null`; +`ingen_data_for_linje?` pa JamforelseData. HTML: null -> "–" (istf "null%"/"0s") + varningsbanner nar linje saknar data. LIVE-bevisad (Natt-raden). Syskonkomponenten statistik-skiftjamforelse anvander egen redan-null-guardad modell -> orord.
+- **D** UtnyttjandegradController.php:34: `TILLGANGLIG_TID_PER_DAG 22.5 -> 7.5` (ETT skift/dag, ej treskift). Utnyttjandegrad var ~3x for lag.
+- **E** MaintenanceController linje-kolumn i service_intervals — KOAD till iter30 (kraver dev-DB migration + tabellval rebotling_ibc/tvattlinje_ibc).
+- Verifiering: `php -l` rent x2, `tsc -p tsconfig.watch.json` exit 0, frontend watch rebuild 2.1s + deploy OK. Endpoints 401 (auth-gated) — inga 500. A/C live-bevisade av agaren. Prod ororad.
