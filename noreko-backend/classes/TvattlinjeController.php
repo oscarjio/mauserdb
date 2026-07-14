@@ -142,7 +142,7 @@ class TvattlinjeController {
             ['dagmal',       '140'],
             ['takt_mal',     '3'],
             ['skift_start',  '06:00'],
-            ['skift_slut',   '22:00'],
+            ['skift_slut',   '14:15'],
         ];
         $stmt = $this->pdo->prepare("INSERT IGNORE INTO tvattlinje_settings (setting, value) VALUES (?, ?)");
         foreach ($defaults as [$k, $v]) {
@@ -366,7 +366,7 @@ class TvattlinjeController {
                 $sr2 = $this->pdo->query(
                     "SELECT value FROM tvattlinje_settings WHERE setting = 'skift_slut'"
                 )->fetch(\PDO::FETCH_ASSOC);
-                $skiftSlut = $sr2 ? $sr2['value'] : '22:00';
+                $skiftSlut = $sr2 ? $sr2['value'] : '14:15';
 
                 $startDt = new \DateTime($now->format('Y-m-d') . ' ' . $skiftStart, $tz);
                 $slutDt  = new \DateTime($now->format('Y-m-d') . ' ' . $skiftSlut,  $tz);
@@ -374,6 +374,9 @@ class TvattlinjeController {
                     $skiftTimmar = ($slutDt->getTimestamp() - $startDt->getTimestamp()) / 3600.0;
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot skiftTimmar: ' . $e->getMessage()); }
+            // A: klampa orimlig skiftlängd (felaktig skift_slut=22:00 → 16h) → 8.25h (495 min).
+            // Annars skenar prognosen (16h-fönster ger prognos ~255 mot mål 140).
+            if ($skiftTimmar <= 0 || $skiftTimmar > 10.0) { $skiftTimmar = 8.25; }
 
             // Prognos
             // C3: använd skiftstart ur settings (redan inläst som $skiftStart-tid / $startDt) istället för hårdkodat 06:00.
@@ -763,7 +766,7 @@ class TvattlinjeController {
                 $srStart = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting = 'skift_start'")->fetch(PDO::FETCH_ASSOC);
                 $srSlut  = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting = 'skift_slut'")->fetch(PDO::FETCH_ASSOC);
                 $skiftStartVal = ($srStart && !empty($srStart['value'])) ? $srStart['value'] : '06:00';
-                $skiftSlutVal  = ($srSlut  && !empty($srSlut['value']))  ? $srSlut['value']  : '22:00';
+                $skiftSlutVal  = ($srSlut  && !empty($srSlut['value']))  ? $srSlut['value']  : '14:15';
                 $today   = date('Y-m-d');
                 $startDt = new DateTime($today . ' ' . $skiftStartVal, $tzSkift);
                 $slutDt  = new DateTime($today . ' ' . $skiftSlutVal,  $tzSkift);
@@ -773,7 +776,9 @@ class TvattlinjeController {
             } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getLiveStats skiftTimmar: ' . $e->getMessage());
             }
-            if ($skiftTimmar <= 0) { $skiftTimmar = 8.0; }
+            // A: klampa orimlig skiftlängd (t.ex. felaktigt seedad skift_slut=22:00 → 16h → mål/16
+            // gav taktPercentage 179% fast linjen kör under mål). >10h eller <=0 → fallback 8.25h (495 min).
+            if ($skiftTimmar <= 0 || $skiftTimmar > 10.0) { $skiftTimmar = 8.25; }
             $hourlyTarget = $ibcTarget / $skiftTimmar;
 
             // Beräkna total runtime för idag
@@ -2533,19 +2538,23 @@ class TvattlinjeController {
                 $stmt = $this->pdo->prepare("
                     SELECT
                         alldays.dag                                       AS dag,
-                        COALESCE(sr.total_ibc, ibcmax.ibc_max, 0)         AS total_ibc,
+                        -- B: PLC-först (som resten av appen). sr.total_ibc är SUM(...) och blir 0 (aldrig
+                        -- NULL) vid tom/korrupt skiftrapport → NULLIF gör att PLC-talet inte kastas.
+                        COALESCE(NULLIF(ibcmax.ibc_max, 0), NULLIF(sr.total_ibc, 0), 0) AS total_ibc,
+                        sr.total_ibc                                      AS sr_total_ibc,
                         sr.total_ok                                       AS total_ok,
                         sr.total_ej_ok                                    AS total_ej_ok,
-                        CASE WHEN sr.total_ibc IS NOT NULL THEN 0 ELSE 1 END AS is_plc_only,
+                        -- B: SR-dag = det finns ok-data (total_ok NOT NULL), inte total_ibc (som är 0 vid tom SR).
+                        CASE WHEN sr.total_ok IS NOT NULL THEN 0 ELSE 1 END AS is_plc_only,
                         COALESCE(sr.skift_count, 0)                       AS skift_count,
                         sr.total_runtime_min                             AS total_runtime_min,
                         COALESCE(plc.plc_runtime_min, 0)                 AS plc_runtime_min
                     FROM (
                         SELECT DATE(datum) AS dag FROM tvattlinje_skiftrapport
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY) AND datum < CURDATE() + INTERVAL 1 DAY
                         UNION
                         SELECT DATE(datum) AS dag FROM tvattlinje_ibc
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY)
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY) AND datum < CURDATE() + INTERVAL 1 DAY
                     ) alldays
                     LEFT JOIN (
                         SELECT
@@ -2559,7 +2568,7 @@ class TvattlinjeController {
                         INNER JOIN (
                             SELECT MAX(id) AS max_id
                             FROM tvattlinje_skiftrapport
-                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar3 DAY)
+                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar3 DAY) AND datum < CURDATE() + INTERVAL 1 DAY
                             GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                         ) latest ON sr.id = latest.max_id
                         GROUP BY DATE(sr.datum)
@@ -2567,13 +2576,13 @@ class TvattlinjeController {
                     LEFT JOIN (
                         SELECT DATE(datum) AS dag, MAX(ibc_count) AS ibc_max
                         FROM tvattlinje_ibc
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar4 DAY)
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar4 DAY) AND datum < CURDATE() + INTERVAL 1 DAY
                         GROUP BY DATE(datum)
                     ) ibcmax ON ibcmax.dag = alldays.dag
                     LEFT JOIN (
                         SELECT DATE(datum) AS dag, MAX(runtime_plc) AS plc_runtime_min
                         FROM tvattlinje_ibc
-                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar5 DAY)
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar5 DAY) AND datum < CURDATE() + INTERVAL 1 DAY
                           AND runtime_plc IS NOT NULL AND runtime_plc > 0
                         GROUP BY DATE(datum)
                     ) plc ON plc.dag = alldays.dag
@@ -2609,6 +2618,7 @@ class TvattlinjeController {
             $totalIbcSum = 0;
             $totalOkSum  = 0;
             $srIbcSum    = 0; // D: IBC-summa BARA för SR-dagar (med ok-data) — kvalitetssnittets nämnare
+            $snittIbcSum = 0; // C: IBC-summa för snitt/dag — exkluderar dagens halvfärdiga produktion
             $bestaDag    = null;
             $bestaIbc    = 0;
 
@@ -2630,10 +2640,11 @@ class TvattlinjeController {
                 $hasOkData = !$isPlcOnly && $r['total_ok'] !== null;
                 $ok  = $hasOkData ? max(0, (int)$r['total_ok']) : 0;
 
-                // B: Kvalitet = antal_ok / totalt. totalt=0 → 0 (ingen godkänd produktion), och
-                // allt kasserat (ok=0, tot>0) → 0 (INTE 100 som tidigare maskerade full kassation).
-                // C5: PLC-only dag saknar kvalitetsdata → null (rapporteras ej som 0%).
-                $qual_pct = $isPlcOnly ? null : (($tot > 0) ? round(($ok / $tot) * 100, 1) : 0.0);
+                // B: Kvalitet delar total_ok / sr_total_ibc (SR-INTERN nämnare) — INTE PLC-$tot, annars
+                // återinförs ok(SR)/ibc(PLC)-buggen (kvalitet deflaterad). Bara total_ibc/perf/snitt/bästa
+                // dag använder PLC-talet. PLC-only dag (ingen ok-data) → null (rapporteras ej som 0%).
+                $srTot = (int)($r['sr_total_ibc'] ?? 0);
+                $qual_pct = $isPlcOnly ? null : (($srTot > 0) ? round(($ok / $srTot) * 100, 1) : 0.0);
 
                 // C: Körtid = skiftrapportens drifttid (D4007, exkl rast); fallback MAX(runtime_plc)
                 // från tvattlinje_ibc. Ingen körtidskälla alls → 0% tillgänglighet (ej 100).
@@ -2672,7 +2683,9 @@ class TvattlinjeController {
                     ? null
                     : round(($avail_pct / 100.0) * ($perf_pct / 100.0) * ($qual_pct / 100.0) * 100.0, 1);
 
-                if ($tot > 0) { $producerandeDagar++; }
+                // C: snitt/dag exkluderar dagens halvfärdiga produktion (samma som bästa dag nedan).
+                $isToday = ($r['dag'] === date('Y-m-d'));
+                if ($tot > 0 && !$isToday) { $producerandeDagar++; $snittIbcSum += $tot; }
 
                 $totalIbcSum += $tot;
                 // D: kvalitetssnittet ska bara räkna dagar med faktisk ok-data (SR-dagar). PLC-only-
@@ -2696,8 +2709,9 @@ class TvattlinjeController {
                 ];
             }
 
-            // C5: snitt/dag delas med antal dagar med FAKTISK produktion (total_ibc>0), inte alla kalenderdagar.
-            $snittPerDag = $producerandeDagar > 0 ? round($totalIbcSum / $producerandeDagar, 1) : 0;
+            // C5/C: snitt/dag = IBC på avslutade produktionsdagar (exkl. idag) / antal sådana dagar.
+            // total_ibc-summan (nedan) inkluderar fortfarande idag; bara snittet exkluderar det.
+            $snittPerDag = $producerandeDagar > 0 ? round($snittIbcSum / $producerandeDagar, 1) : 0;
             $snittOee = 0;
             $snittKvalitet = 0;
             // C5: OEE-snitt endast över dagar med beräknad OEE (PLC-only dagar har null OEE → exkluderas).

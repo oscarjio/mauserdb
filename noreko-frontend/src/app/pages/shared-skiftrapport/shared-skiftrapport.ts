@@ -525,7 +525,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
     if (totalDrift <= 0) return null;
     const schema = totalDrift + totalDriftstopp;
-    return totalDriftstopp > 0 ? Math.round((totalDrift / schema) * 100) : 100;
+    if (schema <= 0) return null;
+    if (totalDriftstopp <= 0) return null;
+    return Math.min(100, Math.round((totalDrift / schema) * 100));
   }
 
   get summaryAvgOee(): number | null {

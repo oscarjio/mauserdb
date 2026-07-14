@@ -899,13 +899,21 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     }
     if (currentRunning && lastEventMin !== null) totalRunMinutes += lastEventMin - runStartMin;
 
-    const totalSpan = lastEventMin! - firstRunMin;
     this.dayLongestStopMinutes = longestStop;
-    // BUGG B: onoff-summan (totalRunMinutes) kunde ge >100% och motsäga KORTID-kortet,
-    // som binder till totalRuntimeHours (backendens total_runtime_hours). Beräkna
-    // utnyttjande från SAMMA körtid som KORTID-kortet visar (h → min).
-    const runtimeMinutes = this.totalRuntimeHours * 60;
-    this.dayUtilizationPct = totalSpan > 0 ? Math.min(100, Math.round((runtimeMinutes / totalSpan) * 100)) : 0;
+    // BUGG E: computeDayMetrics läser bara onoff_events → rast/driftstopp genererar inga
+    // onoff-events, så täljare == nämnare och utnyttjandet låstes matematiskt vid ~100%.
+    // ROT: mät mot PLANERAD skifttid med rast och driftstopp avdragna från körtiden,
+    // samma planerade skift som backend getOeeTrend använder (vardag mån-tors=495, fre=480).
+    const rastMin = this.totalRastMinutes || 0;
+    const driftstoppMin = this.totalDriftstoppMinutes || 0;
+    const netRun = Math.max(0, totalRunMinutes - rastMin - driftstoppMin);
+    // Veckodag för vald dag: 1=mån..7=sön. getDay() ger 0=sön..6=lör → ((getDay()+6)%7)+1.
+    const dayN = this.selectedPeriods.length > 0
+      ? ((this.selectedPeriods[0].getDay() + 6) % 7) + 1
+      : 1;
+    // Helg (lör/sön) = ingen fast planerad tid → mät mot faktisk körtid (100% om linjen kört).
+    const planned = (dayN >= 6) ? Math.max(1, totalRunMinutes) : (dayN === 5 ? 480 : 495);
+    this.dayUtilizationPct = Math.min(100, Math.round((netRun / planned) * 100));
   }
 
   // =========================================================
