@@ -290,11 +290,18 @@ class TvattlinjeController {
             // Dagsmål — veckodagsmål (0=Måndag, PHP ISO-1 → 0-index: ISO-1)
             $dagmal = 140;
             try {
+                // BUGG H: läs dagmål exakt som getLiveStats — senaste raden (ORDER BY id DESC LIMIT 1),
+                // kräv >0 (annars slår 0/tomt igenom → mål 0), fallback till antal_per_dag ur settings.
                 $this->ensureSettingsTable();
                 $sr = $this->pdo->query(
-                    "SELECT value FROM tvattlinje_settings WHERE setting = 'dagmal'"
+                    "SELECT value FROM tvattlinje_settings WHERE setting = 'dagmal' ORDER BY id DESC LIMIT 1"
                 )->fetch(\PDO::FETCH_ASSOC);
-                if ($sr) $dagmal = (int)$sr['value'];
+                if ($sr && (int)$sr['value'] > 0) {
+                    $dagmal = (int)$sr['value'];
+                } else {
+                    $settings = $this->loadSettings();
+                    if (!empty($settings['antal_per_dag'])) $dagmal = (int)$settings['antal_per_dag'];
+                }
 
                 // Veckodagsmål: PHP ISO 1=Måndag → weekday index 0-6
                 $isoDay = (int)$now->format('N') - 1; // 0=Måndag
@@ -332,10 +339,14 @@ class TvattlinjeController {
             // inte alltid 2.0h — samma mönster som getLiveStats.
             $taktPerTimme = 0.0;
             try {
+                // BUGG E: MAX-MIN spänner falskt över en PLC-nollställning (skiftrapport nollställer
+                // ibc_count mitt i 2h-fönstret) → falsk hög takt. Reset-säkert: summera positiva
+                // deltan mellan på varandra följande poster (LAG), negativa hopp (reset) ger 0.
                 $taktRow = $this->pdo->query(
-                    "SELECT MAX(ibc_count) - MIN(ibc_count) AS ibc_delta, MIN(datum) AS min_datum
-                     FROM tvattlinje_ibc
-                     WHERE datum >= GREATEST(DATE_SUB(NOW(), INTERVAL 2 HOUR), CURDATE())"
+                    "SELECT COALESCE(SUM(d),0) AS ibc_delta, MIN(datum) AS min_datum
+                     FROM (SELECT datum, GREATEST(0, ibc_count - LAG(ibc_count) OVER (ORDER BY datum)) AS d
+                           FROM tvattlinje_ibc
+                           WHERE datum >= GREATEST(DATE_SUB(NOW(), INTERVAL 2 HOUR), CURDATE())) t"
                 )->fetch(\PDO::FETCH_ASSOC);
                 $ibcDelta = $taktRow ? max(0, (int)$taktRow['ibc_delta']) : 0;
                 $minDatum = $taktRow['min_datum'] ?? null;
@@ -841,10 +852,14 @@ class TvattlinjeController {
             $taktPerH       = 0.0;
             $taktPercentage = 0.0;
             try {
+                // BUGG E: MAX-MIN spänner falskt över en PLC-nollställning (skiftrapport nollställer
+                // ibc_count mitt i 2h-fönstret) → falsk hög takt. Reset-säkert: summera positiva
+                // deltan mellan på varandra följande poster (LAG), negativa hopp (reset) ger 0.
                 $taktStmt = $this->pdo->query(
-                    "SELECT MAX(ibc_count) - MIN(ibc_count) AS ibc_delta, MIN(datum) AS min_datum
-                     FROM tvattlinje_ibc
-                     WHERE datum >= GREATEST(DATE_SUB(NOW(), INTERVAL 2 HOUR), CURDATE())"
+                    "SELECT COALESCE(SUM(d),0) AS ibc_delta, MIN(datum) AS min_datum
+                     FROM (SELECT datum, GREATEST(0, ibc_count - LAG(ibc_count) OVER (ORDER BY datum)) AS d
+                           FROM tvattlinje_ibc
+                           WHERE datum >= GREATEST(DATE_SUB(NOW(), INTERVAL 2 HOUR), CURDATE())) t"
                 );
                 $taktRow  = $taktStmt->fetch(PDO::FETCH_ASSOC);
                 $ibcDelta = $taktRow ? max(0, (int)$taktRow['ibc_delta']) : 0;
@@ -2040,6 +2055,24 @@ class TvattlinjeController {
                 $prevOmtv += (int)($r['omtvaatt']    ?? 0);
             }
             $prevIbc   = $prevOk + $prevEjOk + $prevOmtv;
+
+            // BUGG F: dagens totalIbc har PLC-fallback (MAX(ibc_count)) men prevIbc byggdes enbart
+            // ur skiftrapporter. En PLC-only-gårdag (IBC men ingen inskickad SR) gav prevIbc=0 →
+            // delta_ibc visade +N istället för N−gårdagen. Samma PLC-fallback för prevIbc.
+            if ($prevIbc === 0) {
+                try {
+                    $stmtPrevPlc = $this->pdo->prepare("
+                        SELECT MAX(ibc_count) AS plc_ibc
+                        FROM tvattlinje_ibc
+                        WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
+                    ");
+                    $stmtPrevPlc->execute(['datum' => $prevDatum, 'datumb' => $prevDatum]);
+                    $prevPlc = (int)$stmtPrevPlc->fetchColumn();
+                    $prevIbc = max(0, $prevPlc);
+                } catch (\Throwable $e) {
+                    error_log('TvattlinjeController::getReport prevPlcFallback: ' . $e->getMessage());
+                }
+            }
             $deltaIbc  = $totalIbc - $prevIbc;
 
             // BUGG C: runtime tidigare = väggklockespann MIN(datum)..MAX(datum) → inkluderade rast +

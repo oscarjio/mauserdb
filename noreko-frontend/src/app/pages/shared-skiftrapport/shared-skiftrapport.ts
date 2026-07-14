@@ -493,24 +493,43 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return 'Avvikande post (trolig korrupt inmatning): ' + reasons.join('. ') + '.';
   }
 
+  /**
+   * Deduplicerar snapshot-poster per (dag, skiftraknare) — behåller posten med högsta id
+   * (senaste inskicket). Samma nyckel/logik som recomputeKpis (rad ~194-201). Krävs eftersom
+   * tvattlinje_skiftrapport kan ha flera snapshots för samma skift, där `drifttid` är kumulativ
+   * D4007 — rå summering av multi-poster skulle dubbelräkna drifttid/IBC i header-KPI:erna.
+   */
+  private dedupSnapshots(rows: any[]): any[] {
+    const map = new Map<string, any>();
+    for (const r of rows) {
+      const dateStr = (r.datum || '').substring(0, 10);
+      const key = dateStr + '#' + (r.skiftraknare ?? 0);
+      const prev = map.get(key);
+      if (!prev || (Number(r.id) || 0) > (Number(prev.id) || 0)) map.set(key, r);
+    }
+    return Array.from(map.values());
+  }
+
   get summaryAvgIbcH(): number | null {
-    const totalNet = this.filteredReports.reduce(
+    const reports = this.dedupSnapshots(this.filteredReports);
+    const totalNet = reports.reduce(
       (s, r) => s + Math.max(0, Math.min(r.drifttid || 0, 600)), 0);
-    const totalIbc = this.filteredReports.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
+    const totalIbc = reports.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
     if (totalNet <= 0 || totalIbc <= 0) return null;
     return Math.round(totalNet / totalIbc * 10) / 10;
   }
 
   get summaryAvgEfficiency(): number | null {
-    const totalDrift    = this.filteredReports.reduce((s, r) => s + Math.min(r.drifttid || 0, 600), 0);
-    const totalDriftstopp = this.filteredReports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
+    const reports = this.dedupSnapshots(this.filteredReports);
+    const totalDrift    = reports.reduce((s, r) => s + Math.min(r.drifttid || 0, 600), 0);
+    const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
     if (totalDrift <= 0) return null;
     const schema = totalDrift + totalDriftstopp;
     return totalDriftstopp > 0 ? Math.round((totalDrift / schema) * 100) : 100;
   }
 
   get summaryAvgOee(): number | null {
-    const reports = this.filteredReports;
+    const reports = this.dedupSnapshots(this.filteredReports);
     if (!reports.length) return null;
     // Cap drifttid at 600 min (~10h) per report — one shift per day, never 24h
     const cappedDrift     = (r: any) => Math.min(r.drifttid || 0, 600);
@@ -519,11 +538,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
     if (totalDrift <= 0) return null;
     const totalIbc = this.cachedTotalIbc;
-    const totalOk  = this.cachedTotalOk;
     if (totalIbc <= 0) return null;
     const schema         = totalDrift + totalDriftstopp;
     const tillganglighet = totalDriftstopp > 0 ? totalDrift / schema : 1.0;
-    const kvalitet       = totalOk / totalIbc;
+    // Kvalitet beräknas INOM skiftrapport-källan (ok / (ok+ejOk+omtvaatt)) — inte ok/totalIbc,
+    // där totalIbc är PLC-först dagtotal (PLC räknar fler än SR rapporterar) → blandade källor
+    // deflaterade OEE och motsade per-rad-OEE. Se BUGG D.
+    const srTotal = this.cachedTotalOk + this.cachedTotalEjOk + this.cachedTotalOmtvaatt;
+    const kvalitet = srTotal > 0 ? this.cachedTotalOk / srTotal : 1.0;
     const totalNettoDriftSek = reports.reduce((s, r) => s + netDrift(r), 0) * 60;
     let totalIdealSek = 0;
     for (const r of reports) {
@@ -543,7 +565,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get summaryAvgEff(): number | null {
-    const reports = this.filteredReports;
+    const reports = this.dedupSnapshots(this.filteredReports);
     let totalIdealMin = 0;
     let totalNettoMin = 0;
     for (const r of reports) {

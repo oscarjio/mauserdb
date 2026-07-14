@@ -344,7 +344,9 @@ class RuntimeController {
                 elseif (!$isOnBreak && $lastBreakStart !== null) {
                     $diff = $lastBreakStart->diff($entryTime);
                     $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                    $totalBreakMinutes += $periodMinutes;
+                    if ($lastBreakStart->format('Y-m-d') === $entryTime->format('Y-m-d') && $periodMinutes <= 480) {
+                        $totalBreakMinutes += $periodMinutes;
+                    }
                     $lastBreakStart = null;
                 }
             }
@@ -359,17 +361,24 @@ class RuntimeController {
                     // Räkna från rast-start till senaste entry
                     $diff = $lastBreakStart->diff($lastEntryTime);
                     $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                    $totalBreakMinutes += $periodMinutes;
+                    if ($lastBreakStart->format('Y-m-d') === $lastEntryTime->format('Y-m-d') && $periodMinutes <= 480) {
+                        $totalBreakMinutes += $periodMinutes;
+                    }
 
-                    // Lägg till tiden från senaste entry till nu
+                    // Lägg till tiden från senaste entry till nu (samma cap som ovan: en pågående
+                    // rast där senaste entry är gammal, p.g.a. missat off-event, ska inte växa obegränsat).
                     $diffSinceLast = $lastEntryTime->diff($now);
                     $minutesSinceLastUpdate = ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
-                    $totalBreakMinutes += $minutesSinceLastUpdate;
+                    if ($lastEntryTime->format('Y-m-d') === $now->format('Y-m-d') && $minutesSinceLastUpdate <= 480) {
+                        $totalBreakMinutes += $minutesSinceLastUpdate;
+                    }
                 } else {
                     // För längre perioder, räkna bara till senaste entry
                     $diff = $lastBreakStart->diff($lastEntryTime);
                     $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                    $totalBreakMinutes += $periodMinutes;
+                    if ($lastBreakStart->format('Y-m-d') === $lastEntryTime->format('Y-m-d') && $periodMinutes <= 480) {
+                        $totalBreakMinutes += $periodMinutes;
+                    }
                 }
             }
         } catch (\Throwable $e) {

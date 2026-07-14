@@ -303,7 +303,7 @@ class StoppageController {
                     echo json_encode(['success' => false, 'error' => 'Sluttid kan inte vara före starttid'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
-                $durationMinutes = max(0, (int)round(($end->getTimestamp() - $start->getTimestamp()) / 60));
+                $durationMinutes = max(0, min(14400, (int)round(($end->getTimestamp() - $start->getTimestamp()) / 60))); // J: 14400-cap (=10 dygn) som update-vägen
             }
 
             // Begränsa kommentarlängd

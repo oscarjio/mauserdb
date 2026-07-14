@@ -841,7 +841,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       if (!c.skiftraknare) return;
       if (!map.has(c.skiftraknare)) map.set(c.skiftraknare, { ibcCount: 0, times: [] });
       const s = map.get(c.skiftraknare)!;
-      s.ibcCount = Math.max(s.ibcCount, c.ibc_ok != null ? (c.ibc_ok as number) : 0);
+      // BUGG A: ibc_ok är PLC:s skifträknare (nollställs vid skiftrapport, bumpas per ON-event)
+      // → MAX(ibc_ok) gav fel total. Räkna i stället en IBC per cykelrad, så att
+      // summan av skiftens ibcCount = headerns totalantal producerade IBC.
+      s.ibcCount++;
       if (c.cycle_time != null && c.cycle_time > 0 && c.cycle_time <= 30) s.times.push(parseFloat(c.cycle_time));
     });
     this.shiftSummaries = Array.from(map.entries())
@@ -898,7 +901,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
     const totalSpan = lastEventMin! - firstRunMin;
     this.dayLongestStopMinutes = longestStop;
-    this.dayUtilizationPct = totalSpan > 0 ? Math.round((totalRunMinutes / totalSpan) * 100) : 0;
+    // BUGG B: onoff-summan (totalRunMinutes) kunde ge >100% och motsäga KORTID-kortet,
+    // som binder till totalRuntimeHours (backendens total_runtime_hours). Beräkna
+    // utnyttjande från SAMMA körtid som KORTID-kortet visar (h → min).
+    const runtimeMinutes = this.totalRuntimeHours * 60;
+    this.dayUtilizationPct = totalSpan > 0 ? Math.min(100, Math.round((runtimeMinutes / totalSpan) * 100)) : 0;
   }
 
   // =========================================================
@@ -2142,6 +2149,31 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const overlapMin = (periods: [number, number][], winStart: number, winEnd: number): number =>
       periods.reduce((sum, [a, b]) => sum + Math.max(0, Math.min(b, winEnd) - Math.max(a, winStart)), 0);
 
+    // BUGG I: chartSelectionStart/EndIndex är CYKEL-index i dag-vyn (preparePerCycleChartData
+    // gör cycles.slice(minSel, maxSel+1) på filtrerade cykler). updateTable tolkade dem tidigare
+    // som 10-min-BUCKET-index (hour*6+minute/10, 0-143) → fel tidsfönster.
+    // FIX: översätt cykelindex → minut-på-dygnet med EXAKT samma valid-cykel-filter och index-bas
+    // som grafens slice, och filtrera tabellraderna på det minut-intervallet.
+    let daySelStartMin: number | null = null;
+    let daySelEndMin: number | null = null;
+    if (this.viewMode === 'day' &&
+        this.chartSelectionStartIndex !== null && this.chartSelectionEndIndex !== null) {
+      const validCyclesForSel = (data.cycles || []).filter((c: any) => {
+        const ct = parseFloat(c.cycle_time);
+        return !isNaN(ct) && ct > 0 && ct <= 30;
+      });
+      const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+      const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+      const startCycle = validCyclesForSel[minSel];
+      const endCycle = validCyclesForSel[maxSel];
+      if (startCycle && endCycle) {
+        const sd = this.parseDatum(startCycle.datum);
+        const ed = this.parseDatum(endCycle.datum);
+        daySelStartMin = sd.getHours() * 60 + sd.getMinutes();
+        daySelEndMin = ed.getHours() * 60 + ed.getMinutes();
+      }
+    }
+
     data.cycles.forEach((cycle: any) => {
       const date = this.parseDatum(cycle.datum);
       let key: string;
@@ -2154,11 +2186,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         const hour = date.getHours();
         const minute = Math.floor(date.getMinutes() / 10) * 10;
 
-        if (this.chartSelectionStartIndex !== null && this.chartSelectionEndIndex !== null) {
-          const bucketIndex = hour * 6 + minute / 10;
-          const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
-          const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
-          if (bucketIndex < minSel || bucketIndex > maxSel) return;
+        // BUGG I: filtrera på minut-intervallet från den översatta cykel-selektionen (se ovan),
+        // inte på bucketindex. Om selektionen saknas → behåll hela dagen.
+        if (daySelStartMin !== null && daySelEndMin !== null) {
+          const cycleMin = date.getHours() * 60 + date.getMinutes();
+          if (cycleMin < daySelStartMin || cycleMin > daySelEndMin) return;
         }
 
         key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${hour}-${minute}`;

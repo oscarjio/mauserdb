@@ -337,7 +337,7 @@ class TvattlinjeOperatorController {
             $hadStopp     = $stoppMin > 0 ? 1 : 0;
 
             // drifttid antas vara i minuter (standard för tvattlinje)
-            $drifttidMin = min((float)($s['drifttid'] ?? 0), 600.0);
+            $drifttidMin = max(0.0, min((float)($s['drifttid'] ?? 0), 600.0)); // J: 0-golv mot korrupt negativ drifttid
             // D4007 (drifttid) exkluderar redan rast — inget dubbelavdrag av rasttime.
             $nettoMin    = $drifttidMin;
             // E: alla aktiva operatörer arbetar HELA skiftet parallellt (Op1+Op2+Op3 delar samma
