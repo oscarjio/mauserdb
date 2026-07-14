@@ -1318,7 +1318,9 @@ class TvattlinjeController {
             // period behåller 15s för färskhet.
             $cacheDir = dirname(__DIR__) . '/cache';
             if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
-            $cacheFile = $cacheDir . '/tvattlinje_statistics_' . $start . '_' . $end . '.json';
+            // Versionerad nyckel (CodeVersion) → gammal cache blir oåtkomlig direkt vid deploy,
+            // så TTL 604800 (avslutad period) inte längre maskerar backend-fixar.
+            $cacheFile = $cacheDir . '/tvattlinje_statistics_' . CodeVersion::get() . '_' . $start . '_' . $end . '.json';
             $statsTtl = ($end < date('Y-m-d')) ? 604800 : 15;
             if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $statsTtl) {
                 $cached = file_get_contents($cacheFile);

@@ -26,6 +26,12 @@ if [[ "$PI_HOST" == *REPLACE_WITH_PI_HOST* ]]; then
     exit 1
 fi
 
+# Cache-busting: stämpla deployad kodversion FÖRE rsync (samma som deploy-dev.sh).
+# CodeVersion::get() lägger den i cache-nycklarna → gammal cache blir oåtkomlig direkt.
+CODE_VERSION="$(git rev-parse --short HEAD 2>/dev/null || date +%s)"
+echo "$CODE_VERSION" > CODE_VERSION
+echo "CODE_VERSION = $CODE_VERSION"
+
 echo "Deployar backend till Pi ($PI_HOST)..."
 rsync -avz --delete \
   --exclude='db_config.php' \
@@ -41,4 +47,9 @@ rsync -avz --delete \
   -e "ssh -p $PI_PORT" \
   --quiet
 
-echo "Klart! Backend deployat till Pi ($PI_HOST)."
+# Städa gammal versionerad cache (redan oåtkomlig via nya nyckeln) — hindrar obegränsad tillväxt.
+ssh -p "$PI_PORT" "$PI_HOST" \
+  "find ${PI_PATH%/}/cache -type f \( -name 'swr_*.json' -o -name 'tvattlinje_statistics_*.json' \) -mtime +1 -delete" \
+  2>/dev/null || true
+
+echo "Klart! Backend deployat till Pi ($PI_HOST) (CODE_VERSION=$CODE_VERSION)."

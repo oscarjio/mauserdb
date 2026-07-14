@@ -97,7 +97,9 @@ class RemoteAgg
         // servera stale (fryskillern — aldrig hänga/rå-SQL). Historisk period = 7 dygn.
         $cacheDir = dirname(__DIR__) . '/cache';
         if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
-        $cf  = $cacheDir . '/swr_' . $action . '_' . md5(json_encode($_GET)) . '.json';
+        // Versionerad nyckel: gammal cache blir oåtkomlig direkt vid deploy (annars serveras
+        // gamla värden upp till 7 dygn och backend-fixar exekverar aldrig).
+        $cf  = $cacheDir . '/swr_' . $action . '_' . CodeVersion::get() . '_' . md5(json_encode($_GET)) . '.json';
         $ttl = self::swrTtl($run, $_GET);
 
         // 1. Färsk VPS-cache → servera direkt, INGEN länk-trafik.
