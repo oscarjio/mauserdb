@@ -239,7 +239,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   private _computeEfficiencyPct(r: any): number | null {
     const totalt   = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
-    const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600) - (r.rasttime || 0));
+    const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600));
     if (totalt <= 0 || netMin <= 0) return null;
     const actualCycle = netMin / totalt;
     const product     = this.products.find((p: any) => p.id === (r.product_id ?? null));
@@ -250,7 +250,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeIbcPerHour(r: any): number | null {
-    const netMin = Math.max(0, Math.min(r.drifttid || 0, 600) - (r.rasttime || 0));
+    const netMin = Math.max(0, Math.min(r.drifttid || 0, 600));
     const totalt = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0));
     if (!(netMin > 0) || !(totalt > 0)) return null;
     const v = Math.round(netMin / totalt * 10) / 10;
@@ -292,7 +292,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         : null;
       const targetCycleMin = product?.cycle_time_minutes ?? this.fallbackCycleMin;
       const targetIbcH     = 60 / targetCycleMin;
-      const netDriftMin    = Math.max(0, drifttidMin - rasttime);
+      const netDriftMin    = drifttidMin;
       const ibcH           = netDriftMin > 0 ? (totalIbc / (netDriftMin / 60)) : 0;
       const prestanda      = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
 
@@ -303,7 +303,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   private _computeMinPerIbc(r: any): string {
     const ok  = r.antal_ok ?? 0;
-    const net = Math.max(0, Math.min(r.drifttid ?? 0, 600) - (r.rasttime ?? 0));
+    const net = Math.max(0, Math.min(r.drifttid ?? 0, 600));
     if (ok <= 0 || net <= 0) return '–';
     const v = net / ok;
     return isFinite(v) ? v.toFixed(1) : '–';
@@ -463,7 +463,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   /** True om postens implicerade netto-takt (min/IBC) är under halva produktens måltakt. */
   private impliesImpossibleCycle(report: any): boolean {
-    const netMin = Math.max(0, Math.min(Number(report.drifttid || 0), 600) - Number(report.rasttime || 0));
+    const netMin = Math.max(0, Math.min(Number(report.drifttid || 0), 600));
     const t = Number(report.totalt || 0) || (Number(report.antal_ok || 0) + Number(report.antal_ej_ok || 0));
     if (!(netMin > 0) || !(t > 0)) return false;
     const product     = this.products.find((p: any) => p.id === (report.product_id ?? null));
@@ -484,7 +484,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       reasons.push(`IBC ${totalt} överstiger dagens PLC-total (${plc})`);
     }
     if (this.impliesImpossibleCycle(report)) {
-      const netMin = Math.max(0, Math.min(Number(report.drifttid || 0), 600) - Number(report.rasttime || 0));
+      const netMin = Math.max(0, Math.min(Number(report.drifttid || 0), 600));
       const t = Number(report.totalt || 0) || (Number(report.antal_ok || 0) + Number(report.antal_ej_ok || 0));
       reasons.push(`Takt ${(netMin / t).toFixed(2)} min/IBC är fysiskt omöjlig (för snabb)`);
     }
@@ -494,7 +494,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   get summaryAvgIbcH(): number | null {
     const totalNet = this.filteredReports.reduce(
-      (s, r) => s + Math.max(0, Math.min(r.drifttid || 0, 600) - (r.rasttime || 0)), 0);
+      (s, r) => s + Math.max(0, Math.min(r.drifttid || 0, 600)), 0);
     const totalIbc = this.filteredReports.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
     if (totalNet <= 0 || totalIbc <= 0) return null;
     return Math.round(totalNet / totalIbc * 10) / 10;
@@ -513,7 +513,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     if (!reports.length) return null;
     // Cap drifttid at 600 min (~10h) per report — one shift per day, never 24h
     const cappedDrift     = (r: any) => Math.min(r.drifttid || 0, 600);
-    const netDrift        = (r: any) => Math.max(0, cappedDrift(r) - (r.rasttime || 0));
+    const netDrift        = (r: any) => Math.max(0, cappedDrift(r));
     const totalDrift      = reports.reduce((s, r) => s + cappedDrift(r), 0);
     const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
     if (totalDrift <= 0) return null;
@@ -546,7 +546,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     let totalIdealMin = 0;
     let totalNettoMin = 0;
     for (const r of reports) {
-      const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600) - (r.rasttime || 0));
+      const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600));
       if (netMin <= 0) continue;
       // T4: ALL nettodrift räknas i nämnaren (även poster med 0 IBC förbrukade körtid) — annars
       // motsäger EFFEKTIVITET header-KPI:n SNITT min/IBC (summaryAvgIbcH) som delar på all nettodrift.
@@ -1405,7 +1405,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const drifttidRaw = Math.min(report.drifttid || 0, 600);
         const driftstopp  = report.driftstopptime ?? 0;
         const rasttime    = report.rasttime ?? 0;
-        const nettoMin    = Math.max(0, drifttidRaw - rasttime);
+        const nettoMin    = Math.max(0, drifttidRaw);
         const produkt     = this.getProductName(report.product_id) || '\u2013';
         const lopnr       = this.lopnummerMap[report.id] || '\u2013';
         const kommentar   = report.kommentar || 'Ingen kommentar l\u00e4mnad';
@@ -1895,7 +1895,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   getNetDrifttidMin(r: any): number {
-    return Math.max(0, Math.min(r?.drifttid || 0, 600) - (r?.rasttime || 0));
+    return Math.max(0, Math.min(r?.drifttid || 0, 600));
   }
 
   formatNetDrifttid(r: any): string {

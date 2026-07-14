@@ -52,8 +52,13 @@ class TvattlinjeController {
                 $this->getOperatorScores();
             } elseif ($action === 'ibc-per-dag') {
                 $this->getIbcPerDag();
-            } else {
+            } elseif ($action === '') {
+                // Live-vyn anropar ?action=tvattlinje UTAN run-parameter → tomt run = live-stats.
                 $this->getLiveStats();
+            } else {
+                // Icke-tomt run som inte matchar något känt case → fel, INTE tyst live-stats-fallback.
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'unknown run'], JSON_UNESCAPED_UNICODE);
             }
             return;
         }
