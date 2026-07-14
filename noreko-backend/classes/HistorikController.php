@@ -48,10 +48,27 @@ class HistorikController {
         $manader = isset($_GET['manader']) ? max(1, min(60, (int)$_GET['manader'])) : 24;
 
         try {
-            // ibc_ok återställs per skift (skiftraknare) — korrekt aggregering:
-            // MAX(ibc_ok) per (dag, skiftraknare) = skiftets total, sedan SUM per dag.
+            // ibc_ok (och runtime_plc) är dagligt löpande räkneverk som nollställs per dag.
+            // MAX() per (dag, skiftraknare) ger skiftets slutvärde — men skift 2:s MAX
+            // innehåller REDAN skift 1:s produktion. Korrekt = LAG-delta per dag
+            // (samma mönster som getYearly). Annars dubbelräknas produktionen.
             // OEE = tillgänglighet: SUM(runtime_min) / (skift_count × 480 min) × 100
             $sql = "
+                WITH lag_base AS (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
+                           MAX(COALESCE(runtime_plc, 0)) AS run_end
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(NOW(), INTERVAL :manader MONTH)
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ),
+                lag_shifts AS (
+                    SELECT dag,
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc,
+                           CASE WHEN run_end >= COALESCE(LAG(run_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN run_end - COALESCE(LAG(run_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE run_end END AS shift_runtime
+                    FROM lag_base
+                )
                 SELECT
                     ar, manad,
                     DATE_FORMAT(CONCAT(ar, '-', LPAD(manad, 2, '0'), '-01'), '%Y-%m') AS period,
@@ -67,16 +84,7 @@ class HistorikController {
                            SUM(shift_ibc)     AS daglig_ibc,
                            SUM(shift_runtime) AS daglig_runtime,
                            COUNT(*)           AS skift_count
-                    FROM (
-                        SELECT DATE(datum)                        AS dag,
-                               skiftraknare,
-                               MAX(COALESCE(ibc_ok, 0))           AS shift_ibc,
-                               MAX(COALESCE(runtime_plc, 0))      AS shift_runtime
-                        FROM rebotling_ibc
-                        WHERE datum >= DATE_SUB(NOW(), INTERVAL :manader MONTH)
-                          AND ibc_ok IS NOT NULL
-                        GROUP BY DATE(datum), skiftraknare
-                    ) per_shift
+                    FROM lag_shifts
                     GROUP BY dag
                 ) AS dagdata
                 GROUP BY ar, manad
@@ -229,9 +237,9 @@ class HistorikController {
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0)) AS ibc_end,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end,
-                           MIN(COALESCE(op1, 0)) AS op1,
-                           MIN(COALESCE(op2, 0)) AS op2,
-                           MIN(COALESCE(op3, 0)) AS op3
+                           COALESCE(MIN(NULLIF(op1, 0)), 0) AS op1,
+                           COALESCE(MIN(NULLIF(op2, 0)), 0) AS op2,
+                           COALESCE(MIN(NULLIF(op3, 0)), 0) AS op3
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND ibc_ok IS NOT NULL

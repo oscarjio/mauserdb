@@ -83,9 +83,9 @@ class OperatorsportalController {
             WITH lag_base AS (
                 SELECT DATE(datum) AS dag, skiftraknare,
                        MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
-                       MIN(COALESCE(op1, 0))           AS op1,
-                       MIN(COALESCE(op2, 0))           AS op2,
-                       MIN(COALESCE(op3, 0))           AS op3
+                       COALESCE(MIN(NULLIF(op1, 0)), 0) AS op1,
+                       COALESCE(MIN(NULLIF(op2, 0)), 0) AS op2,
+                       COALESCE(MIN(NULLIF(op3, 0)), 0) AS op3
                 FROM rebotling_ibc
                 WHERE datum >= {$f} AND datum < DATE_ADD({$t}, INTERVAL 1 DAY)
                 GROUP BY DATE(datum), skiftraknare
@@ -131,7 +131,7 @@ class OperatorsportalController {
                     WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
 
                       AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
+                    GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
             ");
             $stmt->execute([
@@ -395,7 +395,7 @@ class OperatorsportalController {
                     FROM rebotling_ibc
                     WHERE 1=1
                       AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
+                    GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -560,7 +560,7 @@ class OperatorsportalController {
 
                       AND bonus_poang IS NOT NULL
                       AND datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
-                    GROUP BY skiftraknare
+                    GROUP BY DATE(datum), skiftraknare
                 ) AS per_skift
             ");
             $stmtAvgBonus->execute([
@@ -577,7 +577,7 @@ class OperatorsportalController {
 
             // Antal skift
             $stmtSkift = $this->pdo->prepare("
-                SELECT COUNT(DISTINCT skiftraknare)
+                SELECT COUNT(DISTINCT DATE(datum))
                 FROM rebotling_ibc
                 WHERE (op1 = :op_id1 OR op2 = :op_id2 OR op3 = :op_id3)
 

@@ -19,7 +19,20 @@
 class HistoriskSammanfattningController {
     private $pdo;
     private const PLANERAD_MIN = 480;
-    private const TEORIETISK_MAX_IBC_H = 60.0;
+    // Teoretisk max-takt per linje (IBC/h). Denna controller ar rebotling-only
+    // (alla queries l022ser rebotling_ibc, stopporsaker filtrerar linje='rebotling').
+    // tvattlinje ~20, rebotling ~30. Anvands i alla prestanda/OEE-berakningar.
+    private const MAX_IBC_H_TVATTLINJE = 20.0;
+    private const MAX_IBC_H_REBOTLING  = 30.0;
+
+    /**
+     * Teoretisk max IBC/h for aktuell linje. Controllern hanterar bara rebotling,
+     * men vardet valjs har sa det ar enkelt att utoka om ?line= introduceras.
+     */
+    private function maxIbcH(): float {
+        $line = strtolower(trim($_GET['line'] ?? 'rebotling'));
+        return $line === 'tvattlinje' ? self::MAX_IBC_H_TVATTLINJE : self::MAX_IBC_H_REBOTLING;
+    }
 
     public function __construct() {
         global $pdo;
@@ -163,12 +176,18 @@ class HistoriskSammanfattningController {
         // IBC-data — LAG()-delta for kumulativa PLC-rakneverk
         $stmt = $this->pdo->prepare(
             "SELECT
-                COUNT(DISTINCT skiftraknare) AS antal_skift,
+                COUNT(DISTINCT dag) AS antal_skift,
+                COUNT(DISTINCT CASE WHEN delta_ok > 0 THEN dag END) AS prod_dagar,
+                -- Planerad tid per produktionsdag ur skiftschema-fallback:
+                -- man-tors = 495 min, fre-son = 480 min (DAYOFWEEK: 1=sun..7=sat).
+                -- Rakna EN gang per dag (rn=1) — flera skiftraknare-rader per dag annars dubbelraknar.
+                COALESCE(SUM(CASE WHEN rn = 1 THEN (CASE WHEN DAYOFWEEK(dag) BETWEEN 2 AND 5 THEN 495 ELSE 480 END) ELSE 0 END), 0) AS planerad_min,
                 COALESCE(SUM(delta_ok),    0) AS ibc_ok,
                 COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok,
                 COALESCE(SUM(max_runtime), 0) AS runtime_min
              FROM (
-                SELECT skiftraknare, max_runtime,
+                SELECT dag, skiftraknare, max_runtime,
+                    ROW_NUMBER() OVER (PARTITION BY dag ORDER BY skiftraknare) AS rn,
                     CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok,
                     CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                 FROM (
@@ -179,7 +198,6 @@ class HistoriskSammanfattningController {
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
-                    HAVING COUNT(*) > 1
                 ) shifts
              ) deltas"
         );
@@ -190,20 +208,23 @@ class HistoriskSammanfattningController {
         $ibcEjOk    = (int)($row['ibc_ej_ok'] ?? 0);
         $runtime    = (int)($row['runtime_min'] ?? 0);
         $antalSkift = (int)($row['antal_skift'] ?? 0);
+        $prodDagar  = (int)($row['prod_dagar'] ?? 0);
+        $maxIbcH    = $this->maxIbcH();
         $ibcTotal   = $ibcOk + $ibcEjOk;
 
         $ibcPerH   = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
         $kvalitet  = $ibcTotal > 0 ? round(($ibcOk / $ibcTotal) * 100, 1) : 0.0;
 
-        // OEE
-        $planMinTotal   = $antalSkift * self::PLANERAD_MIN;
+        // OEE — planerad tid ur skiftschema-fallback (vaxer med antal produktionsdagar)
+        $planMinTotal   = (int)($row['planerad_min'] ?? 0);
         $tillganglighet = $planMinTotal > 0 ? min(1.0, $runtime / $planMinTotal) : 0.0;
-        $prestanda      = $runtime > 0 ? min(1.0, ($ibcPerH / self::TEORIETISK_MAX_IBC_H)) : 0.0;
+        $prestanda      = $runtime > 0 ? min(1.0, ($ibcPerH / $maxIbcH)) : 0.0;
         $kvalFaktor     = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
         $oee = $tillganglighet * $prestanda * $kvalFaktor;
 
+        // Snitt/dag: dela med antal PRODUKTIONSDAGAR, inte kalenderdagar
         $dagCount = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
-        $snittIbcPerDag = $dagCount > 0 ? round($ibcOk / $dagCount, 1) : 0;
+        $snittIbcPerDag = $prodDagar > 0 ? round($ibcOk / $prodDagar, 1) : 0;
 
         // Stopptid
         $stopptidMin = max(0, $planMinTotal - $runtime);
@@ -222,6 +243,7 @@ class HistoriskSammanfattningController {
             'stopptid_min'       => $stopptidMin,
             'snitt_ibc_per_dag'  => $snittIbcPerDag,
             'dag_count'          => $dagCount,
+            'prod_dagar'         => $prodDagar,
         ];
         } catch (\PDOException $e) {
             error_log('HistoriskSammanfattningController::calcPeriodData: ' . $e->getMessage());
@@ -231,6 +253,7 @@ class HistoriskSammanfattningController {
                 'kvalitet_pct' => 0.0, 'oee_pct' => 0.0,
                 'tillganglighet_pct' => 0.0, 'prestanda_pct' => 0.0,
                 'stopptid_min' => 0, 'snitt_ibc_per_dag' => 0, 'dag_count' => 1,
+                'prod_dagar' => 0,
             ];
         }
     }
@@ -393,7 +416,6 @@ class HistoriskSammanfattningController {
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
-                        HAVING COUNT(*) > 1
                     ) shifts
                  ) deltas
                  WHERE op1 IS NOT NULL
@@ -442,7 +464,6 @@ class HistoriskSammanfattningController {
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
-                        HAVING COUNT(*) > 1
                     ) shifts
                  ) deltas"
             );
@@ -458,9 +479,10 @@ class HistoriskSammanfattningController {
             $ibcPerH   = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
             $kvalitet  = $ibcTotal > 0 ? round(($ibcOk / $ibcTotal) * 100, 1) : 0.0;
 
+            $maxIbcH   = $this->maxIbcH();
             $planMin   = $antalSkift * self::PLANERAD_MIN;
             $tillg     = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-            $prest     = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+            $prest     = $runtime > 0 ? min(1.0, $ibcPerH / $maxIbcH) : 0.0;
             $kvalFakt  = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
             $oee       = $tillg * $prest * $kvalFakt;
             $stopptid  = max(0, $planMin - $runtime);
@@ -518,7 +540,6 @@ class HistoriskSammanfattningController {
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
-                        HAVING COUNT(*) > 1
                     ) shifts
                  ) deltas
                  GROUP BY dag
@@ -547,9 +568,10 @@ class HistoriskSammanfattningController {
                     $ibcTotal = $ibcOk + $ibcEjOk;
 
                     $ibcPerH = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
+                    $maxIbcH = $this->maxIbcH();
                     $planMin = $nSkift * self::PLANERAD_MIN;
                     $tillg   = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-                    $prest   = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+                    $prest   = $runtime > 0 ? min(1.0, $ibcPerH / $maxIbcH) : 0.0;
                     $kvalF   = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
                     $oee     = $tillg * $prest * $kvalF;
 
@@ -616,7 +638,6 @@ class HistoriskSammanfattningController {
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
-                        HAVING COUNT(*) > 1
                     ) shifts
                  ) deltas
                  WHERE op1 IS NOT NULL
@@ -640,7 +661,6 @@ class HistoriskSammanfattningController {
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
-                        HAVING COUNT(*) > 1
                     ) shifts
                  ) deltas
                  WHERE op1 IS NOT NULL
@@ -675,9 +695,10 @@ class HistoriskSammanfattningController {
 
                 $ibcPerH = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
                 $nSkift  = (int)$row['antal_skift'];
+                $maxIbcH = $this->maxIbcH();
                 $planMin = $nSkift * self::PLANERAD_MIN;
                 $tillg   = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-                $prest   = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+                $prest   = $runtime > 0 ? min(1.0, $ibcPerH / $maxIbcH) : 0.0;
                 $kvalF   = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
                 $oee     = $tillg * $prest * $kvalF;
 
@@ -776,7 +797,8 @@ class HistoriskSammanfattningController {
                             COALESCE(sk.namn, 'Okand') AS orsak,
                             COUNT(*) AS antal,
                             COALESCE(ROUND(SUM(
-                                TIMESTAMPDIFF(MINUTE, sr.start_time, COALESCE(sr.end_time, NOW()))
+                                TIMESTAMPDIFF(MINUTE, sr.start_time,
+                                    LEAST(COALESCE(sr.end_time, NOW()), DATE_ADD(?, INTERVAL 1 DAY)))
                             ), 0), 0) AS total_min
                          FROM stopporsak_registreringar sr
                          LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
@@ -786,7 +808,8 @@ class HistoriskSammanfattningController {
                          ORDER BY total_min DESC
                          LIMIT 10"
                     );
-                    $stmt->execute([$p['from'], $p['to']]);
+                    // Params i ordning: 1) LEAST-cap (to), 2) WHERE-fran (from), 3) WHERE-till (to)
+                    $stmt->execute([$p['to'], $p['from'], $p['to']]);
                     $orsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 }
             } catch (\Throwable $e) {

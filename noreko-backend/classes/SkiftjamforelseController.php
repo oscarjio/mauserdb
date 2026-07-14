@@ -27,12 +27,33 @@ class SkiftjamforelseController {
         'Natt' => ['label' => 'Nattskiftet',   'start' => 22, 'end' => 6],
     ];
 
-    private const TEORIETISK_MAX_IBC_H = 60.0;
+    /**
+     * Teoretisk max IBC/h per linje. Anvands i prestanda-/OEE-berakningar.
+     * FIX (B): tidigare hardkodat 60.0 vilket gav ~3x for lag prestanda/OEE.
+     */
+    private const TEORIETISK_MAX_IBC_H_PER_LINE = [
+        'tvattlinje' => 20.0,
+        'rebotling'  => 30.0,
+    ];
+    private const TEORIETISK_MAX_IBC_H_DEFAULT = 30.0;
+
     private const PLANERAD_MIN = 480;
+
+    private $line = 'rebotling';
+    private $teoretiskMaxIbcH = self::TEORIETISK_MAX_IBC_H_DEFAULT;
 
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
+
+        // FIX (B): valj teoretisk max IBC/h utifran linje-parametern.
+        // Denna controller ar rebotling-specifik (frontend skickar ingen
+        // linje-parameter), men vi laser den anda for framtida bruk och
+        // faller tillbaka pa rebotling (30.0).
+        $line = strtolower(trim($_GET['line'] ?? $_GET['linje'] ?? 'rebotling'));
+        $this->line = $line !== '' ? $line : 'rebotling';
+        $this->teoretiskMaxIbcH = self::TEORIETISK_MAX_IBC_H_PER_LINE[$this->line]
+            ?? self::TEORIETISK_MAX_IBC_H_DEFAULT;
     }
 
     public function handle(): void {
@@ -104,18 +125,18 @@ class SkiftjamforelseController {
         $stmt = $this->pdo->prepare(
             "SELECT
                 skift,
-                COUNT(DISTINCT skiftraknare) AS antal_pass,
+                COUNT(DISTINCT dag) AS antal_skift,
                 COALESCE(SUM(delta_ok),    0) AS ibc_ok,
                 COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok,
                 COALESCE(SUM(max_runtime), 0) AS runtime_min
              FROM (
-                SELECT skiftraknare, skift, max_runtime,
+                SELECT dag, skiftraknare, skift, max_runtime,
                     CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok,
                     CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                 FROM (
                     SELECT DATE(datum) AS dag, skiftraknare,
-                        CASE WHEN HOUR(MAX(datum)) >= 6  AND HOUR(MAX(datum)) < 14 THEN 'FM'
-                             WHEN HOUR(MAX(datum)) >= 14 AND HOUR(MAX(datum)) < 22 THEN 'EM'
+                        CASE WHEN HOUR(MIN(datum)) >= 6  AND HOUR(MIN(datum)) < 14 THEN 'FM'
+                             WHEN HOUR(MIN(datum)) >= 14 AND HOUR(MIN(datum)) < 22 THEN 'EM'
                              ELSE 'Natt' END AS skift,
                         MAX(ibc_ok)      AS ibc_end,
                         MAX(ibc_ej_ok)   AS ej_end,
@@ -123,7 +144,6 @@ class SkiftjamforelseController {
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
-                    HAVING COUNT(*) > 1
                 ) shifts
              ) deltas
              GROUP BY skift"
@@ -144,17 +164,19 @@ class SkiftjamforelseController {
             $ibcOk    = (int)($row['ibc_ok']    ?? 0);
             $ibcEjOk  = (int)($row['ibc_ej_ok'] ?? 0);
             $runtime  = (int)($row['runtime_min'] ?? 0);
-            $antalPass= (int)($row['antal_pass'] ?? 0);
+            // FIX (A): antal_skift = COUNT(DISTINCT dag). En dag = ett skift.
+            $antalPass= (int)($row['antal_skift'] ?? 0);
             $ibcTotal = $ibcOk + $ibcEjOk;
 
             $ibcPerH   = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
             $kvalitet  = $ibcTotal > 0 ? round(($ibcOk / $ibcTotal) * 100, 1) : 0.0;
 
-            // OEE
+            // OEE — planerad tid = antal produktionsdagar * planerad min/dag.
+            // FIX (A): ingen skiftschema-tabell tillganglig har → fallback 480.
             $planMinTotal   = $antalPass * self::PLANERAD_MIN;
             $tillganglighet = $planMinTotal > 0 ? min(1.0, $runtime / $planMinTotal) : 0.0;
             $prestanda      = $runtime > 0
-                ? min(1.0, ($ibcPerH / self::TEORIETISK_MAX_IBC_H))
+                ? min(1.0, ($ibcPerH / $this->teoretiskMaxIbcH))
                 : 0.0;
             $kvalFaktor     = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
             $oee = $tillganglighet * $prestanda * $kvalFaktor;
@@ -202,14 +224,21 @@ class SkiftjamforelseController {
                     ELSE 'Natt'
                 END AS skift,
                 COALESCE(ROUND(SUM(
-                    TIMESTAMPDIFF(MINUTE, start_time, COALESCE(end_time, NOW()))
+                    TIMESTAMPDIFF(
+                        MINUTE,
+                        start_time,
+                        LEAST(COALESCE(end_time, NOW()), DATE_ADD(?, INTERVAL 1 DAY))
+                    )
                 ), 0), 0) AS total_min
              FROM stopporsak_registreringar
              WHERE linje = 'rebotling'
                AND start_time >= ? AND start_time < DATE_ADD(?, INTERVAL 1 DAY)
              GROUP BY skift"
         );
-        $stmt->execute([$fromDate, $toDate]);
+        // FIX (I): kapa oppna stopp (end_time IS NULL) vid periodens slut sa att
+        // ett ostangt stopp fran flera manader tillbaka inte ger ~150000 min.
+        // Bindningsordning: forsta ? = LEAST-cap (toDate), sedan WHERE-parametrarna.
+        $stmt->execute([$toDate, $fromDate, $toDate]);
 
         $stoppResult = ['FM' => 0, 'EM' => 0, 'Natt' => 0];
         foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
@@ -354,8 +383,8 @@ class SkiftjamforelseController {
                         CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
-                            CASE WHEN HOUR(MAX(datum)) >= 6  AND HOUR(MAX(datum)) < 14 THEN 'FM'
-                                 WHEN HOUR(MAX(datum)) >= 14 AND HOUR(MAX(datum)) < 22 THEN 'EM'
+                            CASE WHEN HOUR(MIN(datum)) >= 6  AND HOUR(MIN(datum)) < 14 THEN 'FM'
+                                 WHEN HOUR(MIN(datum)) >= 14 AND HOUR(MIN(datum)) < 22 THEN 'EM'
                                  ELSE 'Natt' END AS skift,
                             MAX(ibc_ok)      AS ibc_end,
                             MAX(ibc_ej_ok)   AS ej_end,
@@ -363,7 +392,6 @@ class SkiftjamforelseController {
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
-                        HAVING COUNT(*) > 1
                     ) shifts
                  ) deltas
                  GROUP BY dag, skift"
@@ -383,7 +411,7 @@ class SkiftjamforelseController {
                 $ibcPerH  = $runtime > 0 ? $ibcOk / ($runtime / 60) : 0.0;
                 $planMin  = $antalPass * self::PLANERAD_MIN;
                 $tillg    = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-                $prest    = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+                $prest    = $runtime > 0 ? min(1.0, $ibcPerH / $this->teoretiskMaxIbcH) : 0.0;
                 $kvalFakt = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
                 $oee      = round($tillg * $prest * $kvalFakt * 100, 1);
                 if ($ibcOk > 0) {
@@ -454,8 +482,8 @@ class SkiftjamforelseController {
                         CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
-                            CASE WHEN HOUR(MAX(datum)) >= 6  AND HOUR(MAX(datum)) < 14 THEN 'FM'
-                                 WHEN HOUR(MAX(datum)) >= 14 AND HOUR(MAX(datum)) < 22 THEN 'EM'
+                            CASE WHEN HOUR(MIN(datum)) >= 6  AND HOUR(MIN(datum)) < 14 THEN 'FM'
+                                 WHEN HOUR(MIN(datum)) >= 14 AND HOUR(MIN(datum)) < 22 THEN 'EM'
                                  ELSE 'Natt' END AS skift,
                             MAX(ibc_ok)      AS ibc_end,
                             MAX(ibc_ej_ok)   AS ej_end,
@@ -463,7 +491,6 @@ class SkiftjamforelseController {
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
-                        HAVING COUNT(*) > 1
                     ) shifts
                  ) deltas
                  GROUP BY dag, skift
@@ -486,7 +513,7 @@ class SkiftjamforelseController {
                 $ibcPerH   = $runtime > 0 ? $ibcOk / ($runtime / 60) : 0.0;
                 $planMin   = $antalPass * self::PLANERAD_MIN;
                 $tillg     = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-                $prest     = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+                $prest     = $runtime > 0 ? min(1.0, $ibcPerH / $this->teoretiskMaxIbcH) : 0.0;
                 $kvalFakt  = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
                 $oee       = round($tillg * $prest * $kvalFakt * 100, 1);
 
@@ -549,8 +576,8 @@ class SkiftjamforelseController {
                         CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
-                            CASE WHEN HOUR(MAX(datum)) >= 6  AND HOUR(MAX(datum)) < 14 THEN 'FM'
-                                 WHEN HOUR(MAX(datum)) >= 14 AND HOUR(MAX(datum)) < 22 THEN 'EM'
+                            CASE WHEN HOUR(MIN(datum)) >= 6  AND HOUR(MIN(datum)) < 14 THEN 'FM'
+                                 WHEN HOUR(MIN(datum)) >= 14 AND HOUR(MIN(datum)) < 22 THEN 'EM'
                                  ELSE 'Natt' END AS skift,
                             MAX(ibc_ok)      AS ibc_end,
                             MAX(ibc_ej_ok)   AS ej_end,
@@ -558,7 +585,6 @@ class SkiftjamforelseController {
                         FROM rebotling_ibc
                         WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
                         GROUP BY DATE(datum), skiftraknare
-                        HAVING COUNT(*) > 1
                     ) shifts
                  ) deltas
                  GROUP BY skift"
@@ -597,7 +623,7 @@ class SkiftjamforelseController {
 
                     $planMin  = $antalPass * self::PLANERAD_MIN;
                     $tillg    = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-                    $prest    = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+                    $prest    = $runtime > 0 ? min(1.0, $ibcPerH / $this->teoretiskMaxIbcH) : 0.0;
                     $kvalFakt = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
                     $oee      = round($tillg * $prest * $kvalFakt * 100, 1);
 
@@ -677,8 +703,7 @@ class SkiftjamforelseController {
                     MIN(NULLIF(op1, 0)) AS op_num
                  FROM rebotling_ibc
                  WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                 GROUP BY skiftraknare
-                 HAVING COUNT(*) > 1
+                 GROUP BY DATE(datum), skiftraknare
                  ORDER BY MIN(datum) DESC
                  LIMIT 500"
             );
@@ -715,7 +740,7 @@ class SkiftjamforelseController {
                 $ibcPerH  = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
 
                 $tillg    = self::PLANERAD_MIN > 0 ? min(1.0, $runtime / self::PLANERAD_MIN) : 0.0;
-                $prest    = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+                $prest    = $runtime > 0 ? min(1.0, $ibcPerH / $this->teoretiskMaxIbcH) : 0.0;
                 $kvalFakt = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
                 $oee      = round($tillg * $prest * $kvalFakt * 100, 1);
 

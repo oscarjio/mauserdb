@@ -215,9 +215,15 @@ class GamificationController {
         }
 
         try {
+            // BUGFIX (K): sr.user_id = users.id, men leaderboarden ar nycklad pa
+            // operatorsNUMMER (operators.number = op1/op2/op3 i rebotling_ibc).
+            // Tidigare grupperades stoppdatan pa sr.user_id och slogs sedan upp med
+            // operatorsnummer-nyckeln -> traffade ALDRIG ratt (alla fick antalStopp=0
+            // och darmed den felaktiga 1.5x "0 stopp"-bonusen). Vi joinar users och
+            // grupperar pa u.operator_id (= operators.number) sa nyckelrymderna matchar.
             $sql = "
                 SELECT
-                    sr.user_id,
+                    u.operator_id AS op_number,
                     SUM(
                         TIMESTAMPDIFF(SECOND,
                             sr.start_time,
@@ -226,16 +232,17 @@ class GamificationController {
                     ) AS total_stopp_sek,
                     COUNT(*) AS antal_stopp
                 FROM stopporsak_registreringar sr
+                JOIN users u ON sr.user_id = u.id
                 WHERE sr.start_time >= :from
                   AND sr.start_time < :to
-                  AND sr.user_id IS NOT NULL
-                  AND sr.user_id > 0
-                GROUP BY sr.user_id
+                  AND u.operator_id IS NOT NULL
+                  AND u.operator_id > 0
+                GROUP BY u.operator_id
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':from' => $from . ' 00:00:00', ':to' => date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00']);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                $uid = (int)$row['user_id'];
+                $uid = (int)$row['op_number'];
                 $result[$uid] = [
                     'total_stopp_sek' => max(0, (int)$row['total_stopp_sek']),
                     'antal_stopp'     => (int)$row['antal_stopp'],
