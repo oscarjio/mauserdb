@@ -63,8 +63,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   totalCycles: number = 0;
   missedWebhooks: number = 0;
   avgCycleTime: number = 0;
-  avgEfficiency: number = 0;
-  avgEfficiencyWarning: boolean = false; // T5: rått effektivitetsvärde > 100 (kapat till 100)
+  // Effektivitet mot mål: SIGNAD avvikelse (mål-faktisk)/mål*100, ingen cap. null = ingen data.
+  avgEfficiency: number | null = null;
   totalRuntimeHours: number = 0;
   targetCycleTime: number = 0;
 
@@ -671,16 +671,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.missedWebhooks = data.summary.missed_webhooks || 0;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
 
-    // Effektivitet: target / snitt-cykeltid * 100 (konsekvent med stapeldiagrammet)
+    // Effektivitet mot mål: (mål - faktisk)/mål * 100 — SIGNAD, ingen cap (Oscar 2026-07-14).
+    // + = snabbare än mål, - = långsammare. Visad siffra = bonusgrundande. Konsekvent med stapel/skiftrapport.
     const target = data.summary.target_cycle_time || 3;
     const avgActual = data.summary.avg_cycle_time || 0;
-    // T5: EN cap-policy — cap 100 överallt (samma som skiftrapporten). Flagga när rått värde > 100
-    // så operatörer inte tror på "överprestation" (oftast bara orimligt kort cykeltid / dålig data).
-    const effRaw = (avgActual > 0 && target > 0)
-      ? Math.round((target / avgActual) * 100)
-      : Math.round(data.summary.avg_production_percent || 0);
-    this.avgEfficiency = Math.min(effRaw, 100);
-    this.avgEfficiencyWarning = effRaw > 100;
+    this.avgEfficiency = (avgActual > 0 && target > 0)
+      ? Math.round(((target - avgActual) / target) * 100 * 10) / 10
+      : (data.summary.avg_production_percent ?? null);
 
     this.totalRuntimeHours = Math.round((data.summary.total_runtime_hours || 0) * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
@@ -1636,7 +1633,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         const validTimes: number[] = value.cycleTime;
         if (validTimes.length > 0) {
           const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
-          efficiencyArr.push(Math.min(Math.round((target / avgActual) * 100), 100)); // T5: cap 100
+          // SIGNAD avvikelse mot mål, ingen cap (+ = snabbare, - = långsammare).
+          efficiencyArr.push((target > 0 && avgActual > 0) ? Math.round(((target - avgActual) / target) * 100) : 0);
         } else {
           efficiencyArr.push(0);
         }
@@ -1893,21 +1891,25 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const countData: number[] = chartData.cycleCountArr || [];
     const hasReport: boolean[] = chartData.hasReportArr || effData.map(() => true);
 
+    // Signerad skala: >0 snabbare än mål (grön), <0 långsammare (röd), =0 vid mål (neutral).
     const barColors = effData.map((eff: number, i: number) => {
       if (!hasReport[i]) return 'rgba(80, 80, 80, 0.25)';
-      if (eff >= 90) return 'rgba(39, 174, 96, 0.75)';
-      if (eff >= 70) return 'rgba(255, 193, 7, 0.75)';
-      return eff > 0 ? 'rgba(220, 53, 69, 0.65)' : 'rgba(100, 100, 100, 0.3)';
+      if (eff > 0) return 'rgba(39, 174, 96, 0.75)';
+      if (eff < 0) return 'rgba(220, 53, 69, 0.65)';
+      return 'rgba(100, 100, 100, 0.3)';
     });
     const barBorderColors = effData.map((eff: number, i: number) => {
       if (!hasReport[i]) return '#444';
-      if (eff >= 90) return '#27ae60';
-      if (eff >= 70) return '#ffc107';
-      return eff > 0 ? '#dc3545' : '#555';
+      if (eff > 0) return '#27ae60';
+      if (eff < 0) return '#dc3545';
+      return '#555';
     });
 
-    const maxEff = Math.max(...effData.filter(v => v > 0), 0);
-    const yMax = Math.max(maxEff + 18, 115);
+    const finite = effData.filter(v => isFinite(v));
+    const maxEff = Math.max(...finite, 0);
+    const minEff = Math.min(...finite, 0);
+    const yMax = Math.max(maxEff + 10, 20);
+    const yMin = Math.min(minEff - 10, -20);
 
     if (this.productionChart) { try { this.productionChart.destroy(); } catch (e) {} }
 
@@ -1953,8 +1955,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
                 const eff = effData[idx] || 0;
                 const count = countData[idx] || 0;
                 if (!hasReport[idx]) return ['Ej rapporterad (ingen skiftrapport)'];
-                const effStatus = eff >= 100 ? ' (över mål)' : eff >= 90 ? ' (nära mål)' : ' (under mål)';
-                return [`Effektivitet: ${eff}%${effStatus}`, `Antal IBC: ${count} st`];
+                const effStatus = eff > 0 ? ' (över mål)' : eff < 0 ? ' (under mål)' : ' (vid mål)';
+                return [`Effektivitet: ${eff > 0 ? '+' : ''}${eff}%${effStatus}`, `Antal IBC: ${count} st`];
               }
             }
           }
@@ -1962,10 +1964,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         scales: {
           y: {
             beginAtZero: true,
-            suggestedMin: 0,
+            suggestedMin: yMin,
             suggestedMax: yMax,
-            title: { display: true, text: 'Effektivitet %', color: '#e0e0e0', font: { size: 13 } },
-            ticks: { color: '#a0a0a0', callback: (v: string | number) => v + '%' },
+            title: { display: true, text: 'Effektivitet mot mål (%)', color: '#e0e0e0', font: { size: 13 } },
+            ticks: { color: '#a0a0a0', callback: (v: string | number) => (Number(v) > 0 ? '+' : '') + v + '%' },
             grid: { color: 'rgba(255, 255, 255, 0.05)' }
           },
           x: {
@@ -1979,24 +1981,24 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         afterDatasetsDraw: (chart: any) => {
           const { ctx: c, chartArea, scales } = chart;
           if (!chartArea) return;
-          // 100%-referenslinje
+          // Mål-referenslinje vid 0 % avvikelse (= exakt måltakt).
           const yScale = scales['y'];
           if (yScale) {
-            const y100 = yScale.getPixelForValue(100);
-            if (y100 >= chartArea.top && y100 <= chartArea.bottom) {
+            const y0 = yScale.getPixelForValue(0);
+            if (y0 >= chartArea.top && y0 <= chartArea.bottom) {
               c.save();
               c.beginPath();
               c.setLineDash([6, 4]);
               c.strokeStyle = 'rgba(255, 255, 255, 0.4)';
               c.lineWidth = 1.5;
-              c.moveTo(chartArea.left, y100);
-              c.lineTo(chartArea.right, y100);
+              c.moveTo(chartArea.left, y0);
+              c.lineTo(chartArea.right, y0);
               c.stroke();
               c.fillStyle = 'rgba(255, 255, 255, 0.5)';
               c.font = '10px sans-serif';
               c.textAlign = 'right';
               c.textBaseline = 'bottom';
-              c.fillText('Mål 100%', chartArea.right - 4, y100 - 3);
+              c.fillText('Mål (0%)', chartArea.right - 4, y0 - 3);
               c.restore();
             }
           }
@@ -2265,7 +2267,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       const avgCycleTime = validCycleTimes.length > 0
         ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length : 0;
       const taktMal = this.targetCycleTime || 3;
-      const efficiency = avgCycleTime > 0 ? Math.min(Math.round((taktMal / avgCycleTime) * 100), 100) : 0; // T5: cap 100
+      // SIGNAD avvikelse mot mål, ingen cap (+ = snabbare, - = långsammare).
+      const efficiency = (avgCycleTime > 0 && taktMal > 0) ? Math.round(((taktMal - avgCycleTime) / taktMal) * 100) : 0;
 
       // BUGG H: cycles.length är RÅA cykelrader (ej dedupade, PLC ej idempotent).
       // Månadsvyn har en rad per dag → använd dagens IBC (ibcPerDag) för både IBC-antal
@@ -2313,10 +2316,19 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     return '10-min intervall';
   }
 
-  getEfficiencyClass(efficiency: number): string {
-    if (efficiency >= 90) return 'text-success';
-    if (efficiency >= 70) return 'text-warning';
-    return 'text-danger';
+  // Signerad effektivitetsskala: >0 snabbare än mål (grön), <0 långsammare (röd), =0 vid mål, null = ingen data.
+  getEfficiencyClass(efficiency: number | null): string {
+    if (efficiency === null || efficiency === undefined) return 'text-muted';
+    if (efficiency > 0) return 'text-success';
+    if (efficiency < 0) return 'text-danger';
+    return 'text-secondary';
+  }
+
+  /** Formatterar signerad effektivitet: "+25%", "-12%", "0%", "–" (null). */
+  formatSignedPct(v: number | null | undefined): string {
+    if (v === null || v === undefined) return '–';
+    const r = Math.round(v * 10) / 10;
+    return (r > 0 ? '+' : '') + r + '%';
   }
 
   exportCSV() {

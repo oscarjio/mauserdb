@@ -1766,10 +1766,13 @@ class TvattlinjeController {
                 $avg_cycle_time = array_sum($cycle_times) / count($cycle_times);
             }
 
-            // Effektivitet: target_cycle_time / avg_cycle_time * 100 (cappa 100 — kan ej överprestera mål)
-            $avg_production_percent = 0;
+            // Effektivitet mot mål: (mål - faktisk) / mål * 100 — SIGNAD, ingen cap.
+            // + = snabbare än mål, - = långsammare. Visad siffra = bonusgrundande (Oscar 2026-07-14).
+            // OBS: detta är den fristående "Effektivitet"-KPI:n. OEE:s prestandafaktor
+            // beräknas separat och förblir kapad 0-100 (se getOee).
+            $avg_production_percent = null;
             if ($avg_cycle_time > 0 && $target_cycle_time > 0) {
-                $avg_production_percent = min(100.0, round(($target_cycle_time / $avg_cycle_time) * 100, 1));
+                $avg_production_percent = round((($target_cycle_time - $avg_cycle_time) / $target_cycle_time) * 100, 1);
             }
 
             $unique_dates = array_unique(array_map(fn($c) => date('Y-m-d', strtotime($c['datum'])), $cycles));
@@ -1809,7 +1812,7 @@ class TvattlinjeController {
                         'total_ibc_skiftrapport'    => $total_ibc_skiftrapport,
                         'received_webhooks'         => $received_webhooks > 0 ? $received_webhooks : count($cycles),
                         'missed_webhooks'           => max(0, $total_cycles - ($received_webhooks > 0 ? $received_webhooks : count($cycles))),
-                        'avg_production_percent'    => round($avg_production_percent, 1),
+                        'avg_production_percent'    => $avg_production_percent, // signerad %, kan vara null
                         'avg_cycle_time'            => round($avg_cycle_time, 2),
                         'target_cycle_time'         => $target_cycle_time,
                         'total_runtime_hours'       => round($total_runtime_hours, 2),

@@ -126,21 +126,18 @@
         <!-- Effektivitet -->
         <div class="col-6 col-md-3">
           <div class="kpi-hero-card"
-               [class.kpi-hero-green]="avgEfficiency >= 85"
-               [class.kpi-hero-yellow]="avgEfficiency >= 60 && avgEfficiency < 85"
-               [class.kpi-hero-red]="avgEfficiency > 0 && avgEfficiency < 60"
-               [class.kpi-hero-neutral]="avgEfficiency === 0">
+               [class.kpi-hero-green]="avgEfficiency !== null && avgEfficiency > 0"
+               [class.kpi-hero-red]="avgEfficiency !== null && avgEfficiency < 0"
+               [class.kpi-hero-neutral]="avgEfficiency === null || avgEfficiency === 0">
             <div class="kpi-hero-icon"><i class="fas fa-tachometer-alt"></i></div>
-            <div class="kpi-hero-value" [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency | number:'1.0-1' }}%
-              <i *ngIf="avgEfficiencyWarning" class="fas fa-exclamation-triangle text-warning ms-1"
-                 title="Beräknad effektivitet översteg 100 % (kapad). Tyder oftast på orimligt kort cykeltid eller ofullständig drifttidsdata."></i>
-            </div>
+            <div class="kpi-hero-value" [ngClass]="getEfficiencyClass(avgEfficiency)"
+                 title="Effektivitet mot mål: (mål - faktisk)/mål. + = snabbare än mål, - = långsammare.">{{ formatSignedPct(avgEfficiency) }}</div>
             <div class="kpi-hero-label">Effektivitet</div>
             <div class="kpi-hero-sub">
-              <span *ngIf="avgEfficiency >= 85" class="kpi-status-badge kpi-badge-green">Bra</span>
-              <span *ngIf="avgEfficiency >= 60 && avgEfficiency < 85" class="kpi-status-badge kpi-badge-yellow">Godkänt</span>
-              <span *ngIf="avgEfficiency > 0 && avgEfficiency < 60" class="kpi-status-badge kpi-badge-red">Låg</span>
-              <span *ngIf="avgEfficiency === 0" class="kpi-status-badge kpi-badge-neutral">Ingen data</span>
+              <span *ngIf="avgEfficiency !== null && avgEfficiency > 0" class="kpi-status-badge kpi-badge-green">Över mål</span>
+              <span *ngIf="avgEfficiency !== null && avgEfficiency < 0" class="kpi-status-badge kpi-badge-red">Under mål</span>
+              <span *ngIf="avgEfficiency === 0" class="kpi-status-badge kpi-badge-neutral">Vid mål</span>
+              <span *ngIf="avgEfficiency === null" class="kpi-status-badge kpi-badge-neutral">Ingen data</span>
             </div>
           </div>
         </div>
@@ -418,7 +415,7 @@
                       <td class="text-end"><strong>{{ row.cycles }}</strong></td>
                       <td class="text-end">{{ row.avgCycleTime }} min</td>
                       <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)">
-                        <strong>{{ row.efficiency | number:'1.1-1' }}%</strong>
+                        <strong>{{ formatSignedPct(row.efficiency) }}</strong>
                       </td>
                       <td class="text-end">{{ row.runtime | number:'1.0-0' }}</td>
                       <td class="text-end" style="color:#ffc107">{{ row.rastMinutes > 0 ? (row.rastMinutes | number:'1.0-1') : '–' }}</td>
@@ -431,7 +428,7 @@
                       <td class="text-end"><strong>{{ totalCycles }}</strong></td>
                       <td class="text-end"><strong>{{ avgCycleTime }} min</strong></td>
                       <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)">
-                        <strong>{{ avgEfficiency | number:'1.1-1' }}%</strong>
+                        <strong>{{ formatSignedPct(avgEfficiency) }}</strong>
                       </td>
                       <td class="text-end"><strong>{{ (totalRuntimeHours * 60) | number:'1.0-0' }}</strong></td>
                       <td class="text-end" style="color:#ffc107"><strong>{{ totalRastMinutes > 0 ? (totalRastMinutes | number:'1.0-1') : '–' }}</strong></td>
