@@ -488,7 +488,7 @@
                               <span *ngIf="isAnomalousReport(report)" class="ms-1" style="cursor:help;" [title]="anomalyTooltip(report)">⚠</span>
                             </td>
                             <td class="d-none d-md-table-cell">{{ ibcPerHour(report) }}</td>
-                            <td data-label="Tillg%">
+                            <td data-label="Eff%">
                               <span class="badge"
                                 [class.bg-success]="(getEfficiencyPct(report) ?? -1) >= 80"
                                 [class.bg-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
@@ -1102,7 +1102,8 @@
               <div>
                 <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                   <span class="fw-semibold text-info">{{ day.date }}</span>
-                  <span class="badge bg-secondary" style="font-size:.7rem;">{{ day.submittedCount }} skift</span>
+                  <span class="badge bg-secondary" style="font-size:.7rem;">{{ day.submittedCount > 0 ? 1 : 0 }} skift</span>
+                  <span *ngIf="day.submittedCount > 1" class="badge bg-warning text-dark" style="font-size:.65rem;" title="{{ day.submittedCount }} PLC-rapporter slogs ihop till ett skift">⚠ {{ day.submittedCount }} poster</span>
                   <span *ngIf="day.hasPreliminary" class="badge bg-warning text-dark" style="font-size:.65rem;"><i class="fas fa-circle fa-beat me-1" style="font-size:.55rem;"></i>Pågående</span>
                   <span *ngIf="day.unreportedCount > 0" class="badge bg-danger" style="font-size:.65rem;">{{ day.unreportedCount }} ej inskickad{{ day.unreportedCount > 1 ? 'a' : '' }}</span>
                 </div>

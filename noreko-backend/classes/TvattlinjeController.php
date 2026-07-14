@@ -1913,12 +1913,23 @@ class TvattlinjeController {
                 error_log('TvattlinjeController::getReport prevRows: ' . $e->getMessage());
             }
 
-            // Beräkna KPI för aktuellt datum
+            // Beräkna KPI för aktuellt datum.
+            // Dedupe: tvattlinje_skiftrapport kan ha flera snapshot-poster för samma
+            // (datum, skiftraknare). Behåll SENASTE (högsta id) per skift före summering,
+            // annars dubbelräknas antal_ok/ej_ok/omtvaatt/rasttime på multi-snapshot-dagar.
+            $latestPerShift = [];
+            foreach ($rows as $r) {
+                $key = (string)($r['skiftraknare'] ?? '0');
+                if (!isset($latestPerShift[$key]) || (int)$r['id'] > (int)$latestPerShift[$key]['id']) {
+                    $latestPerShift[$key] = $r;
+                }
+            }
+
             $totalOk   = 0;
             $totalEjOk = 0;
             $totalOmtv = 0;
             $totalRast = 0;
-            foreach ($rows as $r) {
+            foreach (array_values($latestPerShift) as $r) {
                 $totalOk   += (int)($r['antal_ok']    ?? 0);
                 $totalEjOk += (int)($r['antal_ej_ok'] ?? 0);
                 $totalOmtv += (int)($r['omtvaatt']    ?? 0);
@@ -1927,11 +1938,20 @@ class TvattlinjeController {
             $totalIbc  = $totalOk + $totalEjOk + $totalOmtv;
             $kvalitetPct = $totalIbc > 0 ? round(($totalOk / $totalIbc) * 100, 1) : 0;
 
-            // Föregående dag
+            // Föregående dag — samma dedupe (senaste snapshot per skift), annars
+            // dubbelfel i delta_ibc på multi-snapshot-dagar.
+            $prevLatestPerShift = [];
+            foreach ($prevRows as $r) {
+                $key = (string)($r['skiftraknare'] ?? '0');
+                if (!isset($prevLatestPerShift[$key]) || (int)$r['id'] > (int)$prevLatestPerShift[$key]['id']) {
+                    $prevLatestPerShift[$key] = $r;
+                }
+            }
+
             $prevOk   = 0;
             $prevEjOk = 0;
             $prevOmtv = 0;
-            foreach ($prevRows as $r) {
+            foreach (array_values($prevLatestPerShift) as $r) {
                 $prevOk   += (int)($r['antal_ok']    ?? 0);
                 $prevEjOk += (int)($r['antal_ej_ok'] ?? 0);
                 $prevOmtv += (int)($r['omtvaatt']    ?? 0);
@@ -2616,7 +2636,9 @@ class TvattlinjeController {
                 if ($aktiva === 0) continue;
 
                 $tot = (float)$s['totalt'];
-                $min = (float)$s['drifttid'];
+                // Cap 600 min (~10h = max ett skift). En felregistrerad drifttid
+                // (t.ex. 1440) sänker annars ibc_per_h/score för ALLA operatörer på skiftet.
+                $min = min((float)$s['drifttid'], 600.0);
                 if ($min <= 0) continue;
 
                 $ibcPerOp  = $tot / $aktiva;

@@ -720,13 +720,21 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const prevCAtMs = report.prev_created_at
       ? new Date(String(report.prev_created_at).replace(' ', 'T')).getTime() : null;
 
+    // LOKAL formatterare ('YYYY-MM-DD HH:MM:SS') — createdAtMs parsas som lokal MySQL-tid,
+    // så fönstret måste också formateras lokalt. toISOString() ger UTC (−2h i CEST) → skiftfönstret
+    // blev 2h för tidigt (sista 2h cykler tappades, 2h från föregående pass läckte in).
+    const fmtLocal = (ms: number) => {
+      const d = new Date(ms);
+      return localDateStr(d) + ' ' + d.toTimeString().substring(0, 8);
+    };
+
     let from: string;
     let to: string;
     if (createdAtMs && !isNaN(createdAtMs)) {
       const cap12h = createdAtMs - 12 * 3600000;
       const fromMs = (prevCAtMs && !isNaN(prevCAtMs)) ? Math.max(prevCAtMs, cap12h) : cap12h;
-      from = new Date(fromMs).toISOString().replace('T', ' ').substring(0, 19);
-      to   = new Date(createdAtMs).toISOString().replace('T', ' ').substring(0, 19);
+      from = fmtLocal(fromMs);
+      to   = fmtLocal(createdAtMs);
     } else {
       from = String(report.prev_created_at ?? '');
       to   = String(report.created_at ?? '');
@@ -769,9 +777,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       , null as any);
       from = String(latest.created_at);
     } else {
+      // LOKAL formatterare ('YYYY-MM-DD HH:MM:SS') — toISOString() ger UTC (−2h i CEST) → fel dag/tid
+      const fmtLocal = (ms: number) => {
+        const d = new Date(ms);
+        return localDateStr(d) + ' ' + d.toTimeString().substring(0, 8);
+      };
       const midnight = new Date();
       midnight.setHours(0, 0, 0, 0);
-      from = midnight.toISOString().replace('T', ' ').substring(0, 19);
+      from = fmtLocal(midnight.getTime());
     }
 
     this.service.getUnreportedCycles(this.config.line, from)

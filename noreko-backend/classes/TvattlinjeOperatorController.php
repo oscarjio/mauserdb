@@ -338,8 +338,8 @@ class TvattlinjeOperatorController {
 
             // drifttid antas vara i minuter (standard för tvattlinje)
             $drifttidMin = min((float)($s['drifttid'] ?? 0), 600.0);
-            $rastMin     = (float)($s['rasttime'] ?? 0);
-            $nettoMin    = max(0, $drifttidMin - $rastMin);
+            // D4007 (drifttid) exkluderar redan rast — inget dubbelavdrag av rasttime.
+            $nettoMin    = $drifttidMin;
             $nettotimMin = $nettoMin / $antalAktiva; // tid per operatör
 
             foreach ($aktiva as $opId) {
@@ -487,20 +487,35 @@ class TvattlinjeOperatorController {
                          CASE WHEN op3 > 0 THEN 1 ELSE 0 END)
                     )) AS ibc_count
                 FROM (
-                    SELECT datum, totalt, op1, op2, op3, op1 AS op_col
-                    FROM tvattlinje_skiftrapport
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                      AND totalt > 0 AND op1 IN ($placeholders)
+                    SELECT sr.datum, sr.totalt, sr.op1, sr.op2, sr.op3, sr.op1 AS op_col
+                    FROM tvattlinje_skiftrapport sr
+                    INNER JOIN (
+                        SELECT MAX(id) AS max_id
+                        FROM tvattlinje_skiftrapport
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                        GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                    ) latest ON sr.id = latest.max_id
+                    WHERE sr.totalt > 0 AND sr.op1 IN ($placeholders)
                     UNION ALL
-                    SELECT datum, totalt, op1, op2, op3, op2 AS op_col
-                    FROM tvattlinje_skiftrapport
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                      AND totalt > 0 AND op2 IN ($placeholders)
+                    SELECT sr.datum, sr.totalt, sr.op1, sr.op2, sr.op3, sr.op2 AS op_col
+                    FROM tvattlinje_skiftrapport sr
+                    INNER JOIN (
+                        SELECT MAX(id) AS max_id
+                        FROM tvattlinje_skiftrapport
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                        GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                    ) latest ON sr.id = latest.max_id
+                    WHERE sr.totalt > 0 AND sr.op2 IN ($placeholders)
                     UNION ALL
-                    SELECT datum, totalt, op1, op2, op3, op3 AS op_col
-                    FROM tvattlinje_skiftrapport
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                      AND totalt > 0 AND op3 IN ($placeholders)
+                    SELECT sr.datum, sr.totalt, sr.op1, sr.op2, sr.op3, sr.op3 AS op_col
+                    FROM tvattlinje_skiftrapport sr
+                    INNER JOIN (
+                        SELECT MAX(id) AS max_id
+                        FROM tvattlinje_skiftrapport
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                        GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                    ) latest ON sr.id = latest.max_id
+                    WHERE sr.totalt > 0 AND sr.op3 IN ($placeholders)
                 ) sub
                 GROUP BY op_col, DATE(datum)
                 ORDER BY op_col, dag DESC

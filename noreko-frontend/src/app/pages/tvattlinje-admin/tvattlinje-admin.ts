@@ -59,7 +59,8 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
   weekdayGoalsLoading = false;
   weekdayGoalsSaving = false;
   weekdayGoalsError = '';
-  snabbvarde = 80;
+  goalsLoadError = false; // true när weekday-goals-API:t felade och fallback-mål används
+  snabbvarde = 140;
 
   // ---- Systemstatus ----
   systemStatus: any = null;
@@ -275,20 +276,33 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
         next: (response) => {
           this.weekdayGoalsLoading = false;
           if (response.success && Array.isArray(response.data)) {
+            this.goalsLoadError = false;
             this.weekdayGoals = response.data.map((item: any) => ({
               weekday: item.weekday,
               mal:     item.mal,
               label:   this.weekdayLabels[item.weekday] ?? `Dag ${item.weekday}`
             }));
           } else {
+            // Fallback: API:t felade → använd säkra standardmål (vardag 140, helg 60).
+            // Flagga läget så att spara-knappen disablas och en banner visas — annars
+            // riskerar admin att skriva över korrekta mål med fallback-värden.
+            this.goalsLoadError = true;
             this.weekdayGoals = this.weekdayLabels.map((label, i) => ({
               weekday: i,
-              mal:     i < 5 ? 80 : i === 5 ? 60 : 0,
+              mal:     i < 5 ? 140 : 60,
               label
             }));
           }
         },
-        error: () => { this.weekdayGoalsLoading = false; }
+        error: () => {
+          this.weekdayGoalsLoading = false;
+          this.goalsLoadError = true;
+          this.weekdayGoals = this.weekdayLabels.map((label, i) => ({
+            weekday: i,
+            mal:     i < 5 ? 140 : 60,
+            label
+          }));
+        }
       });
   }
 

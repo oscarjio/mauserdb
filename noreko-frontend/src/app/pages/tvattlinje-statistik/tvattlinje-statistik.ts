@@ -2213,7 +2213,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       this.tableData.push({
         period,
         date,
-        cycles: this.ibcPerDag[this.formatDate(date)] ?? cycles.length,
+        // ibcPerDag är nycklad PER DAG. Bara månadsvyn har en rad per dag → använd dagens IBC där.
+        // Dagvyn (per 10-min-intervall) och årsvyn (per månad) måste räkna cykler i egen bucket.
+        cycles: this.viewMode === 'month' ? (this.ibcPerDag[this.formatDate(date)] ?? cycles.length) : cycles.length,
         avgCycleTime: Math.round(avgCycleTime * 10) / 10,
         efficiency,
         runtime: Math.round(cycles.length * avgCycleTime * 10) / 10,

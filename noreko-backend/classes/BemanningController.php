@@ -72,35 +72,50 @@ class BemanningController {
                      ELSE 0 END                                    AS avg_ibc_per_h
             FROM (
                 SELECT
-                    op1 AS op_id,
+                    sr.op1 AS op_id,
                     1   AS position,
-                    totalt / GREATEST(1,
-                        (CASE WHEN op1 > 0 THEN 1 ELSE 0 END +
-                         CASE WHEN op2 > 0 THEN 1 ELSE 0 END +
-                         CASE WHEN op3 > 0 THEN 1 ELSE 0 END)) AS ibc_share,
-                    GREATEST(1, LEAST(drifttid, 600)) AS drifttid
-                FROM tvattlinje_skiftrapport
-                WHERE datum >= :from1 AND op1 > 0 AND totalt > 0
+                    sr.totalt / GREATEST(1,
+                        (CASE WHEN sr.op1 > 0 THEN 1 ELSE 0 END +
+                         CASE WHEN sr.op2 > 0 THEN 1 ELSE 0 END +
+                         CASE WHEN sr.op3 > 0 THEN 1 ELSE 0 END)) AS ibc_share,
+                    GREATEST(1, LEAST(sr.drifttid, 600)) AS drifttid
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (
+                    SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
+                    WHERE datum >= :from1
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) latest ON sr.id = latest.max_id
+                WHERE sr.op1 > 0 AND sr.totalt > 0
                 UNION ALL
                 SELECT
-                    op2, 2,
-                    totalt / GREATEST(1,
-                        (CASE WHEN op1 > 0 THEN 1 ELSE 0 END +
-                         CASE WHEN op2 > 0 THEN 1 ELSE 0 END +
-                         CASE WHEN op3 > 0 THEN 1 ELSE 0 END)),
-                    GREATEST(1, LEAST(drifttid, 600))
-                FROM tvattlinje_skiftrapport
-                WHERE datum >= :from2 AND op2 > 0 AND totalt > 0
+                    sr.op2, 2,
+                    sr.totalt / GREATEST(1,
+                        (CASE WHEN sr.op1 > 0 THEN 1 ELSE 0 END +
+                         CASE WHEN sr.op2 > 0 THEN 1 ELSE 0 END +
+                         CASE WHEN sr.op3 > 0 THEN 1 ELSE 0 END)),
+                    GREATEST(1, LEAST(sr.drifttid, 600))
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (
+                    SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
+                    WHERE datum >= :from2
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) latest ON sr.id = latest.max_id
+                WHERE sr.op2 > 0 AND sr.totalt > 0
                 UNION ALL
                 SELECT
-                    op3, 3,
-                    totalt / GREATEST(1,
-                        (CASE WHEN op1 > 0 THEN 1 ELSE 0 END +
-                         CASE WHEN op2 > 0 THEN 1 ELSE 0 END +
-                         CASE WHEN op3 > 0 THEN 1 ELSE 0 END)),
-                    GREATEST(1, LEAST(drifttid, 600))
-                FROM tvattlinje_skiftrapport
-                WHERE datum >= :from3 AND op3 > 0 AND totalt > 0
+                    sr.op3, 3,
+                    sr.totalt / GREATEST(1,
+                        (CASE WHEN sr.op1 > 0 THEN 1 ELSE 0 END +
+                         CASE WHEN sr.op2 > 0 THEN 1 ELSE 0 END +
+                         CASE WHEN sr.op3 > 0 THEN 1 ELSE 0 END)),
+                    GREATEST(1, LEAST(sr.drifttid, 600))
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (
+                    SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
+                    WHERE datum >= :from3
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) latest ON sr.id = latest.max_id
+                WHERE sr.op3 > 0 AND sr.totalt > 0
             ) sub
             LEFT JOIN operators o ON o.number = sub.op_id
             GROUP BY sub.op_id, o.name, sub.position
@@ -365,17 +380,22 @@ class BemanningController {
         try {
             $sql = "
                 SELECT
-                    COALESCE(op1, 0) AS op1_id,
-                    COALESCE(op2, 0) AS op2_id,
-                    COALESCE(op3, 0) AS op3_id,
+                    COALESCE(sr.op1, 0) AS op1_id,
+                    COALESCE(sr.op2, 0) AS op2_id,
+                    COALESCE(sr.op3, 0) AS op3_id,
                     COUNT(*)         AS skift_count,
-                    SUM(totalt)      AS total_ibc,
-                    ROUND(AVG(CASE WHEN drifttid > 0
-                        THEN totalt / (drifttid / 60.0) ELSE NULL END), 2) AS snitt_ibc_per_h,
-                    ROUND(AVG(totalt), 1) AS snitt_per_skift
-                FROM tvattlinje_skiftrapport
-                WHERE datum >= :from AND totalt > 0 AND drifttid > 0
-                GROUP BY COALESCE(op1, 0), COALESCE(op2, 0), COALESCE(op3, 0)
+                    SUM(sr.totalt)   AS total_ibc,
+                    ROUND(AVG(CASE WHEN sr.drifttid > 0
+                        THEN sr.totalt / (LEAST(sr.drifttid, 600) / 60.0) ELSE NULL END), 2) AS snitt_ibc_per_h,
+                    ROUND(AVG(sr.totalt), 1) AS snitt_per_skift
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (
+                    SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
+                    WHERE datum >= :from
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) latest ON sr.id = latest.max_id
+                WHERE sr.totalt > 0 AND sr.drifttid > 0
+                GROUP BY COALESCE(sr.op1, 0), COALESCE(sr.op2, 0), COALESCE(sr.op3, 0)
                 HAVING COUNT(*) >= 2
                 ORDER BY snitt_ibc_per_h DESC
                 LIMIT 20
