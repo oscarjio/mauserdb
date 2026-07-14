@@ -6994,3 +6994,8 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 - Forvantat efter fix: 07-07 dag drifttid 8h0m + EFF ~+5%; 06-29/06-25/06-05 EFF "-"; en-post-dagar oforandrade (06-30 +6%).
 - OBS trade-off: per-dag drifttid summerar nu submittedOnly (ej deduperad pa skiftraknare). Genuina fler-pass-dagar blir korrekta; om nagon dag har akta SNAPSHOT-poster (samma skift sparat flera ggr) skulle drifttiden kunna dubbelrakna. IBC-summan (rawDayIbc=150 pa 07-07) tyder pa att aktuell data har genuina pass, ej snapshots. dedupSnapshots anvands fortf for header-KPI (summaryAvgEff) + computeGrandTotal.
 - tsc exit 0, watch-rebuild 2.9s + deploy OK. Bara VISNING. Backend/bonus/prod/prod-DB ORORDA.
+
+## 2026-07-15 Tvattlinje skiftrapport Steg1b (justering) — commit dd407263
+- Steg1 wall-clock-guard (+5 min) var for aggressiv: 07-13 (3h4m span, drifttid 3h9m = 5 min over) flaggades korrupt -> "-" fast anvandbar (+7%). Aven 06-10/06-09 doldes. 5-min-skew = klock-skew PLC vs inskickade tider, ej korrupt.
+- FIX _isDrifttidCorrupt(): behall harda `>= 600`, byt `+5 min` -> `d > span * 1.5` (bara grova brott, t.ex. 06-29: 600 vs 30min-span). Sma overskjutningar far tillbaka EFF.
+- Forvantat: 07-13 +7%, 06-29/06-25/06-05 "-" (kapade 600 -> harda capen), 07-07 ~+7%. tsc exit 0, watch-rebuild 3.7s + deploy OK. Bara visning.
