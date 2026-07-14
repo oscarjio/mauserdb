@@ -6961,3 +6961,14 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
   - Migration `2026-07-14_service_intervals_linje_kolumn_DEV.sql`: `ADD COLUMN linje VARCHAR(32) DEFAULT 'rebotling'`. ENDAST dev-DB.
 - Verifiering: `php -l` rent. Endpoints 403 (admin-gated) — inga 500. Prod + prod-DB ORORDA. Migration kors manuellt pa dev-DB av agaren.
 - KVAR (valfritt): frontend bonus-admin/underhalls-UI kan fa linje-valjare for nya serviceintervall (API stodjer det nu).
+
+## 2026-07-14 Tvattlinje EFF (signerad, ingen cap) — Oscar-beslut
+- **DEL A** (statistik) commit 79233bd1: TvattlinjeController.php:1769-1772 signerad formel (target-actual)/target*100, null vid <=0. avg_production_percent kan nu vara null. OEE ORORD (getOee:2788 perf_pct har egen min(100)). Frontend tvattlinje-statistik.ts/.html: avgEfficiency number|null, stapel/manad signerad, avgEfficiencyWarning borttagen, getEfficiencyClass signerad, formatSignedPct, stapel-chart signerade farger + symmetrisk y-axel + mal-linje vid 0%.
+- **DEL B** (skiftrapport) commit d10be557: shared-skiftrapport.ts _computeEfficiencyPct + summaryAvgEff + groupedDays signerade, ingen cap, effWarning obsolet. Nya helpers formatSignedPct/effBadgeClass/effTextClass (>0 gron,<0 rod,=0 neutral). Alla EFF-visningar i .html signerade + nya tooltips. PDF OEE-donut (ts:~1500) FRIKOPPLAD -> behaller bunden 0-100-gauge (OEE-faktorer 0-100).
+- **DEL C** (bonus): STOPPAD efter trace — INGEN kodandring. Trace-resultat:
+  - BonusController + BonusAdminController laser UTESLUTANDE `rebotling_ibc` (samtliga FROM = rebotling_ibc). De ror ALDRIG tvattlinje_ibc. Det finns ingen tvattlinje-bonus.
+  - tvattlinje_ibc.effektivitet SELECTas bara av LineSkiftrapportController:726 (skiftrapport-feed), MEN frontend shared-skiftrapport laser aldrig den stored-kolumnen — den RAKNAR OM eff (DEL B). Tvattlinjens visade EFF ar alltsa redan frikopplad fran PLC-kolumnen och nu signerad = "visad = bonusgrundande" ar redan uppfyllt for tvattlinje (det finns ingen bonus att grunda).
+  - Foljd: for TVATTLINJE finns inget att byta i bonus. Premissen (bonus laser tvattlinje_ibc.effektivitet) haller inte.
+  - Den bonus som finns (REBOTLING) laser rebotling_ibc.effektivitet (stored) och matar bonus_poang/ranking/troskar (multiplikatorer 70/80/90/95 — antar 0-100-skala). Att gora rebotling-bonusen signerad/okappad skulle skjuta in negativa varden i medel/poang/troskar designade for 0-100 = affarslogik-omdesign (vad ger -12%? negativa poang?). Enligt "gor INGEN gissning pa bonus" -> kraver Oscars explicita beslut.
+  - Utanfor DEL C-scope: ovriga icke-bonus-analyskontroller (Produktionseffektivitet/ProduktTypEffektivitet/Effektivitet/Morgonrapport/Avvikelselarm) kan lasa stored tvattlinje effektivitet — ej rord (Oscar scopade C till bonus).
+- Verifiering A+B: php -l rent, tsc watch-config exit 0, watch-rebuild 3.4s + deploy OK. Prod + prod-DB ORORDA.
