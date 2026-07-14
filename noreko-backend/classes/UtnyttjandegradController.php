@@ -30,8 +30,8 @@
 class UtnyttjandegradController {
     private $pdo;
 
-    /** Tillgänglig tid per dag i timmar (3 skift × 7.5h efter rast) */
-    private const TILLGANGLIG_TID_PER_DAG = 22.5;
+    /** Tillgänglig tid per dag i timmar (ETT skift/dag × 7.5h efter rast) */
+    private const TILLGANGLIG_TID_PER_DAG = 7.5;
 
     /** Tröskel (%) för trending-bedömning */
     private const TREND_TROSKEL_PCT = 2.0;

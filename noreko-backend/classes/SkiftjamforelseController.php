@@ -369,8 +369,10 @@ class SkiftjamforelseController {
             }
 
             // Mest produktiva idag
+            // FIX (A): starta pa 0 (strikt >) sa ett skift med 0 IBC/h aldrig
+            // utses till "mest produktiv" nar alla skift har 0 -> forblir null -> "-".
             $mestProduktiv = null;
-            $maxIbcH = -1;
+            $maxIbcH = 0;
             foreach ($dagensData as $skift => $d) {
                 if ($d['ibc_per_h'] > $maxIbcH) {
                     $maxIbcH = $d['ibc_per_h'];
@@ -396,8 +398,13 @@ class SkiftjamforelseController {
                 if ($d['oee_pct'] === null || (int)($d['antal_pass'] ?? 0) === 0) {
                     continue;
                 }
-                $prevOee = $prevData[$skift]['oee_pct'] ?? 0;
-                if ($prevOee === null) $prevOee = 0;
+                // FIX (B): kraver aven baslinje i foregaende period. Utan baslinje
+                // blir delta = hela OEE och skiftet blir alltid "mest forbattrad".
+                if (($prevData[$skift]['oee_pct'] ?? null) === null
+                    || (int)($prevData[$skift]['antal_pass'] ?? 0) === 0) {
+                    continue;
+                }
+                $prevOee = $prevData[$skift]['oee_pct'];
                 $delta = $d['oee_pct'] - $prevOee;
                 if ($delta > $maxDelta) {
                     $maxDelta = $delta;

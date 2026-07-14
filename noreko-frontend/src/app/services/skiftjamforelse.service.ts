@@ -26,10 +26,11 @@ export interface SkiftRow {
   runtime_min: number;
   ibc_per_h: number;
   kvalitet_pct: number | null;
-  oee_pct: number;
-  tillganglighet_pct: number;
-  prestanda_pct: number;
-  avg_cykeltid_sek: number;
+  // FIX (C): skift utan pass (t.ex. Natt) returnerar null fran backend -> "–" i UI.
+  oee_pct: number | null;
+  tillganglighet_pct: number | null;
+  prestanda_pct: number | null;
+  avg_cykeltid_sek: number | null;
   stopptid_min: number;
 }
 
@@ -47,6 +48,8 @@ export interface JamforelseData {
   days: number;
   from_date: string;
   to_date: string;
+  // FIX (C): backend sätter flaggan när vald linje saknar data i datalagret.
+  ingen_data_for_linje?: boolean;
 }
 
 export interface TrendPoint {

@@ -49,6 +49,12 @@
     <i class="fas fa-info-circle me-2"></i>Inga data att visa
   </div>
 
+  <!-- Ingen data för vald linje -->
+  <div class="alert alert-warning" *ngIf="!loading && jamforelse?.ingen_data_for_linje" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    Ingen skiftdata finns registrerad för vald linje i perioden.
+  </div>
+
   <!-- ============================================================ -->
   <!-- 1. KPI-KORT (4 st) -->
   <!-- ============================================================ -->
@@ -140,7 +146,7 @@
               <strong [style.color]="getSkiftColor(s.skift)">{{ s.label }}</strong>
             </td>
             <td class="text-end" [ngClass]="getCellClass(s.oee_pct, 'oee_pct')">
-              <strong>{{ s.oee_pct }}%</strong>
+              <strong>{{ s.oee_pct !== null ? s.oee_pct + '%' : '–' }}</strong>
             </td>
             <td class="text-end" [ngClass]="getCellClass(s.ibc_ok, 'ibc_ok')">
               {{ s.ibc_ok | number }}
@@ -152,10 +158,10 @@
               {{ s.kvalitet_pct !== null ? (s.kvalitet_pct | number:'1.1-1') + '%' : '–' }}
             </td>
             <td class="text-end" [ngClass]="getCellClass(s.avg_cykeltid_sek, 'avg_cykeltid_sek')">
-              {{ s.avg_cykeltid_sek }}s
+              {{ s.avg_cykeltid_sek !== null ? s.avg_cykeltid_sek + 's' : '–' }}
             </td>
-            <td class="text-end">{{ s.tillganglighet_pct }}%</td>
-            <td class="text-end">{{ s.prestanda_pct }}%</td>
+            <td class="text-end">{{ s.tillganglighet_pct !== null ? s.tillganglighet_pct + '%' : '–' }}</td>
+            <td class="text-end">{{ s.prestanda_pct !== null ? s.prestanda_pct + '%' : '–' }}</td>
           </tr>
         </tbody>
       </table>
