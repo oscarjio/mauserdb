@@ -7004,3 +7004,12 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 - Problem: view=day KPI-kort signerat (+10.9%) men intradags-diagrammets rullande "Effektivitet % (30 min)"-linje last platt pa 100% (kapad kvot + 0-100 hoger-axel).
 - FIX (bara denna serie + yEff-axel): calcRollingEfficiency -> signerad okappad (targetMin - netWindowMin/windowCount)/targetMin*100. yEff-axel: bort med beginAtZero/suggestedMin:0/100-tak -> symmetrisk kring 0 (±maxAbs), tecken-ticks. Etikett -> "Effektivitet mot mal % (30 min)". Mal-linjen = 0%-gridlinjen (mitten).
 - OEE + ovriga serier + periodCells-heatmap (1307) ororda. tsc exit 0, watch 2.7s + deploy OK. Bara visning; backend/bonus/prod ororda.
+
+## 2026-07-15 Tvattlinje statistik Steg3 (manads-aggregat scope-fix) — commit 944f833d
+- Problem: statistik-KPI Effektivitet -44% for hela juli fast dagskorten positiva.
+- Rotorsak: avg_cycle_time = netRuntimeMinutes / total_ibc_skiftrapport blandade scope. netRuntime ar PLC-brett (per dag over UNIONEN SR+PLC-dagar) men total_ibc_skiftrapport bara SR-IBC. Dagar med PLC-IBC utan rapport gav kortid men ingen namnare -> uppblast cykel 4.91 -> -44%.
+- FIX: avg_cycle_time = total_cycles > 0 ? netRuntimeMinutes / total_cycles : 0. total_cycles = reset-saker ibc_count-delta fran tvattlinje_ibc = PLC-IBC over ALLA dagar (verifierat rad ~1697-1714). target_cycle 3.4 oforandrat.
+- LIVE-verifierat: JULI (start=2026-07-01&end=2026-07-31) avg_production_percent -44% -> **+25.4%** (2449/965=2.54, gamla 2449/499=4.91). Dag 07-14 -> **+12.9%** (397/134=2.96; var +10.9% pa SR-IBC 131, nu PLC-IBC 134 = scope-konsistent).
+- OBS: PLC-IBC (965) vs SR-IBC (499) skiljer ~2x over juli. total_cycles anvands per Oscars direktiv (para PLC-kortid m PLC-IBC). Om SR-IBC ar "sanna" produktionen ar ratt niva lagre — men da mismatchar namnaren PLC-kortiden. Flaggat for Oscar.
+- Optional (exkludera >=600-korrupta dagar ur net_runtime) EJ gjord: kraver symmetrisk dag-exkludering i bade taljare OCH namnare (annars ny mismatch) -> ej "enkelt". Per-skift LEAST(...,600)-cap bergransar redan korrupt bidrag.
+- php -l rent. deploy CODE_VERSION=944f833d. Bara berakning; frontend-omrakning/bonus/prod ororda.
