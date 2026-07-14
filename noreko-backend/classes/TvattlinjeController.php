@@ -585,6 +585,53 @@ class TvattlinjeController {
     }
 
     /**
+     * BUG3b: IBC-viktad mål-cykeltid (min/IBC) från produkternas cycle_time_minutes.
+     * Dedupliceras på samma nyckel som SR-IBC (senaste post per skift). Produkter utan
+     * registrerad cykeltid faller tillbaka på $fallback (settings takt_mal). Om ingen
+     * SR-data finns returneras $fallback oförändrat. Speglar frontendens produkt-cykel.
+     */
+    private function weightedTargetCycleTvattlinje(string $start, string $end, float $fallback): float {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT sr.product_id, COALESCE(SUM(sr.totalt), 0) AS ibc
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (
+                    SELECT MAX(id) AS max_id
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) latest ON sr.id = latest.max_id
+                GROUP BY sr.product_id
+            ");
+            $stmt->execute(['s' => $start, 'e' => $end]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Produkt-ID -> cykeltid
+            $cycleById = [];
+            foreach ($this->pdo->query("SELECT id, cycle_time_minutes FROM tvattlinje_products")->fetchAll(\PDO::FETCH_ASSOC) as $p) {
+                if ($p['cycle_time_minutes'] !== null && (float)$p['cycle_time_minutes'] > 0) {
+                    $cycleById[(int)$p['id']] = (float)$p['cycle_time_minutes'];
+                }
+            }
+
+            $ibcWeighted = 0.0;
+            $ibcTotal    = 0;
+            foreach ($rows as $r) {
+                $ibc = (int)$r['ibc'];
+                if ($ibc <= 0) continue;
+                $cycle = $cycleById[(int)$r['product_id']] ?? $fallback;
+                if ($cycle <= 0) continue;
+                $ibcWeighted += $ibc * $cycle;
+                $ibcTotal    += $ibc;
+            }
+            return $ibcTotal > 0 ? $ibcWeighted / $ibcTotal : $fallback;
+        } catch (\Throwable $e) {
+            error_log('TvattlinjeController::weightedTargetCycleTvattlinje: ' . $e->getMessage());
+            return $fallback;
+        }
+    }
+
+    /**
      * PLC-IBC per dag ['Y-m-d' => ibc] = MAX(ibc_count) (kumulativ dygnsräknare).
      */
     private function plcIbcPerDag(string $start, string $end): array {
@@ -1761,10 +1808,17 @@ class TvattlinjeController {
                 }
                 if (!$overlapsPause) { $cycle_times[] = $ct; }
             }
-            $avg_cycle_time = 0;
-            if (count($cycle_times) > 0) {
-                $avg_cycle_time = array_sum($cycle_times) / count($cycle_times);
-            }
+            // BUG3a: snittcykeltid ska ha SAMMA netto-def som skiftrapportkorten
+            // (nettodrift / SR-IBC), inte medel av enskilda wall-clock-gap. Annars pekar
+            // statistik-EFF åt annat håll än korten. netRuntimeMinutes (rad ~1743) är redan netto.
+            $avg_cycle_time = $total_ibc_skiftrapport > 0
+                ? $netRuntimeMinutes / $total_ibc_skiftrapport
+                : 0;
+
+            // BUG3b: använd produktens cykeltid (tvattlinje_products.cycle_time_minutes),
+            // IBC-viktad över perioden vid flera produkter — samma mål som korten använder.
+            // Fallback: settings takt_mal ($target_cycle_time). Detta blir även emitterat mål nedan.
+            $target_cycle_time = $this->weightedTargetCycleTvattlinje($start, $end, $target_cycle_time);
 
             // Effektivitet mot mål: (mål - faktisk) / mål * 100 — SIGNAD, ingen cap.
             // + = snabbare än mål, - = långsammare. Visad siffra = bonusgrundande (Oscar 2026-07-14).
