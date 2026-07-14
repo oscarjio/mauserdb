@@ -108,7 +108,7 @@ class VDVeckorapportController {
                 SELECT dag, skiftraknare, op1, op2, op3,
                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc_ok,
                        CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ibc_ej_ok,
-                       runtime_end AS shift_runtime_min
+                       CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN runtime_end - COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE runtime_end END AS shift_runtime_min
                 FROM lag_base
             )
         ";
@@ -406,17 +406,25 @@ class VDVeckorapportController {
             SELECT
                 sub.op_num AS operator_id,
                 COALESCE(o.name, CONCAT('Op #', sub.op_num)) AS operator_namn,
-                SUM(sub.shift_ibc_ok)                        AS ibc_ok,
-                SUM(sub.shift_ibc_ej_ok)                     AS ibc_kasserade,
-                SUM(sub.shift_ibc_ok + sub.shift_ibc_ej_ok)  AS ibc_totalt,
-                SUM(sub.shift_runtime_min) * 60              AS drifttid_sek,
-                COUNT(*)                                     AS antal_skift
+                SUM(sub.dag_ibc_ok)                          AS ibc_ok,
+                SUM(sub.dag_ibc_ej_ok)                       AS ibc_kasserade,
+                SUM(sub.dag_ibc_ok + sub.dag_ibc_ej_ok)      AS ibc_totalt,
+                SUM(sub.dag_runtime_min) * 60                AS drifttid_sek,
+                SUM(sub.antal_skift)                         AS antal_skift
             FROM (
-                SELECT op1 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op1 > 0
-                UNION ALL
-                SELECT op2 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op2 > 0
-                UNION ALL
-                SELECT op3 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op3 > 0
+                SELECT op_num, dag,
+                       SUM(shift_ibc_ok)                  AS dag_ibc_ok,
+                       SUM(shift_ibc_ej_ok)               AS dag_ibc_ej_ok,
+                       LEAST(600, SUM(shift_runtime_min)) AS dag_runtime_min,
+                       COUNT(*)                           AS antal_skift
+                FROM (
+                    SELECT op1 AS op_num, dag, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op1 > 0
+                    UNION ALL
+                    SELECT op2 AS op_num, dag, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op2 > 0
+                    UNION ALL
+                    SELECT op3 AS op_num, dag, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op3 > 0
+                ) raw
+                GROUP BY op_num, dag
             ) sub
             LEFT JOIN operators o ON o.number = sub.op_num
             GROUP BY sub.op_num, o.name
@@ -665,17 +673,25 @@ class VDVeckorapportController {
                 SELECT
                     sub.op_num                                      AS operator_id,
                     COALESCE(o.name, CONCAT('Op #', sub.op_num))   AS operator_namn,
-                    SUM(sub.shift_ibc_ok)                          AS ibc_ok,
-                    SUM(sub.shift_ibc_ej_ok)                       AS ibc_kasserade,
-                    SUM(sub.shift_ibc_ok + sub.shift_ibc_ej_ok)   AS ibc_totalt,
-                    SUM(sub.shift_runtime_min) * 60                AS drifttid_sek,
-                    COUNT(*)                                        AS antal_skift
+                    SUM(sub.dag_ibc_ok)                            AS ibc_ok,
+                    SUM(sub.dag_ibc_ej_ok)                         AS ibc_kasserade,
+                    SUM(sub.dag_ibc_ok + sub.dag_ibc_ej_ok)       AS ibc_totalt,
+                    SUM(sub.dag_runtime_min) * 60                  AS drifttid_sek,
+                    SUM(sub.antal_skift)                           AS antal_skift
                 FROM (
-                    SELECT op1 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op1 > 0
-                    UNION ALL
-                    SELECT op2 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op2 > 0
-                    UNION ALL
-                    SELECT op3 AS op_num, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op3 > 0
+                    SELECT op_num, dag,
+                           SUM(shift_ibc_ok)                  AS dag_ibc_ok,
+                           SUM(shift_ibc_ej_ok)               AS dag_ibc_ej_ok,
+                           LEAST(600, SUM(shift_runtime_min)) AS dag_runtime_min,
+                           COUNT(*)                           AS antal_skift
+                    FROM (
+                        SELECT op1 AS op_num, dag, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op1 > 0
+                        UNION ALL
+                        SELECT op2 AS op_num, dag, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op2 > 0
+                        UNION ALL
+                        SELECT op3 AS op_num, dag, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min FROM lag_shifts WHERE op3 > 0
+                    ) raw
+                    GROUP BY op_num, dag
                 ) sub
                 LEFT JOIN operators o ON o.number = sub.op_num
                 GROUP BY sub.op_num, o.name

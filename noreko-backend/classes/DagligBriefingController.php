@@ -275,19 +275,23 @@ class DagligBriefingController {
             $bastaOperator = null;
             try {
                 $sql = "
-                    SELECT op, SUM(shift_ibc) AS total_ibc, COALESCE(o.name, CONCAT('Operator ', op)) AS operator_namn
+                    SELECT op, SUM(delta_ok) AS total_ibc, COALESCE(o.name, CONCAT('Operator ', op)) AS operator_namn
                     FROM (
-                        SELECT op1 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                        WHERE datum >= :date1 AND datum < DATE_ADD(:date1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                        GROUP BY op1, skiftraknare
-                        UNION ALL
-                        SELECT op2 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                        WHERE datum >= :date2 AND datum < DATE_ADD(:date2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                        GROUP BY op2, skiftraknare
-                        UNION ALL
-                        SELECT op3 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                        WHERE datum >= :date3 AND datum < DATE_ADD(:date3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                        GROUP BY op3, skiftraknare
+                        SELECT op, dag,
+                            CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY op, dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY op, dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok
+                        FROM (
+                            SELECT op1 AS op, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end FROM rebotling_ibc
+                            WHERE datum >= :date1 AND datum < DATE_ADD(:date1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
+                            GROUP BY op1, DATE(datum), skiftraknare
+                            UNION ALL
+                            SELECT op2 AS op, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end FROM rebotling_ibc
+                            WHERE datum >= :date2 AND datum < DATE_ADD(:date2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
+                            GROUP BY op2, DATE(datum), skiftraknare
+                            UNION ALL
+                            SELECT op3 AS op, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end FROM rebotling_ibc
+                            WHERE datum >= :date3 AND datum < DATE_ADD(:date3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
+                            GROUP BY op3, DATE(datum), skiftraknare
+                        ) shifts
                     ) AS sub
                     LEFT JOIN operators o ON o.number = sub.op
                     GROUP BY op, o.name
@@ -539,19 +543,23 @@ class DagligBriefingController {
             // Operatorer som producerat idag (rebotling_ibc uses op1/op2/op3)
             try {
                 $sql = "
-                    SELECT op, SUM(shift_ibc) AS ibc_idag, COALESCE(o.name, CONCAT('Operator ', op)) AS namn
+                    SELECT op, SUM(delta_ok) AS ibc_idag, COALESCE(o.name, CONCAT('Operator ', op)) AS namn
                     FROM (
-                        SELECT op1 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                        WHERE datum >= :today1 AND datum < DATE_ADD(:today1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
-                        GROUP BY op1, skiftraknare
-                        UNION ALL
-                        SELECT op2 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                        WHERE datum >= :today2 AND datum < DATE_ADD(:today2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
-                        GROUP BY op2, skiftraknare
-                        UNION ALL
-                        SELECT op3 AS op, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS shift_ibc FROM rebotling_ibc
-                        WHERE datum >= :today3 AND datum < DATE_ADD(:today3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
-                        GROUP BY op3, skiftraknare
+                        SELECT op, dag,
+                            CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY op, dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY op, dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok
+                        FROM (
+                            SELECT op1 AS op, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end FROM rebotling_ibc
+                            WHERE datum >= :today1 AND datum < DATE_ADD(:today1b, INTERVAL 1 DAY) AND op1 IS NOT NULL AND op1 > 0
+                            GROUP BY op1, DATE(datum), skiftraknare
+                            UNION ALL
+                            SELECT op2 AS op, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end FROM rebotling_ibc
+                            WHERE datum >= :today2 AND datum < DATE_ADD(:today2b, INTERVAL 1 DAY) AND op2 IS NOT NULL AND op2 > 0
+                            GROUP BY op2, DATE(datum), skiftraknare
+                            UNION ALL
+                            SELECT op3 AS op, DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end FROM rebotling_ibc
+                            WHERE datum >= :today3 AND datum < DATE_ADD(:today3b, INTERVAL 1 DAY) AND op3 IS NOT NULL AND op3 > 0
+                            GROUP BY op3, DATE(datum), skiftraknare
+                        ) shifts
                     ) AS sub
                     LEFT JOIN operators o ON o.number = sub.op
                     GROUP BY op, o.name

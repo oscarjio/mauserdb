@@ -133,7 +133,7 @@ class MyStatsController {
                 SELECT dag, skiftraknare, op1, op2, op3,
                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc,
                        CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ej_ok,
-                       runtime_end AS shift_runtime
+                       CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN runtime_end - COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE runtime_end END AS shift_runtime
                 FROM lag_base
             )
         ";
@@ -160,11 +160,18 @@ class MyStatsController {
             $sqlOp = "
                 {$lagCte}
                 SELECT
-                    COALESCE(SUM(shift_ibc), 0)     AS total_ibc,
-                    COALESCE(SUM(shift_ej_ok), 0)   AS total_ej_ok,
-                    COALESCE(SUM(shift_runtime), 0) AS total_runtime_s
-                FROM lag_shifts
-                WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
+                    COALESCE(SUM(dag_ibc), 0)     AS total_ibc,
+                    COALESCE(SUM(dag_ej_ok), 0)   AS total_ej_ok,
+                    COALESCE(SUM(dag_runtime), 0) AS total_runtime_s
+                FROM (
+                    SELECT dag,
+                           SUM(shift_ibc)                AS dag_ibc,
+                           SUM(shift_ej_ok)              AS dag_ej_ok,
+                           LEAST(600, SUM(shift_runtime)) AS dag_runtime
+                    FROM lag_shifts
+                    WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
+                    GROUP BY dag
+                ) AS per_dag
             ";
             $rowOp = $this->pdo->query($sqlOp)->fetch(PDO::FETCH_ASSOC) ?: [];
 
@@ -200,15 +207,22 @@ class MyStatsController {
             $sqlTeam = "
                 {$lagCte}
                 SELECT op_num,
-                       SUM(shift_ibc)     AS op_ibc,
-                       SUM(shift_ej_ok)   AS op_ej_ok,
-                       SUM(shift_runtime) AS op_runtime
+                       SUM(dag_ibc)     AS op_ibc,
+                       SUM(dag_ej_ok)   AS op_ej_ok,
+                       SUM(dag_runtime) AS op_runtime
                 FROM (
-                    SELECT op1 AS op_num, shift_ibc, shift_ej_ok, shift_runtime FROM lag_shifts WHERE op1 > 0
-                    UNION ALL
-                    SELECT op2 AS op_num, shift_ibc, shift_ej_ok, shift_runtime FROM lag_shifts WHERE op2 > 0
-                    UNION ALL
-                    SELECT op3 AS op_num, shift_ibc, shift_ej_ok, shift_runtime FROM lag_shifts WHERE op3 > 0
+                    SELECT op_num, dag,
+                           SUM(shift_ibc)                 AS dag_ibc,
+                           SUM(shift_ej_ok)               AS dag_ej_ok,
+                           LEAST(600, SUM(shift_runtime)) AS dag_runtime
+                    FROM (
+                        SELECT op1 AS op_num, dag, shift_ibc, shift_ej_ok, shift_runtime FROM lag_shifts WHERE op1 > 0
+                        UNION ALL
+                        SELECT op2 AS op_num, dag, shift_ibc, shift_ej_ok, shift_runtime FROM lag_shifts WHERE op2 > 0
+                        UNION ALL
+                        SELECT op3 AS op_num, dag, shift_ibc, shift_ej_ok, shift_runtime FROM lag_shifts WHERE op3 > 0
+                    ) AS ops_raw
+                    GROUP BY op_num, dag
                 ) AS ops
                 GROUP BY op_num
             ";
@@ -299,9 +313,9 @@ class MyStatsController {
             $sqlMy = "
                 {$lagCte}
                 SELECT dag,
-                       SUM(shift_ibc)     AS dag_ibc,
-                       SUM(shift_ej_ok)   AS dag_ej_ok,
-                       SUM(shift_runtime) AS dag_runtime
+                       SUM(shift_ibc)                 AS dag_ibc,
+                       SUM(shift_ej_ok)               AS dag_ej_ok,
+                       LEAST(600, SUM(shift_runtime)) AS dag_runtime
                 FROM lag_shifts
                 WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
                 GROUP BY dag
@@ -319,15 +333,21 @@ class MyStatsController {
                 {$lagCte}
                 SELECT dag,
                        ROUND(
-                           SUM(shift_ibc) * 60.0 / NULLIF(SUM(shift_runtime), 0)
+                           SUM(dag_ibc) * 60.0 / NULLIF(SUM(dag_runtime), 0)
                            / NULLIF(COUNT(DISTINCT op_num), 0)
                        , 2) AS team_ibc_per_h
                 FROM (
-                    SELECT op1 AS op_num, dag, shift_ibc, shift_runtime FROM lag_shifts WHERE op1 > 0
-                    UNION ALL
-                    SELECT op2 AS op_num, dag, shift_ibc, shift_runtime FROM lag_shifts WHERE op2 > 0
-                    UNION ALL
-                    SELECT op3 AS op_num, dag, shift_ibc, shift_runtime FROM lag_shifts WHERE op3 > 0
+                    SELECT op_num, dag,
+                           SUM(shift_ibc)                 AS dag_ibc,
+                           LEAST(600, SUM(shift_runtime)) AS dag_runtime
+                    FROM (
+                        SELECT op1 AS op_num, dag, shift_ibc, shift_runtime FROM lag_shifts WHERE op1 > 0
+                        UNION ALL
+                        SELECT op2 AS op_num, dag, shift_ibc, shift_runtime FROM lag_shifts WHERE op2 > 0
+                        UNION ALL
+                        SELECT op3 AS op_num, dag, shift_ibc, shift_runtime FROM lag_shifts WHERE op3 > 0
+                    ) AS ops_raw
+                    GROUP BY op_num, dag
                 ) AS ops
                 GROUP BY dag
                 ORDER BY dag
@@ -461,10 +481,16 @@ class MyStatsController {
                 $sql = "
                     {$lagCteWeek}
                     SELECT ROUND(
-                        SUM(shift_ibc) * 60.0 / NULLIF(SUM(shift_runtime), 0)
+                        SUM(dag_ibc) * 60.0 / NULLIF(SUM(dag_runtime), 0)
                     , 2) AS ibc_per_h
-                    FROM lag_shifts
-                    WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
+                    FROM (
+                        SELECT dag,
+                               SUM(shift_ibc)                 AS dag_ibc,
+                               LEAST(600, SUM(shift_runtime)) AS dag_runtime
+                        FROM lag_shifts
+                        WHERE op1 = {$opNum} OR op2 = {$opNum} OR op3 = {$opNum}
+                        GROUP BY dag
+                    ) AS per_dag
                 ";
                 try {
                     $val = $this->pdo->query($sql)->fetchColumn();

@@ -124,12 +124,19 @@ class MinDagController {
                 lag_shifts AS (
                     SELECT dag, skiftraknare,
                            CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc,
-                           runtime_end AS shift_runtime_min
+                           CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN runtime_end - COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE runtime_end END AS shift_runtime_min
                     FROM lag_base
+                ),
+                lag_dagar AS (
+                    SELECT dag,
+                           SUM(shift_ibc)                     AS dag_ibc,
+                           LEAST(600, SUM(shift_runtime_min)) AS dag_runtime_min
+                    FROM lag_shifts
+                    GROUP BY dag
                 )
-                SELECT AVG(shift_runtime_min * 60 / NULLIF(shift_ibc, 0)) AS snitt
-                FROM lag_shifts
-                WHERE shift_ibc > 0
+                SELECT AVG(dag_runtime_min * 60 / NULLIF(dag_ibc, 0)) AS snitt
+                FROM lag_dagar
+                WHERE dag_ibc > 0
             ";
             $val = $this->pdo->query($sql)->fetchColumn();
             return $val !== null && $val > 0 ? (float)$val : 0.0;
@@ -200,7 +207,7 @@ class MinDagController {
                     SELECT skiftraknare, op1, op2, op3, last_bonus, last_kvalitet,
                            CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc_ok,
                            CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ibc_ej_ok,
-                           runtime_end AS shift_runtime_min
+                           CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (ORDER BY skiftraknare), 0) THEN runtime_end - COALESCE(LAG(runtime_end) OVER (ORDER BY skiftraknare), 0) ELSE runtime_end END AS shift_runtime_min
                     FROM lag_base
                 )
                 SELECT skiftraknare, shift_ibc_ok, shift_ibc_ej_ok, shift_runtime_min, last_bonus, last_kvalitet
@@ -240,6 +247,9 @@ class MinDagController {
                 $lastBonus    = max($lastBonus,    (float)$s['last_bonus']);
                 $lastKvalitet = max($lastKvalitet, (float)$s['last_kvalitet']);
             }
+
+            // Drifttid-cap: max 600 min/dag (10h) — skydd mot ev. uppblåst PLC-runtime
+            $totalRunMin = min($totalRunMin, 600);
 
             $totalIbc    = $totalIbcOk + $totalIbcEjOk;
             $kvalitetPct = $totalIbc > 0
