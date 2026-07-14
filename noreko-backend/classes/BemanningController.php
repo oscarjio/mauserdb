@@ -174,8 +174,12 @@ class BemanningController {
                 SELECT
                     dag,
                     skiftraknare,
-                    GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_end,
-                    GREATEST(0, runtime_end - COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS runtime,
+                    CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                         THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                         ELSE ibc_end END AS ibc_end,
+                    CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                         THEN runtime_end - COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                         ELSE runtime_end END AS runtime,
                     op1, op2, op3
                 FROM per_skift
             ),
@@ -394,8 +398,7 @@ class BemanningController {
                     COALESCE(sr.op3, 0) AS op3_id,
                     COUNT(*)         AS skift_count,
                     SUM(sr.totalt)   AS total_ibc,
-                    ROUND(AVG(CASE WHEN sr.drifttid > 0
-                        THEN sr.totalt / (LEAST(sr.drifttid, 600) / 60.0) ELSE NULL END), 2) AS snitt_ibc_per_h,
+                    ROUND(SUM(sr.totalt) / NULLIF(SUM(LEAST(sr.drifttid, 600)) / 60.0, 0), 2) AS snitt_ibc_per_h,
                     ROUND(AVG(sr.totalt), 1) AS snitt_per_skift
                 FROM tvattlinje_skiftrapport sr
                 INNER JOIN (

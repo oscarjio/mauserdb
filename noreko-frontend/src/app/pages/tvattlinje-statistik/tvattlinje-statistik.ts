@@ -1611,8 +1611,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         hasReport = monthIdx >= 0 && monthIdx in ibcPerMonth;
         count = hasReport ? ibcPerMonth[monthIdx] : 0;
       } else {
-        const ibcs = value.cycles.map((c: any) => Number(c.ibc_count)).filter((n: number) => n > 0);
-        count = ibcs.length ? Math.max(...ibcs) - Math.min(...ibcs) : 0;
+        // BUGG G: räkna en IBC per cykelrad (samma semantik som buildShiftSummaries).
+        // Tidigare: Math.max(ibc_count) - Math.min(ibc_count) på den KUMULATIVA räknaren
+        // gav fence-post-fel och exploderade vid PLC-nollställning inuti bucketen.
+        count = value.cycles.length;
       }
       cycleCountArr.push(count);
       hasReportArr.push(hasReport);
@@ -2251,15 +2253,21 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       const taktMal = this.targetCycleTime || 3;
       const efficiency = avgCycleTime > 0 ? Math.min(Math.round((taktMal / avgCycleTime) * 100), 100) : 0; // T5: cap 100
 
+      // BUGG H: cycles.length är RÅA cykelrader (ej dedupade, PLC ej idempotent).
+      // Månadsvyn har en rad per dag → använd dagens IBC (ibcPerDag) för både IBC-antal
+      // och drifttid, med 600-min-cap. Övriga vyer räknar cykler i egen bucket.
+      const rowIbc = this.viewMode === 'month' ? (this.ibcPerDag[this.formatDate(date)] ?? cycles.length) : cycles.length;
+      const runtime = this.viewMode === 'month' ? Math.min(rowIbc * avgCycleTime, 600) : rowIbc * avgCycleTime;
+
       this.tableData.push({
         period,
         date,
         // ibcPerDag är nycklad PER DAG. Bara månadsvyn har en rad per dag → använd dagens IBC där.
-        // Dagvyn (per 10-min-intervall) och årsvyn (per månad) måste räkna cykler i egen bucket.
-        cycles: this.viewMode === 'month' ? (this.ibcPerDag[this.formatDate(date)] ?? cycles.length) : cycles.length,
+        // Dagvyn (per 10-min-intervall) och årsvyn (per månad) räknar cykler i egen bucket.
+        cycles: rowIbc,
         avgCycleTime: Math.round(avgCycleTime * 10) / 10,
         efficiency,
-        runtime: Math.round(cycles.length * avgCycleTime * 10) / 10,
+        runtime: Math.round(runtime * 10) / 10,
         rastMinutes: rastMin,
         driftstoppMinutes: dsMin,
         clickable: this.viewMode !== 'day'

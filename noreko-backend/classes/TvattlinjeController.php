@@ -2541,6 +2541,7 @@ class TvattlinjeController {
                         -- B: PLC-först (som resten av appen). sr.total_ibc är SUM(...) och blir 0 (aldrig
                         -- NULL) vid tom/korrupt skiftrapport → NULLIF gör att PLC-talet inte kastas.
                         COALESCE(NULLIF(ibcmax.ibc_max, 0), NULLIF(sr.total_ibc, 0), 0) AS total_ibc,
+                        ibcmax.ibc_max                                    AS ibc_max,
                         sr.total_ibc                                      AS sr_total_ibc,
                         sr.total_ok                                       AS total_ok,
                         sr.total_ej_ok                                    AS total_ej_ok,
@@ -2635,16 +2636,22 @@ class TvattlinjeController {
             foreach ($rows as $r) {
                 // A: ingen skift_count-filtrering längre — dubbelposter deduplicerade i SQL.
                 $tot = max(0, (int)$r['total_ibc']);
-                // C5: PLC-only dag (ingen skiftrapport) har ingen ok/ej_ok-data → kvalitet null.
                 $isPlcOnly = !empty($r['is_plc_only']);
-                $hasOkData = !$isPlcOnly && $r['total_ok'] !== null;
-                $ok  = $hasOkData ? max(0, (int)$r['total_ok']) : 0;
-
-                // B: Kvalitet delar total_ok / sr_total_ibc (SR-INTERN nämnare) — INTE PLC-$tot, annars
-                // återinförs ok(SR)/ibc(PLC)-buggen (kvalitet deflaterad). Bara total_ibc/perf/snitt/bästa
-                // dag använder PLC-talet. PLC-only dag (ingen ok-data) → null (rapporteras ej som 0%).
+                $ejOk = max(0, (int)($r['total_ej_ok'] ?? 0));
+                $ok  = ($r['total_ok'] !== null) ? max(0, (int)$r['total_ok']) : 0;
                 $srTot = (int)($r['sr_total_ibc'] ?? 0);
-                $qual_pct = $isPlcOnly ? null : (($srTot > 0) ? round(($ok / $srTot) * 100, 1) : 0.0);
+
+                // B: På SR-dagar får totalen ALDRIG understiga rapporterad ok+ej_ok-bas — PLC-max kan
+                // vara < SR-summan (06-25: PLC 95 men ok 101+ej_ok 16=117 → "95 IBC varav 101 OK").
+                if (!$isPlcOnly) {
+                    $tot = max((int)($r['ibc_max'] ?? 0), $srTot);
+                }
+
+                // A: Kvalitet kräver FAKTISK kvalitetsdata (ok+ej_ok > 0). En tom skiftrapport (ok=0 OCH
+                // ej_ok=0) är INGEN kvalitetsdata (INTE 100% kassation) → null. qual = ok / sr_total_ibc
+                // (SR-INTERN nämnare — ej PLC-$tot, som återinför ok(SR)/ibc(PLC)-buggen).
+                $hasQualData = !$isPlcOnly && (($ok + $ejOk) > 0);
+                $qual_pct = $hasQualData ? round($ok / max(1, $srTot) * 100, 1) : null;
 
                 // C: Körtid = skiftrapportens drifttid (D4007, exkl rast); fallback MAX(runtime_plc)
                 // från tvattlinje_ibc. Ingen körtidskälla alls → 0% tillgänglighet (ej 100).
@@ -2688,19 +2695,22 @@ class TvattlinjeController {
                 if ($tot > 0 && !$isToday) { $producerandeDagar++; $snittIbcSum += $tot; }
 
                 $totalIbcSum += $tot;
-                // D: kvalitetssnittet ska bara räkna dagar med faktisk ok-data (SR-dagar). PLC-only-
-                // dagar (qual_pct=null, ok tvingat till 0) skulle annars trycka ned snittet artificiellt.
-                if ($hasOkData) { $srIbcSum += $tot; $totalOkSum += $ok; }
+                // A/D: kvalitetssnittet räknar bara dagar med FAKTISK kvalitetsdata (ok+ej_ok>0) och
+                // delar på SR-intern total (sr_total_ibc), ej PLC-$tot — annars adderas t.ex. 07-01:s
+                // 136 PLC-IBC med 0 ok till nämnaren → snitt_kvalitet deflaterat.
+                if ($hasQualData) { $srIbcSum += $srTot; $totalOkSum += $ok; }
                 // A: Bästa dag = flest inskickade IBCer (dedupliceras i SQL); exkludera pågående dag.
                 if ($tot > $bestaIbc && $r['dag'] < date('Y-m-d')) {
                     $bestaIbc = $tot;
                     $bestaDag = $r['dag'];
                 }
                 $dagData[] = [
-                    'dag'         => $r['dag'],
-                    'total_ibc'   => $tot,
-                    'total_ok'    => $ok,
-                    'total_ej_ok' => (int)$r['total_ej_ok'],
+                    'dag'           => $r['dag'],
+                    'total_ibc'     => $tot,
+                    'total_ok'      => $ok,
+                    'total_ej_ok'   => $ejOk,
+                    // B: flagga rader där rapporterad ok+ej_ok ändå överstiger totalen (frontend visar varning)
+                    'data_mismatch' => ($ok + $ejOk) > $tot,
                     'avail_pct'   => $avail_pct,
                     'perf_pct'    => $perf_pct,
                     'qual_pct'    => $qual_pct,

@@ -162,8 +162,12 @@ class OperatorRankingController {
                 ),
                 lag_shifts AS (
                     SELECT dag, skiftraknare,
-                           GREATEST(0, ok_end - COALESCE(LAG(ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                           GREATEST(0, tot_end - COALESCE(LAG(tot_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_total,
+                           CASE WHEN ok_end >= COALESCE(LAG(ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                                THEN ok_end - COALESCE(LAG(ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                                ELSE ok_end END AS delta_ok,
+                           CASE WHEN tot_end >= COALESCE(LAG(tot_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                                THEN tot_end - COALESCE(LAG(tot_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                                ELSE tot_end END AS delta_total,
                            op1, op2, op3
                     FROM lag_base
                 )
@@ -452,7 +456,9 @@ class OperatorRankingController {
                 ),
                 lag_shifts AS (
                     SELECT dag, skiftraknare,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                                THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                                ELSE ibc_end END AS delta_ibc,
                            op1, op2, op3
                     FROM lag_base
                 )
@@ -538,7 +544,9 @@ class OperatorRankingController {
                     GROUP BY DATE(datum), skiftraknare
                 ),
                 lag_shifts AS (
-                    SELECT GREATEST(0, tot_end - COALESCE(LAG(tot_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_total
+                    SELECT CASE WHEN tot_end >= COALESCE(LAG(tot_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                                THEN tot_end - COALESCE(LAG(tot_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                                ELSE tot_end END AS delta_total
                     FROM lag_base
                 )
                 SELECT COALESCE(SUM(delta_total), 0) AS total_ibc
@@ -726,7 +734,9 @@ class OperatorRankingController {
                     ),
                     lag_shifts AS (
                         SELECT dag, skiftraknare,
-                               GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ibc,
+                               CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                                    THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                                    ELSE ibc_end END AS delta_ibc,
                                op1, op2, op3
                         FROM lag_base
                     )

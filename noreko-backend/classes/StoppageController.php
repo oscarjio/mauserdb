@@ -210,7 +210,7 @@ class StoppageController {
                 SELECT COALESCE(r.code, 'UNKNOWN') AS code, COALESCE(r.name, 'Okänd orsak') AS name, r.category, r.color,
                        COUNT(*) as count,
                        SUM(COALESCE(s.duration_minutes, 0)) as total_minutes,
-                       ROUND(AVG(COALESCE(s.duration_minutes, 0)), 1) as avg_minutes
+                       ROUND(AVG(s.duration_minutes), 1) as avg_minutes
                 FROM stoppage_log s
                 LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
                 WHERE s.line = ? AND s.start_time >= ?
@@ -380,8 +380,13 @@ class StoppageController {
                         try {
                             $start = new DateTime($row['start_time'], $tz);
                             $end = new DateTime($endTime, $tz);
+                            if ($end < $start) {
+                                http_response_code(400);
+                                echo json_encode(['success' => false, 'error' => 'Sluttid kan inte vara före starttid'], JSON_UNESCAPED_UNICODE);
+                                return;
+                            }
                             $fields[] = 'duration_minutes = ?';
-                            $params[] = max(0, (int)round(($end->getTimestamp() - $start->getTimestamp()) / 60));
+                            $params[] = max(0, min(14400, (int)round(($end->getTimestamp() - $start->getTimestamp()) / 60)));
                         } catch (\Throwable $e) {
                             error_log('StoppageController::updateStoppage: Ogiltigt datumvärde: ' . $e->getMessage());
                         }
@@ -518,7 +523,7 @@ class StoppageController {
             $stmtRepeat = $this->pdo->prepare("
                 SELECT s.reason_id, COALESCE(r.name, 'Okänd') AS orsak, r.category,
                     COUNT(*) AS antal_7d,
-                    ROUND(AVG(COALESCE(s.duration_minutes, 0)), 1) AS snitt_tid,
+                    ROUND(AVG(s.duration_minutes), 1) AS snitt_tid,
                     MIN(s.start_time) AS forsta,
                     MAX(s.start_time) AS senaste
                 FROM stoppage_log s
@@ -544,7 +549,7 @@ class StoppageController {
             $stmtHourly = $this->pdo->prepare("
                 SELECT HOUR(start_time) AS timme,
                     COUNT(*) AS antal,
-                    ROUND(AVG(COALESCE(duration_minutes, 0)), 1) AS snitt_min
+                    ROUND(AVG(duration_minutes), 1) AS snitt_min
                 FROM stoppage_log
                 WHERE start_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
                   AND line = ?
