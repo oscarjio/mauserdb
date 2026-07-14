@@ -129,7 +129,15 @@ class RemoteAgg
         $GLOBALS['__piTtfbMs']  = curl_getinfo($ch, CURLINFO_STARTTRANSFER_TIME) * 1000;
         curl_close($ch);
 
+        // F: Validera att svaret verkligen lyckades INNAN cache/servering. Ett Pi-svar med
+        // HTTP 200 men success:false (t.ex. DB-fel på Pi:n) cachades tidigare i upp till 7 dygn
+        // (swrTtl för avslutad period). Kräv giltig JSON och att success inte är false — annars
+        // behandla som miss → servera stale (nedan) eller lokal fallback.
         $ok = ($body !== false && $code === 200 && isset($body[0]) && $body[0] === '{');
+        if ($ok) {
+            $j  = json_decode($body, true);
+            $ok = is_array($j) && (!array_key_exists('success', $j) || $j['success'] === true);
+        }
         if ($ok) {
             // Atomisk skrivning (temp+rename) → inga trasiga läsningar av stora svar.
             $tmp = $cf . '.tmp.' . getmypid();

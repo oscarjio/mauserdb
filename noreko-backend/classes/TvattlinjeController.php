@@ -2384,20 +2384,45 @@ class TvattlinjeController {
             // Källdata: tvattlinje_skiftrapport — PLC-råvärden (D4004/D4005/D4007) inskickade per skift.
             // Aggregera per dag. Aldrig kumulativ diff → inga negativa värden vid PLC-nollställning.
             try {
+                // A: Deduplicera per (dag, skiftraknare) — senaste posten (MAX id) — annars
+                // dubbelräknar snapshot-poster IBC/drifttid. C: hämta även MAX(runtime_plc) per
+                // dag från tvattlinje_ibc som körtidsfallback när skiftrapportens drifttid saknas.
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        DATE(datum)                              AS dag,
-                        SUM(GREATEST(0, COALESCE(totalt,    0))) AS total_ibc,
-                        SUM(GREATEST(0, COALESCE(antal_ok,  0))) AS total_ok,
-                        SUM(GREATEST(0, COALESCE(antal_ej_ok,0))) AS total_ej_ok,
-                        COUNT(*)                                 AS skift_count,
-                        SUM(GREATEST(0, COALESCE(drifttid,  0))) AS total_runtime_min
-                    FROM tvattlinje_skiftrapport
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
-                    GROUP BY DATE(datum)
-                    ORDER BY dag ASC
+                        d.dag,
+                        d.total_ibc,
+                        d.total_ok,
+                        d.total_ej_ok,
+                        d.skift_count,
+                        d.total_runtime_min,
+                        COALESCE(plc.plc_runtime_min, 0) AS plc_runtime_min
+                    FROM (
+                        SELECT
+                            DATE(sr.datum)                               AS dag,
+                            SUM(GREATEST(0, COALESCE(sr.totalt,     0))) AS total_ibc,
+                            SUM(GREATEST(0, COALESCE(sr.antal_ok,   0))) AS total_ok,
+                            SUM(GREATEST(0, COALESCE(sr.antal_ej_ok, 0))) AS total_ej_ok,
+                            COUNT(*)                                     AS skift_count,
+                            SUM(GREATEST(0, COALESCE(sr.drifttid,   0))) AS total_runtime_min
+                        FROM tvattlinje_skiftrapport sr
+                        INNER JOIN (
+                            SELECT MAX(id) AS max_id
+                            FROM tvattlinje_skiftrapport
+                            WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                            GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                        ) latest ON sr.id = latest.max_id
+                        GROUP BY DATE(sr.datum)
+                    ) d
+                    LEFT JOIN (
+                        SELECT DATE(datum) AS dag, MAX(runtime_plc) AS plc_runtime_min
+                        FROM tvattlinje_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar2 DAY)
+                          AND runtime_plc IS NOT NULL AND runtime_plc > 0
+                        GROUP BY DATE(datum)
+                    ) plc ON plc.dag = d.dag
+                    ORDER BY d.dag ASC
                 ");
-                $stmt->execute(['dagar' => $dagar]);
+                $stmt->execute(['dagar' => $dagar, 'dagar2' => $dagar]);
                 $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Throwable $e) {
                 error_log('TvattlinjeController::getOeeTrend: ' . $e->getMessage());
@@ -2426,40 +2451,62 @@ class TvattlinjeController {
             $bestaDag    = null;
             $bestaIbc    = 0;
 
-            foreach ($rows as $r) {
-                if ((int)$r['skift_count'] !== 1) {
-                    continue;
+            // D: Veckodagsmål (mål IBC/dag) per WEEKDAY (0=mån … 6=sön). Källa: tvattlinje_weekday_goals
+            // (samma tabell som live/snapshot). Fallback om tabell/rad saknas: vardag 140, helg 60.
+            $goalsMap = [];
+            try {
+                foreach ($this->pdo->query("SELECT weekday, mal FROM tvattlinje_weekday_goals")->fetchAll(\PDO::FETCH_ASSOC) as $g) {
+                    $goalsMap[(int)$g['weekday']] = (int)$g['mal'];
                 }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getOeeTrend goals: ' . $e->getMessage()); }
+
+            foreach ($rows as $r) {
+                // A: ingen skift_count-filtrering längre — dubbelposter deduplicerade i SQL.
                 $tot = max(0, (int)$r['total_ibc']);
                 $ok  = max(0, (int)$r['total_ok']);
 
-                // Kvalitet: antal_ok / totalt. Om totalt=0 → 100% (ingen data = ingen kassation).
-                $qual_pct = ($ok > 0 && $tot > 0) ? round(($ok / $tot) * 100, 1) : 100.0;
+                // B: Kvalitet = antal_ok / totalt. totalt=0 → 0 (ingen godkänd produktion), och
+                // allt kasserat (ok=0, tot>0) → 0 (INTE 100 som tidigare maskerade full kassation).
+                $qual_pct = ($tot > 0) ? round(($ok / $tot) * 100, 1) : 0.0;
 
-                // Tillgänglighet: drifttid (D4007, minuter) från skiftrapport.
-                $runtimeMin  = max(0, isset($r['total_runtime_min']) ? (float)$r['total_runtime_min'] : 0);
-                $rastMin     = 0; // rast ingår inte i skiftrapportens drifttid (D4007 exkluderar rast)
+                // C: Körtid = skiftrapportens drifttid (D4007, exkl rast); fallback MAX(runtime_plc)
+                // från tvattlinje_ibc. Ingen körtidskälla alls → 0% tillgänglighet (ej 100).
+                $runtimeMin = max(0, isset($r['total_runtime_min']) ? (float)$r['total_runtime_min'] : 0);
+                if ($runtimeMin <= 0) {
+                    $runtimeMin = max(0, isset($r['plc_runtime_min']) ? (float)$r['plc_runtime_min'] : 0);
+                }
+                $rastMin       = 0; // rast ingår inte i D4007
                 $netRuntimeMin = max(0, $runtimeMin - $rastMin);
-                // Planerad arbetstid: mån-tors 07-16 med 45 min rast = 495 min, fre 07-15 = 480 min
-                $dayN       = (int)date('N', strtotime($r['dag'])); // 1=mån … 7=sön
-                $plannedMin = ($dayN === 5) ? 480.0 : 495.0;
-                $avail_pct = ($runtimeMin > 0)
-                    ? min(100.0, round(($netRuntimeMin / $plannedMin) * 100, 1))
-                    : 100.0; // Ingen runtimedata = antag 100% tillgänglighet
 
-                // Prestanda (0-100): faktisk takt / idealtakt (mål: 1 IBC per 3 min = 20 IBC/h)
-                $idealPerDag = ($plannedMin / 60.0) * 20.0;
+                $dayN      = (int)date('N', strtotime($r['dag'])); // 1=mån … 7=sön
+                $weekday   = $dayN - 1;                            // 0=mån … 6=sön (matchar weekday_goals/WEEKDAY())
+                $isWeekend = ($dayN >= 6);
+
+                // D: Tillgänglighet. Vardag = verkligt skiftschema (mån-tors 495 min, fre 480 min).
+                // Helg = ingen tillgänglighetsstraff (oschemalagt, körs bara ibland): körd alls → 100%,
+                // annars 0%. På helg mäts alltså bara prestanda och kvalitet.
+                if ($isWeekend) {
+                    $avail_pct = $runtimeMin > 0 ? 100.0 : 0.0;
+                } else {
+                    $plannedMin = ($dayN === 5) ? 480.0 : 495.0;
+                    $avail_pct  = $runtimeMin > 0
+                        ? min(100.0, round(($netRuntimeMin / $plannedMin) * 100, 1))
+                        : 0.0;
+                }
+
+                // D: Prestanda mot veckodagsmålet (mål IBC/dag ur weekday_goals), ej hårdkodat 20 IBC/h.
+                $idealPerDag = $goalsMap[$weekday] ?? ($isWeekend ? 60 : 140);
                 $perf_pct = ($idealPerDag > 0)
                     ? min(100.0, round(($tot / $idealPerDag) * 100, 1))
-                    : 100.0;
+                    : 0.0;
 
                 // OEE = Tillgänglighet × Prestanda × Kvalitet (0-100 skala → dela med 10000)
                 $oee_pct = round(($avail_pct / 100.0) * ($perf_pct / 100.0) * ($qual_pct / 100.0) * 100.0, 1);
 
                 $totalIbcSum += $tot;
                 $totalOkSum  += $ok;
-                // Bästa dag = flest inskickade IBCer (totalt), exkludera pågående dag
-                if ($tot > $bestaIbc && (int)$r['skift_count'] === 1 && $r['dag'] < date('Y-m-d')) {
+                // A: Bästa dag = flest inskickade IBCer (dedupliceras i SQL); exkludera pågående dag.
+                if ($tot > $bestaIbc && $r['dag'] < date('Y-m-d')) {
                     $bestaIbc = $tot;
                     $bestaDag = $r['dag'];
                 }
@@ -2536,13 +2583,21 @@ class TvattlinjeController {
                 $opNames[(int)$r['number']] = $r['name'];
             }
 
-            // tvattlinje_skiftrapport: totalt är direkt antal (inte kumulativt)
+            // tvattlinje_skiftrapport: totalt är direkt antal (inte kumulativt).
+            // E: Deduplicera per (dag, skiftraknare) — senaste posten (MAX id) — annars
+            // dubbelräknar snapshot-poster operatörernas IBC, minuter och antal_skift i rankingen.
             $stmtShifts = $this->pdo->prepare("
-                SELECT totalt, drifttid, op1, op2, op3,
-                       YEARWEEK(datum, 1) AS yw
-                FROM tvattlinje_skiftrapport
-                WHERE datum BETWEEN :from AND :to AND drifttid > 0 AND totalt > 0
-                ORDER BY datum ASC
+                SELECT sr.totalt, sr.drifttid, sr.op1, sr.op2, sr.op3,
+                       YEARWEEK(sr.datum, 1) AS yw
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (
+                    SELECT MAX(id) AS max_id
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum BETWEEN :from AND :to
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) latest ON sr.id = latest.max_id
+                WHERE sr.drifttid > 0 AND sr.totalt > 0
+                ORDER BY sr.datum ASC
             ");
             $stmtShifts->execute([':from' => $from, ':to' => $to]);
             $allShifts = $stmtShifts->fetchAll(\PDO::FETCH_ASSOC);

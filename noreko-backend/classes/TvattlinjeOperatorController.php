@@ -287,16 +287,23 @@ class TvattlinjeOperatorController {
         }
 
         try {
-            // Hämta alla skift för perioden
+            // Hämta alla skift för perioden.
+            // Deduplicera per (dag, skiftraknare) — senaste posten (MAX id) — annars dubbelräknar
+            // snapshot-poster operatörernas produktionspoäng (10 p/IBC) och IBC/minuter i rankingen.
             $sql = "
                 SELECT
-                    id, datum, totalt, antal_ok, antal_ej_ok,
-                    op1, op2, op3,
-                    drifttid, driftstopptime, rasttime, skiftraknare
-                FROM tvattlinje_skiftrapport
-                WHERE datum >= :from AND datum <= :to
-                  AND totalt > 0
-                ORDER BY datum ASC, skiftraknare ASC
+                    sr.id, sr.datum, sr.totalt, sr.antal_ok, sr.antal_ej_ok,
+                    sr.op1, sr.op2, sr.op3,
+                    sr.drifttid, sr.driftstopptime, sr.rasttime, sr.skiftraknare
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (
+                    SELECT MAX(id) AS max_id
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum >= :from AND datum <= :to
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) latest ON sr.id = latest.max_id
+                WHERE sr.totalt > 0
+                ORDER BY sr.datum ASC, sr.skiftraknare ASC
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':from' => $from, ':to' => $to]);
