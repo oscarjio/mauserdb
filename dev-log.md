@@ -6950,3 +6950,14 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 - **D** UtnyttjandegradController.php:34: `TILLGANGLIG_TID_PER_DAG 22.5 -> 7.5` (ETT skift/dag, ej treskift). Utnyttjandegrad var ~3x for lag.
 - **E** MaintenanceController linje-kolumn i service_intervals — KOAD till iter30 (kraver dev-DB migration + tabellval rebotling_ibc/tvattlinje_ibc).
 - Verifiering: `php -l` rent x2, `tsc -p tsconfig.watch.json` exit 0, frontend watch rebuild 2.1s + deploy OK. Endpoints 401 (auth-gated) — inga 500. A/C live-bevisade av agaren. Prod ororad.
+
+## 2026-07-14 iter30 (bug E) — commit 632ee9c5, CODE_VERSION=632ee9c5 (dev)
+- **E** MaintenanceController.php: tre IBC-queries hade hardkodad `FROM rebotling_ibc` (getServiceIntervals rad ~559/573 + resetServiceCounter ~723) -> tvattlinje-maskiners serviceintervall raknades mot rebotlings produktion.
+  - Ny `IBC_TABLE_PER_LINE` whitelist (rebotling->rebotling_ibc, tvattlinje->tvattlinje_ibc) + `resolveLine()` (okand linje -> rebotling). Tabellnamn interpoleras enbart fran konstant = injektionssakert.
+  - `getServiceIntervals`: total-IBC + IBC-sedan-service per linje (nyckel "linje|datum"); svar far `total_ibc_per_linje`, `total_ibc` bevaras bakatkompatibelt (rebotling).
+  - `resetServiceCounter`: slar upp radens linje, nollstaller mot ratt tabell.
+  - `setServiceInterval`: accepterar valfri `linje`-param (default rebotling) sa kolumnen faktiskt kan sattas.
+  - `serviceIntervalsHasLine()` SHOW COLUMNS-guard -> robust mot deploy-ordning: om dev-DB saknar kolumnen faller allt tillbaka pa rebotling (ingen 500).
+  - Migration `2026-07-14_service_intervals_linje_kolumn_DEV.sql`: `ADD COLUMN linje VARCHAR(32) DEFAULT 'rebotling'`. ENDAST dev-DB.
+- Verifiering: `php -l` rent. Endpoints 403 (admin-gated) — inga 500. Prod + prod-DB ORORDA. Migration kors manuellt pa dev-DB av agaren.
+- KVAR (valfritt): frontend bonus-admin/underhalls-UI kan fa linje-valjare for nya serviceintervall (API stodjer det nu).
