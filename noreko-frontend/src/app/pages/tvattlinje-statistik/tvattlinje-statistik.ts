@@ -1238,8 +1238,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       const effectiveWindowMin = Math.min(WINDOW_MINUTES, elapsedMin > 0 ? elapsedMin : WINDOW_MINUTES);
 
       const netWindowMin = Math.max(1, effectiveWindowMin - pauseMinInWindow - offMinInWindow);
-      const pp = windowCount > 0
-        ? Math.min(Math.round((windowCount * targetMin / netWindowMin) * 100), 100) // T5: cap 100
+      // SIGNERAD avvikelse mot mål (samma skala som KPI/kort), ingen cap.
+      // Faktisk cykeltid i fönstret = netto-min / antal IBC (min/IBC). + = snabbare, - = långsammare.
+      const actualCycle = windowCount > 0 ? netWindowMin / windowCount : 0;
+      const pp = (windowCount > 0 && targetMin > 0 && actualCycle > 0)
+        ? Math.round(((targetMin - actualCycle) / targetMin) * 100)
         : 0;
       result.push(pp);
     }
@@ -1755,7 +1758,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       const hasEfficiency = isPerCycle && chartData.efficiency && chartData.efficiency.length > 0;
       if (hasEfficiency) {
         datasets.push({
-          label: 'Effektivitet % (30 min)',
+          label: 'Effektivitet mot mål % (30 min)',
           data: chartData.efficiency,
           borderColor: '#68d391',
           backgroundColor: 'rgba(104,211,145,0.08)',
@@ -1792,12 +1795,16 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       };
 
       if (hasEfficiency) {
+        // Signerad okappad skala: symmetrisk kring 0 så mål-linjen (0 %) hamnar i mitten och
+        // den rullande effektiviteten kan variera över/under. Inget 100 %-tak längre.
+        const effVals = (chartData.efficiency as number[]).filter((v: number) => isFinite(v));
+        const maxAbs = Math.max(20, ...effVals.map((v: number) => Math.abs(v)));
         scales['yEff'] = {
-          beginAtZero: true,
-          suggestedMin: 0,
+          suggestedMin: -maxAbs,
+          suggestedMax: maxAbs,
           position: 'right',
-          title: { display: true, text: 'Effektivitet (%)', color: '#68d391', font: { size: 12 } },
-          ticks: { color: '#68d391', callback: (v: number) => v + '%' },
+          title: { display: true, text: 'Effektivitet mot mål (%)', color: '#68d391', font: { size: 12 } },
+          ticks: { color: '#68d391', callback: (v: number) => (Number(v) > 0 ? '+' : '') + v + '%' },
           grid: { drawOnChartArea: false },
         };
       }
