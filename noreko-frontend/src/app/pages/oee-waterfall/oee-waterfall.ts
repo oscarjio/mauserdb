@@ -226,7 +226,8 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
     return 'Lågt <60%';
   }
 
-  faktorfarg(pct: number): string {
+  faktorfarg(pct: number | null): string {
+    if (pct === null) return '#a0aec0';
     if (pct >= 85) return '#48bb78';
     if (pct >= 60) return '#ecc94b';
     return '#fc8181';

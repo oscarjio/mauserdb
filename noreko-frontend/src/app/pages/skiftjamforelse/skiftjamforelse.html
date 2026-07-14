@@ -149,7 +149,7 @@
               {{ formatMinuter(s.stopptid_min) }}
             </td>
             <td class="text-end" [ngClass]="getCellClass(s.kvalitet_pct, 'kvalitet_pct')">
-              {{ s.kvalitet_pct }}%
+              {{ s.kvalitet_pct !== null ? (s.kvalitet_pct | number:'1.1-1') + '%' : '–' }}
             </td>
             <td class="text-end" [ngClass]="getCellClass(s.avg_cykeltid_sek, 'avg_cykeltid_sek')">
               {{ s.avg_cykeltid_sek }}s

@@ -11,7 +11,7 @@ export interface Produktion {
   total_ibc: number;
   ibc_ok: number;
   ibc_ej_ok: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   ibc_per_timme: number;
   runtime_min: number;
   skift_start: string | null;
@@ -28,7 +28,7 @@ export interface SkiftData {
   ibc_ok: number;
   ibc_ej_ok: number;
   runtime_min: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   ibc_per_timme: number;
   skift_start: string | null;
   skift_slut: string | null;
@@ -42,7 +42,7 @@ export interface OeeSnapshot {
   prestanda: number;
   prestanda_pct: number;
   kvalitet: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   drifttid_sek: number;
   stopptid_sek: number;
   drifttid_h: number;
@@ -94,7 +94,7 @@ export interface SenasteSkift {
   ibc_ok?: number;
   ibc_ej_ok?: number;
   runtime_min?: number;
-  kvalitet_pct?: number;
+  kvalitet_pct?: number | null;
   ibc_per_timme?: number;
   skift_start?: string | null;
   skift_slut?: string | null;
@@ -122,7 +122,7 @@ export interface ComparisonDagData {
   datum: string;
   ibc_ok: number;
   ibc_ej_ok: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   ibc_per_timme: number;
   oee_pct: number;
 }

@@ -13,7 +13,7 @@ export interface Produktion {
   ibc_ej_ok: number;
   bur_ej_ok: number;
   ibc_total: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   ibc_per_timme: number;
   skift_start: string;
   skift_slut: string;
@@ -69,7 +69,7 @@ export interface SkiftInfo {
   ibc_ok: number;
   ibc_ej_ok: number;
   runtime_min: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   ibc_per_timme: number;
   lopnummer_range?: string;
   lopnummer_count?: number;
@@ -99,7 +99,7 @@ export interface DagSummary {
   ibc_ok: number;
   ibc_ej_ok: number;
   ibc_total: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   ibc_per_timme: number;
   runtime_min: number;
   stopptid_min: number;
@@ -111,7 +111,7 @@ export interface DagSummary {
 export interface MultiDaySumma {
   ibc_ok: number;
   ibc_total: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   ibc_per_timme: number;
   snitt_ibc_per_dag: number;
 }

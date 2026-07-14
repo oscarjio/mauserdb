@@ -79,7 +79,7 @@
       <div class="kpi-card">
         <div class="kpi-icon" style="color:#ecc94b"><i class="fas fa-star-half-alt"></i></div>
         <div class="kpi-value" [style.color]="faktorfarg(summary.kvalitet_pct)">
-          {{ summary.kvalitet_pct }}%
+          {{ summary.kvalitet_pct !== null ? (summary.kvalitet_pct | number:'1.1-1') + '%' : '–' }}
         </div>
         <div class="kpi-label">Kvalitet</div>
         <div class="kpi-sub">Godkänd IBC / total IBC</div>

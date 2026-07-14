@@ -314,7 +314,8 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
     return Math.min(...vals);
   }
 
-  getCellClass(value: number, field: string): string {
+  getCellClass(value: number | null, field: string): string {
+    if (value === null) return 'text-muted';
     const best = this.getBestValue(field);
     const worst = this.getWorstValue(field);
     if (value === best && best !== worst) return 'cell-best';

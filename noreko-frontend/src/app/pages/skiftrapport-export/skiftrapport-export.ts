@@ -198,7 +198,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
             ['IBC OK', { text: `${p.ibc_ok} st`, bold: true }],
             ['IBC Ej OK', `${p.ibc_ej_ok} st`],
             ['Totalt IBC', `${p.ibc_total} st`],
-            ['Kvalitet', { text: `${p.kvalitet_pct} %`, bold: true, color: this.kvalitetFarg(p.kvalitet_pct) }],
+            ['Kvalitet', { text: `${p.kvalitet_pct ?? '–'} %`, bold: true, color: this.kvalitetFarg(p.kvalitet_pct) }],
             ['IBC / timme', { text: `${p.ibc_per_timme}`, bold: true }],
             ['Antal skiften', `${p.antal_skiften}`],
             ['Skiftstart', p.skift_start ?? '—'],
@@ -220,7 +220,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
             widths: ['*', '*'],
             body: [
               [{ text: 'Mätvärde', style: 'tabellHeader', fillColor: '#2d3748' }, { text: 'Värde', style: 'tabellHeader', fillColor: '#2d3748' }],
-              ['Snitt cykeltid', c.avg_sek !== null ? `${this.formatSek(c.avg_sek)} (${c.avg_sek} sek)` : '—'],
+              ['Snitt cykeltid', c.avg_sek !== null ? `${this.formatSek(c.avg_sek)}` : '—'],
               ['Kortaste cykel', c.min_sek !== null ? `${this.formatSek(c.min_sek)}` : '—'],
               ['Längsta cykel', c.max_sek !== null ? `${this.formatSek(c.max_sek)}` : '—'],
               ['Antal uppmätta cykler', `${c.antal_cykler}`],
@@ -324,7 +324,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
               [
                 'Kvalitet %',
                 `${t.prev_kvalitet} %`,
-                `${p.kvalitet_pct} %`,
+                `${p.kvalitet_pct ?? '–'} %`,
                 t.diff_kvalitet !== null ? { text: this.trendText(t.diff_kvalitet, 'pp'), color: this.trendFarg(t.diff_kvalitet) } : '—',
               ],
               [
@@ -389,7 +389,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
         this.formatDatumSv(dag.dag),
         { text: `${dag.ibc_ok}`, alignment: 'center' },
         { text: `${dag.ibc_ej_ok}`, alignment: 'center' },
-        { text: `${dag.kvalitet_pct} %`, alignment: 'center', color: this.kvalitetFarg(dag.kvalitet_pct) },
+        { text: `${dag.kvalitet_pct ?? '–'} %`, alignment: 'center', color: this.kvalitetFarg(dag.kvalitet_pct) },
         { text: `${dag.ibc_per_timme}`, alignment: 'center' },
         { text: `${dag.drifttid_pct} %`, alignment: 'center' },
         { text: `${dag.oee_pct} %`, alignment: 'center', color: this.oeeFarg(dag.oee_pct) },
@@ -403,7 +403,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
         { text: 'SUMMA', bold: true, fillColor: '#1a365d', color: '#bee3f8' },
         { text: `${s.ibc_ok}`, alignment: 'center', bold: true, fillColor: '#1a365d', color: '#bee3f8' },
         { text: `${s.ibc_total - s.ibc_ok}`, alignment: 'center', fillColor: '#1a365d', color: '#bee3f8' },
-        { text: `${s.kvalitet_pct} %`, alignment: 'center', bold: true, fillColor: '#1a365d', color: '#bee3f8' },
+        { text: `${s.kvalitet_pct ?? '–'} %`, alignment: 'center', bold: true, fillColor: '#1a365d', color: '#bee3f8' },
         { text: `${s.ibc_per_timme}`, alignment: 'center', fillColor: '#1a365d', color: '#bee3f8' },
         { text: '—', alignment: 'center', fillColor: '#1a365d', color: '#bee3f8' },
         { text: '—', alignment: 'center', fillColor: '#1a365d', color: '#bee3f8' },
@@ -431,7 +431,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
           columns: [
             { text: `Totalt IBC OK: ${s.ibc_ok}`, style: 'sammanfattningKort' },
             { text: `Totalt IBC: ${s.ibc_total}`, style: 'sammanfattningKort' },
-            { text: `Snittkvalitet: ${s.kvalitet_pct} %`, style: 'sammanfattningKort' },
+            { text: `Snittkvalitet: ${s.kvalitet_pct ?? '–'} %`, style: 'sammanfattningKort' },
             { text: `Snitt IBC/h: ${s.ibc_per_timme}`, style: 'sammanfattningKort' },
             { text: `Snitt IBC/dag: ${s.snitt_ibc_per_dag}`, style: 'sammanfattningKort' },
           ],
@@ -533,7 +533,8 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
     return '=';
   }
 
-  kvalitetFarg(pct: number): string {
+  kvalitetFarg(pct: number | null): string {
+    if (pct === null) return '#a0aec0';
     if (pct >= 95) return '#68d391';
     if (pct >= 85) return '#f6e05e';
     return '#fc8181';

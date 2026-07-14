@@ -25,7 +25,7 @@ export interface SkiftRow {
   ibc_total: number;
   runtime_min: number;
   ibc_per_h: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   oee_pct: number;
   tillganglighet_pct: number;
   prestanda_pct: number;
@@ -66,7 +66,7 @@ export interface BestPractice {
   label: string;
   oee_pct: number;
   ibc_per_h: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   stopptid_min: number;
   basta_station: string | null;
   basta_station_oee: number | null;

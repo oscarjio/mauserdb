@@ -214,11 +214,11 @@ export class MinDagPage implements OnInit, OnDestroy {
     const vsTeam    = this.summary.vs_team_cykel;
     const kvalitet  = this.summary.kvalitet_pct;
 
-    if (kvalitet >= 98 && vsTeam < 0) return 'Fantastisk dag! Du levererar hög kvalitet och snabb cykeltid!';
+    if (kvalitet !== null && kvalitet >= 98 && vsTeam < 0) return 'Fantastisk dag! Du levererar hög kvalitet och snabb cykeltid!';
     if (ibc > 0 && snitt30d > 0 && ibc > snitt30d * 1.1) return 'Du ligger över ditt 30-dagarssnitt — bra jobbat!';
     if (vsTeam < -10) return 'Du är snabbare än teamets snitt — fortsätt så!';
     if (vsTeam > 20) return 'Cykeltiden kan förbättras — sikta på teamets snitt!';
-    if (kvalitet >= 95) return 'Bra kvalitet! Håll tempot uppe.';
+    if (kvalitet !== null && kvalitet >= 95) return 'Bra kvalitet! Håll tempot uppe.';
     if (ibc > 0) return 'Bra start på dagen — fortsätt i samma tempo!';
     return 'Dagens produktion har startat.';
   }
@@ -227,7 +227,7 @@ export class MinDagPage implements OnInit, OnDestroy {
     if (!this.summary?.har_data) return '#a0aec0';
     const vsTeam   = this.summary.vs_team_cykel;
     const kvalitet = this.summary.kvalitet_pct;
-    if (kvalitet >= 98 && vsTeam < 0) return '#48bb78';
+    if (kvalitet !== null && kvalitet >= 98 && vsTeam < 0) return '#48bb78';
     if (vsTeam < -10 || this.summary.ibc_today > this.summary.snitt_ibc_30d * 1.1) return '#48bb78';
     if (vsTeam > 20)  return '#fc8181';
     return '#ecc94b';

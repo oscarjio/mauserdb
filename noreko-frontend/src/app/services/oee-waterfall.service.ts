@@ -24,7 +24,7 @@ export interface WaterfallData {
   oee_pct: number;
   tillganglighet_pct: number;
   prestanda_pct: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   total_ibc: number;
   ok_ibc: number;
   kasserade: number;
@@ -47,7 +47,7 @@ export interface OeeSummaryData {
   oee_pct: number;
   tillganglighet_pct: number;
   prestanda_pct: number;
-  kvalitet_pct: number;
+  kvalitet_pct: number | null;
   oee_trend: number;
   tillganglighet_trend: number;
   prestanda_trend: number;

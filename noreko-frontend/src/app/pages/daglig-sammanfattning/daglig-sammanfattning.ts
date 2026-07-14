@@ -191,7 +191,8 @@ export class DagligSammanfattningComponent implements OnInit, OnDestroy {
   }
 
   /** OEE-faktor färg */
-  getFaktorKlass(pct: number): string {
+  getFaktorKlass(pct: number | null): string {
+    if (pct === null) return 'text-muted';
     if (pct >= 85) return 'text-success';
     if (pct >= 60) return 'text-info';
     if (pct >= 40) return 'text-warning';
@@ -222,7 +223,8 @@ export class DagligSammanfattningComponent implements OnInit, OnDestroy {
   }
 
   /** Kvalitetsfärgsklass */
-  getKvalitetKlass(pct: number): string {
+  getKvalitetKlass(pct: number | null): string {
+    if (pct === null) return 'text-muted';
     if (pct >= 98) return 'text-success';
     if (pct >= 90) return 'text-warning';
     return 'text-danger';

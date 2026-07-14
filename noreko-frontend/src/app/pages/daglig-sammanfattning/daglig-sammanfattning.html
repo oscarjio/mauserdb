@@ -132,7 +132,7 @@
           <div class="card card-dark p-3 text-center kpi-card">
             <div class="kpi-icon"><i class="fas fa-star" [ngClass]="getKvalitetKlass(summary.produktion.kvalitet_pct)"></i></div>
             <div class="kpi-value" [ngClass]="getKvalitetKlass(summary.produktion.kvalitet_pct)">
-              {{ summary.produktion.kvalitet_pct }}%
+              {{ summary.produktion.kvalitet_pct !== null ? (summary.produktion.kvalitet_pct | number:'1.1-1') + '%' : '–' }}
             </div>
             <div class="kpi-label">Kvalitet</div>
             <div class="kpi-sub text-muted small">IBC OK / Total</div>
@@ -213,11 +213,11 @@
                 <div class="oee-faktor-bar-wrap">
                   <div class="progress oee-progress-bar">
                     <div class="progress-bar bg-success"
-                         [style.width.%]="summary.oee.kvalitet_pct"></div>
+                         [style.width.%]="summary.oee.kvalitet_pct ?? 0"></div>
                   </div>
                 </div>
                 <span class="oee-faktor-pct" [ngClass]="getFaktorKlass(summary.oee.kvalitet_pct)">
-                  {{ summary.oee.kvalitet_pct }}%
+                  {{ summary.oee.kvalitet_pct !== null ? (summary.oee.kvalitet_pct | number:'1.1-1') + '%' : '–' }}
                 </span>
               </div>
             </div>
@@ -340,7 +340,7 @@
                 </div>
                 <div class="col-12 col-md-4">
                   <div class="skift-kpi-val" [ngClass]="getKvalitetKlass(summary.senaste_skift.kvalitet_pct ?? 0)">
-                    {{ summary.senaste_skift.kvalitet_pct }}%
+                    {{ summary.senaste_skift.kvalitet_pct !== null ? (summary.senaste_skift.kvalitet_pct | number:'1.1-1') + '%' : '–' }}
                   </div>
                   <div class="skift-kpi-label text-muted small">Kvalitet</div>
                 </div>
@@ -378,7 +378,7 @@
                     <tr *ngFor="let s of summary.produktion.skiften; trackBy: trackByIndex">
                       <td>{{ s.skiftraknare }}</td>
                       <td class="text-end text-success">{{ s.ibc_ok }}</td>
-                      <td class="text-end" [ngClass]="getKvalitetKlass(s.kvalitet_pct)">{{ s.kvalitet_pct }}%</td>
+                      <td class="text-end" [ngClass]="getKvalitetKlass(s.kvalitet_pct)">{{ s.kvalitet_pct !== null ? (s.kvalitet_pct | number:'1.1-1') + '%' : '–' }}</td>
                       <td class="text-end">{{ s.ibc_per_timme }}</td>
                     </tr>
                   </tbody>
@@ -419,7 +419,7 @@
                       <i class="fas fa-calendar-day me-1 text-info"></i>Idag
                     </td>
                     <td class="text-end text-success fw-bold">{{ comp.idag.ibc_ok }}</td>
-                    <td class="text-end" [ngClass]="getKvalitetKlass(comp.idag.kvalitet_pct)">{{ comp.idag.kvalitet_pct }}%</td>
+                    <td class="text-end" [ngClass]="getKvalitetKlass(comp.idag.kvalitet_pct)">{{ comp.idag.kvalitet_pct !== null ? (comp.idag.kvalitet_pct | number:'1.1-1') + '%' : '–' }}</td>
                     <td class="text-end">{{ comp.idag.ibc_per_timme }}</td>
                     <td class="text-end" [ngClass]="getFaktorKlass(comp.idag.oee_pct)">{{ comp.idag.oee_pct }}%</td>
                   </tr>
@@ -444,7 +444,7 @@
                       <i class="fas fa-calendar-minus me-1"></i>Igår
                     </td>
                     <td class="text-end text-muted">{{ comp.igar.ibc_ok }}</td>
-                    <td class="text-end text-muted">{{ comp.igar.kvalitet_pct }}%</td>
+                    <td class="text-end text-muted">{{ comp.igar.kvalitet_pct !== null ? (comp.igar.kvalitet_pct | number:'1.1-1') + '%' : '–' }}</td>
                     <td class="text-end text-muted">{{ comp.igar.ibc_per_timme }}</td>
                     <td class="text-end text-muted">{{ comp.igar.oee_pct }}%</td>
                   </tr>
@@ -470,7 +470,7 @@
                       <span class="text-muted" style="font-size:0.7rem;">({{ comp.foreg_vecka.datum }})</span>
                     </td>
                     <td class="text-end text-muted">{{ comp.foreg_vecka.ibc_ok }}</td>
-                    <td class="text-end text-muted">{{ comp.foreg_vecka.kvalitet_pct }}%</td>
+                    <td class="text-end text-muted">{{ comp.foreg_vecka.kvalitet_pct !== null ? (comp.foreg_vecka.kvalitet_pct | number:'1.1-1') + '%' : '–' }}</td>
                     <td class="text-end text-muted">{{ comp.foreg_vecka.ibc_per_timme }}</td>
                     <td class="text-end text-muted">{{ comp.foreg_vecka.oee_pct }}%</td>
                   </tr>
