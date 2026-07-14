@@ -182,8 +182,8 @@ class StatistikDashboardController {
                 SELECT COALESCE(SUM(ibc_ok_delta + ibc_ej_ok_delta), 0) AS total_ibc
                 FROM (
                     SELECT dag, skiftraknare,
-                           GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))    AS ibc_ok_delta,
-                           GREATEST(0, max_ej_ok - COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok_delta
+                           CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END    AS ibc_ok_delta,
+                           CASE WHEN max_ej_ok >= COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej_ok - COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej_ok END AS ibc_ej_ok_delta
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0))    AS max_ok,
@@ -375,8 +375,8 @@ class StatistikDashboardController {
                        COALESCE(SUM(ibc_ej_ok_delta), 0) AS ibc_ej_ok
                 FROM (
                     SELECT dag, skiftraknare,
-                           GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))    AS ibc_ok_delta,
-                           GREATEST(0, max_ej_ok - COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok_delta
+                           CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END    AS ibc_ok_delta,
+                           CASE WHEN max_ej_ok >= COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej_ok - COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej_ok END AS ibc_ej_ok_delta
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0))    AS max_ok,
@@ -470,8 +470,8 @@ class StatistikDashboardController {
                        COALESCE(SUM(ibc_ej_ok_delta), 0) AS ibc_ej_ok
                 FROM (
                     SELECT dag, skiftraknare,
-                           GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))    AS ibc_ok_delta,
-                           GREATEST(0, max_ej_ok - COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_ok_delta
+                           CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END    AS ibc_ok_delta,
+                           CASE WHEN max_ej_ok >= COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej_ok - COALESCE(LAG(max_ej_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej_ok END AS ibc_ej_ok_delta
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0))    AS max_ok,

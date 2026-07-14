@@ -911,8 +911,22 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const dayN = this.selectedPeriods.length > 0
       ? ((this.selectedPeriods[0].getDay() + 6) % 7) + 1
       : 1;
+    // BUGG B: den planerade vardagsskifttiden (495 mån-tors / 480 fre) är hårdkodad och
+    // borde härledas ur skiftinställningarna (skift_start/skift_slut i tvattlinje_settings).
+    // TODO(backend): getStatistics-summaryn (TvattlinjeController.php ~rad 1759) exponerar INTE
+    //   skift_start/skift_slut/skiftlangd idag — den summaryn saknar ett planerat-skift-fält.
+    //   Lägg t.ex. till 'planned_shift_minutes_weekday' (= skift_slut − skift_start i minuter,
+    //   klampat till samma 8.25h-fallback som backend redan använder på rad ~377) i summaryn.
+    //   När fältet finns: läs det till shiftMin nedan och behåll 495/480 endast som fallback.
     // Helg (lör/sön) = ingen fast planerad tid → mät mot faktisk körtid (100% om linjen kört).
-    const planned = (dayN >= 6) ? Math.max(1, totalRunMinutes) : (dayN === 5 ? 480 : 495);
+    const shiftMin: number | null =
+      (data?.summary?.planned_shift_minutes_weekday != null &&
+       Number(data.summary.planned_shift_minutes_weekday) > 0)
+        ? Number(data.summary.planned_shift_minutes_weekday)
+        : null;
+    const planned = (dayN >= 6)
+      ? Math.max(1, totalRunMinutes)
+      : (shiftMin && shiftMin > 0 ? shiftMin : (dayN === 5 ? 480 : 495));
     this.dayUtilizationPct = Math.min(100, Math.round((netRun / planned) * 100));
   }
 

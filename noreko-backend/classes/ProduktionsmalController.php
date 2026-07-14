@@ -149,7 +149,7 @@ class ProduktionsmalController {
                 SELECT COALESCE(SUM(delta_ok), 0) AS antal
                 FROM (
                     SELECT
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok) AS max_ok
@@ -229,7 +229,7 @@ class ProduktionsmalController {
                 SELECT dag, SUM(delta_ok) AS antal
                 FROM (
                     SELECT dag,
-                           GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                           CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ok
                         FROM rebotling_ibc

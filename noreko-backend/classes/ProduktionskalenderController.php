@@ -171,8 +171,8 @@ class ProduktionskalenderController {
                     MAX(sista)             AS sista_cykel
                 FROM (
                     SELECT dag,
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej,
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej,
                         forsta, sista
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
@@ -321,8 +321,8 @@ class ProduktionskalenderController {
                     SUM(delta_ej) AS ibc_ej_ok
                 FROM (
                     SELECT dag,
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok)    AS max_ok,

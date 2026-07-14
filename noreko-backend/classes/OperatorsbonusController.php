@@ -226,8 +226,8 @@ class OperatorsbonusController {
                 ),
                 team_shifts AS (
                     SELECT dag, skiftraknare, op1, op2, op3, shift_runtime,
-                           GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
-                           GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_delta
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS ibc_delta,
+                           CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS ibc_ej_delta
                     FROM base
                 )
                 SELECT
@@ -775,8 +775,8 @@ class OperatorsbonusController {
                         GROUP BY DATE(datum), skiftraknare
                     ), lag_shifts AS (
                         SELECT dag, skiftraknare, shift_runtime,
-                               GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
-                               GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_delta
+                               CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS ibc_delta,
+                               CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS ibc_ej_delta
                         FROM base
                     )
                     SELECT
@@ -809,8 +809,8 @@ class OperatorsbonusController {
                         GROUP BY DATE(datum), skiftraknare
                     ), lag_shifts AS (
                         SELECT dag, skiftraknare, shift_runtime,
-                               GREATEST(0, ibc_end    - COALESCE(LAG(ibc_end)    OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta,
-                               GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_ej_delta
+                               CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS ibc_delta,
+                               CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS ibc_ej_delta
                         FROM base
                     )
                     SELECT

@@ -239,8 +239,8 @@ class HistorikController {
                 ),
                 lag_shifts AS (
                     SELECT dag, skiftraknare, op1, op2, op3,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ok,
-                           GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ej_ok
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ok,
+                           CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS shift_ej_ok
                     FROM lag_base
                 )
                 SELECT dag,
@@ -316,7 +316,7 @@ class HistorikController {
                 ),
                 lag_shifts AS (
                     SELECT dag,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc
                     FROM lag_base
                 )
                 SELECT ar, vecka, SUM(daglig_ibc) AS ibc_vecka

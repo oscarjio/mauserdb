@@ -1770,6 +1770,7 @@ class TvattlinjeController {
                         'total_driftstopp_minutes'  => round($totalDriftstoppMinutes, 1),
                         'days_with_production'      => $days_with_production,
                         'runtime_source'            => $runtimeSource,
+                        'planned_shift_minutes_weekday' => $this->plannedShiftMinutesWeekday(),
                         'ibc_per_dag_skiftrapport'  => $ibcPerDagSr,
                         'ibc_per_dag_plc'           => $ibcPerDagPlc,
                     ]
@@ -2512,6 +2513,25 @@ class TvattlinjeController {
         ], JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * Planerad vardagsskifttid (min) ur settings (skift_slut − skift_start). null om okänt/orimligt.
+     * Används av statistik-summary (frontend-utnyttjande) och OEE-trend (planerad tid).
+     */
+    private function plannedShiftMinutesWeekday(): ?float {
+        try {
+            $ss = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting='skift_start' ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+            $se = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting='skift_slut' ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+            if ($ss && $se && !empty($ss['value']) && !empty($se['value'])) {
+                $st = strtotime($ss['value']); $en = strtotime($se['value']);
+                if ($st !== false && $en !== false && $en > $st) {
+                    $m = ($en - $st) / 60.0;
+                    if ($m > 0 && $m <= 600) { return round($m, 1); }
+                }
+            }
+        } catch (\Throwable $e) { error_log('TvattlinjeController::plannedShiftMinutesWeekday: ' . $e->getMessage()); }
+        return null;
+    }
+
     // =========================================================
     // OEE-trend — daglig statistik över N dagar (standard 30)
     // Returnerar { empty: true } om ingen data finns
@@ -2632,6 +2652,9 @@ class TvattlinjeController {
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getOeeTrend goals: ' . $e->getMessage()); }
 
+            // B: planerad vardagsskifttid ur settings (fallback null → fre 480 / övrig 495 per dag).
+            $plannedShiftMin = $this->plannedShiftMinutesWeekday();
+
             $producerandeDagar = 0;
             foreach ($rows as $r) {
                 // A: ingen skift_count-filtrering längre — dubbelposter deduplicerade i SQL.
@@ -2666,23 +2689,31 @@ class TvattlinjeController {
                 $weekday   = $dayN - 1;                            // 0=mån … 6=sön (matchar weekday_goals/WEEKDAY())
                 $isWeekend = ($dayN >= 6);
 
-                // D: Tillgänglighet. Vardag = verkligt skiftschema (mån-tors 495 min, fre 480 min).
-                // Helg = ingen tillgänglighetsstraff (oschemalagt, körs bara ibland): körd alls → 100%,
-                // annars 0%. På helg mäts alltså bara prestanda och kvalitet.
+                // B: Planerad skifttid. Vardag ur settings (fallback fre 480 / övrig 495). Helg =
+                // ingen fast planerad tid → mät mot faktisk nettokörtid.
+                $plannedMin = $isWeekend
+                    ? max(1.0, $netRuntimeMin)
+                    : ($plannedShiftMin ?? (($dayN === 5) ? 480.0 : 495.0));
+
+                // D: Tillgänglighet. Helg = ingen tillgänglighetsstraff (körd alls → 100%, annars 0%).
                 if ($isWeekend) {
                     $avail_pct = $runtimeMin > 0 ? 100.0 : 0.0;
                 } else {
-                    $plannedMin = ($dayN === 5) ? 480.0 : 495.0;
-                    $avail_pct  = $runtimeMin > 0
+                    $avail_pct = $runtimeMin > 0
                         ? min(100.0, round(($netRuntimeMin / $plannedMin) * 100, 1))
                         : 0.0;
                 }
 
-                // D: Prestanda mot veckodagsmålet (mål IBC/dag ur weekday_goals), ej hårdkodat 20 IBC/h.
+                // A: Prestanda = FAKTISK takt / idealtakt (IBC per KÖRD timme), INTE måluppfyllelse.
+                // Måluppfyllelse (tot/mål) sjunker redan när linjen stått still → att använda den som
+                // perf straffar stopptid TVÅ ggr i OEE=A×P×Q. mal_pct exponeras separat för UI.
                 $idealPerDag = $goalsMap[$weekday] ?? ($isWeekend ? 60 : 140);
-                $perf_pct = ($idealPerDag > 0)
-                    ? min(100.0, round(($tot / $idealPerDag) * 100, 1))
+                $idealPerH   = $plannedMin > 0 ? $idealPerDag / ($plannedMin / 60.0) : 0.0;
+                $actualPerH  = $netRuntimeMin > 0 ? $tot / ($netRuntimeMin / 60.0) : 0.0;
+                $perf_pct = ($idealPerH > 0 && $netRuntimeMin >= 10)
+                    ? min(100.0, round($actualPerH / $idealPerH * 100, 1))
                     : 0.0;
+                $mal_pct = ($idealPerDag > 0) ? min(100.0, round($tot / $idealPerDag * 100, 1)) : 0.0;
 
                 // OEE = Tillgänglighet × Prestanda × Kvalitet (0-100 skala → dela med 10000).
                 // C5: PLC-only dag saknar kvalitet → OEE går ej att beräkna → null.
@@ -2713,6 +2744,7 @@ class TvattlinjeController {
                     'data_mismatch' => ($ok + $ejOk) > $tot,
                     'avail_pct'   => $avail_pct,
                     'perf_pct'    => $perf_pct,
+                    'mal_pct'     => $mal_pct,
                     'qual_pct'    => $qual_pct,
                     'oee_pct'     => $oee_pct,
                     'skift_count' => (int)$r['skift_count'],

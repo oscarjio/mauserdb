@@ -112,8 +112,8 @@ class HistoriskProduktionController {
                 COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok
             FROM (
                 SELECT dag,
-                    GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                    GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                    CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                    CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej_ok
                 FROM (
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0))    AS max_ok,
@@ -140,8 +140,8 @@ class HistoriskProduktionController {
                 COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok
             FROM (
                 SELECT
-                    GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                    GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                    CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                    CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej_ok
                 FROM (
                     SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0))    AS max_ok,

@@ -83,7 +83,7 @@ class MalhistorikController {
             ),
             lag_shifts AS (
                 SELECT dag, skiftraknare,
-                       GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc,
+                       CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc,
                        runtime_end AS shift_runtime
                 FROM lag_base
             )

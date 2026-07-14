@@ -106,9 +106,7 @@ class RankingHistorikController {
             lag_data AS (
                 SELECT
                     dag, op1, op2, op3,
-                    GREATEST(0,
-                        ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
-                    ) AS shift_ibc
+                    CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc
                 FROM shifts
             ),
             combined AS (
@@ -164,9 +162,7 @@ class RankingHistorikController {
             lag_data AS (
                 SELECT
                     op1, op2, op3,
-                    GREATEST(0,
-                        ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
-                    ) AS shift_ibc
+                    CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc
                 FROM shifts
             ),
             combined AS (

@@ -603,7 +603,7 @@ class RebotlingAdminController {
                         COALESCE(SUM(max_rasttime), 0)     AS rasttime
                     FROM (
                         SELECT
-                            GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (ORDER BY sk), 0)) AS delta_ok,
+                            CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (ORDER BY sk), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (ORDER BY sk), 0) ELSE max_ok END AS delta_ok,
                             max_runtime_plc,
                             max_rasttime
                         FROM (

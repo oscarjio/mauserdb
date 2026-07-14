@@ -118,7 +118,7 @@ class HeatmapController {
                         dag AS date,
                         hour,
                         skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare, hour), 0)) AS ibc_delta
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare, hour), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare, hour), 0) ELSE ibc_end END AS ibc_delta
                     FROM (
                         SELECT
                             DATE(datum) AS dag,
@@ -207,7 +207,7 @@ class HeatmapController {
                 SELECT COALESCE(SUM(ibc_delta), 0) AS total_ibc
                 FROM (
                     SELECT
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS ibc_delta
                     FROM (
                         SELECT
                             DATE(datum) AS dag,
@@ -239,7 +239,7 @@ class HeatmapController {
                             dag,
                             hour,
                             skiftraknare,
-                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare, hour), 0)) AS ibc_delta
+                            CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare, hour), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare, hour), 0) ELSE ibc_end END AS ibc_delta
                         FROM (
                             SELECT
                                 DATE(datum) AS dag,
@@ -289,7 +289,7 @@ class HeatmapController {
                         SELECT
                             dag,
                             skiftraknare,
-                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS ibc_delta
+                            CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS ibc_delta
                         FROM (
                             SELECT
                                 DATE(datum) AS dag,

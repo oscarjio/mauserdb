@@ -288,8 +288,8 @@ class KapacitetsplaneringController {
                     COALESCE(SUM(delta_ej), 0) AS ej_ok_antal
                 FROM (
                     SELECT
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok)    AS max_ok,
@@ -350,7 +350,7 @@ class KapacitetsplaneringController {
                 SELECT AVG(dag_total) AS snitt FROM (
                     SELECT dag, SUM(delta_ok) AS dag_total FROM (
                         SELECT dag,
-                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                            CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok
                         FROM (
                             SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end
                             FROM rebotling_ibc
@@ -415,8 +415,8 @@ class KapacitetsplaneringController {
                     COALESCE(SUM(delta_ej), 0) AS total_ej_ok
                 FROM (
                     SELECT
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT skiftraknare,
                                MAX(ibc_ok)    AS max_ok,
@@ -473,7 +473,7 @@ class KapacitetsplaneringController {
                 SELECT AVG(dag_total) AS snitt FROM (
                     SELECT dag, SUM(delta_ok) AS dag_total FROM (
                         SELECT dag,
-                            GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                            CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok
                         FROM (
                             SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end
                             FROM rebotling_ibc
@@ -501,8 +501,8 @@ class KapacitetsplaneringController {
                     COALESCE(SUM(delta_ej_ok), 0) AS ej_ok_antal
                 FROM (
                     SELECT dag, skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok,
+                        CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok)    AS ibc_end,
@@ -987,8 +987,8 @@ class KapacitetsplaneringController {
                 FROM (
                     SELECT
                         dag,
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok)    AS max_ok,
@@ -1069,8 +1069,8 @@ class KapacitetsplaneringController {
                 FROM (
                     SELECT
                         dag,
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok)    AS max_ok,
@@ -1107,8 +1107,8 @@ class KapacitetsplaneringController {
                     COALESCE(SUM(delta_ok) + SUM(delta_ej), 0) AS total_ibc
                 FROM (
                     SELECT
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok)    AS max_ok,

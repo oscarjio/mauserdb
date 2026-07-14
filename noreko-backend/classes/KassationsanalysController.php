@@ -991,8 +991,8 @@ class KassationsanalysController {
                     SUM(delta_ok) + SUM(delta_ej) AS totalt
                 FROM (
                     SELECT datum,
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY datum ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY datum ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY datum ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY datum ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY datum ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT DATE(datum) AS datum, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0))    AS max_ok,
@@ -1370,8 +1370,8 @@ class KassationsanalysController {
                     COALESCE(SUM(delta_ej), 0) AS kasserade
                 FROM (
                     SELECT
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok)    AS max_ok,

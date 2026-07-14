@@ -187,8 +187,8 @@ class MaskinhistorikController {
                     COALESCE(SUM(delta_ej), 0)  AS total_ej_ok
                 FROM (
                     SELECT
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok)    AS max_ok,
@@ -313,8 +313,8 @@ class MaskinhistorikController {
                 FROM (
                     SELECT
                         dag,
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok)    AS max_ok,
@@ -389,8 +389,8 @@ class MaskinhistorikController {
                 FROM (
                     SELECT
                         dag,
-                        GREATEST(0, max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                                MAX(ibc_ok)    AS max_ok,

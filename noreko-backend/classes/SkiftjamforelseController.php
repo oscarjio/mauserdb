@@ -110,8 +110,8 @@ class SkiftjamforelseController {
                 COALESCE(SUM(max_runtime), 0) AS runtime_min
              FROM (
                 SELECT skiftraknare, skift, max_runtime,
-                    GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                    GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                    CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok,
+                    CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                 FROM (
                     SELECT DATE(datum) AS dag, skiftraknare,
                         CASE WHEN HOUR(MAX(datum)) >= 6  AND HOUR(MAX(datum)) < 14 THEN 'FM'
@@ -350,8 +350,8 @@ class SkiftjamforelseController {
                     COALESCE(SUM(max_runtime), 0) AS runtime_min
                  FROM (
                     SELECT dag, skiftraknare, skift, max_runtime,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok,
+                        CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                             CASE WHEN HOUR(MAX(datum)) >= 6  AND HOUR(MAX(datum)) < 14 THEN 'FM'
@@ -450,8 +450,8 @@ class SkiftjamforelseController {
                     COALESCE(SUM(max_runtime), 0) AS runtime_min
                  FROM (
                     SELECT dag, skiftraknare, skift, max_runtime,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok,
+                        CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                             CASE WHEN HOUR(MAX(datum)) >= 6  AND HOUR(MAX(datum)) < 14 THEN 'FM'
@@ -545,8 +545,8 @@ class SkiftjamforelseController {
                     COALESCE(SUM(max_runtime), 0) AS runtime_min
                  FROM (
                     SELECT skiftraknare, skift, max_runtime,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok,
-                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ej_ok
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok,
+                        CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                     FROM (
                         SELECT DATE(datum) AS dag, skiftraknare,
                             CASE WHEN HOUR(MAX(datum)) >= 6  AND HOUR(MAX(datum)) < 14 THEN 'FM'

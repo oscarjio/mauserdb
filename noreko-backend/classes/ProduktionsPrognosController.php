@@ -160,8 +160,8 @@ class ProduktionsPrognosController {
                 FROM (
                     SELECT
                         skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0))  AS ibc_delta,
-                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (ORDER BY skiftraknare), 0))  AS ej_delta
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_end END  AS ibc_delta,
+                        CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (ORDER BY skiftraknare), 0) ELSE ej_end END  AS ej_delta
                     FROM (
                         SELECT skiftraknare,
                                MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
@@ -227,8 +227,8 @@ class ProduktionsPrognosController {
                 FROM (
                     SELECT
                         skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0))  AS ibc_delta,
-                        GREATEST(0, ej_end  - COALESCE(LAG(ej_end)  OVER (ORDER BY skiftraknare), 0))  AS ej_delta
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_end END  AS ibc_delta,
+                        CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (ORDER BY skiftraknare), 0) ELSE ej_end END  AS ej_delta
                     FROM (
                         SELECT skiftraknare,
                                MAX(COALESCE(ibc_ok, 0))    AS ibc_end,

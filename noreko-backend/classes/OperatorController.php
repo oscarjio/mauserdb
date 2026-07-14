@@ -620,9 +620,7 @@ class OperatorController {
                 ),
                 lag_shifts AS (
                     SELECT dag, skiftraknare, op1, op2, op3,
-                           GREATEST(0, ibc_end - COALESCE(
-                               LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0
-                           )) AS ibc_delta,
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS ibc_delta,
                            runtime_min
                     FROM daily_dedup
                 ),

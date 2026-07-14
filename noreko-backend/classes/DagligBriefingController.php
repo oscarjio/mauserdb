@@ -247,7 +247,7 @@ class DagligBriefingController {
                         SELECT ROUND(AVG(dag_ibc)) AS avg_ibc FROM (
                             SELECT dag, SUM(delta_ok) AS dag_ibc FROM (
                                 SELECT dag,
-                                    GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS delta_ok
+                                    CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok
                                 FROM (
                                     SELECT DATE(datum) AS dag, skiftraknare, COALESCE(MAX(ibc_ok), 0) AS ibc_end
                                     FROM rebotling_ibc

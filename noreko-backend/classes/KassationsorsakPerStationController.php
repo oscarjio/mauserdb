@@ -94,8 +94,8 @@ class KassationsorsakPerStationController {
                     SELECT
                         dag,
                         skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))       AS ibc_delta,
-                        GREATEST(0, ej_ok_end - COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))  AS ej_ok_delta
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END       AS ibc_delta,
+                        CASE WHEN ej_ok_end >= COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_ok_end - COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_ok_end END  AS ej_ok_delta
                     FROM (
                         SELECT
                             DATE(datum)                     AS dag,
@@ -349,8 +349,8 @@ class KassationsorsakPerStationController {
                     SELECT
                         dag,
                         skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))       AS ibc_delta,
-                        GREATEST(0, ej_ok_end - COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0))  AS ej_ok_delta
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END       AS ibc_delta,
+                        CASE WHEN ej_ok_end >= COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_ok_end - COALESCE(LAG(ej_ok_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_ok_end END  AS ej_ok_delta
                     FROM (
                         SELECT
                             DATE(datum)                     AS dag,

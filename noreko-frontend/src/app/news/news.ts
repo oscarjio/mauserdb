@@ -193,7 +193,7 @@ export class News implements OnInit, OnDestroy {
       timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: LineStatusResponse | null) => {
       if (res && res.success && res.data) {
-        this.rebotlingStatus = res.data.running;
+        this.rebotlingStatus = ((res.data.running as any) == 1 || res.data.running === true);
       }
       done();
     });
@@ -208,7 +208,7 @@ export class News implements OnInit, OnDestroy {
         this.tvattlinjeToday = res.data.ibcToday;
         this.tvattlinjeTarget = res.data.ibcTarget;
         this.tvattlinjePercentage = res.data.productionPercentage || 0;
-        if (res.data.running != null) this.tvattlinjeStatus = res.data.running;
+        if (res.data.running != null) this.tvattlinjeStatus = ((res.data.running as any) == 1 || res.data.running === true);
       }
       done();
     });

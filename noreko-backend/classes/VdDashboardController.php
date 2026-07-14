@@ -369,9 +369,7 @@ class VdDashboardController {
                     ),
                     lag_shifts AS (
                         SELECT skiftraknare, op1, op2, op3,
-                               GREATEST(0, ibc_end - COALESCE(
-                                   LAG(ibc_end) OVER (ORDER BY skiftraknare), 0
-                               )) AS ibc_delta
+                               CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_end END AS ibc_delta
                         FROM daily_dedup
                     )
                     SELECT

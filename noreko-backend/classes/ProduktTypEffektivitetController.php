@@ -116,8 +116,8 @@ class ProduktTypEffektivitetController {
                         produkt_id,
                         dag,
                         skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
-                        GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok,
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc_ok,
+                        CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ibc_ej_ok,
                         shift_runtime_min,
                         last_bonus,
                         last_kvalitet
@@ -204,7 +204,7 @@ class ProduktTypEffektivitetController {
                        COALESCE(SUM(sub.shift_ibc_ok), 0) AS total_ibc
                 FROM (
                     SELECT produkt_id,
-                           GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc_ok
                     FROM (
                         SELECT produkt AS produkt_id, DATE(datum) AS dag, skiftraknare,
                                MAX(COALESCE(ibc_ok, 0)) AS ibc_end
@@ -256,7 +256,7 @@ class ProduktTypEffektivitetController {
                         dag,
                         produkt_id,
                         skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0)) AS shift_ok,
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY produkt_id, dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ok,
                         shift_runtime
                     FROM (
                         SELECT
@@ -407,8 +407,8 @@ class ProduktTypEffektivitetController {
                     SELECT
                         dag,
                         skiftraknare,
-                        GREATEST(0, ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ok,
-                        GREATEST(0, ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)) AS shift_ibc_ej_ok,
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc_ok,
+                        CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ibc_ej_ok,
                         shift_runtime_min,
                         last_bonus
                     FROM (
