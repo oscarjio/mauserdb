@@ -1916,8 +1916,8 @@
                       <td class="text-muted">{{ i + 1 }}</td>
                       <td>{{ formatRawDatum(ev.datum) }}</td>
                       <td>
-                        <span class="badge" [class.bg-success]="ev.running === 1" [class.bg-danger]="ev.running !== 1">
-                          {{ ev.running === 1 ? 'Kör' : 'Stoppad' }}
+                        <span class="badge" [class.bg-success]="ev.running == 1" [class.bg-danger]="ev.running != 1">
+                          {{ ev.running == 1 ? 'Kör' : 'Stoppad' }}
                         </span>
                       </td>
                       <td>{{ ev.skiftraknare ?? '–' }}</td>
@@ -1947,9 +1947,9 @@
                       <td class="text-muted">{{ i + 1 }}</td>
                       <td>{{ formatRawDatum(ev.datum) }}</td>
                       <td>
-                        <span class="badge" [class.bg-warning]="ev.rast_status === 1" [class.bg-secondary]="ev.rast_status !== 1"
-                              [class.text-dark]="ev.rast_status === 1">
-                          {{ ev.rast_status === 1 ? 'Rast på' : 'Rast av' }}
+                        <span class="badge" [class.bg-warning]="ev.rast_status == 1" [class.bg-secondary]="ev.rast_status != 1"
+                              [class.text-dark]="ev.rast_status == 1">
+                          {{ ev.rast_status == 1 ? 'Rast på' : 'Rast av' }}
                         </span>
                       </td>
                     </tr>
@@ -1979,8 +1979,8 @@
                       <td class="text-muted">{{ i + 1 }}</td>
                       <td>{{ formatRawDatum(ev.datum) }}</td>
                       <td>
-                        <span class="badge" [class.bg-danger]="ev.driftstopp_status === 1" [class.bg-success]="ev.driftstopp_status !== 1">
-                          {{ ev.driftstopp_status === 1 ? 'Stopp på' : 'Stopp av' }}
+                        <span class="badge" [class.bg-danger]="ev.driftstopp_status == 1" [class.bg-success]="ev.driftstopp_status != 1">
+                          {{ ev.driftstopp_status == 1 ? 'Stopp på' : 'Stopp av' }}
                         </span>
                       </td>
                       <td>{{ ev.skiftraknare ?? '–' }}</td>

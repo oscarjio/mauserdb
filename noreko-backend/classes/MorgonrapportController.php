@@ -27,8 +27,8 @@
 class MorgonrapportController {
     private $pdo;
 
-    /** Tillganglig tid per dag i timmar (3 skift x 7.5h efter rast) */
-    private const TILLGANGLIG_TID_PER_DAG = 22.5;
+    /** Tillganglig tid per dag i timmar (ett skift 7.5h) */
+    private const TILLGANGLIG_TID_PER_DAG = 7.5;
 
     /** Cache TTL in seconds */
     private const CACHE_TTL = 30;
@@ -423,24 +423,25 @@ class MorgonrapportController {
             if ($check && $check->rowCount() > 0) {
                 $stmt = $this->pdo->prepare(
                     "SELECT COUNT(*) AS cnt,
-                            COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_time, COALESCE(end_time, NOW()))), 0) AS total_min
+                            COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_time, LEAST(COALESCE(end_time, NOW()), DATE_ADD(?, INTERVAL 1 DAY)))), 0) AS total_min
                      FROM stopporsak_registreringar
                      WHERE start_time >= ? AND start_time < DATE_ADD(?, INTERVAL 1 DAY)
                        AND linje = 'rebotling'"
                 );
-                $stmt->execute([$date, $date]);
+                // Params i ordning: 1) LEAST-cap (periodslut), 2) WHERE-fran, 3) WHERE-till
+                $stmt->execute([$date, $date, $date]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $totalAntal += (int)($row['cnt'] ?? 0);
                 $totalTim   += (float)($row['total_min'] ?? 0) / 60.0;
 
-                $stmt->execute([$prevWeekDate, $prevWeekDate]);
+                $stmt->execute([$prevWeekDate, $prevWeekDate, $prevWeekDate]);
                 $prevRow = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $prevAntal += (int)($prevRow['cnt'] ?? 0);
 
                 // Topp orsaker fran stopporsak_registreringar
                 $stmt = $this->pdo->prepare(
                     "SELECT COALESCE(k.namn, 'Okänd kategori') AS orsak, COUNT(*) AS cnt,
-                            COALESCE(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, COALESCE(r.end_time, NOW()))), 0) AS total_min
+                            COALESCE(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, LEAST(COALESCE(r.end_time, NOW()), DATE_ADD(?, INTERVAL 1 DAY)))), 0) AS total_min
                      FROM stopporsak_registreringar r
                      LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id
                      WHERE r.start_time >= ? AND r.start_time < DATE_ADD(?, INTERVAL 1 DAY)
@@ -449,7 +450,8 @@ class MorgonrapportController {
                      ORDER BY total_min DESC
                      LIMIT 10"
                 );
-                $stmt->execute([$date, $date]);
+                // Params i ordning: 1) LEAST-cap (periodslut), 2) WHERE-fran, 3) WHERE-till
+                $stmt->execute([$date, $date, $date]);
                 $extraOrsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 // Sla ihop med befintliga orsaker

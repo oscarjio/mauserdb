@@ -413,25 +413,25 @@ class VeckorapportController {
             if ($check && $check->rowCount() > 0) {
                 $stmt = $this->pdo->prepare(
                     "SELECT COUNT(*) AS cnt,
-                            COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_time, COALESCE(end_time, NOW()))), 0) AS total_min
+                            COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_time, LEAST(COALESCE(end_time, NOW()), DATE_ADD(?, INTERVAL 1 DAY)))), 0) AS total_min
                      FROM stopporsak_registreringar
                      WHERE DATE(start_time) BETWEEN ? AND ?
                        AND linje = 'rebotling'"
                 );
-                $stmt->execute([$start, $end]);
+                $stmt->execute([$end, $start, $end]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $totalCount += (int)($row['cnt'] ?? 0);
                 $totalHours += (float)($row['total_min'] ?? 0) / 60.0;
 
                 // Foregaende vecka
-                $stmt->execute([$prevStart, $prevEnd]);
+                $stmt->execute([$prevEnd, $prevStart, $prevEnd]);
                 $prevRow = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $prevCount += (int)($prevRow['cnt'] ?? 0);
 
                 // Topp orsaker
                 $stmt = $this->pdo->prepare(
                     "SELECT COALESCE(k.namn, 'Okänd kategori') AS reason, COUNT(*) AS cnt,
-                            COALESCE(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, COALESCE(r.end_time, NOW()))), 0) AS total_min
+                            COALESCE(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, LEAST(COALESCE(r.end_time, NOW()), DATE_ADD(?, INTERVAL 1 DAY)))), 0) AS total_min
                      FROM stopporsak_registreringar r
                      LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id
                      WHERE DATE(r.start_time) BETWEEN ? AND ?
@@ -440,7 +440,7 @@ class VeckorapportController {
                      ORDER BY total_min DESC
                      LIMIT 10"
                 );
-                $stmt->execute([$start, $end]);
+                $stmt->execute([$end, $start, $end]);
                 $extraReasons = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 // Slå ihop och sortera

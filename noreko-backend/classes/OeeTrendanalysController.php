@@ -165,7 +165,7 @@ class OeeTrendanalysController {
         $schemaSek = $dagCount * 8 * 3600;
         $stopptidSek = max(0, $schemaSek - $drifttidSek);
 
-        $tillganglighet = $schemaSek > 0 ? ($drifttidSek / $schemaSek) : 0.0;
+        $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
 
         // IBC via LAG-korrigerade skiftdeltan
         $lagCte = $this->buildLagCte($from, $to);
@@ -587,7 +587,7 @@ class OeeTrendanalysController {
                 $okIbc       = $ibcData ? $ibcData['ok_ibc'] : 0;
                 $totalIbc    = $ibcData ? $ibcData['total_ibc'] : 0;
 
-                $tillganglighet = $schemaSekPerDag > 0 ? ($drifttidSek / $schemaSekPerDag) : 0.0;
+                $tillganglighet = $schemaSekPerDag > 0 ? min(1.0, $drifttidSek / $schemaSekPerDag) : 0.0;
                 $prestanda      = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
                 $kvalitet       = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
                 $oee            = $tillganglighet * $prestanda * $kvalitet;
@@ -898,7 +898,7 @@ class OeeTrendanalysController {
                 $okIbc       = $ibcData ? $ibcData['ok_ibc'] : 0;
                 $totalIbc    = $ibcData ? $ibcData['total_ibc'] : 0;
 
-                $tillganglighet = $schemaSekPerDag > 0 ? ($drifttidSek / $schemaSekPerDag) : 0.0;
+                $tillganglighet = $schemaSekPerDag > 0 ? min(1.0, $drifttidSek / $schemaSekPerDag) : 0.0;
                 $prestanda      = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
                 $kvalitet       = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
                 $oee            = $tillganglighet * $prestanda * $kvalitet;

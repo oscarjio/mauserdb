@@ -172,14 +172,14 @@ class StatusController {
 
                     if ($oeeRow && $oeeRow['runtime'] > 0) {
                         $ibcOk      = (float)$oeeRow['ibc_ok'];
-                        $runtimeSek = (float)$oeeRow['runtime'];
-                        $rastSek    = (float)$oeeRow['rasttime'];
-                        $prodTid    = $runtimeSek - $rastSek;
-                        if ($prodTid > 0) {
+                        // runtime_plc (D4007) ar i MINUTER och redan netto (rast borttagen)
+                        // -> konvertera min -> sek, dra INTE av rast igen (undviker dubbelavdrag + enhetsfel).
+                        $prodTidSek = (float)$oeeRow['runtime'] * 60;
+                        if ($prodTidSek > 0) {
                             // rebotling_ibc har ingen 'cykel_tid'-kolumn.
                             // Anvand ideal cykeltid (120 sekunder per IBC) som standard.
                             $idealCykelSek = 120;
-                            $maxMojlig = $prodTid / $idealCykelSek;
+                            $maxMojlig = $prodTidSek / $idealCykelSek;
                             if ($maxMojlig > 0) {
                                 $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
                             }

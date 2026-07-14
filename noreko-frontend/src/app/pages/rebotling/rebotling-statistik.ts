@@ -1593,7 +1593,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     let lastOff: Date | null = null;
     for (const ev of onoff) {
       const d = new Date(ev.datum);
-      if (!ev.running) { lastOff = d; }
+      const isRunning = (ev.running == 1);
+      if (!isRunning) { lastOff = d; }
       else if (lastOff) { offPeriods.push({ start: lastOff.getTime(), end: d.getTime() }); lastOff = null; }
     }
     const periods: any[] = [];

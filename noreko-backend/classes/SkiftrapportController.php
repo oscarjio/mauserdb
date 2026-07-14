@@ -875,7 +875,7 @@ class SkiftrapportController {
                     ? $driftstopptime
                     : (($drifttid > 0) ? max(0, 480 - $drifttid - $rasttime) : null);
 
-                $tillganglighet = ($drifttid > 0) ? min(1.0, $drifttid / 480) : 0.0;
+                $tillganglighet = ($drifttid > 0) ? min(1.0, $drifttid / max(1, $drifttid + $stopptid)) : 0.0;
                 $prestanda = ($drifttid > 0 && $totalt > 0) ? min(1.0, ($totalt * 2) / $drifttid) : 0.0; // 2 min = ideal cykeltid
                 $kvalitet = ($totalt > 0) ? ($ibcOk / $totalt) : 0.0;
                 $oee = round($tillganglighet * $prestanda * $kvalitet * 100, 1);

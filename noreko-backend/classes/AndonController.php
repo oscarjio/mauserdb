@@ -90,9 +90,11 @@ class AndonController {
             $runtimeMin     = $runtimeMinPlc;
             $rasttimeMin    = $rasttimeMinPlc;
 
-            // IBC per timme (baserat på total elapsed tid sedan första posten idag)
-            $totalH  = $totalMin / 60;
-            $ibcPerH = $totalH > 0 ? round($ibcIdag / $totalH, 1) : 0.0;
+            // IBC per timme (baserat på DRIFTTID, inte väggklocka).
+            // Väggklocka ($totalMin) sjunker takten hela kvällen och passerar 600-min-capen.
+            // Använd runtime_plc-minuter (fallback väggklocka om saknas), cappad 600 min.
+            $driftH  = min(($runtimeMinPlc > 0 ? $runtimeMinPlc : $totalMin), 600) / 60.0;
+            $ibcPerH = $driftH > 0 ? round($ibcIdag / $driftH, 1) : 0.0;
 
             // OEE: (faktisk output) / (teoretisk max output) * 100
             // Teoretisk max: drifttid (h) * taktmål (IBC/h)

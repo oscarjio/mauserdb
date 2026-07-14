@@ -6545,7 +6545,11 @@ HTML;
         try {
             // Bestäm datumfilter
             if ($period === 'custom' && $customFrom && $customTo) {
-                $dateFilter  = "r.datum BETWEEN '$customFrom' AND '$customTo'";
+                // BUGG J.1: r.datum är DATETIME → BETWEEN '..' AND 'YYYY-MM-DD' tappar hela slutdagen
+                // (matchar bara 00:00:00). Använd halvöppet intervall [from, to+1dag).
+                $dateFilter  = "r.datum >= '$customFrom' AND r.datum < DATE_ADD('$customTo', INTERVAL 1 DAY)";
+                // BUGG J.2: cap för öppna stopp = periodens slut (customTo + 1 dag)
+                $capEnd      = "DATE_ADD('$customTo', INTERVAL 1 DAY)";
                 $periodLabel = "$customFrom – $customTo";
             } else {
                 $dateFilter = match($period) {
@@ -6553,6 +6557,14 @@ HTML;
                     '7d'    => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
                     '30d'   => "r.datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
                     default => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY"
+                };
+                // BUGG J.2: cap för öppna stopp = periodens slut. today slutar vid nästa midnatt,
+                // 7d/30d slutar vid NOW() (LEAST med NOW() = ingen ändring).
+                $capEnd = match($period) {
+                    'today' => "CURDATE() + INTERVAL 1 DAY",
+                    '7d'    => "NOW()",
+                    '30d'   => "NOW()",
+                    default => "CURDATE() + INTERVAL 1 DAY"
                 };
                 $periodLabel = match($period) {
                     'today' => 'Idag',
@@ -6596,7 +6608,7 @@ HTML;
             $stoppageMin = 0;
             try {
                 $stmtStop = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_time, COALESCE(end_time, NOW()))), 0) AS stop_min
+                    SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_time, LEAST(COALESCE(end_time, NOW()), $capEnd))), 0) AS stop_min
                     FROM stoppage_log s
                     WHERE " . str_replace('r.datum', 's.start_time', $dateFilter)
                 );

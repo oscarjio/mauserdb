@@ -636,12 +636,12 @@ class RebotlingAdminController {
             $oeePct = null;
             if ($comboRow && $comboRow['runtime'] > 0) {
                 $ibcOk      = (float)$comboRow['ibc_ok'];
-                $runtimeSek = (float)$comboRow['runtime'];
-                $rastSek    = (float)$comboRow['rasttime'];
-                $prodTid    = $runtimeSek - $rastSek;
-                if ($prodTid > 0) {
+                // runtime_plc (D4007) ar i MINUTER och redan netto (rast borttagen)
+                // -> konvertera min -> sek, dra INTE av rast igen (undviker dubbelavdrag + enhetsfel).
+                $prodTidSek = (float)$comboRow['runtime'] * 60;
+                if ($prodTidSek > 0) {
                     $idealCykelSek = 120;
-                    $maxMojlig = $prodTid / $idealCykelSek;
+                    $maxMojlig = $prodTidSek / $idealCykelSek;
                     if ($maxMojlig > 0) {
                         $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
                     }

@@ -167,11 +167,17 @@ class VdDashboardController {
             $ibcRow   = $stmt->fetch(\PDO::FETCH_ASSOC);
             $totalIbc = (int)($ibcRow['total_ibc'] ?? 0);
             $rawOk    = (int)($ibcRow['ok_ibc'] ?? 0);
-            $okIbc    = $rawOk > 0 ? min($totalIbc, $rawOk) : $totalIbc;
+            // BUGG M: tidigare sattes okIbc = totalIbc när rawOk == 0, vilket gav
+            // kvalitet = 100% exakt de sämsta dagarna (allt kasserat). Fel.
+            // 0 godkända → kvalitet 0%. Saknas ok-DATA helt (ingen ibc-rapportering)
+            // representeras via $kvalitetSaknas nedan (visas som "–", ej falska 100%).
+            $okIbc    = min($totalIbc, $rawOk);
         } catch (\Throwable $e) {
             error_log('VdDashboardController::calcOeeForDay (ibc): ' . $e->getMessage());
         }
 
+        // Ingen ok-data alls = ingen ibc-rapportering (totalIbc == 0) → kvalitet okänd (null).
+        $kvalitetSaknas = ($totalIbc === 0);
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
         $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
         $oee = $tillganglighet * $prestanda * $kvalitet;
@@ -181,6 +187,7 @@ class VdDashboardController {
             'tillganglighet' => round($tillganglighet, 4),
             'prestanda'      => round($prestanda, 4),
             'kvalitet'       => round($kvalitet, 4),
+            'kvalitet_saknas' => $kvalitetSaknas, // true = ingen ok-data → visa "–", ej 0/100%
             'total_ibc'      => $totalIbc,
             'ok_ibc'         => $okIbc,
             'drifttid_sek'   => $drifttidSek,
@@ -282,7 +289,7 @@ class VdDashboardController {
                 'oee_pct'              => round($oee['oee'] * 100, 1),
                 'tillganglighet_pct'   => round($oee['tillganglighet'] * 100, 1),
                 'prestanda_pct'        => round($oee['prestanda'] * 100, 1),
-                'kvalitet_pct'         => round($oee['kvalitet'] * 100, 1),
+                'kvalitet_pct'         => !empty($oee['kvalitet_saknas']) ? null : round($oee['kvalitet'] * 100, 1),
                 'total_ibc'            => $oee['total_ibc'],
                 'ok_ibc'               => $oee['ok_ibc'],
                 'aktiva_operatorer'    => $aktivaOperatorer,

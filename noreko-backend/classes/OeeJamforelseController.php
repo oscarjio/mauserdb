@@ -70,12 +70,26 @@ class OeeJamforelseController {
      * Fördela drifttidssekunder mellan ISO-veckor.
      */
     private function addDrifttidToWeeks(array &$perWeek, int $fromTs, int $toTs): void {
-        $sek = max(0, $toTs - $fromTs);
-        if ($sek <= 0) return;
-        // Enkel fördelning: tilldela alla sekunder till starttidens vecka
-        $yw = date('oW', $fromTs);
-        if (!isset($perWeek[$yw])) $perWeek[$yw] = 0;
-        $perWeek[$yw] += $sek;
+        if ($toTs <= $fromTs) return;
+        // Fördela sekunder dag för dag och räkna BARA vardagar (mån–fre).
+        // Planerad tid ($planeradSek) baseras på arbetsdagar mån–fre, så drifttid
+        // på helg måste exkluderas för att undvika tillgänglighet > 100 %.
+        $cursor = $fromTs;
+        while ($cursor < $toTs) {
+            // Nästa midnatt efter $cursor
+            $nextMidnight = strtotime('tomorrow', $cursor);
+            $segmentEnd = min($nextMidnight, $toTs);
+            $sek = $segmentEnd - $cursor;
+            if ($sek > 0) {
+                $dow = (int)date('N', $cursor); // 1=mån … 7=sön
+                if ($dow <= 5) {
+                    $yw = date('oW', $cursor);
+                    if (!isset($perWeek[$yw])) $perWeek[$yw] = 0;
+                    $perWeek[$yw] += $sek;
+                }
+            }
+            $cursor = $segmentEnd;
+        }
     }
 
     // ================================================================
@@ -204,7 +218,7 @@ class OeeJamforelseController {
             $stopptidSek = max(0, $planeradSek - $drifttidSek);
 
             // OEE
-            $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0.0;
+            $tillganglighet = $planeradSek > 0 ? min(1.0, $drifttidSek / $planeradSek) : 0.0;
             $prestanda = $drifttidSek > 0
                 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek)
                 : 0.0;

@@ -227,7 +227,7 @@ class GamificationController {
                     SUM(
                         TIMESTAMPDIFF(SECOND,
                             sr.start_time,
-                            COALESCE(sr.end_time, NOW())
+                            LEAST(COALESCE(sr.end_time, NOW()), :cap)
                         )
                     ) AS total_stopp_sek,
                     COUNT(*) AS antal_stopp
@@ -240,7 +240,8 @@ class GamificationController {
                 GROUP BY u.operator_id
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':from' => $from . ' 00:00:00', ':to' => date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00']);
+            $periodSlutCap = date('Y-m-d', strtotime($to . ' +1 day')) . ' 00:00:00';
+            $stmt->execute([':from' => $from . ' 00:00:00', ':to' => $periodSlutCap, ':cap' => $periodSlutCap]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $uid = (int)$row['op_number'];
                 $result[$uid] = [

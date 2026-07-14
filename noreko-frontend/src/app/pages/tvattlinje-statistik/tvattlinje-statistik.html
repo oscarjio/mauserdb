@@ -1005,8 +1005,8 @@
                     <tr *ngFor="let e of plcDiagData.latest_onoff; let i = index; trackBy: trackByIndex">
                       <td class="raw-data-td" style="font-family:monospace">{{ e.datum | slice:0:19 }}</td>
                       <td class="raw-data-td text-center">
-                        <span class="badge" [class.bg-success]="e.running" [class.bg-danger]="!e.running">
-                          {{ e.running ? 'KÖRT' : 'STOPP' }}
+                        <span class="badge" [class.bg-success]="e.running == 1" [class.bg-danger]="e.running != 1">
+                          {{ e.running == 1 ? 'KÖRT' : 'STOPP' }}
                         </span>
                       </td>
                       <td class="raw-data-td text-end">{{ e.runtime_today != null ? (e.runtime_today | number:'1.0-0') : '–' }}</td>

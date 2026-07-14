@@ -244,7 +244,7 @@ class DagligSammanfattningController {
         $totalIbc = $okIbc + $ejOkIbc;
 
         // Faktorer
-        $tillganglighet = $totalSek > 0 ? ($drifttidSek / $totalSek) : 0.0;
+        $tillganglighet = $totalSek > 0 ? min(1.0, $drifttidSek / $totalSek) : 0.0;
         $prestanda = $drifttidSek > 0
             ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek)
             : 0.0;
@@ -388,14 +388,14 @@ class DagligSammanfattningController {
                 COALESCE(ROUND(SUM(
                     TIMESTAMPDIFF(MINUTE,
                         start_time,
-                        COALESCE(end_time, NOW())
+                        LEAST(COALESCE(end_time, NOW()), DATE_ADD(:cap, INTERVAL 1 DAY))
                     )
                 ), 0), 0) AS total_min
              FROM stopporsak_registreringar
              WHERE linje = 'rebotling'
-               AND start_time >= ? AND start_time < DATE_ADD(?, INTERVAL 1 DAY)"
+               AND start_time >= :from AND start_time < DATE_ADD(:to, INTERVAL 1 DAY)"
         );
-        $totStmt->execute([$date, $date]);
+        $totStmt->execute([':cap' => $date, ':from' => $date, ':to' => $date]);
         $totRow = $totStmt->fetch(PDO::FETCH_ASSOC);
 
         // Top 3 orsaker
@@ -404,16 +404,16 @@ class DagligSammanfattningController {
                 COALESCE(k.namn, 'Okänd kategori') AS kategori,
                 k.ikon AS ikon,
                 COUNT(*) AS antal,
-                COALESCE(ROUND(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, COALESCE(r.end_time, NOW()))), 0), 0) AS total_min
+                COALESCE(ROUND(SUM(TIMESTAMPDIFF(MINUTE, r.start_time, LEAST(COALESCE(r.end_time, NOW()), DATE_ADD(:cap, INTERVAL 1 DAY)))), 0), 0) AS total_min
              FROM stopporsak_registreringar r
              LEFT JOIN stopporsak_kategorier k ON k.id = r.kategori_id
              WHERE r.linje = 'rebotling'
-               AND r.start_time >= ? AND r.start_time < DATE_ADD(?, INTERVAL 1 DAY)
+               AND r.start_time >= :from AND r.start_time < DATE_ADD(:to, INTERVAL 1 DAY)
              GROUP BY k.id, k.namn, k.ikon
              ORDER BY total_min DESC
              LIMIT 3"
         );
-        $topStmt->execute([$date, $date]);
+        $topStmt->execute([':cap' => $date, ':from' => $date, ':to' => $date]);
         $topRows = $topStmt->fetchAll(PDO::FETCH_ASSOC);
 
         return [

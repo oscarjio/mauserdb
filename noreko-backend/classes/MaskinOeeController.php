@@ -150,10 +150,14 @@ class MaskinOeeController {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             ");
 
-            // Seed daglig data om tom
-            $dagCount = (int)$this->pdo->query("SELECT COUNT(*) FROM maskin_oee_daglig")->fetchColumn();
-            if ($dagCount === 0) {
-                $this->seedDailyData();
+            // Seed daglig data om tom — ENDAST bakom explicit demo-flagga.
+            // Får ALDRIG köras automatiskt: seedDailyData() fyller tabellen med
+            // mt_rand()-värden som ProduktionsDashboardController annars läser som skarp data.
+            if (getenv('MASKIN_OEE_SEED_DEMO') === '1') {
+                $dagCount = (int)$this->pdo->query("SELECT COUNT(*) FROM maskin_oee_daglig")->fetchColumn();
+                if ($dagCount === 0) {
+                    $this->seedDailyData();
+                }
             }
         } catch (\PDOException $e) {
             error_log('MaskinOeeController::ensureTables: ' . $e->getMessage());
@@ -269,7 +273,7 @@ class MaskinOeeController {
             $stmt = $this->pdo->prepare("
                 SELECT AVG(oee_pct) AS avg_oee
                 FROM maskin_oee_daglig
-                WHERE datum BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND CURDATE()
+                WHERE datum BETWEEN DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND DATE_SUB(CURDATE(), INTERVAL 1 DAY)
             ");
             $stmt->execute();
             $avgNu = (float)($stmt->fetchColumn() ?: 0);

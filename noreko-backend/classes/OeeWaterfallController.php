@@ -226,11 +226,16 @@ class OeeWaterfallController {
         // Kasserade IBC → kvalitetsförlust i tid
         // effektivTotalIbc används implicit via $totalIbc nedan
 
-        $kvalitet         = ($totalIbc > 0) ? (($okIbc > 0 ? $okIbc : max(0, $totalIbc - $kasserade)) / $totalIbc) : 0.0;
+        // BUGG M: tidigare föll okIbc==0 tillbaka på (totalIbc - kasserade). Utan
+        // registrerade kassationer blev det = totalIbc → kvalitet 100% exakt de sämsta
+        // perioderna (allt ej_ok). Fel. okIbc (ibc_ok) är källan för godkänd produktion:
+        // 0 godkända → kvalitet 0%. Saknas ok-DATA helt (totalIbc == 0) → kvalitet okänd.
+        $kvalitetSaknas   = ($totalIbc === 0);
+        $kvalitet         = ($totalIbc > 0) ? ($okIbc / $totalIbc) : 0.0;
         $kvalitet         = min(1.0, max(0.0, $kvalitet));
 
         // Effektiv (godkänd) produktion
-        $godkandIbc       = max(0, $okIbc > 0 ? $okIbc : max(0, $totalIbc - $kasserade));
+        $godkandIbc       = max(0, min($totalIbc, $okIbc));
         $godkandTidSek    = $godkandIbc * self::IDEAL_CYCLE_SEC;
         $kassationsförlustsek = max(0, $idealTidSek - $godkandTidSek);
 
@@ -254,6 +259,7 @@ class OeeWaterfallController {
             'tillganglighet'             => round($tillganglighet, 4),
             'prestanda'                  => round($prestanda,      4),
             'kvalitet'                   => round($kvalitet,        4),
+            'kvalitet_saknas'            => $kvalitetSaknas, // true = ingen ok-data → visa "–"
             'oee'                        => round($oee,             4),
             'total_ibc'                  => $totalIbc,
             'ok_ibc'                     => $godkandIbc,
@@ -375,7 +381,7 @@ class OeeWaterfallController {
             'oee_pct'                => round($seg['oee'] * 100, 1),
             'tillganglighet_pct'     => round($seg['tillganglighet'] * 100, 1),
             'prestanda_pct'          => round($seg['prestanda'] * 100, 1),
-            'kvalitet_pct'           => round($seg['kvalitet'] * 100, 1),
+            'kvalitet_pct'           => !empty($seg['kvalitet_saknas']) ? null : round($seg['kvalitet'] * 100, 1),
             'total_ibc'              => $seg['total_ibc'],
             'ok_ibc'                 => $seg['ok_ibc'],
             'kasserade'              => $seg['kasserade'],
@@ -423,7 +429,7 @@ class OeeWaterfallController {
             'oee_pct'                => round($curr['oee'] * 100, 1),
             'tillganglighet_pct'     => round($curr['tillganglighet'] * 100, 1),
             'prestanda_pct'          => round($curr['prestanda'] * 100, 1),
-            'kvalitet_pct'           => round($curr['kvalitet'] * 100, 1),
+            'kvalitet_pct'           => !empty($curr['kvalitet_saknas']) ? null : round($curr['kvalitet'] * 100, 1),
 
             // Trend (differens i procentenheter)
             'oee_trend'              => round(($curr['oee'] - $prev['oee']) * 100, 1),

@@ -664,14 +664,34 @@ class SkiftplaneringController {
                 $d->modify('+1 day');
             }
 
-            // Historisk IBC/h (genomsnitt senaste 30 dagarna)
+            // Historisk IBC/h (genomsnitt över produktionsdagar senaste 30 dagarna).
+            // Gammal bugg: COUNT(*) räknade loggrader (ej IBC, ej reset-säkert) och
+            // nämnaren var ~720 KALENDERtimmar (TIMESTAMPDIFF HOUR över hela intervallet).
+            // Korrekt: per (dag, skiftraknare) → MAX(ibc_ok)/MAX(runtime_plc); summera per dag;
+            // drifttid cappas 600 min/skift; ibc_per_timme = snitt över dagar av dagens_ibc/dagens_driftH.
             $ibcPerH = 8; // default
             try {
                 $ibcStmt = $this->pdo->query(
-                    "SELECT COUNT(*) / (GREATEST(TIMESTAMPDIFF(HOUR,
-                        MIN(datum), MAX(datum)), 1))
-                     FROM rebotling_ibc
-                     WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+                    "SELECT AVG(dag_ibc / dag_drift_h) AS avg_ibc_per_h
+                     FROM (
+                        SELECT
+                            dag,
+                            SUM(skift_ibc)                       AS dag_ibc,
+                            SUM(skift_rt_min) / 60.0             AS dag_drift_h
+                        FROM (
+                            SELECT
+                                DATE(datum)                      AS dag,
+                                COALESCE(skiftraknare, 0)        AS sr,
+                                MAX(ibc_ok)                      AS skift_ibc,
+                                LEAST(MAX(runtime_plc), 600)     AS skift_rt_min
+                            FROM rebotling_ibc
+                            WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                            GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                            HAVING MAX(ibc_ok) > 0 AND MAX(runtime_plc) > 0
+                        ) per_skift
+                        GROUP BY dag
+                        HAVING SUM(skift_rt_min) > 0
+                     ) per_dag"
                 );
                 $val = (float)$ibcStmt->fetchColumn();
                 if ($val > 0) $ibcPerH = round($val, 1);
