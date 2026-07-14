@@ -1638,7 +1638,13 @@ class TvattlinjeController {
                         $rastStart = $t;
                     } elseif ($status === 0 && $rastStart !== null) {
                         $diff = $rastStart->diff($t);
-                        $totalRastMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $spanMin = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        // Guard: PLC auto-stänger ett öppet spann först vid NÄSTA IBC → ett spann
+                        // fre 15:00 → mån 06:15 blir ~3855 min. Hoppa över spann som korsar midnatt
+                        // eller är längre än 480 min (10h) — det är artefakter, inte verklig rast.
+                        if ($rastStart->format('Y-m-d') === $t->format('Y-m-d') && $spanMin <= 480) {
+                            $totalRastMinutes += $spanMin;
+                        }
                         $rastStart = null;
                     }
                 }
@@ -1655,17 +1661,24 @@ class TvattlinjeController {
                         $dsStart = $t;
                     } elseif ($status === 0 && $dsStart !== null) {
                         $diff = $dsStart->diff($t);
-                        $totalDriftstoppMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $spanMin = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        // Guard: PLC auto-stänger ett öppet stopp först vid NÄSTA IBC → ett stopp
+                        // fre 15:00 → mån 06:15 blir ~3855 min och nollar TOTAL DRIFTTID. Hoppa över
+                        // spann som korsar midnatt eller är längre än 480 min (10h) — artefakter.
+                        if ($dsStart->format('Y-m-d') === $t->format('Y-m-d') && $spanMin <= 480) {
+                            $totalDriftstoppMinutes += $spanMin;
+                        }
                         $dsStart = null;
                     }
                 }
             }
 
-            // netRuntimeMinutes: när källan är skiftrapport/per_dag (D4007 resp runtime_plc) är rast redan
-            // exkluderad av PLC:n — dra inte av $totalRastMinutes en gång till. Bara onoff-spannet
-            // (wall-clock) innehåller rast och ska dra av den. Driftstopp dras alltid av.
+            // netRuntimeMinutes: när källan är skiftrapport/per_dag (D4007 resp runtime_plc) är BÅDE
+            // rast OCH driftstopp redan exkluderade — PLC:n tickar inte körtid under stopp/rast.
+            // Dra INTE av dem igen (dubbelavdrag nollade drifttiden). Bara onoff-spannet (wall-clock)
+            // innehåller rast+stopp och ska dra av dem.
             if ($runtimeSource === 'skiftrapport' || $runtimeSource === 'per_dag') {
-                $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalDriftstoppMinutes);
+                $netRuntimeMinutes = $totalRuntimeMinutes;
             } else {
                 $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);
             }

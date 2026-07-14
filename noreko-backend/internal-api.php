@@ -40,6 +40,13 @@ if (!is_string($token) || $token === '' || !hash_equals((string)$token, (string)
     exit;
 }
 
+// (1b) Kodversion — emittera Pi:ns deployade kodversion så VPS-edge (RemoteAgg) kan
+// upptäcka om Pi:n kör ANNAN (äldre) kod än edge. Vid mismatch vägrar edge cacha Pi:ns
+// svar (annars låstes gamla värden i 7 dygn) och kör lokal HEAD-kod i stället.
+// Självläker automatiskt när Pi:n deployas till samma version.
+require_once __DIR__ . '/classes/CodeVersion.php';
+header('X-Code-Version: ' . CodeVersion::get());
+
 // (2) PDO från db_config.php — samma optioner som api.php, global $pdo.
 global $pdo;
 try {
@@ -101,7 +108,7 @@ $className = $whitelist[$action];
 // (4) Kort-TTL param-keyad filcache (15s). Nyckeln inkluderar ALLA GET-params.
 $cacheDir = __DIR__ . '/cache';
 if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
-$cacheFile = $cacheDir . '/agg_' . $action . '_' . md5(json_encode($_GET)) . '.json';
+$cacheFile = $cacheDir . '/agg_' . $action . '_' . CodeVersion::get() . '_' . md5(json_encode($_GET)) . '.json';
 if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < 15) {
     $cached = file_get_contents($cacheFile);
     if ($cached !== false && $cached !== '') {

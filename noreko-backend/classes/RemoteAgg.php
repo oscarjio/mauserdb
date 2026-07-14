@@ -116,12 +116,19 @@ class RemoteAgg
         }
 
         // 3. Hämta färskt från Pi.
+        $piVersion = null; // fångas ur X-Code-Version-headern nedan
         $ch = curl_init($base . '?' . http_build_query($_GET));
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER    => true,
             CURLOPT_CONNECTTIMEOUT_MS => 800,
             CURLOPT_TIMEOUT_MS        => 6000,
             CURLOPT_HTTPHEADER        => ['X-Internal-Token: ' . $token],
+            CURLOPT_HEADERFUNCTION    => function ($ch, $header) use (&$piVersion) {
+                if (stripos($header, 'X-Code-Version:') === 0) {
+                    $piVersion = trim(substr($header, strlen('X-Code-Version:')));
+                }
+                return strlen($header);
+            },
         ]);
         $body = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -138,21 +145,45 @@ class RemoteAgg
             $j  = json_decode($body, true);
             $ok = is_array($j) && (!array_key_exists('success', $j) || $j['success'] === true);
         }
-        if ($ok) {
+
+        // VERSIONS-GRIND: Pi:n kan köra ÄLDRE kod än edge (deploy-dev.sh uppdaterar bara edge,
+        // aldrig Pi:n). Då är Pi:ns svar opålitligt (t.ex. gammal getStatistics = 'skiftrapport')
+        // men cachades ändå under EDGENS nya versionsnyckel i upp till 7 dygn → gamla värden
+        // låstes fast. Fix: jämför Pi:ns X-Code-Version mot edge. Vid mismatch (eller saknad
+        // header = gammal Pi utan versionsstöd): cacha ALDRIG, logga, och vid strict_version
+        // (default TRUE) → return false = kör lokal HEAD-kod. Självläker när Pi:n deployas.
+        $local     = CodeVersion::get();
+        $versionOk = ($piVersion !== null && $piVersion === $local);
+        $strict    = !isset($c['strict_version']) || $c['strict_version'] !== false; // default TRUE
+        $GLOBALS['__piVersion'] = $piVersion;
+        if ($ok && !$versionOk) {
+            $GLOBALS['__piStale'] = true;
+            self::logVersionMismatch($piVersion, $local, $action, $run);
+        }
+
+        // Cacha BARA vid giltigt svar OCH matchande kodversion.
+        if ($ok && $versionOk) {
             // Atomisk skrivning (temp+rename) → inga trasiga läsningar av stora svar.
             $tmp = $cf . '.tmp.' . getmypid();
             if (@file_put_contents($tmp, $body) !== false) { @rename($tmp, $cf); } else { @unlink($tmp); }
         }
         if ($lock) { if ($haveLock) { flock($lock, LOCK_UN); } fclose($lock); }
 
+        // Version-mismatch + strict → lokal HEAD-kod kör (self-heal tills Pi:n uppdateras).
+        if ($ok && !$versionOk && $strict) {
+            return false;
+        }
+
         if ($ok) {
+            // Matchande version, ELLER icke-strict mismatch (degraderat läge) → servera Pi-svaret.
             header('Content-Type: application/json; charset=utf-8');
             header('X-Data-Ts: ' . gmdate('c'));
-            $GLOBALS['__dataSource'] = 'pi';
+            $GLOBALS['__dataSource'] = $versionOk ? 'pi' : 'pi-stale';
             echo $body;
             return true;
         }
-        // 4. Pi misslyckades → servera stale om den finns (fryskillern).
+        // 4. Pi misslyckades → servera stale om den finns (fryskillern). Stale-cachen är alltid
+        // versionsmatchad (skrivs bara vid match ovan), så den är säker att servera.
         if (is_file($cf)) {
             return self::serveCache($cf, true);
         }
@@ -173,6 +204,16 @@ class RemoteAgg
         $GLOBALS['__dataSource'] = $stale ? 'stale' : 'cache';
         echo $body;
         return true;
+    }
+
+    /** Loggar version-mismatch mellan Pi och edge till logs/piagg.log (append). */
+    private static function logVersionMismatch(?string $piVersion, string $local, string $action, string $run): void
+    {
+        $dir = dirname(__DIR__) . '/logs';
+        if (!is_dir($dir)) { @mkdir($dir, 0777, true); }
+        $line = gmdate('c') . " VERSION_MISMATCH action=$action run=$run pi="
+              . ($piVersion === null || $piVersion === '' ? 'none' : $piVersion) . " edge=$local\n";
+        @file_put_contents($dir . '/piagg.log', $line, FILE_APPEND | LOCK_EX);
     }
 
     /** SWR-TTL: avslutad period (immutabel) = 7 dygn, live-status = 5s, annars 5 min. */

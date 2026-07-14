@@ -32,5 +32,6 @@ noreko-backend/app_config.php
 noreko-backend/agg_config.php
 noreko-backend/internal_token.php
 noreko-backend/CODE_VERSION
+noreko-backend/pi_deploy.conf
 
 gx*/

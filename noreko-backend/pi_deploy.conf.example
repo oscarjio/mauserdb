@@ -1,0 +1,15 @@
+# pi_deploy.conf — per-server konfiguration för deploy-pi.sh (kopiera till pi_deploy.conf).
+# pi_deploy.conf är git-ignorerad (kan innehålla host/port). Sätt värdena nedan.
+
+# Pi:ns SSH-mål. Från VPS-edge nås Pi:n typiskt via en lokal tunnel.
+PI_HOST=aiab@127.0.0.1
+PI_PORT=42222
+
+# ⚠ MÅSTE matcha sökvägen som den installerade piagg-internal.service servar
+#   (kontrollera med:  systemctl cat piagg-internal  → WorkingDirectory / ExecStart `-t <PATH>`).
+#   piagg-internal.service.example pekar på /var/www/mauserdb/noreko-backend, medan dev-edge
+#   ligger på /var/www/mauserdb-dev/noreko-backend — verifiera vilken tjänsten FAKTISKT kör från.
+PI_PATH=/var/www/mauserdb/noreko-backend/
+
+# systemd-tjänsten som kör internal-api.php (startas om efter deploy).
+PIAGG_SERVICE=piagg-internal

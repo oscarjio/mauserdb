@@ -398,7 +398,18 @@ if (!headers_sent()) {
     header('Server-Timing: ' . $__st);
     header('X-Response-Time-Ms: ' . $__durMs);
     header('X-Data-Source: ' . $__source);
-    header('Access-Control-Expose-Headers: Server-Timing, X-Response-Time-Ms, X-Data-Source, X-Data-Ts, X-Data-Stale');
+    // Versionsdiagnostik: edge-kodversion, Pi:ns rapporterade version, och stale-flagga
+    // (Pi kör annan version → svaret cachades ej, lokal HEAD-kod kördes). Synligt via curl -sI.
+    require_once __DIR__ . '/classes/CodeVersion.php';
+    header('X-Code-Version: ' . CodeVersion::get());
+    if (array_key_exists('__piVersion', $GLOBALS)) {
+        $__pv = $GLOBALS['__piVersion'];
+        header('X-Pi-Version: ' . ($__pv === null || $__pv === '' ? 'none' : $__pv));
+    }
+    if (!empty($GLOBALS['__piStale'])) {
+        header('X-Pi-Stale: 1');
+    }
+    header('Access-Control-Expose-Headers: Server-Timing, X-Response-Time-Ms, X-Data-Source, X-Data-Ts, X-Data-Stale, X-Code-Version, X-Pi-Version, X-Pi-Stale');
 }
 if ($__durMs >= 500) {
     $__run = $_GET['run'] ?? '';
