@@ -106,19 +106,12 @@
     </div>
     <div class="col-6 col-md-2">
       <div class="summary-card">
-        <div class="summary-icon"
-          [class.text-success]="(summaryAvgEff ?? -1) >= 90"
-          [class.text-warning]="(summaryAvgEff ?? -1) >= 70 && (summaryAvgEff ?? -1) < 90"
-          [class.text-danger]="(summaryAvgEff ?? -1) >= 0 && (summaryAvgEff ?? -1) < 70"
-          [class.text-muted]="summaryAvgEff == null">
+        <div class="summary-icon" [ngClass]="effTextClass(summaryAvgEff)">
           <i class="fas fa-tachometer-alt"></i>
         </div>
-        <div class="summary-value"
-          [class.text-success]="(summaryAvgEff ?? -1) >= 90"
-          [class.text-warning]="(summaryAvgEff ?? -1) >= 70 && (summaryAvgEff ?? -1) < 90"
-          [class.text-danger]="(summaryAvgEff ?? -1) >= 0 && (summaryAvgEff ?? -1) < 70"
-          [class.text-muted]="summaryAvgEff == null">
-          {{ summaryAvgEff != null ? (summaryAvgEff + '%') : '–' }}
+        <div class="summary-value" [ngClass]="effTextClass(summaryAvgEff)"
+             title="Effektivitet mot mål: (mål - faktisk)/mål. + = snabbare än mål, - = långsammare.">
+          {{ formatSignedPct(summaryAvgEff) }}
         </div>
         <div class="summary-label">Effektivitet</div>
       </div>
@@ -339,7 +332,7 @@
               <th class="d-none d-md-table-cell">Produkter</th>
               <th class="d-none d-md-table-cell">Operatörer</th>
               <th class="text-center">IBC</th>
-              <th class="text-center" title="Effektivitet: målcykeltid / faktisk cykeltid × 100">EFF%</th>
+              <th class="text-center" title="Effektivitet mot mål: (mål - faktisk)/mål. + = snabbare än mål, - = långsammare.">EFF%</th>
               <th class="d-none d-lg-table-cell">Drifttid</th>
               <th class="text-center">Skift</th>
               <th></th>
@@ -370,14 +363,9 @@
                   {{ day.totalIbc }}
                 </td>
                 <td class="text-center" data-label="EFF%">
-                  <span class="badge"
-                    [class.bg-success]="(day.avgEff ?? -1) >= 80"
-                    [class.bg-warning]="(day.avgEff ?? -1) >= 60 && (day.avgEff ?? -1) < 80"
-                    [class.bg-danger]="(day.avgEff ?? -1) >= 0 && (day.avgEff ?? -1) < 60"
-                    [class.bg-secondary]="day.avgEff == null">
-                    {{ day.avgEff != null ? (day.avgEff + '%') : '–' }}
+                  <span class="badge" [ngClass]="effBadgeClass(day.avgEff)">
+                    {{ formatSignedPct(day.avgEff) }}
                   </span>
-                  <span *ngIf="day.effWarning" class="ms-1" style="cursor:help;" title="Beräknad effektivitet översteg 100 % (kapad). Kontrollera drifttid/cykeltid — oftast orimligt kort cykeltid eller ofullständig data.">⚠</span>
                 </td>
                 <td class="d-none d-lg-table-cell text-success small">
                   {{ day.totalDrift > 0 ? formatDrifttid(day.totalDrift) : '–' }}
@@ -413,7 +401,7 @@
                           <th>Operatörer</th>
                           <th title="Godkända IBC">IBC</th>
                           <th class="d-none d-md-table-cell" title="Minuter per IBC">min/IBC</th>
-                          <th title="Effektivitet: målcykeltid / faktisk cykeltid × 100">Eff%</th>
+                          <th title="Effektivitet mot mål: (mål - faktisk)/mål. + = snabbare än mål, - = långsammare.">Eff%</th>
                           <th class="d-none d-md-table-cell" title="Netto drifttid exkl. rast">Drifttid</th>
                           <th class="d-none d-md-table-cell" title="Rasttid (min)">Rast</th>
                           <th class="d-none d-md-table-cell" title="Driftstopp (min)">Stopp</th>
@@ -489,12 +477,8 @@
                             </td>
                             <td class="d-none d-md-table-cell">{{ ibcPerHour(report) }}</td>
                             <td data-label="Eff%">
-                              <span class="badge"
-                                [class.bg-success]="(getEfficiencyPct(report) ?? -1) >= 80"
-                                [class.bg-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
-                                [class.bg-danger]="(getEfficiencyPct(report) ?? -1) >= 0 && (getEfficiencyPct(report) ?? -1) < 60"
-                                [class.bg-secondary]="getEfficiencyPct(report) == null">
-                                {{ getEfficiencyPct(report) != null ? (getEfficiencyPct(report) + '%') : '–' }}
+                              <span class="badge" [ngClass]="effBadgeClass(getEfficiencyPct(report))">
+                                {{ formatSignedPct(getEfficiencyPct(report)) }}
                               </span>
                             </td>
                             <td class="d-none d-md-table-cell small">
@@ -583,11 +567,8 @@
                                     </div>
                                     <div class="hero-divider d-none d-sm-block" *ngIf="getEfficiencyPct(report) != null"></div>
                                     <div class="hero-stat" *ngIf="getEfficiencyPct(report) != null">
-                                      <span class="hero-num"
-                                        [class.text-success]="(getEfficiencyPct(report) ?? -1) >= 90"
-                                        [class.text-warning]="(getEfficiencyPct(report) ?? -1) >= 70 && (getEfficiencyPct(report) ?? -1) < 90"
-                                        [class.text-danger]="(getEfficiencyPct(report) ?? -1) < 70">
-                                        {{ getEfficiencyPct(report) }}%
+                                      <span class="hero-num" [ngClass]="effTextClass(getEfficiencyPct(report))">
+                                        {{ formatSignedPct(getEfficiencyPct(report)) }}
                                       </span>
                                       <span class="hero-lbl">Eff%</span>
                                     </div>
@@ -1109,13 +1090,9 @@
                 </div>
                 <div class="d-flex align-items-center gap-3">
                   <span class="fw-bold text-success" style="font-size:.95rem;">{{ day.totalIbc }} IBC</span>
-                  <span *ngIf="day.avgEff != null" class="badge"
-                    [class.bg-success]="day.avgEff >= 80"
-                    [class.bg-warning]="day.avgEff >= 60 && day.avgEff < 80"
-                    [class.bg-danger]="day.avgEff >= 0 && day.avgEff < 60">
-                    {{ day.avgEff }}% EFF
+                  <span *ngIf="day.avgEff != null" class="badge" [ngClass]="effBadgeClass(day.avgEff)">
+                    {{ formatSignedPct(day.avgEff) }} EFF
                   </span>
-                  <span *ngIf="day.effWarning" class="ms-1" style="cursor:help;" title="Beräknad effektivitet översteg 100 % (kapad). Oftast orimligt kort cykeltid eller ofullständig drifttidsdata.">⚠</span>
                   <span *ngIf="day.totalDrift > 0" class="text-muted small">{{ formatDrifttid(day.totalDrift) }}</span>
                 </div>
               </div>
@@ -1182,11 +1159,8 @@
                     </div>
                     <div class="mobile-kpi" *ngIf="getEfficiencyPct(report) != null">
                       <div class="mobile-kpi-label">EFF%</div>
-                      <div class="mobile-kpi-value"
-                        [class.text-success]="(getEfficiencyPct(report) ?? -1) >= 80"
-                        [class.text-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
-                        [class.text-danger]="(getEfficiencyPct(report) ?? -1) < 60">
-                        {{ getEfficiencyPct(report) }}%
+                      <div class="mobile-kpi-value" [ngClass]="effTextClass(getEfficiencyPct(report))">
+                        {{ formatSignedPct(getEfficiencyPct(report)) }}
                       </div>
                     </div>
                     <div class="mobile-kpi" *ngIf="getNetDrifttidMin(report) > 0">
@@ -1232,11 +1206,8 @@
                         <span class="mobile-hero-lbl">IBC OK</span>
                       </div>
                       <div class="mobile-hero-stat" *ngIf="getEfficiencyPct(report) != null">
-                        <span class="mobile-hero-num"
-                          [class.text-success]="(getEfficiencyPct(report) ?? -1) >= 80"
-                          [class.text-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
-                          [class.text-danger]="(getEfficiencyPct(report) ?? -1) < 60">
-                          {{ getEfficiencyPct(report) }}%
+                        <span class="mobile-hero-num" [ngClass]="effTextClass(getEfficiencyPct(report))">
+                          {{ formatSignedPct(getEfficiencyPct(report)) }}
                         </span>
                         <span class="mobile-hero-lbl">Effektivitet</span>
                       </div>

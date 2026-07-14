@@ -245,8 +245,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const product     = this.products.find((p: any) => p.id === (r.product_id ?? null));
     const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
     if (!(targetCycle > 0) || !(actualCycle > 0)) return null;
-    const v = Math.round((targetCycle / actualCycle) * 100);
-    return isFinite(v) ? Math.min(v, 100) : null;
+    // Effektivitet mot mål: (mål - faktisk)/mål * 100 — SIGNAD, ingen cap. + = snabbare, - = långsammare.
+    const v = Math.round(((targetCycle - actualCycle) / targetCycle) * 100);
+    return isFinite(v) ? v : null;
   }
 
   private _computeIbcPerHour(r: any): number | null {
@@ -583,9 +584,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
       totalIdealMin += totalt * targetCycle;
     }
-    if (totalNettoMin <= 0) return null;
-    const v = Math.round((totalIdealMin / totalNettoMin) * 100);
-    return isFinite(v) ? Math.min(v, 100) : null;
+    if (totalNettoMin <= 0 || totalIdealMin <= 0) return null;
+    // Effektivitet mot mål: (ideal - netto)/ideal * 100 — SIGNAD, ingen cap. + = snabbare än mål.
+    const v = Math.round(((totalIdealMin - totalNettoMin) / totalIdealMin) * 100);
+    return isFinite(v) ? v : null;
   }
 
   // ========== Per-rad helpers ==========
@@ -600,6 +602,32 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     if (!r) return null;
     const c = this.reportCache.get(r.id);
     return c !== undefined ? c.effPct : this._computeEfficiencyPct(r);
+  }
+
+  // ===== Signerad effektivitet: visning + färg (Oscar 2026-07-14) =====
+  // Skala: >0 snabbare än mål (grön), <0 långsammare (röd), =0 vid mål/ingen data (neutral).
+
+  /** "+25%", "-12%", "0%", "–" (null). */
+  formatSignedPct(v: number | null | undefined): string {
+    if (v === null || v === undefined) return '–';
+    const r = Math.round(v * 10) / 10;
+    return (r > 0 ? '+' : '') + r + '%';
+  }
+
+  /** Bootstrap badge-bakgrund för signerad effektivitet. */
+  effBadgeClass(v: number | null | undefined): string {
+    if (v === null || v === undefined) return 'bg-secondary';
+    if (v > 0) return 'bg-success';
+    if (v < 0) return 'bg-danger';
+    return 'bg-secondary';
+  }
+
+  /** Bootstrap textfärg för signerad effektivitet. */
+  effTextClass(v: number | null | undefined): string {
+    if (v === null || v === undefined) return 'text-muted';
+    if (v > 0) return 'text-success';
+    if (v < 0) return 'text-danger';
+    return 'text-secondary';
   }
 
   getOeePct(r: any): number | null {
@@ -1468,9 +1496,17 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           ? Math.min(100, Math.max(0, Math.round((drifttidRaw / plannadTid) * 100)))
           : 0;
 
-        // Effektivitet: via _computeEfficiencyPct
-        const effRaw  = this._computeEfficiencyPct(report);
-        const effPct  = effRaw != null ? Math.min(100, Math.max(0, Math.round(effRaw))) : 0;
+        // Effektivitet (PDF OEE-donut): bunden 0-100-gauge (målcykeltid/faktisk, kapad).
+        // Frikopplad från den signerade "Effektivitet"-KPI:n — en gauge kan inte visa
+        // negativa värden, och OEE-faktorer ska förbli 0-100 (Oscar 2026-07-14).
+        const totForEff = (report.totalt || ((report.antal_ok || 0) + (report.antal_ej_ok || 0) + (report.omtvaatt || 0)));
+        const netForEff = Math.max(0, Math.min(report.drifttid || 0, 600));
+        const actualCycleEff = (totForEff > 0 && netForEff > 0) ? netForEff / totForEff : 0;
+        const prodForEff = this.products.find((p: any) => p.id === (report.product_id ?? null));
+        const targetCycleEff = prodForEff?.cycle_time_minutes ?? this.fallbackCycleMin;
+        const effPct = (actualCycleEff > 0 && targetCycleEff > 0)
+          ? Math.min(100, Math.max(0, Math.round((targetCycleEff / actualCycleEff) * 100)))
+          : 0;
 
         // Kvalitet: antal_ok / totalt
         const kvalRaw = this._computeQualityPct(report);
@@ -2003,12 +2039,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         tSum += t;
       }
       const dayTargetCycle = tSum > 0 ? twSum / tSum : this.fallbackCycleMin;
-      const avgEffRaw = (totalIbc > 0 && dayNet > 0 && dayTargetCycle > 0)
-        ? Math.round((dayTargetCycle / (dayNet / totalIbc)) * 100)
+      const dayActualCycle = totalIbc > 0 ? dayNet / totalIbc : 0;
+      // Effektivitet mot mål: (mål - faktisk)/mål * 100 — SIGNAD, ingen cap.
+      const avgEff = (totalIbc > 0 && dayNet > 0 && dayTargetCycle > 0 && dayActualCycle > 0)
+        ? Math.round(((dayTargetCycle - dayActualCycle) / dayTargetCycle) * 100)
         : null;
-      // T5: Cap 100 överallt; flagga när rått värde > 100 så operatörer inte tror på överprestation.
-      const avgEff = avgEffRaw == null ? null : Math.min(avgEffRaw, 100);
-      const effWarning = avgEffRaw != null && avgEffRaw > 100;
+      const effWarning = false; // obsolet efter cap-borttag (signerad skala)
       const opSet = new Set<string>();
       submittedOnly.forEach(r => {
         [[r.op1_name, r.op1], [r.op2_name, r.op2], [r.op3_name, r.op3]].forEach(([nm, n]) => {
