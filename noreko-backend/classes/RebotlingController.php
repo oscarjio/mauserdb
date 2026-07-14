@@ -1189,7 +1189,12 @@ class RebotlingController {
                     } elseif (!$isRunning && $lastRunningStart !== null) {
                         $diff = $lastRunningStart->diff($eventTime);
                         $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                        $totalRuntimeMinutes += $periodMinutes;
+                        // Guard: hoppa över running-spann som korsar midnatt eller > 600 min — ett
+                        // missat off-event lämnar running öppet till NÄSTA event (över natt/helg) och
+                        // blåste annars upp körtiden (402 IBC × 2.3 min ≈ 15h men visade 68h).
+                        if ($lastRunningStart->format('Y-m-d') === $eventTime->format('Y-m-d') && $periodMinutes <= 600) {
+                            $totalRuntimeMinutes += $periodMinutes;
+                        }
                         $lastRunningStart = null;
                     }
                 }
@@ -1199,7 +1204,10 @@ class RebotlingController {
                     $lastEventTime = new DateTime($onoff_events[count($onoff_events) - 1]['datum'], new DateTimeZone('Europe/Stockholm'));
                     $diff = $lastRunningStart->diff($lastEventTime);
                     $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
-                    $totalRuntimeMinutes += $periodMinutes;
+                    // Samma guard som ovan mot ostängt running-spann över midnatt/>600 min.
+                    if ($lastRunningStart->format('Y-m-d') === $lastEventTime->format('Y-m-d') && $periodMinutes <= 600) {
+                        $totalRuntimeMinutes += $periodMinutes;
+                    }
                 }
             }
             
