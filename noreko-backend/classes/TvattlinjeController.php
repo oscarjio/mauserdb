@@ -1450,7 +1450,8 @@ class TvattlinjeController {
             // Versionerad nyckel (CodeVersion) → gammal cache blir oåtkomlig direkt vid deploy,
             // så TTL 604800 (avslutad period) inte längre maskerar backend-fixar.
             $cacheFile = $cacheDir . '/tvattlinje_statistics_' . CodeVersion::get() . '_' . $start . '_' . $end . '.json';
-            $statsTtl = ($end < date('Y-m-d')) ? 604800 : 15;
+            // P4: löpande-period-TTL höjd 15s → 60s för att minska DB-last (max_connections-mättnad).
+            $statsTtl = ($end < date('Y-m-d')) ? 604800 : 60;
             if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $statsTtl) {
                 $cached = file_get_contents($cacheFile);
                 if ($cached !== false) {
@@ -1691,27 +1692,33 @@ class TvattlinjeController {
 
             // ibc_count nollställs varje dag (1..N) — SUM(MAX per dag) ger korrekt totalt antal.
             // missed_webhooks = total_cycles minus faktiskt mottagna rader.
+            // P4: EN gemensam per-dag-LAG-scan (delas med ibc_per_dag_plc nedan) i st f två separata
+            // scans över samma tvattlinje_ibc-period/LAG-mönster. Ger per dag: delta-summa (ibc) +
+            // radantal (cnt). total_cycles = SUM(ibc), received_webhooks = SUM(cnt),
+            // ibc_per_dag_plc = dag=>ibc-karta (konsumeras vid $out-bygget).
             $total_cycles = 0;
             $received_webhooks = 0;
+            $ibcPerDagPlc = [];
             try {
                 $stmtTrue = $this->pdo->prepare('
-                    SELECT COALESCE(SUM(day_max), 0), COALESCE(SUM(day_count), 0)
+                    SELECT dag,
+                           COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS day_ibc,
+                           COUNT(*) AS day_count
                     FROM (
-                        SELECT SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END) AS day_max,
-                               COUNT(*) AS day_count
-                        FROM (
-                            SELECT DATE(datum) AS dag, ibc_count,
-                                   COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
-                            FROM tvattlinje_ibc
-                            WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
-                        ) x
-                        GROUP BY dag
-                    ) per_dag
+                        SELECT DATE(datum) AS dag, ibc_count,
+                               COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                        FROM tvattlinje_ibc
+                        WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                    ) x
+                    GROUP BY dag
                 ');
                 $stmtTrue->execute(['start' => $start, 'end' => $end]);
-                $row = $stmtTrue->fetch(\PDO::FETCH_NUM);
-                $total_cycles    = (int)($row[0] ?? 0);
-                $received_webhooks = (int)($row[1] ?? 0);
+                foreach ($stmtTrue->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                    $dayIbc = (int)$r['day_ibc'];
+                    $ibcPerDagPlc[$r['dag']] = $dayIbc;
+                    $total_cycles      += $dayIbc;
+                    $received_webhooks += (int)$r['day_count'];
+                }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics total_cycles: ' . $e->getMessage()); }
 
             if ($total_cycles === 0) $total_cycles = count($cycles);
@@ -1837,24 +1844,9 @@ class TvattlinjeController {
             // Per-dag IBC-karta från skiftrapporter (source of truth för historiska dagar).
             // Redan deduplicerad ovan ($ibcPerDagSr) — återanvänds här för staplarna.
 
-            // Per-dag IBC-karta från PLC (MAX(ibc_count) per dag — fyller in dagar utan skiftrapport inkl idag)
-            $ibcPerDagPlc = [];
-            try {
-                $plcDagStmt = $this->pdo->prepare("
-                    SELECT dag, COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS ibc
-                    FROM (
-                        SELECT DATE(datum) AS dag, ibc_count,
-                               COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
-                        FROM tvattlinje_ibc
-                        WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
-                    ) t
-                    GROUP BY dag
-                ");
-                $plcDagStmt->execute(['s' => $start, 'e' => $end]);
-                foreach ($plcDagStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                    $ibcPerDagPlc[$row['dag']] = (int)$row['ibc'];
-                }
-            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics ibc_per_dag_plc: ' . $e->getMessage()); }
+            // Per-dag IBC-karta från PLC (delta-summa per dag — fyller in dagar utan skiftrapport inkl idag).
+            // P4: $ibcPerDagPlc byggs nu i den gemensamma per-dag-LAG-scanen ovan (samma tvattlinje_ibc-
+            // period/LAG/delta-CASE) — ingen separat scan behövs här.
 
             $out = json_encode([
                 'success' => true,
@@ -1887,6 +1879,17 @@ class TvattlinjeController {
             echo $out;
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::getStatistics: ' . $e->getMessage());
+            // P4: servera SENAST CACHADE (stale) värde vid fel — en tillfällig DB-överbelastning
+            // (max_connections-mättnad) ska inte ge 503/500 till klienten. Samma fil-cache-API
+            // (samma $cacheFile-nyckel) som lyckad väg använder. Ignorera TTL — stale > tomt.
+            if (isset($cacheFile) && file_exists($cacheFile)) {
+                $stale = file_get_contents($cacheFile);
+                if ($stale !== false) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo $stale;
+                    return;
+                }
+            }
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
         }
