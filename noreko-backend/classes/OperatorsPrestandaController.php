@@ -211,13 +211,27 @@ class OperatorsPrestandaController {
 
     /**
      * Beräkna OEE för en operatör baserat på skiftdata.
-     * OEE = (ibc_ok * ideal_cykeltid) / drifttid_sek
+     *
+     * Äkta OEE = tillgänglighet × prestanda × kvalitet.
+     * Tillgänglighet (drifttid / planerad tid) går INTE att beräkna per operatör
+     * här — operatörerna arbetar simultant och delar samma drifttid, och ingen
+     * planerad-tid-baslinje finns per operatör. Vi beräknar därför de två faktorer
+     * som ÄR härledbara ur skiftdatan:
+     *   prestanda = (total_ibc * ideal_cykeltid) / drifttid_sek
+     *   kvalitet  = ibc_ok / total_ibc
+     *   oee       = prestanda × kvalitet
+     * (Jfr StatistikOverblickController::calcOeeBatch som har planerad tid och
+     *  därmed kan lägga till tillgänglighetsfaktorn.)
      * Drifttid är i minuter i skiftrapport → konvertera till sekunder.
      */
-    private function calcOee(int $ibcOk, int $drifttidMin): float {
+    private function calcOee(int $ibcOk, int $drifttidMin, int $ibcEjOk = 0): float {
         if ($drifttidMin <= 0) return 0.0;
+        $totalIbc = $ibcOk + $ibcEjOk;
+        if ($totalIbc <= 0) return 0.0;
         $drifttidSek = $drifttidMin * 60;
-        $oee = ($ibcOk * self::IDEAL_CYCLE_SEC) / $drifttidSek;
+        $prestanda = min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek);
+        $kvalitet  = $ibcOk / $totalIbc;
+        $oee = $prestanda * $kvalitet;
         return round(min(1.0, $oee) * 100, 1);
     }
 
@@ -260,7 +274,7 @@ class OperatorsPrestandaController {
                 ? round($d['ibc_ej_ok'] / $totalIbc * 100, 2)
                 : 0.0;
             $medelCykeltid = $this->calcMedelCykeltid($totalIbc, $d['drifttid']);
-            $oee = $this->calcOee($d['ibc_ok'], $d['drifttid']);
+            $oee = $this->calcOee($d['ibc_ok'], $d['drifttid'], $d['ibc_ej_ok']);
 
             // Bestäm skift för operatören baserat på flest arbetstimmar
             $skiftTyp = $this->getOperatorSkiftTyp($opId, $cutoff);
@@ -450,7 +464,7 @@ class OperatorsPrestandaController {
             $kassationsgrad = $totalIbc > 0
                 ? round($d['ibc_ej_ok'] / $totalIbc * 100, 2) : 0.0;
             $medelCykeltid  = $this->calcMedelCykeltid($totalIbc, $d['drifttid']);
-            $oee            = $this->calcOee($d['ibc_ok'], $d['drifttid']);
+            $oee            = $this->calcOee($d['ibc_ok'], $d['drifttid'], $d['ibc_ej_ok']);
 
             $ranking[] = [
                 'operator_id'       => $opId,
@@ -532,7 +546,7 @@ class OperatorsPrestandaController {
 
             $kassGrad  = $totalIbc > 0 ? round($totalEjOk / $totalIbc * 100, 1) : 0.0;
             $cykeltid  = $this->calcMedelCykeltid($totalIbc, $totalDrift);
-            $oee       = $this->calcOee($totalOk, $totalDrift);
+            $oee       = $this->calcOee($totalOk, $totalDrift, $totalEjOk);
             $medPerDag = $antalDagar > 0 ? round($totalIbc / $antalDagar, 1) : 0.0;
 
             // Bäste operatör i skiftet
@@ -666,7 +680,7 @@ class OperatorsPrestandaController {
 
             $kassGrad  = $totalIbc > 0 ? round($totalEjOk / $totalIbc * 100, 1) : 0.0;
             $cykeltid  = $this->calcMedelCykeltid($totalIbc, $totalDrift);
-            $oee       = $this->calcOee($totalOk, $totalDrift);
+            $oee       = $this->calcOee($totalOk, $totalDrift, $totalEjOk);
 
             $veckor[] = [
                 'vecka'          => $veckoNr,
