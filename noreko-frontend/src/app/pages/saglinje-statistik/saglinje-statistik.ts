@@ -103,12 +103,26 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get filteredReports(): any[] {
-    if (this.period === 'all') return [...this.reports];
-    const days = parseInt(this.period, 10);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = localDateStr(cutoff);
-    return this.reports.filter(r => (r.datum || '').substring(0, 10) >= cutoffStr);
+    let rows = this.reports;
+    if (this.period !== 'all') {
+      const days = parseInt(this.period, 10);
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      const cutoffStr = localDateStr(cutoff);
+      rows = rows.filter(r => (r.datum || '').substring(0, 10) >= cutoffStr);
+    }
+    // Deduplicera: behåll endast raden med högst id per dag (senaste snapshot)
+    const byDay = new Map<string, any>();
+    for (const r of rows) {
+      const dag = (r.datum || '').substring(0, 10);
+      const existing = byDay.get(dag);
+      if (!existing || (r.id ?? -1) > (existing.id ?? -1)) {
+        byDay.set(dag, r);
+      }
+    }
+    return Array.from(byDay.values()).sort((a, b) =>
+      (a.datum || '').localeCompare(b.datum || '')
+    );
   }
 
   private loadReports() {
