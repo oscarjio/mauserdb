@@ -497,7 +497,7 @@ class TvattlinjeController {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
-        $defaults = [[0,140],[1,140],[2,140],[3,140],[4,140],[5,60],[6,0]];
+        $defaults = [[0,140],[1,140],[2,140],[3,140],[4,140],[5,0],[6,0]];
         $stmt = $this->pdo->prepare("INSERT IGNORE INTO tvattlinje_weekday_goals (weekday, mal) VALUES (?, ?)");
         foreach ($defaults as [$wd, $mal]) {
             $stmt->execute([$wd, $mal]);
@@ -2773,7 +2773,7 @@ class TvattlinjeController {
             $bestaIbc    = 0;
 
             // D: Veckodagsmål (mål IBC/dag) per WEEKDAY (0=mån … 6=sön). Källa: tvattlinje_weekday_goals
-            // (samma tabell som live/snapshot). Fallback om tabell/rad saknas: vardag 140, helg 60.
+            // (samma tabell som live/snapshot). Fallback om tabell/rad saknas: vardag 140, helg 0.
             $goalsMap = [];
             try {
                 foreach ($this->pdo->query("SELECT weekday, mal FROM tvattlinje_weekday_goals")->fetchAll(\PDO::FETCH_ASSOC) as $g) {
@@ -2838,7 +2838,7 @@ class TvattlinjeController {
                 // A: Prestanda = FAKTISK takt / idealtakt (IBC per KÖRD timme), INTE måluppfyllelse.
                 // Måluppfyllelse (tot/mål) sjunker redan när linjen stått still → att använda den som
                 // perf straffar stopptid TVÅ ggr i OEE=A×P×Q. mal_pct exponeras separat för UI.
-                $idealPerDag = $goalsMap[$weekday] ?? ($isWeekend ? 60 : 140);
+                $idealPerDag = $goalsMap[$weekday] ?? ($isWeekend ? 0 : 140);
                 $idealPerH   = $plannedMin > 0 ? $idealPerDag / ($plannedMin / 60.0) : 0.0;
                 $actualPerH  = $netRuntimeMin > 0 ? $tot / ($netRuntimeMin / 60.0) : 0.0;
                 $perf_pct = ($idealPerH > 0 && $netRuntimeMin >= 10)

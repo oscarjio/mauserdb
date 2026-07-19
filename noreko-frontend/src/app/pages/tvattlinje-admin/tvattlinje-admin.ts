@@ -283,13 +283,13 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
               label:   this.weekdayLabels[item.weekday] ?? `Dag ${item.weekday}`
             }));
           } else {
-            // Fallback: API:t felade → använd säkra standardmål (vardag 140, helg 60).
+            // Fallback: API:t felade → använd säkra standardmål (vardag 140, helg 0).
             // Flagga läget så att spara-knappen disablas och en banner visas — annars
             // riskerar admin att skriva över korrekta mål med fallback-värden.
             this.goalsLoadError = true;
             this.weekdayGoals = this.weekdayLabels.map((label, i) => ({
               weekday: i,
-              mal:     i < 5 ? 140 : 60,
+              mal:     i < 5 ? 140 : 0,
               label
             }));
           }
@@ -299,7 +299,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy, ComponentCanDeact
           this.goalsLoadError = true;
           this.weekdayGoals = this.weekdayLabels.map((label, i) => ({
             weekday: i,
-            mal:     i < 5 ? 140 : 60,
+            mal:     i < 5 ? 140 : 0,
             label
           }));
         }
