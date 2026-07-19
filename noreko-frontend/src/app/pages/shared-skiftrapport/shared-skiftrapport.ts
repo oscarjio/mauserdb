@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, Input, NgZone } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription, of } from 'rxjs';
+import { Subject, Subscription, of, firstValueFrom } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
@@ -1455,7 +1455,16 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     });
   }
 
-  exportPDF(report: any) {
+  async exportPDF(report: any) {
+    // Prefetch löpnummer om det inte redan laddats (t.ex. om raden aldrig expanderats)
+    if (this.lopnummerMap[report.id] === undefined) {
+      const obs = report.plc_start
+        ? this.service.getLopnummer(this.config.line, 0, report.plc_start, report.plc_end || '')
+        : this.service.getLopnummer(this.config.line, report.skiftraknare);
+      const res = await firstValueFrom(obs).catch(() => null);
+      this.lopnummerMap[report.id] = res?.success ? res.ranges : '–';
+    }
+
     import('pdfmake/build/pdfmake').then((pdfMakeModule: any) => {
       import('pdfmake/build/vfs_fonts').then((vfsFontsModule: any) => {
         const pdfMake = pdfMakeModule.default || pdfMakeModule;
