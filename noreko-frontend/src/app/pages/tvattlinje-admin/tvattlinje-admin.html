@@ -304,6 +304,117 @@
       </div>
     </div>
 
+    <!-- ======== VECKODAGSMÅL ======== -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-calendar-week me-2 text-warning"></i>
+          Veckodagsmål
+        </h5>
+        <span *ngIf="weekdayGoalsLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Anpassa dagsmålet per veckodag. Lördag och söndag har lägre mål som standard.
+          Sätt 0 för att markera en dag som icke-produktionsdag.
+        </p>
+
+        <div *ngIf="goalsLoadError" class="alert alert-warning mb-3" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Kunde inte hämta veckodagsmål från servern — fallback-värden visas. Spara är inaktiverat för att skydda befintliga mål.
+        </div>
+
+        <div *ngIf="weekdayGoalsError" class="alert alert-danger mb-3" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ weekdayGoalsError }}
+        </div>
+
+        <div class="table-responsive" *ngIf="weekdayGoals.length > 0">
+          <table class="table table-sm align-middle mb-3" style="max-width: 480px;">
+            <thead>
+              <tr>
+                <th style="width: 160px;" scope="col">Veckodag</th>
+                <th scope="col">Mål (IBC/dag)</th>
+                <th style="width: 80px;" class="text-center" scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let goal of weekdayGoals; trackBy: trackByIndex">
+                <td class="fw-semibold">
+                  <span class="badge me-2"
+                    [style.background]="goal.weekday >= 5 ? '#4a5568' : '#2b4c7e'"
+                    style="font-size: 0.7rem; width: 20px; text-align: center;">
+                    {{ goal.weekday + 1 }}
+                  </span>
+                  {{ goal.label }}
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    [(ngModel)]="goal.mal"
+                    (ngModelChange)="formDirty = true"
+                    [name]="'weekday_' + goal.weekday"
+                    [attr.aria-label]="'Dagsmål för ' + goal.label"
+                    min="0"
+                    max="500"
+                    step="1"
+                    style="max-width: 120px;">
+                </td>
+                <td class="text-center">
+                  <span class="badge"
+                    [style.background]="goal.mal === 0 ? '#4a5568' : goal.mal < 60 ? '#744210' : '#1a4a2e'"
+                    style="font-size: 0.7rem;">
+                    {{ goal.mal === 0 ? 'Stängt' : goal.mal + ' IBC' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div *ngIf="!weekdayGoalsLoading && weekdayGoals.length === 0" class="text-muted small mb-3">
+          Inga veckodagsmål laddade.
+        </div>
+
+        <div class="weekday-tools d-flex flex-wrap align-items-center gap-2 mb-3">
+          <label class="form-label mb-0 text-muted small">Sätt alla dagar till:</label>
+          <input
+            type="number"
+            class="form-control form-control-sm"
+            [(ngModel)]="snabbvarde"
+            name="snabbvarde"
+            min="0"
+            max="500"
+            step="1"
+            style="max-width: 90px;"
+            aria-label="Snabbvärde för alla veckodagsmål">
+          <button
+            class="btn btn-sm btn-outline-warning"
+            (click)="settAllaVeckodagsmal()"
+            [disabled]="weekdayGoalsSaving || weekdayGoalsLoading">
+            <i class="fas fa-magic me-1"></i>Applicera
+          </button>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button
+            class="btn btn-primary"
+            (click)="saveWeekdayGoals()"
+            [disabled]="weekdayGoalsSaving || weekdayGoalsLoading || goalsLoadError">
+            <span *ngIf="weekdayGoalsSaving" role="status" class="spinner-border spinner-border-sm me-2"></span>
+            <i *ngIf="!weekdayGoalsSaving" class="fas fa-save me-2"></i>
+            {{ weekdayGoalsSaving ? 'Sparar...' : 'Spara veckodagsmål' }}
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            (click)="loadWeekdayGoals()"
+            [disabled]="weekdayGoalsLoading || weekdayGoalsSaving">
+            <i class="fas fa-undo me-2"></i>Återställ
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- ======== ALERT-TRÖSKLAR (KOLLAPSBAR) ======== -->
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
