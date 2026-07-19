@@ -513,6 +513,8 @@ class SaglinjeController {
                     $diff  = $first->diff($last);
                     $runtimeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                     if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
+                    // Kappa PLC-körtiden till max ett skift (600 min = 10h) — skydd mot reset/glapp
+                    $runtimeMinutes = min(600, $runtimeMinutes);
                 }
             } catch (\Throwable $e) {
                 error_log('SaglinjeController::getReport runtime: ' . $e->getMessage());
@@ -559,24 +561,86 @@ class SaglinjeController {
     private function getOeeTrend() {
         $dagar = max(7, min(365, intval($_GET['dagar'] ?? 30)));
 
+        // OEE-modell (speglar StatistikOverblickController::calcOeeBatch)
+        $idealCycleSec = 120;   // Idealcykel per IBC (sek)
+        $schemaSek     = 28800; // Planerad tid per dag (8h)
+
         try {
-            $rows = [];
+            // 1) Kvalitets-underlag (ej_ok) per dag från skiftrapport
+            $skiftPerDag = [];
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        datum                         AS dag,
-                        SUM(antal_ok)                 AS total_ok,
-                        SUM(antal_ej_ok)              AS total_ej_ok,
-                        SUM(antal_ok + antal_ej_ok)   AS total_ibc,
-                        COUNT(*)                      AS skift_count
+                        datum                AS dag,
+                        SUM(antal_ok)        AS rap_ok,
+                        SUM(antal_ej_ok)     AS rap_ej_ok,
+                        COUNT(*)             AS skift_count
                     FROM saglinje_skiftrapport
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar_skift DAY)
                     GROUP BY datum
-                    ORDER BY dag ASC
                 ");
-                $stmt->execute(['dagar' => $dagar]);
-                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Throwable $e) { error_log('SaglinjeController::getOeeTrend inner: ' . $e->getMessage()); }
+                $stmt->execute(['dagar_skift' => $dagar]);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                    $skiftPerDag[$r['dag']] = [
+                        'rap_ok'      => (int)$r['rap_ok'],
+                        'rap_ej_ok'   => (int)$r['rap_ej_ok'],
+                        'skift_count' => (int)$r['skift_count'],
+                    ];
+                }
+            } catch (\Throwable $e) { error_log('SaglinjeController::getOeeTrend skift: ' . $e->getMessage()); }
+
+            // 2) IBC-antal per dag från PLC-tabellen saglinje_ibc (reset-säker: MAX-MIN per skiftraknare)
+            $ibcPerDag = [];
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT dag, SUM(delta) AS ibc_ok
+                    FROM (
+                        SELECT DATE(datum) AS dag, skiftraknare,
+                               MAX(ibc_count) - MIN(ibc_count) AS delta
+                        FROM saglinje_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar_ibc DAY)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) x
+                    GROUP BY dag
+                ");
+                $stmt->execute(['dagar_ibc' => $dagar]);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                    $ibcPerDag[$r['dag']] = max(0, (int)$r['ibc_ok']);
+                }
+            } catch (\Throwable $e) { error_log('SaglinjeController::getOeeTrend ibc: ' . $e->getMessage()); }
+
+            // 3) Drifttid (min) per dag från PLC-tabellen (min/max timestamp, kappad till ett skift)
+            $drifttidPerDag = [];
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT DATE(datum) AS dag,
+                           TIMESTAMPDIFF(MINUTE, MIN(datum), MAX(datum)) AS drift_min
+                    FROM saglinje_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar_drift DAY)
+                    GROUP BY DATE(datum)
+                ");
+                $stmt->execute(['dagar_drift' => $dagar]);
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                    $drifttidPerDag[$r['dag']] = min(600, max(0, (int)$r['drift_min']));
+                }
+            } catch (\Throwable $e) { error_log('SaglinjeController::getOeeTrend drift: ' . $e->getMessage()); }
+
+            // Bygg dagsrader — union av dagar från PLC-IBC och skiftrapport
+            $allaDagar = array_unique(array_merge(array_keys($ibcPerDag), array_keys($skiftPerDag)));
+            sort($allaDagar);
+            $rows = [];
+            foreach ($allaDagar as $dag) {
+                $okIbc   = $ibcPerDag[$dag] ?? ($skiftPerDag[$dag]['rap_ok'] ?? 0);
+                $ejOkIbc = $skiftPerDag[$dag]['rap_ej_ok'] ?? 0;
+                $rows[] = [
+                    'dag'         => $dag,
+                    'total_ok'    => $okIbc,
+                    'total_ej_ok' => $ejOkIbc,
+                    'total_ibc'   => $okIbc + $ejOkIbc,
+                    'skift_count' => $skiftPerDag[$dag]['skift_count'] ?? 0,
+                    'drift_min'   => $drifttidPerDag[$dag] ?? 0,
+                ];
+            }
 
             if (empty($rows)) {
                 echo json_encode([
@@ -595,18 +659,34 @@ class SaglinjeController {
                 return;
             }
 
+            $idag        = date('Y-m-d');
             $dagData     = [];
             $totalIbcSum = 0;
             $bestaDag    = null;
             $bestaIbc    = 0;
             $oeeSum      = 0;
+            $prodDagar   = 0; // Dagar med faktisk produktion (exkl. idag/0-dagar)
 
             foreach ($rows as $r) {
-                $tot = (int)$r['total_ibc'];
-                $ok  = (int)$r['total_ok'];
-                $oee = ($tot > 0) ? round(($ok / $tot) * 100, 1) : 0;
+                $tot      = (int)$r['total_ibc'];
+                $ok       = (int)$r['total_ok'];
+                $driftMin = (int)$r['drift_min'];
+                $driftSek = $driftMin * 60;
+
+                // Äkta 3-faktor-OEE: tillgänglighet × prestanda × kvalitet
+                $tillganglighet = $schemaSek > 0 ? min(1.0, $driftSek / $schemaSek) : 0.0;
+                $kvalitet       = $tot > 0 ? ($ok / $tot) : 0.0;
+                $prestanda      = $driftSek > 0 ? min(1.0, ($tot * $idealCycleSec) / $driftSek) : 0.0;
+                $oee            = round($tillganglighet * $prestanda * $kvalitet * 100, 1);
+
                 $totalIbcSum += $tot;
-                $oeeSum      += $oee;
+
+                // Snitt/dag & snitt-OEE: bara faktiska produktionsdagar, exkl. idag
+                if ($tot > 0 && $r['dag'] !== $idag) {
+                    $prodDagar++;
+                    $oeeSum += $oee;
+                }
+
                 if ($tot > $bestaIbc) {
                     $bestaIbc = $tot;
                     $bestaDag = $r['dag'];
@@ -621,9 +701,8 @@ class SaglinjeController {
                 ];
             }
 
-            $antalDagar  = count($dagData);
-            $snittPerDag = $antalDagar > 0 ? round($totalIbcSum / $antalDagar, 1) : 0;
-            $snittOee    = $antalDagar > 0 ? round($oeeSum / $antalDagar, 1)      : 0;
+            $snittPerDag = $prodDagar > 0 ? round($totalIbcSum / $prodDagar, 1) : 0;
+            $snittOee    = $prodDagar > 0 ? round($oeeSum / $prodDagar, 1)      : 0;
 
             echo json_encode([
                 'success' => true,
