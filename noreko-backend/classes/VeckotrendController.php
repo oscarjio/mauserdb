@@ -44,19 +44,20 @@ class VeckotrendController {
             // --- IBC per dag + snitt cykeltid + kvalitet (LAG-korrigerad) ---
             $stmt = $this->pdo->prepare("
                 WITH lag_base AS (
-                    SELECT DATE(datum) AS dag, skiftraknare,
+                    SELECT skiftraknare,
+                           DATE(MIN(datum)) AS dag,
                            MAX(COALESCE(ibc_ok, 0))     AS ibc_end,
                            MAX(COALESCE(ibc_ej_ok, 0))  AS ibc_ej_end,
                            MAX(COALESCE(runtime_plc, 0)) AS runtime_end
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
+                    GROUP BY skiftraknare
                 ),
                 lag_shifts AS (
                     SELECT dag, skiftraknare,
-                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc_ok,
-                           CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ibc_ej_ok,
-                           CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN runtime_end - COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE runtime_end END AS shift_runtime_min
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc_ok,
+                           CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ibc_ej_ok,
+                           CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (ORDER BY skiftraknare), 0) THEN runtime_end - COALESCE(LAG(runtime_end) OVER (ORDER BY skiftraknare), 0) ELSE runtime_end END AS shift_runtime_min
                     FROM lag_base
                 )
                 SELECT dag,
