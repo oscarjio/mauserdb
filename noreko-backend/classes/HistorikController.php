@@ -55,18 +55,19 @@ class HistorikController {
             // OEE = tillgänglighet: SUM(runtime_min) / (skift_count × 480 min) × 100
             $sql = "
                 WITH lag_base AS (
-                    SELECT DATE(datum) AS dag, skiftraknare,
+                    SELECT skiftraknare,
+                           DATE(MIN(datum))              AS dag,
                            MAX(COALESCE(ibc_ok, 0))      AS ibc_end,
                            MAX(COALESCE(runtime_plc, 0)) AS run_end
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(NOW(), INTERVAL :manader MONTH)
                       AND ibc_ok IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare
+                    GROUP BY skiftraknare
                 ),
                 lag_shifts AS (
                     SELECT dag,
-                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc,
-                           CASE WHEN run_end >= COALESCE(LAG(run_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN run_end - COALESCE(LAG(run_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE run_end END AS shift_runtime
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc,
+                           CASE WHEN run_end >= COALESCE(LAG(run_end) OVER (ORDER BY skiftraknare), 0) THEN run_end - COALESCE(LAG(run_end) OVER (ORDER BY skiftraknare), 0) ELSE run_end END AS shift_runtime
                     FROM lag_base
                 )
                 SELECT
@@ -234,7 +235,8 @@ class HistorikController {
                 : '';
             $sql = "
                 WITH lag_base AS (
-                    SELECT DATE(datum) AS dag, skiftraknare,
+                    SELECT skiftraknare,
+                           DATE(MIN(datum)) AS dag,
                            MAX(COALESCE(ibc_ok, 0)) AS ibc_end,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS ej_end,
                            COALESCE(MIN(NULLIF(op1, 0)), 0) AS op1,
@@ -243,12 +245,12 @@ class HistorikController {
                     FROM rebotling_ibc
                     WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
                       AND ibc_ok IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare
+                    GROUP BY skiftraknare
                 ),
                 lag_shifts AS (
                     SELECT dag, skiftraknare, op1, op2, op3,
-                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ok,
-                           CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS shift_ej_ok
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ok,
+                           CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (ORDER BY skiftraknare), 0) ELSE ej_end END AS shift_ej_ok
                     FROM lag_base
                 )
                 SELECT dag,
@@ -317,14 +319,14 @@ class HistorikController {
         try {
             $sql = "
                 WITH lag_base AS (
-                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS ibc_end
+                    SELECT skiftraknare, DATE(MIN(datum)) AS dag, MAX(ibc_ok) AS ibc_end
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(NOW(), INTERVAL 3 YEAR) AND ibc_ok > 0
-                    GROUP BY DATE(datum), skiftraknare
+                    GROUP BY skiftraknare
                 ),
                 lag_shifts AS (
                     SELECT dag,
-                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc
+                           CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ibc
                     FROM lag_base
                 )
                 SELECT ar, vecka, SUM(daglig_ibc) AS ibc_vecka
