@@ -178,10 +178,10 @@ class HistoriskSammanfattningController {
             "SELECT
                 COUNT(DISTINCT dag) AS antal_skift,
                 COUNT(DISTINCT CASE WHEN delta_ok > 0 THEN dag END) AS prod_dagar,
-                -- Planerad tid per produktionsdag ur skiftschema-fallback:
-                -- man-tors = 495 min, fre-son = 480 min (DAYOFWEEK: 1=sun..7=sat).
+                -- Planerad tid per produktionsdag ur skiftschema-fallback (NETTO, efter 45min rast):
+                -- man-tors = 495 min, fre = 435 min, lor/son = 0 (inga helgskift). (DAYOFWEEK: 1=sun..7=sat, 6=fri).
                 -- Rakna EN gang per dag (rn=1) — flera skiftraknare-rader per dag annars dubbelraknar.
-                COALESCE(SUM(CASE WHEN rn = 1 THEN (CASE WHEN DAYOFWEEK(dag) BETWEEN 2 AND 5 THEN 495 ELSE 480 END) ELSE 0 END), 0) AS planerad_min,
+                COALESCE(SUM(CASE WHEN rn = 1 THEN (CASE WHEN DAYOFWEEK(dag) BETWEEN 2 AND 5 THEN 495 WHEN DAYOFWEEK(dag) = 6 THEN 435 ELSE 0 END) ELSE 0 END), 0) AS planerad_min,
                 COALESCE(SUM(delta_ok),    0) AS ibc_ok,
                 COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok,
                 COALESCE(SUM(max_runtime), 0) AS runtime_min
