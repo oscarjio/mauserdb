@@ -159,7 +159,7 @@ class BemanningController {
         $sql = "
             WITH per_skift AS (
                 SELECT
-                    DATE(datum) AS dag,
+                    DATE(MIN(datum))  AS dag,
                     skiftraknare,
                     MAX(ibc_ok)      AS ibc_end,
                     MAX(runtime_plc) AS runtime_end,
@@ -168,17 +168,17 @@ class BemanningController {
                     MIN(op3)         AS op3
                 FROM rebotling_ibc
                 WHERE datum >= :from
-                GROUP BY DATE(datum), skiftraknare
+                GROUP BY skiftraknare
             ),
             per_skift_delta AS (
                 SELECT
                     dag,
                     skiftraknare,
-                    CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
-                         THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                    CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0)
+                         THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0)
                          ELSE ibc_end END AS ibc_end,
-                    CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
-                         THEN runtime_end - COALESCE(LAG(runtime_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0)
+                    CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (ORDER BY skiftraknare), 0)
+                         THEN runtime_end - COALESCE(LAG(runtime_end) OVER (ORDER BY skiftraknare), 0)
                          ELSE runtime_end END AS runtime,
                     op1, op2, op3
                 FROM per_skift
