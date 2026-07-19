@@ -2023,11 +2023,12 @@ class TvattlinjeController {
             // TOTAL IBC = summa av PLC-baserad dagskarta (kontinuitet med staplar/hem)
             $totalIbc = array_sum($dagMap);
 
-            // Bästa dag = dag med flest totala IBC
-            if (!empty($dagMap)) {
-                arsort($dagMap);
-                $bastaDag    = array_key_first($dagMap);
-                $bastaDagIbc = $dagMap[$bastaDag];
+            // Bästa dag = dag med flest totala IBC, exkludera idag (halvfärdig dag)
+            $dagMapExklIdag = array_filter($dagMap, fn($ibc, $d) => $d < date('Y-m-d'), ARRAY_FILTER_USE_BOTH);
+            if (!empty($dagMapExklIdag)) {
+                arsort($dagMapExklIdag);
+                $bastaDag    = array_key_first($dagMapExklIdag);
+                $bastaDagIbc = $dagMapExklIdag[$bastaDag];
             }
 
             // Dagar med PLC-data men utan skiftrapport

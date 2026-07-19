@@ -656,7 +656,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.skiftrapportDays = ibcSr;
     this.ibcPerDag = { ...ibcSr, ...ibcPlc };
     // Bästa dag: räkna från månadsscopade ibcPerDag (inte rullande 30d oee-trend)
-    const _dagEntries = Object.entries(this.ibcPerDag);
+    // Exkludera idag — en halvfärdig dag ska inte krönas som bästa dag
+    const _today = new Date().toISOString().slice(0, 10);
+    const _dagEntries = Object.entries(this.ibcPerDag).filter(([d]) => d < _today);
     if (_dagEntries.length) {
       const _b = _dagEntries.reduce((m, c) => Number(c[1]) > Number(m[1]) ? c : m);
       this.bastaDagLabel = _b[0];
