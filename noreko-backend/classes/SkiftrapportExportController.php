@@ -442,14 +442,14 @@ class SkiftrapportExportController {
                     COUNT(DISTINCT skiftraknare) AS antal_skiften
                  FROM (
                     SELECT
-                        DATE(datum)    AS dag,
+                        DATE(MIN(datum)) AS dag,
                         skiftraknare,
                         MAX(ibc_ok)         AS max_ibc_ok,
                         MAX(ibc_ej_ok)      AS max_ibc_ej_ok,
                         MAX(runtime_plc)    AS max_runtime
                     FROM rebotling_ibc
                     WHERE datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), skiftraknare
+                    GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) s
                  GROUP BY s.dag
