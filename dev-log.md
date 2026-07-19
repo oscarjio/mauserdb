@@ -1,4 +1,5 @@
 # MauserDB Dev Log
+2026-07-19 | fix(P2d): DagligSammanfattningController::getProduktionsdata rad 104 MAX(runtime_plc)->LEAST(MAX(runtime_plc),600) (kappar korttid till max ett skift/600 min). 1 forekomst i filen. php -l rent.
 2026-07-19 | fix(P1c): NewsController::getEvents felmarkt event omdopt hog_oee->hog_kvalitet, oee_val->kvalitet_val (rad ~393-424). Berakningen ar ibc_ok/(ibc_ok+ibc_ej_ok) = ren kvalitet, ej OEE. php -l rent.
 2026-07-19 | fix(P1a): tvattlinje helg-mal 60->0 (inga helgskift finns -> falska missade-mal). TvattlinjeController.php rad 500 defaults-array [5,60]->[5,0] + rad 2841 fallback ($isWeekend?60:140)->($isWeekend?0:140) + kommentar rad 2776; tvattlinje-admin.ts rad 292/302 fallback mal 60->0. OBS: CLAUDE.md dokumenterar helg=60 IBC (helg "kors bara ibland") -> viss spanning mot detta direktiv; applicerat per fars explicita instruktion (tvattlinje ej i drift). php -l rent.
 2026-07-19 | fix(P0): shared-skiftrapport PDF tyst krasch — targetCycleMin=Number(cycle_time_minutes) (DB returnerar sträng → "targetCycleMin.toFixed is not a function" på rad 1562). Fix på rad 1548. Watch-build grön + deploy dev.
