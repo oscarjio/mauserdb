@@ -182,18 +182,18 @@ class AlarmHistorikController {
                     SELECT
                         dag,
                         skiftraknare,
-                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ok,
-                        CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ej_ok
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ok,
+                        CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ej_ok
                     FROM (
                         SELECT
-                            DATE(datum)                 AS dag,
+                            DATE(MIN(datum))            AS dag,
                             skiftraknare,
                             MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
                             MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end
                         FROM rebotling_ibc
                         WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
 
-                        GROUP BY DATE(datum), skiftraknare
+                        GROUP BY skiftraknare
                     ) AS innermost
                 ) AS per_shift
                 GROUP BY dag
@@ -275,18 +275,18 @@ class AlarmHistorikController {
                     SELECT
                         dag,
                         skiftraknare,
-                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ok,
-                        CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ej_ok
+                        CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_end END AS shift_ok,
+                        CASE WHEN ibc_ej_end >= COALESCE(LAG(ibc_ej_end) OVER (ORDER BY skiftraknare), 0) THEN ibc_ej_end - COALESCE(LAG(ibc_ej_end) OVER (ORDER BY skiftraknare), 0) ELSE ibc_ej_end END AS shift_ej_ok
                     FROM (
                         SELECT
-                            DATE(datum)                 AS dag,
+                            DATE(MIN(datum))            AS dag,
                             skiftraknare,
                             MAX(COALESCE(ibc_ok, 0))    AS ibc_end,
                             MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_end
                         FROM rebotling_ibc
                         WHERE datum >= :from_date AND datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
 
-                        GROUP BY DATE(datum), skiftraknare
+                        GROUP BY skiftraknare
                     ) AS innermost
                 ) AS ps
                 GROUP BY dag
