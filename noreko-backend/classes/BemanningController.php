@@ -318,7 +318,6 @@ class BemanningController {
         // Greedy-allokering per position (1, 2, 3)
         $pool   = $availableIds; // kopia
         $result = [];
-        $totalEstimated = 0.0;
 
         for ($pos = 1; $pos <= 3; $pos++) {
             $bestScore = -1.0;
@@ -350,7 +349,6 @@ class BemanningController {
                     'skift_count'   => $skiftCount,
                     'confidence'    => $confidence,
                 ];
-                $totalEstimated += $bestScore;
                 // Ta bort ur poolen
                 $pool = array_values(array_filter($pool, fn($id) => $id !== $bestOpId));
             } else {
@@ -358,11 +356,149 @@ class BemanningController {
             }
         }
 
+        // Slå upp verklig kombinations-linjetakt för den valda trion
+        $chosenOps = array_filter([
+            $result['pos1']['op_id'] ?? null,
+            $result['pos2']['op_id'] ?? null,
+            $result['pos3']['op_id'] ?? null,
+        ], fn($v) => $v !== null);
+
+        $komboIbcPerH   = null;
+        $komboKonfidens = 'ingen_historik';
+
+        if (count($chosenOps) >= 2) {
+            $sorted = array_values($chosenOps);
+            sort($sorted);
+            $komboResult = ($linje === 'tvattlinje')
+                ? $this->lookupTvattlinjeKombo($sorted, $dagar)
+                : $this->lookupRebotlingKombo($sorted, $dagar);
+            if ($komboResult !== null) {
+                $komboIbcPerH   = $komboResult['snitt_ibc_per_h'];
+                $komboKonfidens = $komboResult['skift_count'] >= 5 ? 'high'
+                    : ($komboResult['skift_count'] >= 2 ? 'medium' : 'low');
+            }
+        }
+
         echo json_encode([
-            'success'                 => true,
-            'data'                    => $result,
-            'total_estimated_ibc_h'   => round($totalEstimated, 1),
+            'success'           => true,
+            'data'              => $result,
+            'kombo_ibc_per_h'   => $komboIbcPerH,
+            'kombo_konfidens'   => $komboKonfidens,
         ], JSON_UNESCAPED_UNICODE);
+    }
+
+    // ---------------------------------------------------------------
+    // Slå upp historisk kombinationstakt för tvättlinjens trio
+    // $sortedOps = sorted array of op_ids (2-3 st)
+    // Returnerar ['snitt_ibc_per_h' => float, 'skift_count' => int] eller null
+    // ---------------------------------------------------------------
+    private function lookupTvattlinjeKombo(array $sortedOps, int $dagar): ?array {
+        $from = date('Y-m-d', strtotime("-{$dagar} days"));
+        $op1 = $sortedOps[0] ?? 0;
+        $op2 = $sortedOps[1] ?? 0;
+        $op3 = $sortedOps[2] ?? 0;
+
+        // Matcha exakt trio oavsett ordning (alla permutationer via LEAST/GREATEST)
+        $sql = "
+            SELECT
+                COUNT(*)         AS skift_count,
+                ROUND(SUM(sr.totalt) / NULLIF(SUM(LEAST(sr.drifttid, 600)) / 60.0, 0), 2) AS snitt_ibc_per_h
+            FROM tvattlinje_skiftrapport sr
+            INNER JOIN (
+                SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
+                WHERE datum >= :from
+                GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+            ) latest ON sr.id = latest.max_id
+            WHERE sr.totalt > 0 AND sr.drifttid > 0
+              AND LEAST(COALESCE(sr.op1,0), COALESCE(sr.op2,0), COALESCE(sr.op3,0)) = LEAST(:a, :b, :c)
+              AND GREATEST(COALESCE(sr.op1,0), COALESCE(sr.op2,0), COALESCE(sr.op3,0)) = GREATEST(:a2, :b2, :c2)
+              AND (COALESCE(sr.op1,0) + COALESCE(sr.op2,0) + COALESCE(sr.op3,0)) = (:a3 + :b3 + :c3)
+        ";
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':from' => $from,
+                ':a'    => $op1, ':b'  => $op2, ':c'  => $op3,
+                ':a2'   => $op1, ':b2' => $op2, ':c2' => $op3,
+                ':a3'   => $op1, ':b3' => $op2, ':c3' => $op3,
+            ]);
+            $row = $stmt->fetch();
+            if ($row && (int)$row['skift_count'] > 0 && $row['snitt_ibc_per_h'] !== null) {
+                return [
+                    'snitt_ibc_per_h' => round((float)$row['snitt_ibc_per_h'], 2),
+                    'skift_count'     => (int)$row['skift_count'],
+                ];
+            }
+        } catch (\Throwable $e) {
+            error_log('BemanningController::lookupTvattlinjeKombo: ' . $e->getMessage());
+        }
+        return null;
+    }
+
+    // ---------------------------------------------------------------
+    // Slå upp historisk kombinationstakt för rebotlingens trio
+    // Speglar lookupTvattlinjeKombo men mot rebotling_ibc (kumulativa räknare)
+    // ---------------------------------------------------------------
+    private function lookupRebotlingKombo(array $sortedOps, int $dagar): ?array {
+        $from = date('Y-m-d', strtotime("-{$dagar} days"));
+        $op1 = $sortedOps[0] ?? 0;
+        $op2 = $sortedOps[1] ?? 0;
+        $op3 = $sortedOps[2] ?? 0;
+
+        // Aggregera kumulativa räknare → delta per skiftraknare, sedan kombinations-linjetakt
+        $sql = "
+            WITH per_skift AS (
+                SELECT
+                    skiftraknare,
+                    MAX(ibc_ok)      AS ibc_end,
+                    MAX(runtime_plc) AS runtime_end,
+                    MIN(op1)         AS op1,
+                    MIN(op2)         AS op2,
+                    MIN(op3)         AS op3
+                FROM rebotling_ibc
+                WHERE datum >= :from
+                GROUP BY skiftraknare
+            ),
+            per_skift_delta AS (
+                SELECT
+                    skiftraknare,
+                    CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0)
+                         THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0)
+                         ELSE ibc_end END AS ibc_delta,
+                    CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (ORDER BY skiftraknare), 0)
+                         THEN runtime_end - COALESCE(LAG(runtime_end) OVER (ORDER BY skiftraknare), 0)
+                         ELSE runtime_end END AS runtime_delta,
+                    op1, op2, op3
+                FROM per_skift
+            )
+            SELECT
+                COUNT(*)  AS skift_count,
+                ROUND(SUM(ibc_delta) / NULLIF(SUM(LEAST(runtime_delta, 600)) / 60.0, 0), 2) AS snitt_ibc_per_h
+            FROM per_skift_delta
+            WHERE ibc_delta > 0 AND runtime_delta > 0
+              AND LEAST(COALESCE(op1,0), COALESCE(op2,0), COALESCE(op3,0)) = LEAST(:a, :b, :c)
+              AND GREATEST(COALESCE(op1,0), COALESCE(op2,0), COALESCE(op3,0)) = GREATEST(:a2, :b2, :c2)
+              AND (COALESCE(op1,0) + COALESCE(op2,0) + COALESCE(op3,0)) = (:a3 + :b3 + :c3)
+        ";
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':from' => $from,
+                ':a'    => $op1, ':b'  => $op2, ':c'  => $op3,
+                ':a2'   => $op1, ':b2' => $op2, ':c2' => $op3,
+                ':a3'   => $op1, ':b3' => $op2, ':c3' => $op3,
+            ]);
+            $row = $stmt->fetch();
+            if ($row && (int)$row['skift_count'] > 0 && $row['snitt_ibc_per_h'] !== null) {
+                return [
+                    'snitt_ibc_per_h' => round((float)$row['snitt_ibc_per_h'], 2),
+                    'skift_count'     => (int)$row['skift_count'],
+                ];
+            }
+        } catch (\Throwable $e) {
+            error_log('BemanningController::lookupRebotlingKombo: ' . $e->getMessage());
+        }
+        return null;
     }
 
     // ---------------------------------------------------------------
@@ -373,11 +509,6 @@ class BemanningController {
         $linje = $_GET['linje'] ?? 'tvattlinje';
         $dagar = max(1, min(365, (int)($_GET['dagar'] ?? 60)));
         $from  = date('Y-m-d', strtotime("-{$dagar} days"));
-
-        if ($linje !== 'tvattlinje') {
-            echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
-            return;
-        }
 
         // Hämta operatörsnamn
         $opNames = [];
@@ -390,39 +521,94 @@ class BemanningController {
             error_log('BemanningController::getTeamKombinationer opNames: ' . $e->getMessage());
         }
 
-        try {
-            $sql = "
-                SELECT
-                    COALESCE(sr.op1, 0) AS op1_id,
-                    COALESCE(sr.op2, 0) AS op2_id,
-                    COALESCE(sr.op3, 0) AS op3_id,
-                    COUNT(*)         AS skift_count,
-                    SUM(sr.totalt)   AS total_ibc,
-                    ROUND(SUM(sr.totalt) / NULLIF(SUM(LEAST(sr.drifttid, 600)) / 60.0, 0), 2) AS snitt_ibc_per_h,
-                    ROUND(AVG(sr.totalt), 1) AS snitt_per_skift
-                FROM tvattlinje_skiftrapport sr
-                INNER JOIN (
-                    SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
-                    WHERE datum >= :from
-                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
-                ) latest ON sr.id = latest.max_id
-                WHERE sr.totalt > 0 AND sr.drifttid > 0
-                GROUP BY COALESCE(sr.op1, 0), COALESCE(sr.op2, 0), COALESCE(sr.op3, 0)
-                HAVING COUNT(*) >= 2
-                ORDER BY snitt_ibc_per_h DESC
-                LIMIT 20
-            ";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':from' => $from]);
-            $rows = $stmt->fetchAll();
-        } catch (\Throwable $e) {
-            error_log('BemanningController::getTeamKombinationer query: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
-            return;
+        if ($linje === 'tvattlinje') {
+            try {
+                $sql = "
+                    SELECT
+                        COALESCE(sr.op1, 0) AS op1_id,
+                        COALESCE(sr.op2, 0) AS op2_id,
+                        COALESCE(sr.op3, 0) AS op3_id,
+                        COUNT(*)         AS skift_count,
+                        SUM(sr.totalt)   AS total_ibc,
+                        ROUND(SUM(sr.totalt) / NULLIF(SUM(LEAST(sr.drifttid, 600)) / 60.0, 0), 2) AS snitt_ibc_per_h,
+                        ROUND(AVG(sr.totalt), 1) AS snitt_per_skift
+                    FROM tvattlinje_skiftrapport sr
+                    INNER JOIN (
+                        SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
+                        WHERE datum >= :from
+                        GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                    ) latest ON sr.id = latest.max_id
+                    WHERE sr.totalt > 0 AND sr.drifttid > 0
+                    GROUP BY COALESCE(sr.op1, 0), COALESCE(sr.op2, 0), COALESCE(sr.op3, 0)
+                    HAVING COUNT(*) >= 2
+                    ORDER BY snitt_ibc_per_h DESC
+                    LIMIT 20
+                ";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([':from' => $from]);
+                $rows = $stmt->fetchAll();
+            } catch (\Throwable $e) {
+                error_log('BemanningController::getTeamKombinationer tvattlinje query: ' . $e->getMessage());
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            $posNamn = [1 => 'Påsatt', 2 => 'Spolplatform', 3 => 'Kontrollstation'];
+        } else {
+            // Rebotling — kumulativa räknare, delta per skiftraknare
+            try {
+                $sql = "
+                    WITH per_skift AS (
+                        SELECT
+                            skiftraknare,
+                            MAX(ibc_ok)      AS ibc_end,
+                            MAX(runtime_plc) AS runtime_end,
+                            MIN(op1)         AS op1,
+                            MIN(op2)         AS op2,
+                            MIN(op3)         AS op3
+                        FROM rebotling_ibc
+                        WHERE datum >= :from
+                        GROUP BY skiftraknare
+                    ),
+                    per_skift_delta AS (
+                        SELECT
+                            skiftraknare,
+                            CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0)
+                                 THEN ibc_end - COALESCE(LAG(ibc_end) OVER (ORDER BY skiftraknare), 0)
+                                 ELSE ibc_end END AS ibc_delta,
+                            CASE WHEN runtime_end >= COALESCE(LAG(runtime_end) OVER (ORDER BY skiftraknare), 0)
+                                 THEN runtime_end - COALESCE(LAG(runtime_end) OVER (ORDER BY skiftraknare), 0)
+                                 ELSE runtime_end END AS runtime_delta,
+                            op1, op2, op3
+                        FROM per_skift
+                    )
+                    SELECT
+                        COALESCE(op1, 0) AS op1_id,
+                        COALESCE(op2, 0) AS op2_id,
+                        COALESCE(op3, 0) AS op3_id,
+                        COUNT(*)         AS skift_count,
+                        SUM(ibc_delta)   AS total_ibc,
+                        ROUND(SUM(ibc_delta) / NULLIF(SUM(LEAST(runtime_delta, 600)) / 60.0, 0), 2) AS snitt_ibc_per_h,
+                        ROUND(AVG(ibc_delta), 1) AS snitt_per_skift
+                    FROM per_skift_delta
+                    WHERE ibc_delta > 0 AND runtime_delta > 0
+                    GROUP BY COALESCE(op1, 0), COALESCE(op2, 0), COALESCE(op3, 0)
+                    HAVING COUNT(*) >= 2
+                    ORDER BY snitt_ibc_per_h DESC
+                    LIMIT 20
+                ";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([':from' => $from]);
+                $rows = $stmt->fetchAll();
+            } catch (\Throwable $e) {
+                error_log('BemanningController::getTeamKombinationer rebotling query: ' . $e->getMessage());
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            $posNamn = [1 => 'Op1', 2 => 'Op2', 3 => 'Op3'];
         }
 
-        $posNamn = [1 => 'Påsatt', 2 => 'Spolplatform', 3 => 'Kontrollstation'];
         $result = [];
         foreach ($rows as $r) {
             $ops = [];

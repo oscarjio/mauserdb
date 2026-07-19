@@ -80,7 +80,8 @@ export class BemanningOptimerarePage implements OnInit, OnDestroy {
   operators: Operator[] = [];
 
   foreslag: ForeslagResult | null = null;
-  totalEstimated: number | null = null;
+  komboIbcPerH: number | null = null;
+  komboKonfidens: string | null = null;
 
   teamKombiner: TeamKombination[] = [];
   loadingTeam = false;
@@ -106,7 +107,8 @@ export class BemanningOptimerarePage implements OnInit, OnDestroy {
 
   onLinjeChange(): void {
     this.foreslag = null;
-    this.totalEstimated = null;
+    this.komboIbcPerH = null;
+    this.komboKonfidens = null;
     this.error = '';
     this.errorForeslag = '';
     this.operators = [];
@@ -164,7 +166,8 @@ export class BemanningOptimerarePage implements OnInit, OnDestroy {
     if (this.loadingForeslag) return;
     this.loadingForeslag = true;
     this.foreslag = null;
-    this.totalEstimated = null;
+    this.komboIbcPerH = null;
+    this.komboKonfidens = null;
     this.errorForeslag = '';
 
     const body = {
@@ -186,7 +189,8 @@ export class BemanningOptimerarePage implements OnInit, OnDestroy {
           return;
         }
         this.foreslag = res.data;
-        this.totalEstimated = res.total_estimated_ibc_h ?? null;
+        this.komboIbcPerH = res.kombo_ibc_per_h ?? null;
+        this.komboKonfidens = res.kombo_konfidens ?? null;
       });
   }
 

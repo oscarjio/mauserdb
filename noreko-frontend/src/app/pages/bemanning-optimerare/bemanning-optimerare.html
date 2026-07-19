@@ -149,10 +149,18 @@
         </div>
       </div>
 
-      <div class="total-estimate" *ngIf="totalEstimated !== null">
+      <div class="total-estimate" *ngIf="foreslag">
         <i class="fas fa-tachometer-alt me-2" style="color:#63b3ed"></i>
-        Estimerat totalt:
-        <strong style="color:#63b3ed; font-size:1.3rem">{{ totalEstimated | number:'1.1-1' }} IBC/h</strong>
+        <ng-container *ngIf="komboIbcPerH !== null; else ingenKomboHistorik">
+          Trions verkliga linjetakt:
+          <strong style="color:#63b3ed; font-size:1.3rem">{{ komboIbcPerH | number:'1.1-1' }} IBC/h</strong>
+          <span class="text-muted small ms-2">
+            ({{ komboKonfidens === 'high' ? 'Hög säkerhet' : komboKonfidens === 'medium' ? 'Medel' : 'Låg säkerhet' }})
+          </span>
+        </ng-container>
+        <ng-template #ingenKomboHistorik>
+          <span class="text-muted">Ingen kombo-historik för denna trio</span>
+        </ng-template>
       </div>
     </div>
   </div>
