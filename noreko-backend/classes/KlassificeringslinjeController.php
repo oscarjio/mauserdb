@@ -553,56 +553,59 @@ class KlassificeringslinjeController {
                     'message' => 'Linjen ej i drift',
                     'data'    => [],
                     'summary' => [
-                        'total_ibc'     => 0,
-                        'snitt_per_dag' => 0,
-                        'snitt_oee_pct' => 0,
-                        'basta_dag'     => null,
-                        'basta_ibc'     => 0,
+                        'total_ibc'          => 0,
+                        'snitt_per_dag'      => 0,
+                        'snitt_kvalitet_pct' => 0,
+                        'basta_dag'          => null,
+                        'basta_ibc'          => 0,
                     ],
                 ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
-            $dagData     = [];
-            $totalIbcSum = 0;
-            $bestaDag    = null;
-            $bestaIbc    = 0;
-            $oeeSum      = 0;
+            $dagData      = [];
+            $totalIbcSum  = 0;
+            $bestaDag     = null;
+            $bestaIbc     = 0;
+            $kvalitetSum  = 0;
 
             foreach ($rows as $r) {
                 $tot = (int)$r['total_ibc'];
                 $ok  = (int)$r['total_ok'];
-                $oee = ($tot > 0) ? round(($ok / $tot) * 100, 1) : 0;
+                // OBS: detta ar REN KVALITET (ok/tot), inte akta 3-faktor-OEE.
+                // Klassificeringslinjen saknar drifttids-/cykeltidsdata (ingen onoff-tabell),
+                // sa tillganglighet och prestanda kan inte beraknas har.
+                $kvalitet = ($tot > 0) ? round(($ok / $tot) * 100, 1) : 0;
                 $totalIbcSum += $tot;
-                $oeeSum      += $oee;
+                $kvalitetSum += $kvalitet;
                 if ($tot > $bestaIbc) {
                     $bestaIbc = $tot;
                     $bestaDag = $r['dag'];
                 }
                 $dagData[] = [
-                    'dag'         => $r['dag'],
-                    'total_ibc'   => $tot,
-                    'total_ok'    => $ok,
-                    'total_ej_ok' => (int)$r['total_ej_ok'],
-                    'oee_pct'     => $oee,
-                    'skift_count' => (int)$r['skift_count'],
+                    'dag'          => $r['dag'],
+                    'total_ibc'    => $tot,
+                    'total_ok'     => $ok,
+                    'total_ej_ok'  => (int)$r['total_ej_ok'],
+                    'kvalitet_pct' => $kvalitet,
+                    'skift_count'  => (int)$r['skift_count'],
                 ];
             }
 
-            $antalDagar  = count($dagData);
-            $snittPerDag = $antalDagar > 0 ? round($totalIbcSum / $antalDagar, 1) : 0;
-            $snittOee    = $antalDagar > 0 ? round($oeeSum / $antalDagar, 1)      : 0;
+            $antalDagar   = count($dagData);
+            $snittPerDag  = $antalDagar > 0 ? round($totalIbcSum / $antalDagar, 1)  : 0;
+            $snittKvalitet = $antalDagar > 0 ? round($kvalitetSum / $antalDagar, 1) : 0;
 
             echo json_encode([
                 'success' => true,
                 'empty'   => false,
                 'data'    => $dagData,
                 'summary' => [
-                    'total_ibc'     => $totalIbcSum,
-                    'snitt_per_dag' => $snittPerDag,
-                    'snitt_oee_pct' => $snittOee,
-                    'basta_dag'     => $bestaDag,
-                    'basta_ibc'     => $bestaIbc,
+                    'total_ibc'          => $totalIbcSum,
+                    'snitt_per_dag'      => $snittPerDag,
+                    'snitt_kvalitet_pct' => $snittKvalitet,
+                    'basta_dag'          => $bestaDag,
+                    'basta_ibc'          => $bestaIbc,
                 ],
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {

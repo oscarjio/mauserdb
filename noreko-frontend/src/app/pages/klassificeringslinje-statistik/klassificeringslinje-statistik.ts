@@ -13,14 +13,14 @@ Chart.register(...registerables);
 interface OeeTrendDay {
   dag: string;
   total_ibc: number;
-  oee_pct: number;
+  kvalitet_pct: number;
   skift_count: number;
 }
 
 interface OeeTrendSummary {
   total_ibc: number;
   snitt_per_dag: number;
-  snitt_oee_pct: number;
+  snitt_kvalitet_pct: number;
   basta_dag: string | null;
   basta_ibc: number;
 }
@@ -64,7 +64,7 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
   oeeTrendDagar = 30;
   oeeTrendData: OeeTrendDay[] = [];
   oeeTrendSummary: OeeTrendSummary = {
-    total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0,
+    total_ibc: 0, snitt_per_dag: 0, snitt_kvalitet_pct: 0,
     basta_dag: null, basta_ibc: 0
   };
 
@@ -140,7 +140,7 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
     this.klassService.getOeeTrend(this.oeeTrendDagar)
       .pipe(
         timeout(15000),
-        catchError(() => of({ success: true, empty: true, message: 'Linjen ej i drift', data: [], summary: { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 } })),
+        catchError(() => of({ success: true, empty: true, message: 'Linjen ej i drift', data: [], summary: { total_ibc: 0, snitt_per_dag: 0, snitt_kvalitet_pct: 0, basta_dag: null, basta_ibc: 0 } })),
         takeUntil(this.destroy$)
       )
       .subscribe({
@@ -151,11 +151,11 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
             this.oeeTrendEmpty = true;
             this.oeeTrendMessage = res.message || 'Linjen ej i drift';
             this.oeeTrendData = [];
-            this.oeeTrendSummary = { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 };
+            this.oeeTrendSummary = { total_ibc: 0, snitt_per_dag: 0, snitt_kvalitet_pct: 0, basta_dag: null, basta_ibc: 0 };
           } else {
             this.oeeTrendEmpty = false;
             this.oeeTrendData = res.data || [];
-            this.oeeTrendSummary = res.summary || { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 };
+            this.oeeTrendSummary = res.summary || { total_ibc: 0, snitt_per_dag: 0, snitt_kvalitet_pct: 0, basta_dag: null, basta_ibc: 0 };
             clearTimeout(this.oeeTrendChartTimer);
             this.oeeTrendChartTimer = setTimeout(() => {
               if (this.destroy$.closed) return;
@@ -181,7 +181,7 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
     try { this.oeeTrendChart?.destroy(); } catch (e) {}
     this.oeeTrendChart = null;
     const labels = this.oeeTrendData.map(d => d.dag.substring(5));
-    const oeeValues = this.oeeTrendData.map(d => d.oee_pct);
+    const oeeValues = this.oeeTrendData.map(d => d.kvalitet_pct);
     const ibcValues = this.oeeTrendData.map(d => d.total_ibc);
 
     this.oeeTrendChart = new Chart(this.oeeTrendChartRef.nativeElement, {

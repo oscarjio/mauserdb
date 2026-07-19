@@ -159,10 +159,10 @@
             <div class="kpi-card">
               <div class="kpi-label">Snitt Kvalitet %</div>
               <div class="kpi-value"
-                [class.text-success]="oeeTrendSummary.snitt_oee_pct >= 90"
-                [class.text-warning]="oeeTrendSummary.snitt_oee_pct >= 70 && oeeTrendSummary.snitt_oee_pct < 90"
-                [class.text-danger]="oeeTrendSummary.snitt_oee_pct < 70">
-                {{ oeeTrendSummary.snitt_oee_pct | number:'1.1-1' }}%
+                [class.text-success]="oeeTrendSummary.snitt_kvalitet_pct >= 90"
+                [class.text-warning]="oeeTrendSummary.snitt_kvalitet_pct >= 70 && oeeTrendSummary.snitt_kvalitet_pct < 90"
+                [class.text-danger]="oeeTrendSummary.snitt_kvalitet_pct < 70">
+                {{ oeeTrendSummary.snitt_kvalitet_pct | number:'1.1-1' }}%
               </div>
             </div>
           </div>
