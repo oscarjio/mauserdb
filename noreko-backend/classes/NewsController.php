@@ -390,18 +390,18 @@ class NewsController {
                            ROUND(
                                CASE WHEN SUM(shift_ibc) + SUM(shift_ej) > 0
                                     THEN (SUM(shift_ibc) / (SUM(shift_ibc) + SUM(shift_ej))) * 100
-                                    ELSE 0 END, 1) AS oee_val
+                                    ELSE 0 END, 1) AS kvalitet_val
                     FROM per_shift
                     GROUP BY dag
                     HAVING dag_ibc >= 50
                 )
-                SELECT 'hog_oee' AS typ,
+                SELECT 'hog_kvalitet' AS typ,
                        dag AS event_datum,
                        CONCAT(dag, ' 12:00:00') AS event_datetime,
-                       oee_val AS value,
-                       CONCAT('Utmärkt dag! ', DATE_FORMAT(dag,'%d %b'), ': Kvalitet ', oee_val, '% — över 95%!') AS text
+                       kvalitet_val AS value,
+                       CONCAT('Utmärkt dag! ', DATE_FORMAT(dag,'%d %b'), ': Kvalitet ', kvalitet_val, '% — över 95%!') AS text
                 FROM dagdata
-                WHERE oee_val >= 95
+                WHERE kvalitet_val >= 95
                 ORDER BY event_datum DESC
                 LIMIT 3
             ";
@@ -410,7 +410,7 @@ class NewsController {
                 if ($row['event_datum']) {
                     $events[] = [
                         'id'       => null,
-                        'typ'      => 'hog_oee',
+                        'typ'      => 'hog_kvalitet',
                         'datum'    => $row['event_datum'],
                         'datetime' => $row['event_datetime'],
                         'text'     => '🚀 ' . $row['text'],
@@ -421,7 +421,7 @@ class NewsController {
                 }
             }
         } catch (\Throwable $e) {
-            error_log("NewsController::getEvents:hog_oee: " . $e->getMessage());
+            error_log("NewsController::getEvents:hog_kvalitet: " . $e->getMessage());
         }
 
         // 3. Certifieringar — nya de senaste 14 dagarna
