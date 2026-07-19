@@ -1545,7 +1545,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
         // ── M\u00e5l-ber\u00e4kning (baserat p\u00e5 cykeltid x drifttid) ──────────────────────
         const product        = this.products.find((p: any) => p.id === (report.product_id ?? null));
-        const targetCycleMin = product?.cycle_time_minutes ?? this.fallbackCycleMin;
+        const targetCycleMin = Number(product?.cycle_time_minutes ?? this.fallbackCycleMin);
         const malIbc         = (drifttidRaw > 0 && targetCycleMin > 0)
           ? Math.round(drifttidRaw / targetCycleMin)
           : 0;
