@@ -2640,22 +2640,43 @@ class TvattlinjeController {
     }
 
     /**
-     * Planerad vardagsskifttid (min) ur settings (skift_slut − skift_start). null om okänt/orimligt.
-     * Används av statistik-summary (frontend-utnyttjande) och OEE-trend (planerad tid).
+     * Planerad nettoskifttid (min) per veckodag.
+     *
+     * Läser skift_start/skift_slut ur tvattlinje_settings och drar av 45 min rast.
+     * Returnerar veckodagskorrekta nettominuter:
+     *   - fredag (dayN=5) → 435 min  (8h brutto − 45 min rast)
+     *   - mån–tors (dayN=1−4) → 495 min  (9h brutto − 45 min rast)
+     *
+     * Motivering: EN skift_start/skift_slut kan inte uttrycka veckodagsskillnaden
+     * (fre 8h vs mån–tors 9h), så arbetstidsregeln kodas direkt i funktionen och
+     * DB-värdet används bara för sanity-check (om det avviker extrem → null).
+     * TODO: Proper lösning = egen tabell `tvattlinje_weekday_shift_minutes`
+     *       (likt weekday_goals) — denna fix hårdkodar regeln tills tabellen finns.
+     *
+     * Används av statistik-summary (frontend-utnyttjande) och OEE-trend.
+     *
+     * @param int $dayN ISO-veckodag (1=mån … 7=sön). null = okänd (returnerar mån–tors-värde).
      */
-    private function plannedShiftMinutesWeekday(): ?float {
+    private function plannedShiftMinutesWeekday(?int $dayN = null): ?float {
+        // Nettominuter per veckodagsgrupp (brutto − 45 min rast).
+        $netFriday  = 435.0; // 480 brutto − 45 rast
+        $netDefault = 495.0; // 540 brutto − 45 rast (mån–tors)
+
         try {
             $ss = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting='skift_start' ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
-            $se = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting='skift_slut' ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+            $se = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting='skift_slut'  ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
             if ($ss && $se && !empty($ss['value']) && !empty($se['value'])) {
                 $st = strtotime($ss['value']); $en = strtotime($se['value']);
                 if ($st !== false && $en !== false && $en > $st) {
-                    $m = ($en - $st) / 60.0;
-                    if ($m > 0 && $m <= 600) { return round($m, 1); }
+                    $brutto = ($en - $st) / 60.0;
+                    // Sanity-check: om brutto är helt orimlig (utanför 6–12h) → null.
+                    if ($brutto < 360 || $brutto > 720) { return null; }
                 }
             }
         } catch (\Throwable $e) { error_log('TvattlinjeController::plannedShiftMinutesWeekday: ' . $e->getMessage()); }
-        return null;
+
+        // Välj veckodagskorrekta nettominuter. Helg (6−7) ska ej anropas men ger default.
+        return ($dayN === 5) ? $netFriday : $netDefault;
     }
 
     // =========================================================
@@ -2785,9 +2806,6 @@ class TvattlinjeController {
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getOeeTrend goals: ' . $e->getMessage()); }
 
-            // B: planerad vardagsskifttid ur settings (fallback null → fre 480 / övrig 495 per dag).
-            $plannedShiftMin = $this->plannedShiftMinutesWeekday();
-
             $producerandeDagar = 0;
             foreach ($rows as $r) {
                 // A: ingen skift_count-filtrering längre — dubbelposter deduplicerade i SQL.
@@ -2824,11 +2842,12 @@ class TvattlinjeController {
                 $weekday   = $dayN - 1;                            // 0=mån … 6=sön (matchar weekday_goals/WEEKDAY())
                 $isWeekend = ($dayN >= 6);
 
-                // B: Planerad skifttid. Vardag ur settings (fallback fre 480 / övrig 495). Helg =
-                // ingen fast planerad tid → mät mot faktisk nettokörtid.
+                // B: Planerad skifttid — hämtas per rad med korrekt veckodag (fre 435 / mån–tors 495, netto).
+                // Helg = ingen fast planerad tid → mät mot faktisk nettokörtid.
+                $plannedShiftMin = $isWeekend ? null : $this->plannedShiftMinutesWeekday($dayN);
                 $plannedMin = $isWeekend
                     ? max(1.0, $netRuntimeMin)
-                    : ($plannedShiftMin ?? (($dayN === 5) ? 480.0 : 495.0));
+                    : ($plannedShiftMin ?? (($dayN === 5) ? 435.0 : 495.0));
 
                 // D: Tillgänglighet. Helg = ingen tillgänglighetsstraff (körd alls → 100%, annars 0%).
                 if ($isWeekend) {

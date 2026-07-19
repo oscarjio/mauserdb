@@ -925,7 +925,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         : null;
     const planned = (dayN >= 6)
       ? Math.max(1, totalRunMinutes)
-      : (shiftMin && shiftMin > 0 ? shiftMin : (dayN === 5 ? 480 : 495));
+      : (shiftMin && shiftMin > 0 ? shiftMin : (dayN === 5 ? 435 : 495));
     this.dayUtilizationPct = Math.min(100, Math.round((netRun / planned) * 100));
   }
 
