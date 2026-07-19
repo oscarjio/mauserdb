@@ -52,7 +52,7 @@ class RemoteAgg
             'operator-ranking'    => ['*'],
             'bemanning'           => ['operator-stats', 'team-kombinationer'],
             'oee-trendanalys'     => ['*'],
-            'lineskiftrapport'    => ['*'],
+            'lineskiftrapport'    => ['operators', 'products', 'subshifts', 'daglig'],
             'rebotling'           => ['status', 'rast', 'driftstopp', 'oee'],
         ];
         if (!isset($heavy[$action])) {
