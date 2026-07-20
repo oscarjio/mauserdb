@@ -18,7 +18,6 @@
  */
 class HistoriskSammanfattningController {
     private $pdo;
-    private const PLANERAD_MIN = 480;
     // Teoretisk max-takt per linje (IBC/h). Denna controller ar rebotling-only
     // (alla queries l022ser rebotling_ibc, stopporsaker filtrerar linje='rebotling').
     // tvattlinje ~20, rebotling ~30. Anvands i alla prestanda/OEE-berakningar.
@@ -32,6 +31,20 @@ class HistoriskSammanfattningController {
     private function maxIbcH(): float {
         $line = strtolower(trim($_GET['line'] ?? 'rebotling'));
         return $line === 'tvattlinje' ? self::MAX_IBC_H_TVATTLINJE : self::MAX_IBC_H_REBOTLING;
+    }
+
+    /**
+     * Planerad NETTO-tid (min) for EN dag ur skiftschema-fallback (efter 45min rast):
+     * man-tors = 495, fre = 435, lor/son = 0 (inga helgskift).
+     * PHP-motsvarighet till SQL-DAYOFWEEK-logiken pa rad 184 (N: 1=man..7=son).
+     */
+    private function planeradMinForDag(string $dag): int {
+        $ts = strtotime($dag);
+        if ($ts === false) return 0;
+        $n = (int)date('N', $ts); // 1=man .. 7=son
+        if ($n >= 1 && $n <= 4) return 495; // man-tors
+        if ($n === 5)           return 435; // fre
+        return 0;                            // lor/son
     }
 
     public function __construct() {
@@ -449,11 +462,15 @@ class HistoriskSammanfattningController {
             $stmt = $this->pdo->prepare(
                 "SELECT
                     COUNT(DISTINCT skiftraknare) AS antal_skift,
+                    -- Planerad NETTO-tid ur skiftschema-fallback (man-tors=495, fre=435, helg=0).
+                    -- Rakna EN gang per dag (rn=1) — flera skiftraknare-rader per dag annars dubbelraknar.
+                    COALESCE(SUM(CASE WHEN rn = 1 THEN (CASE WHEN DAYOFWEEK(dag) BETWEEN 2 AND 5 THEN 495 WHEN DAYOFWEEK(dag) = 6 THEN 435 ELSE 0 END) ELSE 0 END), 0) AS planerad_min,
                     COALESCE(SUM(delta_ok),    0) AS ibc_ok,
                     COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok,
                     COALESCE(SUM(max_runtime), 0) AS runtime_min
                  FROM (
-                    SELECT skiftraknare, max_runtime,
+                    SELECT dag, skiftraknare, max_runtime,
+                        ROW_NUMBER() OVER (PARTITION BY dag ORDER BY skiftraknare) AS rn,
                         CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok,
                         CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                     FROM (
@@ -480,7 +497,8 @@ class HistoriskSammanfattningController {
             $kvalitet  = $ibcTotal > 0 ? round(($ibcOk / $ibcTotal) * 100, 1) : 0.0;
 
             $maxIbcH   = $this->maxIbcH();
-            $planMin   = $antalSkift * self::PLANERAD_MIN;
+            // Veckodagskorrekt planerad NETTO-tid (rn=1 per dag) i stallet for antal_skift*480
+            $planMin   = (int)($row['planerad_min'] ?? 0);
             $tillg     = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
             $prest     = $runtime > 0 ? min(1.0, $ibcPerH / $maxIbcH) : 0.0;
             $kvalFakt  = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
@@ -569,7 +587,8 @@ class HistoriskSammanfattningController {
 
                     $ibcPerH = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
                     $maxIbcH = $this->maxIbcH();
-                    $planMin = $nSkift * self::PLANERAD_MIN;
+                    // Veckodagskorrekt planerad NETTO-tid for denna dag (rader ar redan en-per-dag: GROUP BY dag)
+                    $planMin = $this->planeradMinForDag($dag);
                     $tillg   = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
                     $prest   = $runtime > 0 ? min(1.0, $ibcPerH / $maxIbcH) : 0.0;
                     $kvalF   = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
@@ -622,11 +641,15 @@ class HistoriskSammanfattningController {
             $stmt = $this->pdo->prepare(
                 "SELECT op1 AS op_num,
                     COUNT(DISTINCT skiftraknare) AS antal_skift,
+                    -- Planerad NETTO-tid per operator (man-tors=495, fre=435, helg=0).
+                    -- Rakna EN gang per (operator, dag) (rn=1) sa flera skiftraknare-rader/dag inte dubbelraknar.
+                    COALESCE(SUM(CASE WHEN rn = 1 THEN (CASE WHEN DAYOFWEEK(dag) BETWEEN 2 AND 5 THEN 495 WHEN DAYOFWEEK(dag) = 6 THEN 435 ELSE 0 END) ELSE 0 END), 0) AS planerad_min,
                     COALESCE(SUM(delta_ok),    0) AS ibc_ok,
                     COALESCE(SUM(delta_ej_ok), 0) AS ibc_ej_ok,
                     COALESCE(SUM(max_runtime), 0) AS runtime_min
                  FROM (
-                    SELECT op1, skiftraknare, max_runtime,
+                    SELECT op1, dag, skiftraknare, max_runtime,
+                        ROW_NUMBER() OVER (PARTITION BY op1, dag ORDER BY skiftraknare) AS rn,
                         CASE WHEN ibc_end >= COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ibc_end - COALESCE(LAG(ibc_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ibc_end END AS delta_ok,
                         CASE WHEN ej_end >= COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN ej_end - COALESCE(LAG(ej_end) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE ej_end END AS delta_ej_ok
                     FROM (
@@ -696,7 +719,8 @@ class HistoriskSammanfattningController {
                 $ibcPerH = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
                 $nSkift  = (int)$row['antal_skift'];
                 $maxIbcH = $this->maxIbcH();
-                $planMin = $nSkift * self::PLANERAD_MIN;
+                // Veckodagskorrekt planerad NETTO-tid (rn=1 per operator+dag) i stallet for antal_skift*480
+                $planMin = (int)($row['planerad_min'] ?? 0);
                 $tillg   = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
                 $prest   = $runtime > 0 ? min(1.0, $ibcPerH / $maxIbcH) : 0.0;
                 $kvalF   = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
