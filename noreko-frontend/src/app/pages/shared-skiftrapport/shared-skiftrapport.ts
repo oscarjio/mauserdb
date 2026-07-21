@@ -956,6 +956,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           const buildSynth = (pass: { subs: any[]; times: number[] }, id: number, isPreliminary: boolean): any => {
             const fs = pass.subs[0]; const ls = pass.subs[pass.subs.length - 1];
             const ibcEjOk  = cumulDelta(ls?.ibc_ej_ok,  fs?.ibc_ej_ok);
+            const ibcOmtvatt = cumulDelta(ls?.omtvaatt, fs?.omtvaatt);
             const drifttid = cumulDelta(ls?.runtime_plc, fs?.runtime_plc);
             const rasttime = cumulDelta(ls?.rasttime,    fs?.rasttime);
 
@@ -1015,7 +1016,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             };
             return {
               id, datum: localDateStr(new Date(firstT)),
-              antal_ok: ibcOk, antal_ej_ok: ibcEjOk, totalt: ibcOk + ibcEjOk,
+              antal_ok: ibcOk, antal_ej_ok: ibcEjOk, omtvaatt: ibcOmtvatt, totalt: ibcOk + ibcEjOk + ibcOmtvatt,
               ibcEstimated,
               drifttid, rasttime,
               isPreliminary, isUnreported: !isPreliminary,
