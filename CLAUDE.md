@@ -36,7 +36,7 @@ Mauserdb/Noreko Älvängen kör **ett skift per dag**, vardag som helg.
 - **Vardag (mån–fre):** körs alltid — förvänta produktion
 - **Helg (lör/sön):** körs BARA IBLAND — "0 skift på helg" är ofta KORREKT, visa "Ingen produktion (helg)" istället för varning
 - **Missade-skift-badge:** Flagga INTE helger utan PLC-aktivitet. Flagga BARA helger med PLC cycles > 0 men ingen skiftrapport
-- **Mål:** vardag = 140 IBC, helg = 60 IBC (i `tvattlinje_weekday_goals`)
+- **Mål:** vardag = 140 IBC, helg = 0 IBC (i `tvattlinje_weekday_goals`) — helg=0 bekräftat 2026-07 (inga helgskift); koden använder 0, ej 60
 - **Snitt/bästa-dag:** Dividera med antal dagar med *faktisk produktion*, INTE alla kalenderdagar
 
 ---
