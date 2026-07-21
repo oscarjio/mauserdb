@@ -481,6 +481,8 @@ class KlassificeringslinjeController {
                     $diff  = $first->diff($last);
                     $runtimeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                     if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
+                    // Kappa PLC-körtiden till max ett skift (600 min = 10h) — skydd mot reset/glapp
+                    $runtimeMinutes = min(600, $runtimeMinutes);
                 }
             } catch (\Throwable $e) {
                 error_log('KlassificeringslinjeController::getReport runtime: ' . $e->getMessage());
