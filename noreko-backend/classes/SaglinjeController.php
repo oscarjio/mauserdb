@@ -563,7 +563,11 @@ class SaglinjeController {
 
         // OEE-modell (speglar StatistikOverblickController::calcOeeBatch)
         $idealCycleSec = 120;   // Idealcykel per IBC (sek)
-        $schemaSek     = 28800; // Planerad tid per dag (8h)
+        // Planerad NETTO-tid räknas per dag via veckodag (se plannedShiftSekWeekday):
+        // mån–tors = 495 min, fre = 435 min, helg = 0 (inga helgskift).
+        // OBS: den tidigare platta konstanten 28800 (8h) ignorerade kortare fredag
+        // och helg=0 → felaktig tillgänglighet/OEE på fre/helg. FLAGGA: sågline saknar
+        // egen bekräftad skifttidskälla; regeln nedan speglar rebotling/tvättlinje.
 
         try {
             // 1) Kvalitets-underlag (ej_ok) per dag från skiftrapport
@@ -673,7 +677,11 @@ class SaglinjeController {
                 $driftMin = (int)$r['drift_min'];
                 $driftSek = $driftMin * 60;
 
+                // Veckodagsspecifik planerad NETTO-tid (sek). Helg → 0 (ingen produktion planerad).
+                $schemaSek = $this->plannedShiftSekWeekday($r['dag']);
+
                 // Äkta 3-faktor-OEE: tillgänglighet × prestanda × kvalitet
+                // Guard: planerad tid = 0 (helg) → tillgänglighet 0, ingen div-by-zero.
                 $tillganglighet = $schemaSek > 0 ? min(1.0, $driftSek / $schemaSek) : 0.0;
                 $kvalitet       = $tot > 0 ? ($ok / $tot) : 0.0;
                 $prestanda      = $driftSek > 0 ? min(1.0, ($tot * $idealCycleSec) / $driftSek) : 0.0;
@@ -723,6 +731,38 @@ class SaglinjeController {
                 'success' => false,
                 'error'   => 'Kunde inte hämta OEE-trend',
             ], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * Planerad NETTO-tid (sek) för en given dag, baserat på veckodag.
+     *
+     * Speglar den etablerade skiftschema-regeln i rebotling/tvättlinje
+     * (HistoriskSammanfattningController, TvattlinjeController::plannedShiftMinutesWeekday):
+     *   - mån–tors → 495 min netto (540 brutto − 45 rast)
+     *   - fredag   → 435 min netto (480 brutto − 45 rast)
+     *   - lör/sön  → 0 min (inga helgskift — helg=0 säkert per domänregel)
+     *
+     * FLAGGA: sågline har ingen egen bekräftad skifttidskälla. Tabellen
+     * saglinje_weekday_goals innehåller IBC-mål (kolumn `mal`), INTE skiftminuter,
+     * och kan därför inte användas för planerad tid. Den tidigare platta konstanten
+     * 28800 (8h) var ett obekräftat antagande. Exakta sågline-skifttider bör
+     * bekräftas av ägaren; tills dess används rebotling/tvättlinje-regeln.
+     *
+     * @param string $dag Datum 'Y-m-d'.
+     * @return int Planerad netto-tid i sekunder (0 på helg).
+     */
+    private function plannedShiftSekWeekday(string $dag): int {
+        try {
+            $ts = strtotime($dag);
+            if ($ts === false) return 495 * 60; // fallback: mån–tors-netto
+            $n = (int)date('N', $ts); // ISO: 1=mån … 7=sön
+            if ($n >= 1 && $n <= 4) return 495 * 60; // mån–tors
+            if ($n === 5)           return 435 * 60; // fredag
+            return 0;                                // lör/sön — helg=0
+        } catch (\Throwable $e) {
+            error_log('SaglinjeController::plannedShiftSekWeekday: ' . $e->getMessage());
+            return 495 * 60;
         }
     }
 }
