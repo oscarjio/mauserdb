@@ -957,7 +957,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             const fs = pass.subs[0]; const ls = pass.subs[pass.subs.length - 1];
             const ibcEjOk  = cumulDelta(ls?.ibc_ej_ok,  fs?.ibc_ej_ok);
             const ibcOmtvatt = cumulDelta(ls?.omtvaatt, fs?.omtvaatt);
-            const drifttid = cumulDelta(ls?.runtime_plc, fs?.runtime_plc);
+            const drifttid = Math.min(600, cumulDelta(ls?.runtime_plc, fs?.runtime_plc));
             const rasttime = cumulDelta(ls?.rasttime,    fs?.rasttime);
 
             // IBC-beräkning — 3 prioritetsnivåer:
