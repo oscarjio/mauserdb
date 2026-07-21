@@ -2858,14 +2858,19 @@ class TvattlinjeController {
                         : 0.0;
                 }
 
-                // A: Prestanda = FAKTISK takt / idealtakt (IBC per KÖRD timme), INTE måluppfyllelse.
+                // A: Prestanda = FAKTISK takt / TEORETISK MAX-takt (IBC per KÖRD timme), INTE måluppfyllelse.
                 // Måluppfyllelse (tot/mål) sjunker redan när linjen stått still → att använda den som
                 // perf straffar stopptid TVÅ ggr i OEE=A×P×Q. mal_pct exponeras separat för UI.
-                $idealPerDag = $goalsMap[$weekday] ?? ($isWeekend ? 0 : 140);
-                $idealPerH   = $plannedMin > 0 ? $idealPerDag / ($plannedMin / 60.0) : 0.0;
+                // KONSISTENS: prestanda-nämnaren (throughput-taket) = tvättlinjens ETABLERADE
+                // teoretiska max 20 IBC/h — samma som Skiftjamforelse/HistoriskSammanfattning
+                // (TEORIETISK_MAX_IBC_H_PER_LINE['tvattlinje'] resp. MAX_IBC_H_TVATTLINJE).
+                // Tidigare härleddes taket ur dagsmålet (140/plannedHours ≈ 17 IBC/h) vilket gav
+                // avvikande OEE mot övriga ytor. Dagsmålet 140 används fortsatt ENDAST som MÅL (mal_pct).
+                $teoretiskMaxIbcH = 20.0; // tvättlinjens teoretiska max (IBC/h)
+                $idealPerDag = $goalsMap[$weekday] ?? ($isWeekend ? 0 : 140); // MÅL/dag (mal_pct), ej prestandatak
                 $actualPerH  = $netRuntimeMin > 0 ? $tot / ($netRuntimeMin / 60.0) : 0.0;
-                $perf_pct = ($idealPerH > 0 && $netRuntimeMin >= 10)
-                    ? min(100.0, round($actualPerH / $idealPerH * 100, 1))
+                $perf_pct = ($teoretiskMaxIbcH > 0 && $netRuntimeMin >= 10)
+                    ? min(100.0, round($actualPerH / $teoretiskMaxIbcH * 100, 1))
                     : 0.0;
                 $mal_pct = ($idealPerDag > 0) ? min(100.0, round($tot / $idealPerDag * 100, 1)) : 0.0;
 
