@@ -279,11 +279,11 @@ class LineSkiftrapportController {
             error_log("LineSkiftrapportController::computeDayTotals($table) SR: " . $e->getMessage());
         }
 
-        // 2) PLC-först: PLC-värdet skriver över SR-värdet för dagar med PLC-data
-        // ibc_count är KUMULATIVT och nollställs per skift → MAX(ibc_count) per dag
-        // undervärderar dagar med >1 skift. Reset-säker LAG-delta i stället (jfr
-        // TvattlinjeController::plcIbcPerDag). Om _ibc-tabellen har skiftraknare
-        // partitioneras deltat per (dag, skiftraknare); annars radbaserad LAG över datum.
+        // 2) PLC-först: PLC-värdet skriver över SR-värdet för dagar med PLC-data.
+        // ibc_count är KUMULATIVT och nollställs vid SKIFTRAPPORT (inte vid midnatt).
+        // Ett skift = MAX(ibc_count) (kumulativ topp), daterat till skiftets MIN(datum).
+        // Om _ibc-tabellen har skiftraknare grupperas per skiftraknare; annars grupperas
+        // på reset-segment (gaps-and-islands: nytt segment när ibc_count sjunker).
         if ($ibcExists) {
             try {
                 $ibcHasSkiftraknare = (int)$this->pdo->query(
@@ -291,25 +291,37 @@ class LineSkiftrapportController {
                 )->fetchColumn() > 0;
 
                 if ($ibcHasSkiftraknare) {
-                    // MAX(ibc_count) per (dag, skiftraknare) → LAG-delta över skiftraknare → SUM per dag
+                    // ibc_count nollställs vid SKIFTRAPPORT, inte vid midnatt. Ett skift
+                    // (skiftraknare) = MAX(ibc_count) (kumulativ topp), daterat till skiftets
+                    // MIN(datum). Summera per dag. Ingen LAG, ingen PARTITION BY DATE.
                     $plcSql = "
-                        SELECT dag, COALESCE(SUM(CASE WHEN ibc_end >= prev THEN ibc_end - prev ELSE ibc_end END), 0) AS ibc
+                        SELECT dag, COALESCE(SUM(ibc_end), 0) AS ibc
                         FROM (
-                            SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_count) AS ibc_end,
-                                   COALESCE(LAG(MAX(ibc_count)) OVER (PARTITION BY DATE(datum) ORDER BY skiftraknare), 0) AS prev
+                            SELECT skiftraknare, DATE(MIN(datum)) AS dag, MAX(ibc_count) AS ibc_end
                             FROM `$ibcTable`
-                            GROUP BY DATE(datum), skiftraknare
+                            GROUP BY skiftraknare
                         ) t
                         GROUP BY dag
                     ";
                 } else {
-                    // Ingen skiftraknare → radbaserad LAG över datum (fångar reset inom dagen)
+                    // Ingen skiftraknare → gruppera på RESET-SEGMENT (gaps-and-islands).
+                    // Ett nytt segment börjar när ibc_count < föregående rad (räknaren
+                    // nollställdes). seg_id = löpande SUM över reset-flaggan. Segmentets
+                    // total = MAX(ibc_count); datera till DATE(MIN(datum)); summera per dag.
                     $plcSql = "
-                        SELECT dag, COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS ibc
+                        SELECT dag, COALESCE(SUM(ibc_end), 0) AS ibc
                         FROM (
-                            SELECT DATE(datum) AS dag, ibc_count,
-                                   COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
-                            FROM `$ibcTable`
+                            SELECT seg_id, DATE(MIN(datum)) AS dag, MAX(ibc_count) AS ibc_end
+                            FROM (
+                                SELECT datum, ibc_count,
+                                       SUM(is_reset) OVER (ORDER BY datum ROWS UNBOUNDED PRECEDING) AS seg_id
+                                FROM (
+                                    SELECT datum, ibc_count,
+                                           CASE WHEN ibc_count < LAG(ibc_count) OVER (ORDER BY datum) THEN 1 ELSE 0 END AS is_reset
+                                    FROM `$ibcTable`
+                                ) f
+                            ) s
+                            GROUP BY seg_id
                         ) t
                         GROUP BY dag
                     ";
