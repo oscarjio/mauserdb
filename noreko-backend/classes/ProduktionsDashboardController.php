@@ -12,7 +12,7 @@
  *   run=senaste-ibc       — senaste 10 producerade IBC fran rebotling_ibc
  *
  * OEE-berakning:
- *   T (Tillganglighet) = drifttid / planerad(24h om inget annat)
+ *   T (Tillganglighet) = drifttid / planerad NETTO-tid (veckodagsspecifik: man-tors 495 min, fre 435 min, helg 0)
  *   P (Prestanda)      = (IBC * 120s) / drifttid, max 100%
  *   K (Kvalitet)       = godkanda / totalt
  *   OEE                = T * P * K
@@ -25,7 +25,10 @@ class ProduktionsDashboardController {
     private $pdo;
 
     private const IDEAL_CYCLE_SEC   = 120;      // sekunder per IBC (ideal cykeltid)
-    private const PLANERAD_DAG_SEK  = 24 * 3600; // 24h planeringshorisont
+    // Planerad NETTO-tid per veckodag (efter 45 min rast), i minuter:
+    //   man-tors = 495, fre = 435, helg (lor/son) = 0 (inga helgskift).
+    // Summeras over FAKTISKA produktionsdagar (dagar med rader i rebotling_ibc),
+    // ej 24h/kalenderdag. Speglar HistoriskSammanfattning/Skiftjamforelse.
 
     public function __construct() {
         global $pdo;
@@ -99,6 +102,39 @@ class ProduktionsDashboardController {
             return $sek;
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboardController::getDrifttidSek: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Beraknar planerad NETTO-tid (sekunder) for ett datumintervall,
+     * summerad over FAKTISKA produktionsdagar (dagar med rader i rebotling_ibc).
+     * Veckodagsspecifikt: man-tors 495 min, fre 435 min, helg 0 (inga helgskift).
+     * En rad per dag (rn=1) — flera skiftraknare-rader/dag dubbelraknar annars.
+     * Speglar HistoriskSammanfattningController/SkiftjamforelseController.
+     * $fromDt/$toDt ar datetime; $toDt exklusivt (< toDt), matchar getDrifttidSek.
+     */
+    private function getPlaneradSekForPeriod(string $fromDt, string $toDt): int {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT COALESCE(SUM(
+                    CASE WHEN rn = 1 THEN (
+                        CASE WHEN DAYOFWEEK(dag) BETWEEN 2 AND 5 THEN 495
+                             WHEN DAYOFWEEK(dag) = 6            THEN 435
+                             ELSE 0 END
+                    ) ELSE 0 END
+                ), 0) * 60 AS planerad_sek
+                FROM (
+                    SELECT DATE(datum) AS dag,
+                           ROW_NUMBER() OVER (PARTITION BY DATE(datum) ORDER BY skiftraknare) AS rn
+                    FROM rebotling_ibc
+                    WHERE datum >= :plan_from AND datum < :plan_to
+                ) per_dag
+            ");
+            $stmt->execute([':plan_from' => $fromDt, ':plan_to' => $toDt]);
+            return (int)($stmt->fetchColumn() ?: 0);
+        } catch (\PDOException $e) {
+            error_log('ProduktionsDashboardController::getPlaneradSekForPeriod: ' . $e->getMessage());
             return 0;
         }
     }
@@ -215,8 +251,8 @@ class ProduktionsDashboardController {
     private function calcOeeForPeriod(string $fromDt, string $toDt): array {
         $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
 
-        // Antal sekunder i perioden som "planerad" tid
-        $periodSek = max(1, strtotime($toDt) - strtotime($fromDt));
+        // Planerad NETTO-tid: veckodagsspecifik, summerad over faktiska produktionsdagar
+        $planeradSek = $this->getPlaneradSekForPeriod($fromDt, $toDt);
 
         try {
             $lagCte = $this->buildLagCte($fromDt, $toDt);
@@ -233,7 +269,7 @@ class ProduktionsDashboardController {
             $okAntal = 0;
         }
 
-        $tillganglighet = $periodSek > 0 ? min(1.0, $drifttidSek / $periodSek) : 0.0;
+        $tillganglighet = $planeradSek > 0 ? min(1.0, $drifttidSek / $planeradSek) : 0.0;
         $prestanda = $drifttidSek > 0
             ? min(1.0, ($total * self::IDEAL_CYCLE_SEC) / $drifttidSek)
             : 0.0;
@@ -317,8 +353,11 @@ class ProduktionsDashboardController {
         $fromDtIdag = $idag . ' 00:00:00';
         $toDtIdag   = date('Y-m-d', strtotime($idag . ' +1 day')) . ' 00:00:00';
         $drifttidSekIdag = $this->getDrifttidSek($fromDtIdag, $toDtIdag);
-        $planeradSekIdag = self::PLANERAD_DAG_SEK;
-        $drifttidPctIdag = round(min(100, $drifttidSekIdag / $planeradSekIdag * 100), 1);
+        // Planerad NETTO-tid for idag (0 pa helg utan produktion) — guard mot div-by-zero
+        $planeradSekIdag = $this->getPlaneradSekForPeriod($fromDtIdag, $toDtIdag);
+        $drifttidPctIdag = $planeradSekIdag > 0
+            ? round(min(100, $drifttidSekIdag / $planeradSekIdag * 100), 1)
+            : 0.0;
 
         // --- OEE idag ---
         $oeeIdag = $this->calcOeeForPeriod($fromDtIdag, $toDtIdag);
