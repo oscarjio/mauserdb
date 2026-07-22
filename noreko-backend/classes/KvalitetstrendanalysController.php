@@ -170,7 +170,7 @@ class KvalitetstrendanalysController {
                     WHERE datum >= :f1 AND datum < DATE_ADD(:t1, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), skiftraknare
                 )
-                SELECT op_num, SUM(ibc_ok) AS total, SUM(ibc_ej_ok) AS kasserade
+                SELECT op_num, SUM(ibc_ok) + SUM(ibc_ej_ok) AS total, SUM(ibc_ej_ok) AS kasserade
                 FROM (
                     SELECT op1 AS op_num, ibc_ok, ibc_ej_ok FROM base WHERE op1 IS NOT NULL AND op1 > 0
                     UNION ALL
