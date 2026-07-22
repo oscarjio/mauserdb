@@ -145,19 +145,20 @@ class TidrapportController {
 
     private function fetchFromRebotlingData(string $from, string $to, ?int $opFilter): array {
         try {
+            // DOMÄNREGEL: ETT skift per dag. Flera rader/dag = poll/dubbletter.
+            // Deduplicera till en rad per (operator, dag) och använd VERKLIGA
+            // tidsstämplar: MIN(datum) = start, MAX(slut/datum) = faktisk sluttid.
+            // Fabricera INTE end_time = start + 8h (bugg iter84 #5).
             $sql = "
                 SELECT
-                    r.id,
+                    MIN(r.id) AS id,
                     COALESCE(u.username, CONCAT('Operator ', r.user_id)) AS operator_namn,
                     r.user_id,
                     DATE(r.datum) AS datum,
-                    r.datum AS start_time,
-                    CASE
-                        WHEN r.slut IS NOT NULL THEN r.slut
-                        ELSE DATE_ADD(r.datum, INTERVAL 8 HOUR)
-                    END AS end_time,
-                    COALESCE(r.station, '-') AS station,
-                    COALESCE(r.antal, 0) AS antal
+                    MIN(r.datum) AS start_time,
+                    MAX(COALESCE(r.slut, r.datum)) AS end_time,
+                    COALESCE(MAX(r.station), '-') AS station,
+                    COALESCE(SUM(r.antal), 0) AS antal
                 FROM rebotling_data r
                 LEFT JOIN users u ON r.user_id = u.id
                 WHERE r.datum >= :from_date AND r.datum < DATE_ADD(:to_date, INTERVAL 1 DAY)
@@ -169,7 +170,9 @@ class TidrapportController {
                 $params[':op_id'] = $opFilter;
             }
 
-            $sql .= " ORDER BY r.datum DESC LIMIT 5000";
+            $sql .= "
+                GROUP BY r.user_id, DATE(r.datum), u.username
+                ORDER BY datum DESC LIMIT 5000";
 
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
@@ -300,7 +303,17 @@ class TidrapportController {
             $rows = $this->fetchSkiftData($fromDate, $toDate);
 
             $totalTimmar = 0;
-            $antalSkift = count($rows);
+            // DOMÄNREGEL: ETT skift per dag. Räkna INTE råa rader som skift —
+            // flera rader/dag är poll/dubbletter. Ett skift = en unik (operator, dag).
+            $skiftDagar = [];
+            foreach ($rows as $r) {
+                $dag = $r['datum'] ?? '';
+                $uid = $r['user_id'] ?? '';
+                if ($dag !== '') {
+                    $skiftDagar[$uid . '|' . $dag] = true;
+                }
+            }
+            $antalSkift = count($skiftDagar);
             $operatorTimmar = [];
 
             foreach ($rows as $row) {
