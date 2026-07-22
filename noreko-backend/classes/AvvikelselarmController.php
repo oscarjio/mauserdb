@@ -141,33 +141,6 @@ class AvvikelselarmController {
                 ");
             }
 
-            // Seed avvikelselarm om tom
-            $countLarm = (int)$this->pdo->query("SELECT COUNT(*) FROM avvikelselarm")->fetchColumn();
-            if ($countLarm === 0) {
-                $this->pdo->exec("
-                    INSERT INTO avvikelselarm (typ, allvarlighetsgrad, meddelande, varde_aktuellt, varde_grans, tidsstampel, kvitterad, kvitterad_av, kvitterad_datum, kvitterings_kommentar) VALUES
-                    ('maskinstopp','kritisk','Tvattmaskin stoppad i 55 minuter',55.00,30.00,DATE_SUB(NOW(),INTERVAL 1 DAY)+INTERVAL 6 HOUR,0,NULL,NULL,NULL),
-                    ('maskinstopp','kritisk','Transportband stoppat i 42 minuter',42.00,30.00,DATE_SUB(NOW(),INTERVAL 2 DAY)+INTERVAL 9 HOUR,1,'Erik Lindqvist',DATE_SUB(NOW(),INTERVAL 2 DAY)+INTERVAL 10 HOUR,'Reparerat'),
-                    ('maskinstopp','kritisk','Torkugn stoppad i 50 minuter',50.00,30.00,DATE_SUB(NOW(),INTERVAL 5 DAY)+INTERVAL 14 HOUR,1,'Anna Svensson',DATE_SUB(NOW(),INTERVAL 5 DAY)+INTERVAL 15 HOUR,'Termoelement bytt'),
-                    ('maskinstopp','kritisk','Tvattmaskin stoppad i 60 minuter',60.00,30.00,DATE_SUB(NOW(),INTERVAL 8 DAY)+INTERVAL 7 HOUR,1,'Peter Olsson',DATE_SUB(NOW(),INTERVAL 8 DAY)+INTERVAL 8 HOUR,'Ventil bytt'),
-                    ('oee','varning','OEE pa 58% — under gransvarde 65%',58.00,65.00,DATE_SUB(NOW(),INTERVAL 1 DAY)+INTERVAL 16 HOUR,0,NULL,NULL,NULL),
-                    ('oee','varning','OEE pa 52% — under gransvarde 65%',52.00,65.00,DATE_SUB(NOW(),INTERVAL 3 DAY)+INTERVAL 15 HOUR,1,'Maria Johansson',DATE_SUB(NOW(),INTERVAL 3 DAY)+INTERVAL 16 HOUR,'Okat bemanning'),
-                    ('oee','varning','OEE pa 61% — under gransvarde 65%',61.00,65.00,DATE_SUB(NOW(),INTERVAL 7 DAY)+INTERVAL 14 HOUR,1,'Erik Lindqvist',DATE_SUB(NOW(),INTERVAL 7 DAY)+INTERVAL 15 HOUR,'Justerat'),
-                    ('oee','varning','OEE pa 48% — under gransvarde 65%',48.00,65.00,DATE_SUB(NOW(),INTERVAL 12 DAY)+INTERVAL 13 HOUR,1,'Anna Svensson',DATE_SUB(NOW(),INTERVAL 12 DAY)+INTERVAL 14 HOUR,'Personal sjuk'),
-                    ('kassation','varning','Kassationsgrad 7.2% — over 5%',7.20,5.00,DATE_SUB(NOW(),INTERVAL 2 DAY)+INTERVAL 11 HOUR,0,NULL,NULL,NULL),
-                    ('kassation','varning','Kassationsgrad 8.5% — over 5%',8.50,5.00,DATE_SUB(NOW(),INTERVAL 4 DAY)+INTERVAL 10 HOUR,1,'Peter Olsson',DATE_SUB(NOW(),INTERVAL 4 DAY)+INTERVAL 11 HOUR,'Dalig ravar'),
-                    ('kassation','varning','Kassationsgrad 6.1% — over 5%',6.10,5.00,DATE_SUB(NOW(),INTERVAL 9 DAY)+INTERVAL 12 HOUR,1,'Maria Johansson',DATE_SUB(NOW(),INTERVAL 9 DAY)+INTERVAL 13 HOUR,'Justerat'),
-                    ('kassation','varning','Kassationsgrad 9.3% — over 5%',9.30,5.00,DATE_SUB(NOW(),INTERVAL 15 DAY)+INTERVAL 8 HOUR,1,'Erik Lindqvist',DATE_SUB(NOW(),INTERVAL 15 DAY)+INTERVAL 9 HOUR,'Ny leverantor'),
-                    ('produktionstakt','varning','Produktionstakt 7 IBC/h — under 10',7.00,10.00,DATE_SUB(NOW(),INTERVAL 1 DAY)+INTERVAL 8 HOUR,0,NULL,NULL,NULL),
-                    ('produktionstakt','varning','Produktionstakt 5 IBC/h — under 10',5.00,10.00,DATE_SUB(NOW(),INTERVAL 6 DAY)+INTERVAL 9 HOUR,1,'Anna Svensson',DATE_SUB(NOW(),INTERVAL 6 DAY)+INTERVAL 10 HOUR,'Maskinstopp lost'),
-                    ('produktionstakt','varning','Produktionstakt 8 IBC/h — under 10',8.00,10.00,DATE_SUB(NOW(),INTERVAL 11 DAY)+INTERVAL 7 HOUR,1,'Peter Olsson',DATE_SUB(NOW(),INTERVAL 11 DAY)+INTERVAL 8 HOUR,'Nyanstallda'),
-                    ('produktionstakt','varning','Produktionstakt 6 IBC/h — under 10',6.00,10.00,DATE_SUB(NOW(),INTERVAL 20 DAY)+INTERVAL 10 HOUR,1,'Maria Johansson',DATE_SUB(NOW(),INTERVAL 20 DAY)+INTERVAL 11 HOUR,'Halvt skift'),
-                    ('produktionsmal','info','Dagligt mal ej uppnatt: 85 av 100 IBC',85.00,100.00,DATE_SUB(NOW(),INTERVAL 1 DAY)+INTERVAL 17 HOUR,0,NULL,NULL,NULL),
-                    ('produktionsmal','info','Dagligt mal ej uppnatt: 72 av 100 IBC',72.00,100.00,DATE_SUB(NOW(),INTERVAL 3 DAY)+INTERVAL 17 HOUR,1,'Erik Lindqvist',DATE_SUB(NOW(),INTERVAL 3 DAY)+INTERVAL 18 HOUR,'Maskinstopp'),
-                    ('produktionsmal','info','Dagligt mal ej uppnatt: 90 av 100 IBC',90.00,100.00,DATE_SUB(NOW(),INTERVAL 10 DAY)+INTERVAL 17 HOUR,1,'Anna Svensson',DATE_SUB(NOW(),INTERVAL 10 DAY)+INTERVAL 18 HOUR,'Nara malet'),
-                    ('produktionsmal','info','Dagligt mal ej uppnatt: 65 av 100 IBC',65.00,100.00,DATE_SUB(NOW(),INTERVAL 18 DAY)+INTERVAL 17 HOUR,1,'Peter Olsson',DATE_SUB(NOW(),INTERVAL 18 DAY)+INTERVAL 18 HOUR,'Stor stopp kl 10')
-                ");
-            }
         } catch (\PDOException $e) {
             error_log('AvvikelselarmController::ensureTables: ' . $e->getMessage());
         }
