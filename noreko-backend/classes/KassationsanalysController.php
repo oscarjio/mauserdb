@@ -1422,21 +1422,38 @@ class KassationsanalysController {
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
 
         try {
-            // rebotling_ibc: ibc_ok/ibc_ej_ok are cumulative per skiftraknare
-            // Aggregate per operator using op1/op2/op3
+            // rebotling_ibc: ibc_ok/ibc_ej_ok are cumulative per skiftraknare.
+            // Summing raw poll rows multiplies the counts, so instead compute
+            // reset-safe per-skift deltas (MAX per DATE+skiftraknare, LAG within
+            // the day — same pattern as getPerStation) and carry op1/op2/op3.
             $stmt = $this->pdo->prepare("
                 SELECT
-                    i.ibc_ok,
-                    i.ibc_ej_ok,
-                    o1.name AS op1_namn,
-                    o2.name AS op2_namn,
-                    o3.name AS op3_namn
-                FROM rebotling_ibc i
-                LEFT JOIN operators o1 ON o1.number = i.op1
-                LEFT JOIN operators o2 ON o2.number = i.op2
-                LEFT JOIN operators o3 ON o3.number = i.op3
-                WHERE i.datum BETWEEN :from_date AND :to_date
-                  AND (i.op1 IS NOT NULL OR i.op2 IS NOT NULL OR i.op3 IS NOT NULL)
+                    delta_ok,
+                    delta_ej,
+                    op1_namn,
+                    op2_namn,
+                    op3_namn
+                FROM (
+                    SELECT
+                        CASE WHEN max_ok >= COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ok - COALESCE(LAG(max_ok) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ok END AS delta_ok,
+                        CASE WHEN max_ej >= COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) THEN max_ej - COALESCE(LAG(max_ej) OVER (PARTITION BY dag ORDER BY skiftraknare), 0) ELSE max_ej END AS delta_ej,
+                        op1_namn, op2_namn, op3_namn
+                    FROM (
+                        SELECT DATE(i.datum) AS dag, i.skiftraknare,
+                               MAX(i.ibc_ok)    AS max_ok,
+                               MAX(i.ibc_ej_ok) AS max_ej,
+                               MAX(o1.name)     AS op1_namn,
+                               MAX(o2.name)     AS op2_namn,
+                               MAX(o3.name)     AS op3_namn
+                        FROM rebotling_ibc i
+                        LEFT JOIN operators o1 ON o1.number = i.op1
+                        LEFT JOIN operators o2 ON o2.number = i.op2
+                        LEFT JOIN operators o3 ON o3.number = i.op3
+                        WHERE i.datum BETWEEN :from_date AND :to_date
+                          AND (i.op1 IS NOT NULL OR i.op2 IS NOT NULL OR i.op3 IS NOT NULL)
+                        GROUP BY DATE(i.datum), i.skiftraknare
+                    ) inner_q
+                ) outer_q
             ");
             $stmt->execute([
                 ':from_date' => $fromDate . ' 00:00:00',
@@ -1444,29 +1461,32 @@ class KassationsanalysController {
             ]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Each row has cumulative ibc_ok/ibc_ej_ok — count rows per operator
+            // Each row is one skift with real (delta) OK / not-OK counts.
+            // Accumulate real IBC volumes per operator (op1/op2/op3 share the shift).
             $opData = [];
             foreach ($rows as $row) {
-                $ejOk = (int)($row['ibc_ej_ok'] ?? 0);
+                $ok   = max(0, (int)($row['delta_ok'] ?? 0));
+                $ejOk = max(0, (int)($row['delta_ej'] ?? 0));
                 $ops = array_filter([$row['op1_namn'], $row['op2_namn'], $row['op3_namn']]);
                 foreach ($ops as $opName) {
                     if (!isset($opData[$opName])) {
-                        $opData[$opName] = ['totalt' => 0, 'kasserade' => 0];
+                        $opData[$opName] = ['ok' => 0, 'kasserade' => 0];
                     }
-                    $opData[$opName]['totalt']++;
-                    if ($ejOk > 0) $opData[$opName]['kasserade']++;
+                    $opData[$opName]['ok']        += $ok;
+                    $opData[$opName]['kasserade'] += $ejOk;
                 }
             }
 
             $result = [];
             foreach ($opData as $namn => $data) {
-                $andel = $data['totalt'] > 0
-                    ? round($data['kasserade'] / $data['totalt'] * 100, 1)
+                $totalt = $data['ok'] + $data['kasserade'];
+                $andel = $totalt > 0
+                    ? round($data['kasserade'] / $totalt * 100, 1)
                     : 0.0;
                 $result[] = [
                     'operator'   => $namn,
                     'kasserade'  => $data['kasserade'],
-                    'totalt'     => $data['totalt'],
+                    'totalt'     => $totalt,
                     'andel_pct'  => $andel,
                 ];
             }
