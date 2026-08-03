@@ -75,6 +75,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // Backend-levererade PLC-först/deduperade totaler (fallback: rå summa om saknas)
   backendDayTotals: Record<string, number> | null = null;
   backendGrandTotalIbc: number | null = null;
+  // B1: sätts när VPS-lokala dag-total-hämtningen (getIbcPerDag) fallerar (t.ex. 503 från Pi).
+  // Vi behåller INTE tyst en annan (rå) IBC-metod som om den vore PLC-först — flaggan gör att
+  // UI kan visa att dag-totalerna är osäkra/stale i st f att tyst redovisa avvikande tal.
+  dayTotalsStale = false;
   cachedTotalOk = 0;
   cachedTotalEjOk = 0;
   cachedTotalOmtvaatt = 0;
@@ -1278,11 +1282,24 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       if (d && (!start || d < start)) start = d;
     }
     this.service.getIbcPerDag(this.config.line, start, localToday())
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        timeout(15000),
+        // B1: vid 503/timeout från Pi-passthru — sätt stale-flagga i st f tyst overwrite.
+        // Behåll befintliga backendDayTotals (kan vara null → fallback rå summa) men markera
+        // att de inte kunde uppdateras, så UI kan signalera att dag-totalerna är osäkra.
+        catchError(err => {
+          console.error('Fel vid hämtning av PLC-först dag-totaler:', err);
+          return of({ success: false, error: 'stale', day_totals: null });
+        }),
+        takeUntil(this.destroy$)
+      )
       .subscribe(res => {
         if (res && res.success && res.day_totals) {
+          this.dayTotalsStale = false;
           this.backendDayTotals = res.day_totals;
           this.recomputeKpis();
+        } else {
+          this.dayTotalsStale = true;
         }
       });
   }

@@ -358,16 +358,21 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   navigatePrevious() {
     if (this.viewMode === 'year') {
       this.currentYear--;
+      this.selectedPeriods = []; // C2: rensa dagval vid år-navigering
     } else if (this.viewMode === 'month') {
       this.currentMonth--;
       if (this.currentMonth < 0) {
         this.currentMonth = 11;
         this.currentYear--;
       }
+      this.selectedPeriods = []; // C2: rensa dagval vid månad-navigering
     } else if (this.viewMode === 'day' && this.selectedPeriods.length > 0) {
       const date = new Date(this.selectedPeriods[0]);
       date.setDate(date.getDate() - 1);
       this.selectedPeriods = [date];
+      // C3: håll currentYear/currentMonth i synk vid månadsskifte i dagvyn
+      this.currentYear = date.getFullYear();
+      this.currentMonth = date.getMonth();
     }
 
     this.resetChartSelection();
@@ -378,18 +383,26 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   }
 
   navigateNext() {
+    // C1: ingen framåt-navigering till framtida (tomma) perioder
+    if (this.isNextDisabled()) return;
+
     if (this.viewMode === 'year') {
       this.currentYear++;
+      this.selectedPeriods = []; // C2: rensa dagval vid år-navigering
     } else if (this.viewMode === 'month') {
       this.currentMonth++;
       if (this.currentMonth > 11) {
         this.currentMonth = 0;
         this.currentYear++;
       }
+      this.selectedPeriods = []; // C2: rensa dagval vid månad-navigering
     } else if (this.viewMode === 'day' && this.selectedPeriods.length > 0) {
       const date = new Date(this.selectedPeriods[0]);
       date.setDate(date.getDate() + 1);
       this.selectedPeriods = [date];
+      // C3: håll currentYear/currentMonth i synk vid månadsskifte i dagvyn
+      this.currentYear = date.getFullYear();
+      this.currentMonth = date.getMonth();
     }
 
     this.resetChartSelection();
@@ -397,6 +410,26 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.generatePeriodCells();
     this.syncStateToUrl(false);
     this.loadStatistics();
+  }
+
+  /**
+   * C1: Framåt-knappen ska inte kunna nå framtiden. År-vy: inte förbi innevarande år.
+   * Månad-vy: inte förbi innevarande månad. Dag-vy: inte förbi idag.
+   */
+  isNextDisabled(): boolean {
+    const now = new Date();
+    if (this.viewMode === 'year') {
+      return this.currentYear >= now.getFullYear();
+    } else if (this.viewMode === 'month') {
+      return this.currentYear > now.getFullYear() ||
+             (this.currentYear === now.getFullYear() && this.currentMonth >= now.getMonth());
+    } else if (this.viewMode === 'day' && this.selectedPeriods.length > 0) {
+      const d = new Date(this.selectedPeriods[0]);
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      return dd.getTime() >= today.getTime();
+    }
+    return false;
   }
 
   toggleShowOnlyDaysWithCycles(): void {
@@ -2284,7 +2317,15 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       // Månadsvyn har en rad per dag → använd dagens IBC (ibcPerDag) för både IBC-antal
       // och drifttid, med 600-min-cap. Övriga vyer räknar cykler i egen bucket.
       const rowIbc = this.viewMode === 'month' ? (this.ibcPerDag[this.formatDate(date)] ?? cycles.length) : cycles.length;
-      const runtime = this.viewMode === 'month' ? Math.min(rowIbc * avgCycleTime, 600) : rowIbc * avgCycleTime;
+      // B2: 600-min-cap (max 10h/dag, per CLAUDE.md) appliceras KONSEKVENT. Månad/dag-rad = 1 dag
+      // → cap 600. Årsvy-rad = en HEL månad → cap 600 × antal produktionsdagar i månaden (annars
+      // okappat rå-cykel×snitt som blåser upp drifttiden). Dagvyn (10-min-intervall) okappad.
+      let capDays = 1;
+      if (this.viewMode === 'year') {
+        const prefix = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        capDays = Object.entries(this.ibcPerDag).filter(([k, v]) => k.startsWith(prefix) && (v as number) > 0).length || 1;
+      }
+      const runtime = this.viewMode === 'day' ? rowIbc * avgCycleTime : Math.min(rowIbc * avgCycleTime, 600 * capDays);
 
       this.tableData.push({
         period,

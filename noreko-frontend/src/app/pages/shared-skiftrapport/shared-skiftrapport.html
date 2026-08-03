@@ -53,7 +53,12 @@
     <div class="col-6 col-md-2">
       <div class="summary-card">
         <div class="summary-icon text-info"><i class="fas fa-boxes"></i></div>
-        <div class="summary-value text-info">{{ summaryTotalIbc }}</div>
+        <div class="summary-value text-info">
+          {{ summaryTotalIbc }}
+          <i *ngIf="dayTotalsStale" class="fas fa-triangle-exclamation text-warning ms-1"
+             style="font-size:.7rem;vertical-align:super;"
+             title="PLC-först dag-totaler kunde inte uppdateras (Pi svarar inte) — visat värde kan avvika från live/statistik."></i>
+        </div>
         <div class="summary-label">Total IBC</div>
       </div>
     </div>

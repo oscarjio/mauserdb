@@ -511,7 +511,32 @@ class TvattLinje {
         $skiftraknare = ($sr && isset($sr['skiftraknare'])) ? (int)$sr['skiftraknare'] : 1;
 
         $totalt = $ibc_ok + $ibc_ej_ok + $omtvaatt;
-        $datum  = date('Y-m-d');
+
+        // SKIFTDATUM = verklig produktionsperiod, INTE inskicksdagen. Ett glömt skift som
+        // skickas in nästa dag ska bokföras på skiftets datum — annars dubbelräknas drifttid
+        // och kvalitet/gul-varning hamnar på fel dag. Perioden härleds FÖRE INSERT från
+        // tvattlinje_ibc-raderna efter föregående skiftrapport t.o.m. nu (samma fönster som
+        // period-metadatan nedan, som nu återanvänder dessa värden).
+        $prevStmt = $this->db->prepare(
+            "SELECT created_at FROM tvattlinje_skiftrapport ORDER BY id DESC LIMIT 1"
+        );
+        $prevStmt->execute();
+        $prevRow       = $prevStmt->fetch(PDO::FETCH_ASSOC);
+        $prevCreatedAt = $prevRow ? $prevRow['created_at'] : date('Y-m-d H:i:s', strtotime('-24 hours'));
+
+        $evtStmt = $this->db->prepare("
+            SELECT MIN(datum) AS first_ts, MAX(datum) AS last_ts
+            FROM tvattlinje_ibc
+            WHERE datum > :prev_at AND datum <= NOW()
+        ");
+        $evtStmt->execute(['prev_at' => $prevCreatedAt]);
+        $evtRow      = $evtStmt->fetch(PDO::FETCH_ASSOC);
+        $periodStart = ($evtRow && $evtRow['first_ts']) ? $evtRow['first_ts'] : null;
+        $periodEnd   = ($evtRow && $evtRow['last_ts'])  ? $evtRow['last_ts']  : null;
+
+        // Skiftdatum = periodens startdag (verkligt skiftdatum); fallback inskicksdag om
+        // ingen PLC-period kunde härledas.
+        $datum = $periodStart ? date('Y-m-d', strtotime($periodStart)) : date('Y-m-d');
 
         $stmt = $this->db->prepare('
             INSERT INTO tvattlinje_skiftrapport (
@@ -561,12 +586,8 @@ class TvattLinje {
         // Lagrar period_start/period_end/flerdagars/antal_dagar för informationsändamål.
         // PLC-värdena i rapporten (D4004/D4005/D4007) är sanningen — ändras aldrig här.
         try {
-            $prevStmt = $this->db->prepare(
-                "SELECT created_at FROM tvattlinje_skiftrapport WHERE id < :id ORDER BY id DESC LIMIT 1"
-            );
-            $prevStmt->execute(['id' => $skiftrapportId]);
-            $prevRow       = $prevStmt->fetch(PDO::FETCH_ASSOC);
-            $prevCreatedAt = $prevRow ? $prevRow['created_at'] : date('Y-m-d H:i:s', strtotime('-24 hours'));
+            // Återanvänder $prevCreatedAt + $periodStart/$periodEnd som redan härleddes FÖRE
+            // INSERT (för skiftdatumet). Inga dubbla MIN/MAX-frågor.
 
             // Härled product_id från vanligaste produkt i perioden (metadata, ej produktion)
             $prodStmt = $this->db->prepare("
@@ -582,16 +603,7 @@ class TvattLinje {
             }
 
             // Period-tidpunkter och flerdagars-flagga (metadata för badge i frontend)
-            $evtStmt = $this->db->prepare("
-                SELECT MIN(datum) AS first_ts, MAX(datum) AS last_ts
-                FROM tvattlinje_ibc
-                WHERE datum > :prev_at AND datum <= NOW()
-            ");
-            $evtStmt->execute(['prev_at' => $prevCreatedAt]);
-            $evtRow = $evtStmt->fetch(PDO::FETCH_ASSOC);
-            if ($evtRow && $evtRow['first_ts']) {
-                $periodStart = $evtRow['first_ts'];
-                $periodEnd   = $evtRow['last_ts'];
+            if ($periodStart) {
                 $flerdagars  = (substr($periodStart, 0, 10) !== substr($periodEnd, 0, 10)) ? 1 : 0;
                 $antalDagar  = $flerdagars
                     ? (int)((strtotime(substr($periodEnd, 0, 10)) - strtotime(substr($periodStart, 0, 10))) / 86400) + 1

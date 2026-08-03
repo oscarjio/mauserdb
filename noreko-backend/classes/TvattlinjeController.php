@@ -698,12 +698,18 @@ class TvattlinjeController {
     }
 
     /**
-     * PLC-IBC per dag ['Y-m-d' => ibc] = MAX(ibc_count) (kumulativ dygnsräknare).
+     * B3: PLC-IBC per dag ['Y-m-d' => ibc] MED SR-golv. På dagar med inskickad skiftrapport
+     * får PLC-talet (reset-säker ibc_count-delta) ALDRIG understiga skiftrapportens SUM(totalt)
+     * — PLC-max kan vara < SR-summan (känt 06-25: PLC 95 men ok 101+ej_ok 16 = 117). Detta är
+     * SAMMA golv som getOeeTrend applicerar inline (max(ibc_max, sr_total_ibc) på SR-dagar), nu
+     * centraliserat så getStatistics, plcIbcPerDag/getIbcPerDag och OEE-trenden ger identisk
+     * IBC/dag. PLC-only-dagar (ingen rapport) = rå PLC-delta. Nyckel = 'Y-m-d'.
      */
-    private function plcIbcPerDag(string $start, string $end): array {
+    private function plcIbcWithSrFloor(string $start, string $end): array {
         $out = [];
         try {
-            $stmt = $this->pdo->prepare("
+            // PLC-IBC per dag (reset-säker ibc_count-delta).
+            $plcStmt = $this->pdo->prepare("
                 SELECT dag, COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS ibc
                 FROM (
                     SELECT DATE(datum) AS dag, ibc_count,
@@ -713,14 +719,41 @@ class TvattlinjeController {
                 ) t
                 GROUP BY dag
             ");
-            $stmt->execute(['s' => $start, 'e' => $end]);
-            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $plcStmt->execute(['s' => $start, 'e' => $end]);
+            foreach ($plcStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                 $out[$row['dag']] = (int)$row['ibc'];
             }
+
+            // SR-golv: SUM(totalt) per dag från senaste posten per (dag, skiftraknare) — samma
+            // dedup som getOeeTrend/skiftrapportIbcPerDag. På dag med rapport: max(PLC, SR).
+            $srStmt = $this->pdo->prepare("
+                SELECT DATE(sr.datum) AS dag, COALESCE(SUM(sr.totalt), 0) AS ibc
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (
+                    SELECT MAX(id) AS max_id
+                    FROM tvattlinje_skiftrapport
+                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                ) latest ON sr.id = latest.max_id
+                GROUP BY DATE(sr.datum)
+            ");
+            $srStmt->execute(['s' => $start, 'e' => $end]);
+            foreach ($srStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $srIbc = (int)$row['ibc'];
+                $out[$row['dag']] = max($out[$row['dag']] ?? 0, $srIbc);
+            }
         } catch (\Throwable $e) {
-            error_log('TvattlinjeController::plcIbcPerDag: ' . $e->getMessage());
+            error_log('TvattlinjeController::plcIbcWithSrFloor: ' . $e->getMessage());
         }
         return $out;
+    }
+
+    /**
+     * PLC-IBC per dag ['Y-m-d' => ibc]. Delegerar till plcIbcWithSrFloor() så alla sidor
+     * (getIbcPerDag/day_totals, statistik, OEE-trend) redovisar samma IBC/dag med SR-golv.
+     */
+    private function plcIbcPerDag(string $start, string $end): array {
+        return $this->plcIbcWithSrFloor($start, $end);
     }
 
     /**
@@ -1786,6 +1819,17 @@ class TvattlinjeController {
                     $received_webhooks += (int)$r['day_count'];
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics total_cycles: ' . $e->getMessage()); }
+
+            // B3: SR-golv — på dagar med inskickad skiftrapport får IBC/dag aldrig understiga
+            // SR-summan (samma golv som getOeeTrend + getIbcPerDag). Håller total_cycles och
+            // ibc_per_dag_plc konsistenta med OEE-trenden och skiftrapportlistan; annars visar
+            // översikten lägre IBC (rå PLC) än OEE-sidan (max(PLC,SR)) för samma dag.
+            // received_webhooks/day_count behålls från råskannen ovan (PLC-radantal).
+            $flooredPerDag = $this->plcIbcWithSrFloor($start, $end);
+            if (!empty($flooredPerDag)) {
+                $ibcPerDagPlc = $flooredPerDag;
+                $total_cycles = array_sum($flooredPerDag);
+            }
 
             if ($total_cycles === 0) $total_cycles = count($cycles);
             // Natt-idle-fallback BORTTAGEN: span av första-sista cykel inkluderar natt-idle.
@@ -2883,6 +2927,8 @@ class TvattlinjeController {
 
                 // B: På SR-dagar får totalen ALDRIG understiga rapporterad ok+ej_ok-bas — PLC-max kan
                 // vara < SR-summan (06-25: PLC 95 men ok 101+ej_ok 16=117 → "95 IBC varav 101 OK").
+                // B3: SAMMA golv som plcIbcWithSrFloor() (max(PLC, SR) på SR-dagar) — här inline
+                // eftersom raden redan bär både ibc_max och sr_total_ibc från kombinerad SQL.
                 if (!$isPlcOnly) {
                     $tot = max((int)($r['ibc_max'] ?? 0), $srTot);
                 }
