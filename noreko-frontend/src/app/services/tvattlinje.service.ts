@@ -173,6 +173,13 @@ export class TvattlinjeService {
     ).pipe(timeout(20000), retry(1), catchError(() => of(null)));
   }
 
+  getWeekdayGoals(): Observable<any> {
+    return this.http.get<any>(
+      `${environment.apiUrl}?action=tvattlinje&run=weekday-goals`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  }
+
   getRastStatus(): Observable<any> {
     return this.http.get<RastStatusResponse>(
       `${environment.apiUrl}?action=tvattlinje&run=rast`,

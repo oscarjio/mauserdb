@@ -67,6 +67,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   avgEfficiency: number | null = null;
   totalRuntimeHours: number = 0;
   targetCycleTime: number = 0;
+  // Veckodagsmål (IBC/dag) från admin-config, indexerat 0=mån..6=sön. Källa:
+  // ?action=tvattlinje&run=weekday-goals (tabell tvattlinje_weekday_goals). Fallback
+  // vardag 140 / helg 0 tills endpointen svarat. Målet är INTE hårdkodat 140.
+  weekdayGoals: number[] = [140, 140, 140, 140, 140, 0, 0];
 
   productionChart: Chart | null = null;
   tableData: TableRow[] = [];
@@ -187,6 +191,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.updateBreadcrumb();
     this.generatePeriodCells();
     this.syncStateToUrl(true);
+    this.loadWeekdayGoals();
     this.loadStatistics();
     this.loadOeeTrend();
     // Statistik-vyn visar aggregerad historik som knappt ändras minut-till-minut,
@@ -910,6 +915,34 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     }
     if (firstRunMin === null) { this.dayLongestStopMinutes = 0; this.dayUtilizationPct = 0; return; }
 
+    // EXTRA FIX 2: onoff.running går till 0 BÅDE vid rast och vid verkligt driftstopp, så dagens
+    // rast (t.ex. 52 min) mislabelas annars som "Längsta Stopp" trots tom tvattlinje_driftstopp.
+    // Bygg rast-perioder (minut-på-dygnet, samma enhet som onoff) och dra bort rast-overlappet
+    // från varje stopp-gap → gap som helt är rast blir 0.
+    const rastPeriods: Array<{ start: number; end: number }> = [];
+    {
+      const rastEvents = (data.rast_events || [])
+        .map((e: any) => {
+          const m = /(\d{2}):(\d{2})/.exec(e.datum || '');
+          const minOfDay = m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 0;
+          return { min: minOfDay, status: (e.rast_status == 1 || e.rast_status === '1') };
+        })
+        .sort((a: any, b: any) => a.min - b.min);
+      let rStart: number | null = null;
+      for (const rev of rastEvents) {
+        if (rev.status && rStart === null) rStart = rev.min;
+        else if (!rev.status && rStart !== null) { rastPeriods.push({ start: rStart, end: rev.min }); rStart = null; }
+      }
+    }
+    const rastOverlapMin = (a: number, b: number): number => {
+      let ov = 0;
+      for (const p of rastPeriods) {
+        const s = Math.max(a, p.start), e = Math.min(b, p.end);
+        if (e > s) ov += e - s;
+      }
+      return ov;
+    };
+
     let totalRunMinutes = 0;
     let longestStop = 0;
     let currentRunning = false;
@@ -923,7 +956,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       } else if (!currentRunning && ev.running) {
         if (stopStart !== null) {
           const stopDur = ev.min - stopStart;
-          if (stopDur > longestStop) longestStop = stopDur;
+          // Dra bort rast-overlappet: ett gap som helt är rast → netto 0 (ingen falsk stopp-badge).
+          const netStopDur = Math.max(0, stopDur - rastOverlapMin(stopStart, ev.min));
+          if (netStopDur > longestStop) longestStop = netStopDur;
         }
         runStartMin = ev.min;
         currentRunning = true;
@@ -1390,16 +1425,14 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         const chart = this.productionChart;
         const newLabels: string[] = cd.labels;
         const prevLen = chart.data.labels?.length ?? 0;
+        // Stapeln = antal IBC (cycleCountArr) sedan FIX B — inte effektivitet. Prioritera
+        // cycleCountArr så silent-polls inte återställer staplarna till effektivitetsvärden.
         if (newLabels.length !== prevLen) {
           chart.data.labels = newLabels;
-          chart.data.datasets.forEach((ds: any, i: number) => {
-            ds.data = cd.datasets?.[i]?.data ?? cd.efficiencyArr ?? cd.cycleCountArr ?? [];
-          });
-        } else {
-          chart.data.datasets.forEach((ds: any, i: number) => {
-            ds.data = cd.datasets?.[i]?.data ?? cd.efficiencyArr ?? cd.cycleCountArr ?? [];
-          });
         }
+        chart.data.datasets.forEach((ds: any, i: number) => {
+          ds.data = cd.datasets?.[i]?.data ?? cd.cycleCountArr ?? cd.efficiencyArr ?? [];
+        });
         chart.update('none');
         return;
       } catch { /* fall through to full recreate */ }
@@ -1430,6 +1463,49 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
       this.createChart(ctx, chartData);
     }, 150);
+  }
+
+  /**
+   * Laddar veckodagsmålen från admin-config (tvattlinje_weekday_goals). Fyller
+   * this.weekdayGoals (0=mån..6=sön). Vid fel behålls fallback vardag 140/helg 0.
+   * När målen anländer efter första chart-render ritas stapeldiagrammet om från cache.
+   */
+  private loadWeekdayGoals(): void {
+    this.tvattlinjeService.getWeekdayGoals()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const arr = [...this.weekdayGoals];
+          res.data.forEach((item: any) => {
+            const wd = Number(item.weekday);
+            if (wd >= 0 && wd <= 6) arr[wd] = Number(item.mal) || 0;
+          });
+          this.weekdayGoals = arr;
+          // Rita om stapeldiagrammet (månad/år) med korrekta mål — full recreate (silent=false)
+          // så mål-linje-pluginens closure byggs om med nya goalData. Ingen ny fetch.
+          if (this.viewMode !== 'day' && this.lastStatisticsData) {
+            this.updateChart(this.lastStatisticsData, false);
+          }
+        }
+        // annars: behåll fallback (vardag 140 / helg 0)
+      });
+  }
+
+  /** Dagsmål (IBC) för ett datum via veckodag. JS getDay 0=sön..6=lör → config 0=mån..6=sön. */
+  private goalForDate(d: Date): number {
+    const cfgWd = (d.getDay() + 6) % 7;
+    return this.weekdayGoals[cfgWd] ?? 0;
+  }
+
+  /** Summa av arbetsdagsmål (mål>0) för alla dagar i en månad — årsvyns månadsmål. */
+  private monthWorkdayGoalSum(year: number, monthIdx: number): number {
+    const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+    let sum = 0;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const g = this.goalForDate(new Date(year, monthIdx, day));
+      if (g > 0) sum += g;
+    }
+    return sum;
   }
 
   prepareChartData(data: any) {
@@ -1636,6 +1712,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const efficiencyArr: number[] = [];
     const cycleCountArr: number[] = [];
     const hasReportArr: boolean[] = [];
+    const goalArr: number[] = []; // dagsmål (IBC) per stapel från veckodagsmål; 0 = ingen mållinje (helg)
     const target = this.targetCycleTime || 3;
     const monthViewSimple = this.viewMode === 'month' && this.selectedPeriods.length < 2;
     const yearView = this.viewMode === 'year';
@@ -1650,23 +1727,30 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     slicedEntries.forEach(([key, value]) => {
       let count: number;
       let hasReport = true;
+      let goal = 0;
       if (monthViewSimple) {
         const day = parseInt(key, 10);
         const dayKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         hasReport = dayKey in this.ibcPerDag;
         count = hasReport ? this.ibcPerDag[dayKey] : 0;
+        if (!isNaN(day)) goal = this.goalForDate(new Date(this.currentYear, this.currentMonth, day));
       } else if (yearView) {
         const monthIdx = this.monthNames.findIndex(n => n.substring(0, 3) === key);
         hasReport = monthIdx >= 0 && monthIdx in ibcPerMonth;
         count = hasReport ? ibcPerMonth[monthIdx] : 0;
+        if (monthIdx >= 0) goal = this.monthWorkdayGoalSum(this.currentYear, monthIdx);
       } else {
         // BUGG G: räkna en IBC per cykelrad (samma semantik som buildShiftSummaries).
         // Tidigare: Math.max(ibc_count) - Math.min(ibc_count) på den KUMULATIVA räknaren
         // gav fence-post-fel och exploderade vid PLC-nollställning inuti bucketen.
         count = value.cycles.length;
+        // Månad-timvy/multival: härled datum från första cykeln för dagsmålet.
+        const c0 = value.cycles && value.cycles[0];
+        if (c0 && c0.datum) goal = this.goalForDate(this.parseDatum(c0.datum));
       }
       cycleCountArr.push(count);
       hasReportArr.push(hasReport);
+      goalArr.push(goal);
       if (count > 0) {
         const validTimes: number[] = value.cycleTime;
         if (validTimes.length > 0) {
@@ -1681,7 +1765,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       }
     });
 
-    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, efficiencyArr, cycleCountArr, hasReportArr };
+    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, efficiencyArr, cycleCountArr, hasReportArr, goalArr };
   }
 
   /** Förbereder dag-vy chart med per-cykel-data och rullande effektivitet */
@@ -1728,9 +1812,21 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     });
     if (cur) runningPeriods.push(cur);
 
-    const validTimes = cycleTimeData.filter(t => !isNaN(t) && t > 0 && t <= 30);
+    // EXTRA FIX 1B: exkludera cykler vars datum infaller i en rast-period från snittet och
+    // avgCycleTime-linjen. En rast mellan två IBC ger ett rått gap (t.ex. 19-min rast-spik vid
+    // 08:58) som annars räknas som "cykel" och blåser upp snittcykeltiden. Matchar backendens
+    // redan patchade avg_cycle_time (som hoppar över cykler som överlappar rast/driftstopp).
+    const rastPeriodsMs = pausePeriods; // buildPausePeriods (ms) — samma som körperiod-logiken ovan
+    const inRast = (c: any): boolean => {
+      const ms = this.parseDatum(c.datum).getTime();
+      return rastPeriodsMs.some(p => ms >= p.start && ms <= p.end);
+    };
+    const validTimes = displayCycles
+      .filter((c: any) => !inRast(c))
+      .map((c: any) => parseFloat(c.cycle_time))
+      .filter((t: number) => !isNaN(t) && t > 0 && t <= 30);
     const overallAvg = validTimes.length > 0
-      ? Math.round(validTimes.reduce((a, b) => a + b, 0) / validTimes.length * 10) / 10
+      ? Math.round(validTimes.reduce((a: number, b: number) => a + b, 0) / validTimes.length * 10) / 10
       : 0;
     const avgCycleTime = displayCycles.map(() => overallAvg > 0 ? overallAvg : null);
 
@@ -1948,11 +2044,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       return '#dc3545';
     });
 
-    // Dagsmål (IBC/dag) — bara relevant i månadsvy (dagsstaplar), inte i årsvy (månadssummor).
-    const DAILY_GOAL = 140;
-    const showGoalLine = this.viewMode === 'month';
+    // Dagsmål (IBC) per stapel från admin-config (veckodagsmål, tvattlinje_weekday_goals).
+    // goalData[i]=0 → ingen mållinje (helg). Målet är INTE hårdkodat 140. Årsvyn har
+    // månadssumma av arbetsdagsmål; månadsvyn har dagens veckodagsmål.
+    const goalData: number[] = chartData.goalArr || [];
+    const maxGoal = Math.max(...goalData.filter(v => isFinite(v) && v > 0), 0);
     const maxCount = Math.max(...countData.filter(v => isFinite(v)), 0);
-    const suggestedMax = Math.max(maxCount, showGoalLine ? DAILY_GOAL : 0) * 1.15;
+    const suggestedMax = Math.max(maxCount, maxGoal) * 1.15;
 
     if (this.productionChart) { try { this.productionChart.destroy(); } catch (e) {} }
 
@@ -2024,30 +2122,48 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         afterDatasetsDraw: (chart: any) => {
           const { ctx: c, chartArea, scales } = chart;
           if (!chartArea) return;
-          // Mål-referenslinje vid dagsmålet (140 IBC), streckad — bara i månadsvy.
           const yScale = scales['y'];
-          if (showGoalLine && yScale) {
-            const yGoal = yScale.getPixelForValue(DAILY_GOAL);
-            if (yGoal >= chartArea.top && yGoal <= chartArea.bottom) {
-              c.save();
-              c.beginPath();
-              c.setLineDash([6, 4]);
-              c.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-              c.lineWidth = 1.5;
-              c.moveTo(chartArea.left, yGoal);
-              c.lineTo(chartArea.right, yGoal);
-              c.stroke();
-              c.fillStyle = 'rgba(255, 255, 255, 0.6)';
-              c.font = '10px sans-serif';
-              c.textAlign = 'right';
-              c.textBaseline = 'bottom';
-              c.fillText(`Mål ${DAILY_GOAL}`, chartArea.right - 4, yGoal - 3);
-              c.restore();
-            }
-          }
-          // IBC-antal ovanpå varje stapel
           const meta = chart.getDatasetMeta(0);
           if (!meta?.data) return;
+
+          // Stegad mål-referenslinje per stapel från admin-config-veckodagsmål. Ritar INGEN
+          // linje för dagar/månader med mål=0 (helg utan mål). goalData[i] = staplarnas index.
+          if (yScale) {
+            c.save();
+            c.setLineDash([6, 4]);
+            c.strokeStyle = 'rgba(255, 200, 80, 0.85)';
+            c.lineWidth = 1.5;
+            let lastGoalIdx = -1;
+            meta.data.forEach((bar: any, i: number) => {
+              const goal = goalData[i] || 0;
+              if (goal <= 0) return;
+              const yGoal = yScale.getPixelForValue(goal);
+              if (yGoal < chartArea.top || yGoal > chartArea.bottom) return;
+              const halfW = (bar.width ?? 12) / 2 + 1;
+              c.beginPath();
+              c.moveTo(bar.x - halfW, yGoal);
+              c.lineTo(bar.x + halfW, yGoal);
+              c.stroke();
+              lastGoalIdx = i;
+            });
+            c.restore();
+            // Etikett för målnivån vid högraste synliga målstapeln.
+            if (lastGoalIdx >= 0) {
+              const g = goalData[lastGoalIdx];
+              const yG = yScale.getPixelForValue(g);
+              if (yG >= chartArea.top && yG <= chartArea.bottom) {
+                c.save();
+                c.fillStyle = 'rgba(255, 200, 80, 0.9)';
+                c.font = '10px sans-serif';
+                c.textAlign = 'right';
+                c.textBaseline = 'bottom';
+                c.fillText(`Mål ${g}`, chartArea.right - 4, yG - 3);
+                c.restore();
+              }
+            }
+          }
+
+          // IBC-antal ovanpå varje stapel
           c.save();
           c.font = 'bold 11px sans-serif';
           c.textAlign = 'center';

@@ -1899,15 +1899,10 @@ class TvattlinjeController {
                 }
             }
 
-            // netRuntimeMinutes: när källan är skiftrapport/per_dag (D4007 resp runtime_plc) är BÅDE
-            // rast OCH driftstopp redan exkluderade — PLC:n tickar inte körtid under stopp/rast.
-            // Dra INTE av dem igen (dubbelavdrag nollade drifttiden). Bara onoff-spannet (wall-clock)
-            // innehåller rast+stopp och ska dra av dem.
-            if ($runtimeSource === 'skiftrapport' || $runtimeSource === 'per_dag') {
-                $netRuntimeMinutes = $totalRuntimeMinutes;
-            } else {
-                $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);
-            }
+            // netRuntimeMinutes: dra ALLTID av rast + driftstopp. Antagandet att D4007/runtime_plc
+            // redan var netto stämde inte i praktiken — dag 2026-08-03 visade 7.9h körtid mot ~7.4h
+            // faktiskt (52 min rast medräknad i drifttiden). max(0,...) klämmer resultatet till >=0.
+            $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);
             $total_runtime_hours = $netRuntimeMinutes / 60;
 
             // Snitt cykeltid — A: exkludera cykler vars wall-clock-gap överlappar ett rast-/
