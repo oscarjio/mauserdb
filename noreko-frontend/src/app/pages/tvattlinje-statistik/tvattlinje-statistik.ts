@@ -1900,25 +1900,26 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const countData: number[] = chartData.cycleCountArr || [];
     const hasReport: boolean[] = chartData.hasReportArr || effData.map(() => true);
 
-    // Signerad skala: >0 snabbare än mål (grön), <0 långsammare (röd), =0 vid mål (neutral).
+    // HÖJD = antal IBC (produktionsvolym). FÄRG = hur skiftet gick (effektivitet mot mål):
+    // grön eff>=0, gul -10<=eff<0, röd eff<-10, grå = ingen inskickad skiftrapport.
     const barColors = effData.map((eff: number, i: number) => {
       if (!hasReport[i]) return 'rgba(80, 80, 80, 0.25)';
-      if (eff > 0) return 'rgba(39, 174, 96, 0.75)';
-      if (eff < 0) return 'rgba(220, 53, 69, 0.65)';
-      return 'rgba(100, 100, 100, 0.3)';
+      if (eff >= 0) return 'rgba(39, 174, 96, 0.75)';
+      if (eff >= -10) return 'rgba(255, 193, 7, 0.75)';
+      return 'rgba(220, 53, 69, 0.7)';
     });
     const barBorderColors = effData.map((eff: number, i: number) => {
       if (!hasReport[i]) return '#444';
-      if (eff > 0) return '#27ae60';
-      if (eff < 0) return '#dc3545';
-      return '#555';
+      if (eff >= 0) return '#27ae60';
+      if (eff >= -10) return '#ffc107';
+      return '#dc3545';
     });
 
-    const finite = effData.filter(v => isFinite(v));
-    const maxEff = Math.max(...finite, 0);
-    const minEff = Math.min(...finite, 0);
-    const yMax = Math.max(maxEff + 10, 20);
-    const yMin = Math.min(minEff - 10, -20);
+    // Dagsmål (IBC/dag) — bara relevant i månadsvy (dagsstaplar), inte i årsvy (månadssummor).
+    const DAILY_GOAL = 140;
+    const showGoalLine = this.viewMode === 'month';
+    const maxCount = Math.max(...countData.filter(v => isFinite(v)), 0);
+    const suggestedMax = Math.max(maxCount, showGoalLine ? DAILY_GOAL : 0) * 1.15;
 
     if (this.productionChart) { try { this.productionChart.destroy(); } catch (e) {} }
 
@@ -1927,8 +1928,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       data: {
         labels: chartData.labels,
         datasets: [{
-          label: 'Effektivitet %',
-          data: effData,
+          label: 'Antal IBC',
+          data: countData,
           backgroundColor: barColors,
           borderColor: barBorderColors,
           borderWidth: hasReport.map((r: boolean) => r ? 1 : 2),
@@ -1940,10 +1941,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        onClick: (_event: any, elements: any[]) => {
-          if (elements.length > 0) {
-            const idx = elements[0].index;
-            this.onBarChartClick(idx, chartData);
+        // Hela dagens kolumn är klickbar — även siffran/tomrummet ovanför en liten stapel.
+        onClick: (event: any, _elements: any[], chart: any) => {
+          const pts = chart.getElementsAtEventForMode(event, 'index', { intersect: false }, false);
+          if (pts && pts.length > 0) {
+            this.onBarChartClick(pts[0].index, chartData);
           }
         },
         plugins: {
@@ -1963,9 +1965,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
                 const idx = context.dataIndex;
                 const eff = effData[idx] || 0;
                 const count = countData[idx] || 0;
-                if (!hasReport[idx]) return ['Ej rapporterad (ingen skiftrapport)'];
-                const effStatus = eff > 0 ? ' (över mål)' : eff < 0 ? ' (under mål)' : ' (vid mål)';
-                return [`Effektivitet: ${eff > 0 ? '+' : ''}${eff}%${effStatus}`, `Antal IBC: ${count} st`];
+                if (!hasReport[idx]) return [`Antal IBC: ${count} st`, 'Ej rapporterad (ingen skiftrapport)'];
+                const effStatus = eff >= 0 ? ' (över/vid mål)' : eff >= -10 ? ' (nära mål)' : ' (under mål)';
+                return [`Antal IBC: ${count} st`, `Effektivitet: ${eff > 0 ? '+' : ''}${eff}%${effStatus}`];
               }
             }
           }
@@ -1973,10 +1975,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         scales: {
           y: {
             beginAtZero: true,
-            suggestedMin: yMin,
-            suggestedMax: yMax,
-            title: { display: true, text: 'Effektivitet mot mål (%)', color: '#e0e0e0', font: { size: 13 } },
-            ticks: { color: '#a0a0a0', callback: (v: string | number) => (Number(v) > 0 ? '+' : '') + v + '%' },
+            suggestedMax: suggestedMax,
+            title: { display: true, text: 'Antal IBC', color: '#e0e0e0', font: { size: 13 } },
+            ticks: { color: '#a0a0a0', precision: 0 },
             grid: { color: 'rgba(255, 255, 255, 0.05)' }
           },
           x: {
@@ -1990,24 +1991,24 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         afterDatasetsDraw: (chart: any) => {
           const { ctx: c, chartArea, scales } = chart;
           if (!chartArea) return;
-          // Mål-referenslinje vid 0 % avvikelse (= exakt måltakt).
+          // Mål-referenslinje vid dagsmålet (140 IBC), streckad — bara i månadsvy.
           const yScale = scales['y'];
-          if (yScale) {
-            const y0 = yScale.getPixelForValue(0);
-            if (y0 >= chartArea.top && y0 <= chartArea.bottom) {
+          if (showGoalLine && yScale) {
+            const yGoal = yScale.getPixelForValue(DAILY_GOAL);
+            if (yGoal >= chartArea.top && yGoal <= chartArea.bottom) {
               c.save();
               c.beginPath();
               c.setLineDash([6, 4]);
               c.strokeStyle = 'rgba(255, 255, 255, 0.4)';
               c.lineWidth = 1.5;
-              c.moveTo(chartArea.left, y0);
-              c.lineTo(chartArea.right, y0);
+              c.moveTo(chartArea.left, yGoal);
+              c.lineTo(chartArea.right, yGoal);
               c.stroke();
-              c.fillStyle = 'rgba(255, 255, 255, 0.5)';
+              c.fillStyle = 'rgba(255, 255, 255, 0.6)';
               c.font = '10px sans-serif';
               c.textAlign = 'right';
               c.textBaseline = 'bottom';
-              c.fillText('Mål (0%)', chartArea.right - 4, y0 - 3);
+              c.fillText(`Mål ${DAILY_GOAL}`, chartArea.right - 4, yGoal - 3);
               c.restore();
             }
           }

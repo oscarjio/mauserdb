@@ -624,11 +624,77 @@ class TvattlinjeController {
                 $ibcWeighted += $ibc * $cycle;
                 $ibcTotal    += $ibc;
             }
-            return $ibcTotal > 0 ? $ibcWeighted / $ibcTotal : $fallback;
+            if ($ibcTotal > 0) {
+                return $ibcWeighted / $ibcTotal;
+            }
+            // FIX A: Ingen inskickad skiftrapport för perioden (t.ex. pågående dag).
+            // Frikoppla INTE måltakten från körd produkt — vikta den mot produkten
+            // som körs på PLC-raderna i tvattlinje_ibc. takt_mal används ENBART om
+            // ingen produktkoppling alls finns. Speglar skiftrapportens produkt-cykel.
+            return $this->plcWeightedTargetCycleTvattlinje($start, $end, $cycleById, $fallback);
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::weightedTargetCycleTvattlinje: ' . $e->getMessage());
             return $fallback;
         }
+    }
+
+    /**
+     * FIX A: IBC-viktad mål-cykeltid (min/IBC) från PLC-data när ingen skiftrapport
+     * finns för perioden (pågående dag). Viktar produkternas cycle_time_minutes mot
+     * producerad IBC per produkt (MAX(ibc_ok) per skift, summerat). Om ingen IBC ännu
+     * producerats (dagen precis startad) används senast körda produktens cykeltid.
+     * $fallback (settings takt_mal) returneras ENBART om ingen produktkoppling finns.
+     */
+    private function plcWeightedTargetCycleTvattlinje(string $start, string $end, array $cycleById, float $fallback): float {
+        try {
+            // IBC producerat per produkt: MAX(ibc_ok) per skift, summerat över perioden.
+            $stmt = $this->pdo->prepare("
+                SELECT produkt, COALESCE(SUM(shift_ibc), 0) AS ibc
+                FROM (
+                    SELECT COALESCE(skiftraknare, 0) AS sk, produkt, MAX(ibc_ok) AS shift_ibc
+                    FROM tvattlinje_ibc
+                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                      AND produkt IS NOT NULL
+                    GROUP BY COALESCE(skiftraknare, 0), produkt
+                ) t
+                GROUP BY produkt
+            ");
+            $stmt->execute(['s' => $start, 'e' => $end]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $ibcWeighted = 0.0;
+            $ibcTotal    = 0;
+            foreach ($rows as $r) {
+                $ibc   = (int)$r['ibc'];
+                $cycle = $cycleById[(int)$r['produkt']] ?? null;
+                if ($ibc <= 0 || $cycle === null || $cycle <= 0) continue;
+                $ibcWeighted += $ibc * $cycle;
+                $ibcTotal    += $ibc;
+            }
+            if ($ibcTotal > 0) {
+                return $ibcWeighted / $ibcTotal;
+            }
+
+            // Ingen producerad IBC ännu (pågående dag precis startad):
+            // använd senast körda produktens registrerade cykeltid.
+            $latest = $this->pdo->prepare("
+                SELECT produkt
+                FROM tvattlinje_ibc
+                WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                  AND produkt IS NOT NULL
+                ORDER BY datum DESC, id DESC
+                LIMIT 1
+            ");
+            $latest->execute(['s' => $start, 'e' => $end]);
+            $pid = $latest->fetchColumn();
+            if ($pid !== false && $pid !== null && isset($cycleById[(int)$pid])) {
+                return $cycleById[(int)$pid];
+            }
+        } catch (\Throwable $e) {
+            error_log('TvattlinjeController::plcWeightedTargetCycleTvattlinje: ' . $e->getMessage());
+        }
+        // Ingen produktkoppling finns → takt_mal.
+        return $fallback;
     }
 
     /**
