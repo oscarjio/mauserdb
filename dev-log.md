@@ -7074,3 +7074,11 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 - EXTRA FIX 1B (frontend preparePerCycleChartData): snittcykeltid/avgCycleTime-linje exkluderar nu cykler vars datum ligger i rast-period (buildPausePeriods ms) -> 19-min rast-spik blåser inte längre upp snittet. Matchar backendens patchade avg_cycle_time.
 - EXTRA FIX 2 (frontend computeDayMetrics): "Längsta Stopp" räknade rast som stopp (onoff.running=0 vid både rast och driftstopp). Bygger rast-perioder (minut-på-dygnet) och drar bort rast-overlap: netStopDur=max(0,stopDur-rastOverlap). Gap som helt är rast -> 0. Ingen backend-ändring.
 - Bundle chunk-BM5BCXDJ.js (goalArr/monthWorkdayGoalSum/rastOverlapMin), service-chunk (weekday-goals). Backend deployat. Livesidorna orörda.
+
+## 2026-08-04 — Tvattlinje 5-fix (diff-nivå, HEAD 98db2ee → 2d90390)
+- FIX3 ✅ deployad+verifierad: helgmål lör/sön tvingas till 0 i ensureWeekdayGoalsTable (spök-lördag=60 rensad, dev-DB bekräftad 60→0). Ingen mållinje på helg.
+- FIX5 ✅ byggd+deployad: dag-vyns snitt/eff/körtid exkluderar rast-överlappande cykler (speglar inRast). IBC-antal oförändrat.
+- FIX1 ✅ committad: TvattLinje.php sätter sent_inskickad=1 för efterregistrerade skift (guardad UPDATE). OBS plcbackend deployas till Pi av ägaren.
+- FIX2 ✅ byggd+deployad: badge "Efterregistrerad" (desktop+mobil) i shared-skiftrapport.
+- FIX4 ✅ verifierad, ingen ändring: dev-DB visar ibc_count nollställs per dag (igår 1→161, idag 1→138). Pi kör korrekt kod, ingen omdeploy behövs.
+- php -l rent på båda PHP-filer. Frontend byggd av watch utan fel. Pushad till main.
