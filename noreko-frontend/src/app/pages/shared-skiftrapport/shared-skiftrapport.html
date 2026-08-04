@@ -460,6 +460,7 @@
                               </span>
                               <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported" class="badge bg-secondary" style="font-size:.65em;">#{{ si + 1 }}</span>
                               <span *ngIf="isLateSubmission(report.id)" class="badge bg-secondary ms-1" style="font-size:.65em;" title="Rapporten skickades in mer än 2h efter sista cykeln">Sent</span>
+                              <span *ngIf="report.sent_inskickad == 1" class="badge bg-warning text-dark ms-1" style="font-size:.65em;" title="Rapporterad i efterhand, bokförd på produktionsdatumet">Efterregistrerad</span>
                               <span *ngIf="report.flerdagars == 1" class="badge bg-warning text-dark ms-1" style="font-size:.65em;"
                                 [title]="'Täcker ' + formatPeriodDate(report.period_start) + '–' + formatPeriodDate(report.period_end)">
                                 Sen rapport · {{ report.antal_dagar }} dagar
@@ -1132,6 +1133,7 @@
                         <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && !((report.drifttid == 0 || report.drifttid == null) && (report.totalt == 0 || report.totalt == null))" class="badge bg-success" style="font-size:.65rem;"><i class="fas fa-check me-1"></i>Inskickad</span>
                         <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported && (report.drifttid == 0 || report.drifttid == null) && (report.totalt == 0 || report.totalt == null)" class="badge bg-secondary" style="font-size:.65rem;" title="Rapporten saknar drifttid och produktionsdata"><i class="fas fa-question-circle me-1"></i>Ofullständig</span>
                         <span *ngIf="!report._isDagligSlice && !report.isPreliminary && !report.isUnreported" class="badge bg-secondary" style="font-size:.6rem;">#{{ si + 1 }}</span>
+                        <span *ngIf="report.sent_inskickad == 1" class="badge bg-warning text-dark" style="font-size:.6rem;" title="Rapporterad i efterhand, bokförd på produktionsdatumet">Efterregistrerad</span>
                         <span *ngIf="report.flerdagars == 1" class="badge bg-warning text-dark" style="font-size:.6rem;">Sen · {{ report.antal_dagar }}d</span>
                       </div>
                       <span class="text-info small">{{ getShiftTid(report) }}</span>
