@@ -2326,6 +2326,14 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const dsPeriods = buildPeriods(data.driftstopp_events || [],
       e => e.status === 'start' || e.driftstopp_status == 1);
 
+    // FIX5: dag-vyn — en cykel vars tidsstämpel infaller i en rast-period är ett rått gap
+    // (t.ex. 19-min rast-spik) och inte en riktig cykel. Speglar inRast() i
+    // preparePerCycleChartData så snittcykeltid/effektivitet/körtid inte blåses upp.
+    const inRastDay = (c: any): boolean => {
+      const min = toMinFromStr(c.datum);
+      return rastPeriods.some(([a, b]) => min >= a && min <= b);
+    };
+
     // Epoch-minuters perioder för flerdag-vyer (month/year)
     const rastPeriodsEpoch = buildPeriodsEpoch(data.rast_events || [], e => e.rast_status == 1);
     const dsPeriodsEpoch   = buildPeriodsEpoch(data.driftstopp_events || [],
@@ -2422,7 +2430,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         dsMin   = Math.round(overlapMin(dsPeriods, winStart, winEnd) * 10) / 10;
       }
 
-      const validCycleTimes = cycles.map(c => parseFloat(c.cycle_time)).filter(t => !isNaN(t) && t > 0 && t <= 30);
+      // Dag-vyn: exkludera rast-överlappande cykler INNAN snitt/effektivitet/körtid beräknas.
+      // IBC-antalet (rowIbc nedan) räknar fortfarande alla cykler — bara snittet rensas.
+      const cyclesForAvg = this.viewMode === 'day' ? cycles.filter(c => !inRastDay(c)) : cycles;
+      const validCycleTimes = cyclesForAvg.map(c => parseFloat(c.cycle_time)).filter(t => !isNaN(t) && t > 0 && t <= 30);
       const avgCycleTime = validCycleTimes.length > 0
         ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length : 0;
       const taktMal = this.targetCycleTime || 3;
