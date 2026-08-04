@@ -503,6 +503,9 @@ class TvattlinjeController {
             $stmt->execute([$wd, $mal]);
         }
         $this->pdo->exec("UPDATE tvattlinje_weekday_goals SET mal=140 WHERE weekday IN (0,1,2,3,4) AND mal=80");
+        // Rensa spök-helgmål: äldre seed la lördag=60 (INSERT IGNORE skriver aldrig över
+        // befintlig rad). Helg ska alltid vara 0 så ingen mållinje ritas lör/sön.
+        $this->pdo->exec("UPDATE tvattlinje_weekday_goals SET mal=0 WHERE weekday IN (5,6)");
     }
 
     private function getWeekdayGoals() {
