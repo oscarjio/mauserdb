@@ -537,6 +537,9 @@ class TvattLinje {
         // Skiftdatum = periodens startdag (verkligt skiftdatum); fallback inskicksdag om
         // ingen PLC-period kunde härledas.
         $datum = $periodStart ? date('Y-m-d', strtotime($periodStart)) : date('Y-m-d');
+        // Efterregistrering: rapporten skickas in en annan dag än produktionsdatumet
+        // (t.ex. gårdagsskift bokfört på gårdagen). Flaggas för UI-badge.
+        $sentInskickad = ($datum !== date('Y-m-d')) ? 1 : 0;
 
         $stmt = $this->db->prepare('
             INSERT INTO tvattlinje_skiftrapport (
@@ -568,6 +571,12 @@ class TvattLinje {
             'skiftraknare'   => $skiftraknare,
         ]);
         $skiftrapportId = (int)$this->db->lastInsertId();
+        // Sätt efterregistrerings-flaggan separat så en saknad kolumn (äldre schema)
+        // aldrig fäller själva rapport-inserten.
+        try {
+            $this->db->prepare("UPDATE tvattlinje_skiftrapport SET sent_inskickad=:si WHERE id=:id")
+                     ->execute(['si' => $sentInskickad, 'id' => $skiftrapportId]);
+        } catch (\Throwable $e) {}
         $this->log('handleSkiftrapport', "DB INSERT OK", [
             'id'            => $skiftrapportId,
             'datum'         => $datum,
