@@ -266,7 +266,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   private _computeEfficiencyPct(r: any): number | null {
     const totalt   = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
-    const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600));
+    // NET körtid (drifttid − rast − driftstopp) delat på IBC = faktisk cykel. Tidigare RÅ
+    // drifttid inkl. rast → för låg EFF (skiftrapport +15% vs dagvy +25%). Nu samma bas.
+    const netMin   = this.getNetDrifttidMin(r);
     if (totalt <= 0 || netMin <= 0) return null;
     // BUG2a/A: korrupt/kumulativ drifttid (>=600 min = 10h+, eller > skiftets spann) -> okänd
     // cykeltid, visa "-" istf absurt negativt. >=600 (inte >600): korrupta dagar landar på EXAKT
@@ -544,8 +546,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   get summaryAvgIbcH(): number | null {
     const reports = this.dedupSnapshots(this.filteredReports);
+    // SNITT min/IBC = faktisk cykel → samma NET-körtidsbas (drifttid − rast − driftstopp) som
+    // summaryAvgEff, annars motsäger de två header-KPI:erna varandra (se T4 i summaryAvgEff).
     const totalNet = reports.reduce(
-      (s, r) => s + Math.max(0, Math.min(r.drifttid || 0, 600)), 0);
+      (s, r) => s + this.getNetDrifttidMin(r), 0);
     const totalIbc = reports.reduce((s, r) => s + (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0))), 0);
     if (totalNet <= 0 || totalIbc <= 0) return null;
     return Math.round(totalNet / totalIbc * 10) / 10;
@@ -603,7 +607,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     let totalIdealMin = 0;
     let totalNettoMin = 0;
     for (const r of reports) {
-      const netMin   = Math.max(0, Math.min(r.drifttid || 0, 600));
+      const netMin   = this.getNetDrifttidMin(r);
       if (netMin <= 0) continue;
       // T4: ALL nettodrift räknas i nämnaren (även poster med 0 IBC förbrukade körtid) — annars
       // motsäger EFFEKTIVITET header-KPI:n SNITT min/IBC (summaryAvgIbcH) som delar på all nettodrift.
@@ -2010,7 +2014,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   getNetDrifttidMin(r: any): number {
-    return Math.max(0, Math.min(r?.drifttid || 0, 600));
+    // Kanonisk regel: NET körtid = drifttid − rast − driftstopp. Rast/driftstopp räknas
+    // ALDRIG som produktionstid. Cappad till 600 min (~10h, ett skift/dag). Detta är den
+    // gemensamma basen för faktisk cykeltid → matchar backendens avg_cycle_time (net/IBC)
+    // och statistiksidans KPI, så EFF blir samma i skiftrapport, dagvy och stapel.
+    const net = (r?.drifttid || 0) - (r?.rasttime || 0) - (r?.driftstopptime || 0);
+    return Math.max(0, Math.min(net, 600));
   }
 
   formatNetDrifttid(r: any): string {

@@ -1512,6 +1512,32 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const cycles = data.cycles || [];
     const onoff = data.onoff_events || [];
 
+    // Pause-intervall (rast + driftstopp) i ms — speglar backendens cycle_times-filter
+    // (TvattlinjeController: en cykel vars gap överlappar en paus räknas ej som körtid).
+    // Används av stapelfärgens EFF nedan så staplarna får SAMMA net-körtid/IBC-bas som
+    // KPI-kortet (backend avg_cycle_time), i stället för medel av per-cykel-deltan.
+    const buildPausesMs = (events: any[], isStart: (e: any) => boolean): [number, number][] => {
+      const out: [number, number][] = [];
+      let start: number | null = null;
+      for (const e of (events || [])) {
+        const ms = this.parseDatum(e.datum).getTime();
+        if (isStart(e) && start === null) { start = ms; }
+        else if (!isStart(e) && start !== null) { out.push([start, ms]); start = null; }
+      }
+      return out;
+    };
+    const pauseIntervalsMs: [number, number][] = [
+      ...buildPausesMs(data.rast_events || [], (e: any) => e.rast_status == 1),
+      ...buildPausesMs(data.driftstopp_events || [], (e: any) => e.status === 'start' || e.driftstopp_status == 1),
+    ];
+    const cycleIsRunning = (c: any): boolean => {
+      const ct = parseFloat(c.cycle_time);
+      if (isNaN(ct) || ct <= 0 || ct > 30) return false;
+      const gapEnd = this.parseDatum(c.datum).getTime();
+      const gapStart = gapEnd - ct * 60000;
+      return !pauseIntervalsMs.some(([a, b]) => gapStart < b && gapEnd > a);
+    };
+
     const grouped = new Map<string, any>();
 
     // Initialize ALL periods first
@@ -1752,14 +1778,16 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       hasReportArr.push(hasReport);
       goalArr.push(goal);
       if (count > 0) {
-        const validTimes: number[] = value.cycleTime;
-        if (validTimes.length > 0) {
-          const avgActual = validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length;
-          // SIGNAD avvikelse mot mål, ingen cap (+ = snabbare, - = långsammare).
-          efficiencyArr.push((target > 0 && avgActual > 0) ? Math.round(((target - avgActual) / target) * 100) : 0);
-        } else {
-          efficiencyArr.push(0);
-        }
+        // Faktisk cykel = NET körtid / IBC (samma bas som backend avg_cycle_time och KPI-kortet):
+        // summera bara cykler vars gap INTE överlappar rast/driftstopp, dela på ALLA cykler i
+        // stapeln. Tidigare: medel av per-cykel-deltan → rast-gap blåste upp snittet och gav
+        // annan EFF än dagvyn/KPI:n. netCycles = värdets PLC-cykler (samma scope i täljare/nämnare).
+        const bucketCycles: any[] = value.cycles || [];
+        const netSum = bucketCycles.reduce((s: number, c: any) => s + (cycleIsRunning(c) ? parseFloat(c.cycle_time) : 0), 0);
+        const denom = bucketCycles.length;
+        const avgActual = denom > 0 ? netSum / denom : 0;
+        // SIGNAD avvikelse mot mål, ingen cap (+ = snabbare, - = långsammare).
+        efficiencyArr.push((target > 0 && avgActual > 0) ? Math.round(((target - avgActual) / target) * 100) : 0);
       } else {
         efficiencyArr.push(0);
       }
