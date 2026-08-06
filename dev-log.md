@@ -7082,3 +7082,6 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 - FIX2 ✅ byggd+deployad: badge "Efterregistrerad" (desktop+mobil) i shared-skiftrapport.
 - FIX4 ✅ verifierad, ingen ändring: dev-DB visar ibc_count nollställs per dag (igår 1→161, idag 1→138). Pi kör korrekt kod, ingen omdeploy behövs.
 - php -l rent på båda PHP-filer. Frontend byggd av watch utan fel. Pushad till main.
+
+## 2026-08-06 — Tvattlinje DATUM+1-fix (TvattLinje.php:539)
+- Fallback-skiftdatum (periodStart null) använde inskicksdag → +1 dygn för morgon-triggade auto-rapporter. Bytt till DATE(MAX(datum)) från tvattlinje_ibc = senaste cykelns verkliga produktionsdag. php -l rent. Committad+pushad (a7f8994). Deploy till Pi gör Oscar.
