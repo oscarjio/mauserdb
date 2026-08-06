@@ -7085,3 +7085,9 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 
 ## 2026-08-06 — Tvattlinje DATUM+1-fix (TvattLinje.php:539)
 - Fallback-skiftdatum (periodStart null) använde inskicksdag → +1 dygn för morgon-triggade auto-rapporter. Bytt till DATE(MAX(datum)) från tvattlinje_ibc = senaste cykelns verkliga produktionsdag. php -l rent. Committad+pushad (a7f8994). Deploy till Pi gör Oscar.
+
+## 2026-08-06 — Tvattlinje EFF-harmonisering (frontend)
+- Rotorsak: tre EFF-vyer använde samma formel men olika "faktisk cykel". Skiftrapport delade RÅ drifttid (inkl rast) på IBC (+15%), dagvy/KPI använder net körtid (drifttid−rast−driftstopp)/IBC (+25.5%).
+- Fix: getNetDrifttidMin() drar nu av rast+driftstopp och är gemensam bas för _computeEfficiencyPct, summaryAvgEff, summaryAvgIbcH + dag-grupp-EFF. Stapelfärg i tvattlinje-statistik använder net körtid/IBC (backend-bas) i st f medel av per-cykel-deltan.
+- Verifierat dev-DB 08-05: backend net 428.3 / 169 = 2.53, mål 3.40 → KPI +25.5%. Skiftrapport net 429/166 = 2.585 → +24% (var +15%). Stapelfärg ~+25% = KPI. Kvarvarande 24 vs 25.5 = enbart IBC-nämnare 166 (SR) vs 169 (PLC), ej formelbugg.
+- OEE-KPI orörd (annan metrik). Backend redan kanonisk → ingen backend/Pi-ändring. Byggd av watch utan fel, pushad (2cc9a0f).
