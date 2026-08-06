@@ -534,9 +534,15 @@ class TvattLinje {
         $periodStart = ($evtRow && $evtRow['first_ts']) ? $evtRow['first_ts'] : null;
         $periodEnd   = ($evtRow && $evtRow['last_ts'])  ? $evtRow['last_ts']  : null;
 
-        // Skiftdatum = periodens startdag (verkligt skiftdatum); fallback inskicksdag om
-        // ingen PLC-period kunde härledas.
-        $datum = $periodStart ? date('Y-m-d', strtotime($periodStart)) : date('Y-m-d');
+        // Skiftdatum = periodens startdag (verkligt skiftdatum). Om ingen PLC-period kunde
+        // härledas, fall tillbaka på SENASTE cykelns dag (verklig produktionsdag) — INTE
+        // inskicksdagen, som ger +1 dygn för morgon-triggade auto-rapporter.
+        if ($periodStart) {
+            $datum = date('Y-m-d', strtotime($periodStart));
+        } else {
+            $fb = $this->db->query("SELECT DATE(MAX(datum)) d FROM tvattlinje_ibc WHERE datum <= NOW()")->fetch(PDO::FETCH_ASSOC);
+            $datum = ($fb && $fb['d']) ? $fb['d'] : date('Y-m-d');
+        }
         // Efterregistrering: rapporten skickas in en annan dag än produktionsdatumet
         // (t.ex. gårdagsskift bokfört på gårdagen). Flaggas för UI-badge.
         $sentInskickad = ($datum !== date('Y-m-d')) ? 1 : 0;
