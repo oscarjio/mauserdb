@@ -304,6 +304,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       // A2: gate på totalIbc, INTE okIbc — en helt kasserad dag (okIbc=0, totalIbc>0)
       // ska ge OEE 0 (via kvalitetsfaktorn), inte null (som dolde dagen helt).
       if (totalIbc <= 0) return null;
+      // Korrupt drifttid (>=600 min eller > skiftspann*1.5) döljs — samma guard som
+      // _computeEfficiencyPct, annars visar per-rad-OEE ett falskt värde från klampad drifttid.
+      if (this._isDrifttidCorrupt(r)) return null;
 
       // Kvalitet: godkända / totalt (kassationsförlust)
       const kvalitet = okIbc / totalIbc;
@@ -569,7 +572,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get summaryAvgOee(): number | null {
-    const reports = this.dedupSnapshots(this.filteredReports);
+    // Exkludera korrupta dagar (samma guard som summaryAvgEff/_computeOeePct) så OEE-header-KPI:n
+    // matchar per-rad-OEE och inte förgiftas av kumulativ/trasig (klampad) drifttid.
+    const reports = this.dedupSnapshots(this.filteredReports).filter(r => !this._isDrifttidCorrupt(r));
     if (!reports.length) return null;
     // Cap drifttid at 600 min (~10h) per report — one shift per day, never 24h
     const cappedDrift     = (r: any) => Math.min(r.drifttid || 0, 600);
