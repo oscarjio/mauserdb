@@ -7091,3 +7091,9 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 - Fix: getNetDrifttidMin() drar nu av rast+driftstopp och är gemensam bas för _computeEfficiencyPct, summaryAvgEff, summaryAvgIbcH + dag-grupp-EFF. Stapelfärg i tvattlinje-statistik använder net körtid/IBC (backend-bas) i st f medel av per-cykel-deltan.
 - Verifierat dev-DB 08-05: backend net 428.3 / 169 = 2.53, mål 3.40 → KPI +25.5%. Skiftrapport net 429/166 = 2.585 → +24% (var +15%). Stapelfärg ~+25% = KPI. Kvarvarande 24 vs 25.5 = enbart IBC-nämnare 166 (SR) vs 169 (PLC), ej formelbugg.
 - OEE-KPI orörd (annan metrik). Backend redan kanonisk → ingen backend/Pi-ändring. Byggd av watch utan fel, pushad (2cc9a0f).
+
+## 2026-08-10 — Tvattlinje: månad-EFF korrupt-dag-exkludering
+- Rotorsak: månadsvyns EFFEKTIVITET (+11.2%) inkluderade korrupta dagar 08-03/08-04 (SR drifttid 1393/1378 klampas till 600) i poolat cykelsnitt, medan skiftrapport per-rad exkluderar dem via _isDrifttidCorrupt → +24/+26/+28.
+- FIX A backend getStatistics: korrupta dagar (dedupad SR-drifttid>=600 OCH >PLC-spann*1.5) dras bort ur netRuntime-täljare + IBC-nämnare innan avg_cycle_time. Per-dag rast/ds ackumuleras för exakt avdrag. TOTAL IBC/drifttid orörda.
+- FIX B frontend: summaryAvgEff + summaryAvgIbcH hoppar över korrupta poster.
+- Verifierat dev 08-01..08-31: EFF +11.1% → +25.1% (avg_cycle 3.02→2.55). 08-03 ensam → EFF null ("-"). 08-05 oförändrad +25.5%. php -l rent, byggd av watch utan fel. Pushad (b87e544).
