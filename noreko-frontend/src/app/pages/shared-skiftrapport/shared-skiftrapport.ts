@@ -545,7 +545,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   get summaryAvgIbcH(): number | null {
-    const reports = this.dedupSnapshots(this.filteredReports);
+    // Exkludera korrupta dagar (samma guard som summaryAvgEff/_computeEfficiencyPct) så SNITT
+    // min/IBC inte förgiftas av kumulativ/trasig drifttid och matchar EFFEKTIVITET-KPI:n.
+    const reports = this.dedupSnapshots(this.filteredReports).filter(r => !this._isDrifttidCorrupt(r));
     // SNITT min/IBC = faktisk cykel → samma NET-körtidsbas (drifttid − rast − driftstopp) som
     // summaryAvgEff, annars motsäger de två header-KPI:erna varandra (se T4 i summaryAvgEff).
     const totalNet = reports.reduce(
@@ -607,6 +609,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     let totalIdealMin = 0;
     let totalNettoMin = 0;
     for (const r of reports) {
+      // Korrupt drifttid (>=600 min eller > skiftspann*1.5) exkluderas — samma guard som per-rad
+      // (_computeEfficiencyPct) så header-KPI:n matchar per-rad-EFF och inte förgiftas av
+      // kumulativa/trasiga dagar (t.ex. 08-03/08-04 med ~1393 min).
+      if (this._isDrifttidCorrupt(r)) continue;
       const netMin   = this.getNetDrifttidMin(r);
       if (netMin <= 0) continue;
       // T4: ALL nettodrift räknas i nämnaren (även poster med 0 IBC förbrukade körtid) — annars

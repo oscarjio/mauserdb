@@ -1853,6 +1853,7 @@ class TvattlinjeController {
 
             // Beräkna rasttid
             $totalRastMinutes = 0;
+            $rastPerDay = []; // dag => rastmin, för att kunna dra bort korrupta dagars rast ur cykelsnittet
             if (count($rast_events) > 0) {
                 $rastStart = null;
                 foreach ($rast_events as $evt) {
@@ -1869,8 +1870,10 @@ class TvattlinjeController {
                         // Guard: PLC auto-stänger ett öppet spann först vid NÄSTA IBC → ett spann
                         // fre 15:00 → mån 06:15 blir ~3855 min. Hoppa över spann som korsar midnatt
                         // eller är längre än 480 min (10h) — det är artefakter, inte verklig rast.
-                        if ($rastStart->format('Y-m-d') === $t->format('Y-m-d') && $spanMin <= 480) {
+                        $rastDay = $rastStart->format('Y-m-d');
+                        if ($rastDay === $t->format('Y-m-d') && $spanMin <= 480) {
                             $totalRastMinutes += $spanMin;
+                            $rastPerDay[$rastDay] = ($rastPerDay[$rastDay] ?? 0) + $spanMin;
                         }
                         $rastStart = null;
                     }
@@ -1879,6 +1882,7 @@ class TvattlinjeController {
 
             // Beräkna driftstopptid
             $totalDriftstoppMinutes = 0;
+            $dsPerDay = []; // dag => driftstoppmin, för korrupt-dag-exkludering i cykelsnittet
             if (count($driftstopp_events) > 0) {
                 $dsStart = null;
                 foreach ($driftstopp_events as $evt) {
@@ -1894,8 +1898,10 @@ class TvattlinjeController {
                         // Guard: PLC auto-stänger ett öppet stopp först vid NÄSTA IBC → ett stopp
                         // fre 15:00 → mån 06:15 blir ~3855 min och nollar TOTAL DRIFTTID. Hoppa över
                         // spann som korsar midnatt eller är längre än 480 min (10h) — artefakter.
-                        if ($dsStart->format('Y-m-d') === $t->format('Y-m-d') && $spanMin <= 480) {
+                        $dsDay = $dsStart->format('Y-m-d');
+                        if ($dsDay === $t->format('Y-m-d') && $spanMin <= 480) {
                             $totalDriftstoppMinutes += $spanMin;
+                            $dsPerDay[$dsDay] = ($dsPerDay[$dsDay] ?? 0) + $spanMin;
                         }
                         $dsStart = null;
                     }
@@ -1923,13 +1929,54 @@ class TvattlinjeController {
                 }
                 if (!$overlapsPause) { $cycle_times[] = $ct; }
             }
-            // Steg3: snittcykeltid = netto-körtid / IBC med SAMMA scope i täljare och nämnare.
-            // netRuntimeMinutes är PLC-brett (byggs per dag över UNIONEN av SR- + PLC-dagar, se
-            // driftStmt) => nämnaren måste också vara PLC-IBC över alla dagar, inte bara SR-IBC.
-            // total_cycles = reset-säker SUM av ibc_count-delta från tvattlinje_ibc = PLC:s IBC-antal.
-            // (Föregående version delade PLC-körtid på SR-IBC => olika scope => uppblåst cykel => -44%.)
-            $avg_cycle_time = $total_cycles > 0
-                ? $netRuntimeMinutes / $total_cycles
+            // FIX (Oscar 2026-08-10): korrupta dagar (dedupad SR-drifttid >= 600 min OCH > PLC-
+            // spann*1.5 = kumulativ/trasig D4007, t.ex. 08-03/08-04 med 1393/1378 min) klampas till
+            // 600 i drift-summan ovan och förgiftar det poolade cykelsnittet (netto/IBC). Per RAD i
+            // skiftrapporten döljs de (_isDrifttidCorrupt), men det poolade månadssnittet inkluderade
+            // dem => månads-EFF (+11%) motsa per-dag (+25%). Dra bort korrupta dagars netto-körtid ur
+            // täljaren OCH deras IBC ur nämnaren INNAN snittet (påverkar ej TOTAL IBC/drifttid-KPI:er).
+            $corruptDays = [];
+            try {
+                $corruptStmt = $this->pdo->prepare("
+                    SELECT sr.dag, sr.raw_drift, plc.span_min
+                    FROM (
+                        SELECT DATE(s.datum) AS dag, SUM(GREATEST(0, COALESCE(s.drifttid, 0))) AS raw_drift
+                        FROM tvattlinje_skiftrapport s
+                        INNER JOIN (
+                            SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
+                            WHERE datum >= :cs AND datum < DATE_ADD(:ce, INTERVAL 1 DAY)
+                            GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                        ) latest ON s.id = latest.max_id
+                        GROUP BY DATE(s.datum)
+                    ) sr
+                    LEFT JOIN (
+                        SELECT DATE(datum) AS dag, TIMESTAMPDIFF(MINUTE, MIN(datum), MAX(datum)) AS span_min
+                        FROM tvattlinje_ibc
+                        WHERE datum >= :cs2 AND datum < DATE_ADD(:ce2, INTERVAL 1 DAY)
+                        GROUP BY DATE(datum)
+                    ) plc ON plc.dag = sr.dag
+                    WHERE sr.raw_drift >= 600
+                      AND (plc.span_min IS NULL OR plc.span_min <= 0 OR sr.raw_drift > plc.span_min * 1.5)
+                ");
+                $corruptStmt->execute(['cs' => $start, 'ce' => $end, 'cs2' => $start, 'ce2' => $end]);
+                foreach ($corruptStmt->fetchAll(\PDO::FETCH_ASSOC) as $cd) {
+                    $corruptDays[$cd['dag']] = (float)$cd['raw_drift'];
+                }
+            } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics corruptDays: ' . $e->getMessage()); }
+
+            // Steg3: snittcykeltid = netto-körtid / IBC med SAMMA scope i täljare och nämnare, med
+            // korrupta dagar borttagna. netRuntimeMinutes är PLC-brett => nämnaren är PLC-IBC.
+            $netForCycle    = $netRuntimeMinutes;
+            $cyclesForCycle = $total_cycles;
+            foreach ($corruptDays as $cDay => $cRawDrift) {
+                $dayRuntime      = min($cRawDrift, 600); // samma klamp som drift-summan använde
+                $dayNet          = max(0, $dayRuntime - ($rastPerDay[$cDay] ?? 0) - ($dsPerDay[$cDay] ?? 0));
+                $netForCycle    -= $dayNet;
+                $cyclesForCycle -= ($ibcPerDagPlc[$cDay] ?? 0);
+            }
+            $netForCycle = max(0, $netForCycle);
+            $avg_cycle_time = $cyclesForCycle > 0
+                ? $netForCycle / $cyclesForCycle
                 : 0;
 
             // BUG3b: använd produktens cykeltid (tvattlinje_products.cycle_time_minutes),
