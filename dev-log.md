@@ -7097,3 +7097,7 @@ ingen yta visar Stoppad. Rebotling run=status oförändrad (ingen regression). P
 - FIX A backend getStatistics: korrupta dagar (dedupad SR-drifttid>=600 OCH >PLC-spann*1.5) dras bort ur netRuntime-täljare + IBC-nämnare innan avg_cycle_time. Per-dag rast/ds ackumuleras för exakt avdrag. TOTAL IBC/drifttid orörda.
 - FIX B frontend: summaryAvgEff + summaryAvgIbcH hoppar över korrupta poster.
 - Verifierat dev 08-01..08-31: EFF +11.1% → +25.1% (avg_cycle 3.02→2.55). 08-03 ensam → EFF null ("-"). 08-05 oförändrad +25.5%. php -l rent, byggd av watch utan fel. Pushad (b87e544).
+
+## 2026-08-10 — Tvattlinje: OEE korrupt-dag-guard (frontend)
+- Speglar EFF-fixen b87e544: _computeOeePct + summaryAvgOee saknade _isDrifttidCorrupt-guarden. Korrupta dagar (drifttid>=600 / >spann*1.5) gav falsk per-rad-OEE + förgiftad OEE-header-KPI.
+- FIX: _computeOeePct returnerar null (dash) för korrupta poster; summaryAvgOee filtrerar bort dem. Nu har alla fyra KPI-metoder (EFF+min/IBC+OEE, per-rad+header) samma guard. Byggd av watch utan fel. Pushad (0537488).
