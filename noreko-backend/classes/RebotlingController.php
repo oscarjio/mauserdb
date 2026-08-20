@@ -1561,28 +1561,45 @@ class RebotlingController {
             // ibc_ok/ibc_ej_ok/bur_ej_ok reset per skiftraknare — MAX() per skiftraknare
             // gives the correct per-shift total. No LAG needed.
             // runtime_plc/rasttime also reset per shift so MAX per skiftraknare is correct.
+            // N112: 600-min-klampen (max ~10h) appliceras PER DAG (LEAST(dygnsvärde, 600))
+            // och summeras sedan över dagar — ALDRIG på periodtotalen. Tre nivåer:
+            //   skift  → MAX(runtime_plc) per (dag, skiftraknare) (räknaren resettas per skift)
+            //   dag    → SUM(skift) + LEAST(dygn, 600)  (kapa en dag till max 10h)
+            //   period → SUM över dagar (obegränsad — vecka/månad kan vara många dygn)
+            // Tidigare klampades periodtotalen till 600 (rad ~1601) → månads-OEE föll till ~24%
+            // (Availability = 10h / 41h) medan trend-vyn gav ~88%.
             $stmt = $this->pdo->prepare("
                 SELECT
-                    SUM(shift_cycles)        AS total_cycles,
-                    SUM(ibc_ok)              AS total_ibc_ok,
-                    SUM(ibc_ej_ok)           AS total_ibc_ej_ok,
-                    SUM(bur_ej_ok)           AS total_bur_ej_ok,
-                    SUM(shift_runtime)       AS total_runtime_min,
-                    SUM(shift_rast)          AS total_rast_min
+                    SUM(day_cycles)              AS total_cycles,
+                    SUM(day_ibc_ok)              AS total_ibc_ok,
+                    SUM(day_ibc_ej_ok)           AS total_ibc_ej_ok,
+                    SUM(day_bur_ej_ok)           AS total_bur_ej_ok,
+                    SUM(LEAST(day_runtime, 600)) AS total_runtime_min,
+                    SUM(day_rast)                AS total_rast_min
                 FROM (
-                    SELECT DATE(datum)                    AS dag,
-                           skiftraknare,
-                           COUNT(*)                       AS shift_cycles,
-                           LEAST(MAX(COALESCE(runtime_plc, 0)), 600) AS shift_runtime,
-                           MAX(COALESCE(rasttime,    0)) AS shift_rast,
-                           MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
-                           MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
-                           MAX(COALESCE(bur_ej_ok,  0)) AS bur_ej_ok
-                    FROM rebotling_ibc r
-                    WHERE $dateFilter
-                      AND ibc_ok IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare
-                ) base
+                    SELECT dag,
+                           SUM(shift_cycles)  AS day_cycles,
+                           SUM(shift_runtime) AS day_runtime,
+                           SUM(shift_rast)    AS day_rast,
+                           SUM(ibc_ok)        AS day_ibc_ok,
+                           SUM(ibc_ej_ok)     AS day_ibc_ej_ok,
+                           SUM(bur_ej_ok)     AS day_bur_ej_ok
+                    FROM (
+                        SELECT DATE(datum)                    AS dag,
+                               skiftraknare,
+                               COUNT(*)                       AS shift_cycles,
+                               MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                               MAX(COALESCE(rasttime,    0)) AS shift_rast,
+                               MAX(COALESCE(ibc_ok,     0)) AS ibc_ok,
+                               MAX(COALESCE(ibc_ej_ok,  0)) AS ibc_ej_ok,
+                               MAX(COALESCE(bur_ej_ok,  0)) AS bur_ej_ok
+                        FROM rebotling_ibc r
+                        WHERE $dateFilter
+                          AND ibc_ok IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare
+                    ) shifts
+                    GROUP BY dag
+                ) days
             ");
             $stmt->execute();
             $data = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1597,8 +1614,9 @@ class RebotlingController {
             $runtimeMin = $data['total_runtime_min'] ?? 0;  // Ren produktionstid (exkl. rast)
             $rastMin = $data['total_rast_min'] ?? 0;        // Rasttid från PLC D4008
 
-            // runtime_plc exkluderar redan rast – det är den faktiska driftstiden
-            $operatingMin = max(min($runtimeMin, 600), 1);
+            // runtime_plc exkluderar redan rast – det är den faktiska driftstiden.
+            // N112: klampa ALDRIG periodtotalen (redan per-dag-kapad i queryn ovan).
+            $operatingMin = max($runtimeMin, 1);
 
             // Planerad tid = driftstid + rasttid (total tid operatörerna var på plats)
             $plannedMin = max($runtimeMin + $rastMin, 1);
