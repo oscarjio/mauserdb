@@ -6634,7 +6634,9 @@ HTML;
                     SELECT AVG(ibc_per_min) AS median_rate FROM (
                         SELECT
                             shift_ibc / GREATEST(shift_runtime, 1) AS ibc_per_min,
-                            ROW_NUMBER() OVER (ORDER BY ibc_per_min) AS rn,
+                            -- N113: ORDER BY måste använda uttrycket, ej SELECT-aliaset ibc_per_min
+                            -- (MySQL 8 fel 1054 → catch → alltid 15/h-fallback → prestanda 100%).
+                            ROW_NUMBER() OVER (ORDER BY shift_ibc / GREATEST(shift_runtime, 1)) AS rn,
                             COUNT(*) OVER () AS cnt
                         FROM (
                             SELECT
