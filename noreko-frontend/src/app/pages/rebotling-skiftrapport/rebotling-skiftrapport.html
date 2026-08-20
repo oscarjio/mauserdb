@@ -370,7 +370,12 @@
                       <span *ngIf="day.totalDrift === 0" class="text-muted">–</span>
                     </td>
                     <td>
-                      <span class="badge bg-secondary">{{ day.reports.length }} st</span>
+                      <!-- N127: domänregel = ETT skift per dag. Flera poster = varning, ej "N st skift". -->
+                      <span *ngIf="day.reports.length === 1" class="badge bg-secondary">1 skift</span>
+                      <span *ngIf="day.reports.length > 1" class="badge bg-warning text-dark"
+                            title="Domänregel: ett skift per dag — {{ day.reports.length }} poster inskickade för {{ day.date }}">
+                        <i class="fas fa-exclamation-triangle me-1"></i>1 skift ({{ day.reports.length }} poster)
+                      </span>
                       <button *ngIf="showAdvanced" class="btn btn-sm btn-outline-info ms-2"
                               (click)="$event.stopPropagation(); openRawDataModal(day.date)"
                               title="Visa rådata för {{ day.date }}">

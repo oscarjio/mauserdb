@@ -153,7 +153,9 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     });
     this.fetchReports();
     this.fetchProducts();
-    this.loadSettings();
+    // N126: admin-settings ger 403 för icke-admin → gata anropet (user$ är BehaviorSubject,
+    // isAdmin är satt synkront via subscriben ovan). Skip-toast-headern nedan är extra skydd.
+    if (this.isAdmin) this.loadSettings();
     this.loadOperators();
     this.loadOpKpiJamforelse();
 
@@ -183,7 +185,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   private loadSettings() {
-    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=admin-settings`, { withCredentials: true })
+    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=admin-settings`, { withCredentials: true, headers: { 'X-Skip-Error-Toast': '1' } })
       .pipe(timeout(15000), catchError(err => { console.error('Fel vid laddning av inställningar:', err); return of(null); }), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
@@ -285,7 +287,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
     const days = Object.entries(dayMap).map(([date, dayReports]) => {
       const totalIbc = dayReports.reduce((s, r) => s + (r.totalt || 0), 0);
-      const totalDrift = dayReports.reduce((s, r) => s + (r.drifttid || 0), 0);
+      // N129: exkludera korrupta drifttider (>=600 min) ur dagssumman
+      const totalDrift = dayReports.reduce((s, r) => s + (this._isDrifttidCorrupt(r) ? 0 : (r.drifttid || 0)), 0);
 
       const productSet = new Set<string>();
       dayReports.forEach(r => {
@@ -416,7 +419,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   get summaryAvgOee(): number | null {
-    const reports = this.filteredReports.filter(r => (r.drifttid || 0) + (r.rasttime || 0) > 0 && r.totalt > 0);
+    // N129: exkludera korrupta drifttider (>=600 min) ur OEE-snittet
+    const reports = this.filteredReports.filter(r => (r.drifttid || 0) + (r.rasttime || 0) > 0 && r.totalt > 0 && !this._isDrifttidCorrupt(r));
     if (!reports.length) return null;
     // OEE = Availability × Performance × Quality (alla tre faktorer krävs).
     // Utan Performance-faktorn kan OEE överstiga EFFEKTIVITET (omöjligt per definition).
@@ -452,7 +456,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   get summaryTotalDrift(): number {
-    return this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
+    // N129: exkludera korrupta drifttider (>=600 min) ur totalsumman
+    return this.filteredReports.reduce((s, r) => s + (this._isDrifttidCorrupt(r) ? 0 : (r.drifttid || 0)), 0);
   }
 
   get summaryDeltaVsPrev(): number | null {
@@ -471,19 +476,28 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   // ========== Computed KPIs per row ==========
+  // N129: drifttid >= 600 min (>10h) är omöjligt per domänregel (max ~10h/skift) → korrupt
+  // PLC-värde (t.ex. runtime_plc ackumulerad över idle). Exkluderas ur drifttid/OEE/IBC-h/cykeltid.
+  private _isDrifttidCorrupt(r: any): boolean {
+    return (r?.drifttid || 0) >= 600;
+  }
+
   getQualityPct(r: any): number | null {
     if (!r.totalt) return null;
     return Math.round((r.ibc_ok / r.totalt) * 100);
   }
 
   getEfficiencyPct(r: any): number | null {
+    // N128: 0-IBC-dag (t.ex. 3 min drifttid, ingen produktion) gav 3/3 = 100%. Utan
+    // faktisk produktion är TILLG meningslös → visa "-".
+    if (!(r.totalt > 0)) return null;
     const total = (r.drifttid || 0) + (r.rasttime || 0);
     if (!total) return null;
     return Math.round((r.drifttid / total) * 100);
   }
 
   getIbcPerHour(r: any): number | null {
-    if (!r.drifttid) return null;
+    if (!r.drifttid || this._isDrifttidCorrupt(r)) return null; // N129: korrupt drifttid → "-"
     return Math.round((r.ibc_ok / (r.drifttid / 60)) * 10) / 10;
   }
 
@@ -504,7 +518,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   getAvgCycleTime(r: any): number | null {
-    if (!r.drifttid || !r.ibc_ok) return null;
+    if (!r.drifttid || !r.ibc_ok || this._isDrifttidCorrupt(r)) return null; // N129: korrupt drifttid → "-"
     return Math.round((r.drifttid / r.ibc_ok) * 10) / 10;
   }
 
@@ -558,10 +572,12 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const reports = this.filteredReports;
     const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
     const totalIbc = reports.reduce((sum: number, r: any) => sum + (r.ibc_ok ?? 0), 0);
+    // N127: ett skift per dag → räkna distinkta dagar, inte rader (flera poster/dag = dubbletter)
+    const distinctDays = new Set(reports.map((r: any) => (r.datum || '').substring(0, 10)).filter((d: string) => d)).size || reports.length;
     return {
-      total_skift:    reports.length,
+      total_skift:    distinctDays,
       total_ibc:      totalIbc,
-      snitt_per_skift: reports.length > 0 ? Math.round((totalIbc / reports.length) * 10) / 10 : 0,
+      snitt_per_skift: distinctDays > 0 ? Math.round((totalIbc / distinctDays) * 10) / 10 : 0,
       avg_ibc_h:      Math.round(avg(reports.map((r: any) => this.getIbcPerHour(r) ?? 0)) * 10) / 10,
       avg_kvalitet:   Math.round(avg(reports.map((r: any) => this.getQualityPct(r) ?? 0)) * 10) / 10
     };
