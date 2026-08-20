@@ -283,7 +283,7 @@ class TvattlinjeController {
             $ibcIdag = 0;
             try {
                 $ibcIdag = (int)$this->pdo->query(
-                    "SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) FROM (SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) t"
+                    "SELECT COALESCE(SUM(GREATEST(0, ibc_count - prev)), 0) FROM (SELECT ibc_count, LAG(ibc_count) OVER (ORDER BY datum) AS prev FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) t"
                 )->fetchColumn();
             } catch (\Throwable $e) { error_log('TvattlinjeController::getTodaySnapshot ibcIdag: ' . $e->getMessage()); }
 
@@ -713,10 +713,10 @@ class TvattlinjeController {
         try {
             // PLC-IBC per dag (reset-säker ibc_count-delta).
             $plcStmt = $this->pdo->prepare("
-                SELECT dag, COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS ibc
+                SELECT dag, COALESCE(SUM(GREATEST(0, ibc_count - prev)), 0) AS ibc
                 FROM (
                     SELECT DATE(datum) AS dag, ibc_count,
-                           COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                           LAG(ibc_count) OVER (ORDER BY datum) AS prev
                     FROM tvattlinje_ibc
                     WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
                 ) t
@@ -850,9 +850,9 @@ class TvattlinjeController {
         try {
             // Primär källa: PLC (MAX(ibc_count) = kumulativ räknare, nollställs varje dag)
             $stmtPlc = $this->pdo->query('
-                SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0)
+                SELECT COALESCE(SUM(GREATEST(0, ibc_count - prev)), 0)
                 FROM (
-                    SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                    SELECT ibc_count, LAG(ibc_count) OVER (ORDER BY datum) AS prev
                     FROM tvattlinje_ibc
                     WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
                 ) t
@@ -1804,11 +1804,11 @@ class TvattlinjeController {
             try {
                 $stmtTrue = $this->pdo->prepare('
                     SELECT dag,
-                           COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS day_ibc,
+                           COALESCE(SUM(GREATEST(0, ibc_count - prev)), 0) AS day_ibc,
                            COUNT(*) AS day_count
                     FROM (
                         SELECT DATE(datum) AS dag, ibc_count,
-                               COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                               LAG(ibc_count) OVER (ORDER BY datum) AS prev
                         FROM tvattlinje_ibc
                         WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
                     ) x
@@ -2296,9 +2296,9 @@ class TvattlinjeController {
             if ($totalIbc === 0) {
                 try {
                     $stmtPlc = $this->pdo->prepare("
-                        SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS plc_ibc
+                        SELECT COALESCE(SUM(GREATEST(0, ibc_count - prev)), 0) AS plc_ibc
                         FROM (
-                            SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                            SELECT ibc_count, LAG(ibc_count) OVER (ORDER BY datum) AS prev
                             FROM tvattlinje_ibc
                             WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
                         ) t
@@ -2339,9 +2339,9 @@ class TvattlinjeController {
             if ($prevIbc === 0) {
                 try {
                     $stmtPrevPlc = $this->pdo->prepare("
-                        SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS plc_ibc
+                        SELECT COALESCE(SUM(GREATEST(0, ibc_count - prev)), 0) AS plc_ibc
                         FROM (
-                            SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                            SELECT ibc_count, LAG(ibc_count) OVER (ORDER BY datum) AS prev
                             FROM tvattlinje_ibc
                             WHERE datum >= :datum AND datum < DATE_ADD(:datumb, INTERVAL 1 DAY)
                         ) t
@@ -2598,7 +2598,7 @@ class TvattlinjeController {
 
             $ibcToday = 0;
             try {
-                $ibcToday = (int)$this->pdo->query("SELECT COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) FROM (SELECT ibc_count, COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) t")->fetchColumn();
+                $ibcToday = (int)$this->pdo->query("SELECT COALESCE(SUM(GREATEST(0, ibc_count - prev)), 0) FROM (SELECT ibc_count, LAG(ibc_count) OVER (ORDER BY datum) AS prev FROM tvattlinje_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) t")->fetchColumn();
             } catch (\Throwable $e) {}
 
             // Senaste event från valfri källa (onoff, ibc, rast, driftstopp) för vald dag
@@ -2897,10 +2897,10 @@ class TvattlinjeController {
                         GROUP BY DATE(sr.datum)
                     ) sr ON sr.dag = alldays.dag
                     LEFT JOIN (
-                        SELECT dag, COALESCE(SUM(CASE WHEN ibc_count >= prev THEN ibc_count - prev ELSE ibc_count END), 0) AS ibc_max
+                        SELECT dag, COALESCE(SUM(GREATEST(0, ibc_count - prev)), 0) AS ibc_max
                         FROM (
                             SELECT DATE(datum) AS dag, ibc_count,
-                                   COALESCE(LAG(ibc_count) OVER (PARTITION BY DATE(datum) ORDER BY datum), 0) AS prev
+                                   LAG(ibc_count) OVER (ORDER BY datum) AS prev
                             FROM tvattlinje_ibc
                             WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar4 DAY) AND datum < CURDATE() + INTERVAL 1 DAY
                         ) t
