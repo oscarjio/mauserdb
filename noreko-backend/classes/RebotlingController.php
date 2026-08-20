@@ -32,7 +32,10 @@ class RebotlingController {
             ];
             if (in_array($action, $adminOnlyActions, true)) {
                 if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
-                if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+                // N136: matcha kodbasens konvention (admin+developer) — övriga controllers
+                // (Alerts/Audit/Certification/Klassificeringslinje m.fl.) tillåter developer.
+                // Strikt 'admin' här gav 403 för aiab (developer) → toast varje sidladdning.
+                if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                     return;
@@ -1131,7 +1134,41 @@ class RebotlingController {
             }
 
             // Beräkna sammanfattning
+            // total_cycles = rå radräkning (dubbelutlösare + rader utan ibc_ok räknas) → BEHÅLLS
+            // bara som rådiagnostik. N133: den domänkorrekta IBC-summan och PLC-nettotiden räknas
+            // med SAMMA treniv-aggregat som getOEE/getRealtimeOee (skift MAX → dag SUM +
+            // LEAST(dygn,600) → period SUM), så Översikt och Realtids-OEE visar EN sanning.
             $total_cycles = count($cycles);
+            $total_ibc = 0;
+            $plc_runtime_minutes = 0.0;
+            try {
+                $aggStmt = $this->pdo->prepare('
+                    SELECT
+                        SUM(day_ibc_ok)              AS total_ibc,
+                        SUM(LEAST(day_runtime, 600)) AS plc_runtime_minutes
+                    FROM (
+                        SELECT dag,
+                               SUM(shift_ibc_ok)  AS day_ibc_ok,
+                               SUM(shift_runtime) AS day_runtime
+                        FROM (
+                            SELECT DATE(datum) AS dag, skiftraknare,
+                                   MAX(COALESCE(ibc_ok, 0))      AS shift_ibc_ok,
+                                   MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                            FROM rebotling_ibc
+                            WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                              AND ibc_ok IS NOT NULL
+                            GROUP BY DATE(datum), skiftraknare
+                        ) shifts
+                        GROUP BY dag
+                    ) days
+                ');
+                $aggStmt->execute(['start' => $start, 'end' => $end]);
+                $aggRow = $aggStmt->fetch(PDO::FETCH_ASSOC);
+                $total_ibc = (int)($aggRow['total_ibc'] ?? 0);
+                $plc_runtime_minutes = (float)($aggRow['plc_runtime_minutes'] ?? 0);
+            } catch (\Throwable $e) {
+                error_log('RebotlingController::getStatistics domain-aggregate: ' . $e->getMessage());
+            }
             $avg_production_percent = 0;
             $avg_cycle_time = 0;
             $total_runtime_hours = 0;
@@ -1268,6 +1305,8 @@ class RebotlingController {
                     'driftstopp_events' => $driftstopp_events,
                     'summary' => [
                         'total_cycles' => $total_cycles,
+                        'total_ibc' => $total_ibc,                          // N133: domänkorrekt (SUM MAX(ibc_ok) per skift)
+                        'plc_runtime_minutes' => round($plc_runtime_minutes, 1), // N133: PLC-nettotid, per-dag-kapad
                         'avg_production_percent' => round($avg_production_percent, 1),
                         'avg_cycle_time' => round($avg_cycle_time, 1),
                         'target_cycle_time' => round($target_cycle_time, 1),

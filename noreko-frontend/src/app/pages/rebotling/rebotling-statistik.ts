@@ -888,14 +888,17 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   updateStatistics(data: any) {
-    this.totalCycles = data.summary.total_cycles;
+    // N133: visa domänkorrekt IBC (SUM MAX(ibc_ok) per skift), inte rå radräkning.
+    // total_cycles behålls bara som rådiagnostik i backend-svaret.
+    this.totalCycles = data.summary.total_ibc ?? data.summary.total_cycles;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
     // Effektivitet (alla vyer): total_ibc × target / netto_drifttid × 100
     // BUG-012: För månad/år-vy beräknas netto-drifttid i frontend (samma metod som stapeldiagrammet)
     // för att garantera att KPI-snittet matchar staplarnas genomsnitt.
     // Dag-vy kan använda backend net_runtime_minutes (enkel dag, inga gränsproblem).
     const targetCt = data.summary.target_cycle_time || 3;
-    const totalCyc = data.summary.total_cycles || 0;
+    // N133: effektiviteten ska utgå från domänkorrekt IBC, ej rå radräkning.
+    const totalCyc = (data.summary.total_ibc ?? data.summary.total_cycles) || 0;
     let netRtMin: number;
     if (this.viewMode !== 'day') {
       // Beräkna netto-drifttid från events i frontend (samma som stapeldiagrammet)
@@ -913,7 +916,11 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.avgEfficiency = properEff;
     this.avgProdPct = properEff;
     this.avgEfficiencyWarning = properEffRaw > 100;
-    this.totalRuntimeHours = Math.round((data.summary.total_runtime_hours || 0) * 10) / 10;
+    // N133: visa PLC-nettotid (per-dag-kapad) i st f brutto onoff-väggklocka, så Översikt
+    // matchar Realtids-OEE. Fallback till gamla fältet om aggregatet saknas.
+    this.totalRuntimeHours = data.summary.plc_runtime_minutes != null
+      ? Math.round((data.summary.plc_runtime_minutes / 60) * 10) / 10
+      : Math.round((data.summary.total_runtime_hours || 0) * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
     this.totalRastMinutes = data.summary.total_rast_minutes || 0;
 

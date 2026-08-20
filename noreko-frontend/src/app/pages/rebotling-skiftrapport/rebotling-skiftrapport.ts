@@ -440,9 +440,12 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   get summaryAvgIbcH(): number | null {
-    const reports = this.filteredReports.filter(r => this.getIbcPerHour(r) != null);
-    if (!reports.length) return null;
-    return Math.round(reports.reduce((s, r) => s + (this.getIbcPerHour(r) ?? 0), 0) / reports.length * 10) / 10;
+    // N137: vägt snitt = TOTAL IBC / DRIFTTID(h). Tidigare mean-of-ratios lät varje
+    // dag väga lika och 0-IBC-dagar (0) spädde ut → headern (17.4) matchade inte
+    // TOTAL IBC / DRIFTTID (22.2). Nu internt konsistent med de visade talen.
+    const driftH = this.summaryTotalDrift / 60;
+    if (driftH <= 0) return null;
+    return Math.round((this.summaryTotalIbc / driftH) * 10) / 10;
   }
 
   get summaryAvgEfficiency(): number | null {
@@ -497,7 +500,9 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   getIbcPerHour(r: any): number | null {
-    if (!r.drifttid || this._isDrifttidCorrupt(r)) return null; // N129: korrupt drifttid → "-"
+    // N129: korrupt drifttid → "-". N137: 0-IBC-dag (drifttid 3min, ej korrupt) gav 0
+    // och spädde ut mean-of-ratios-snittet → kräv faktisk produktion.
+    if (!r.drifttid || !r.ibc_ok || this._isDrifttidCorrupt(r)) return null;
     return Math.round((r.ibc_ok / (r.drifttid / 60)) * 10) / 10;
   }
 
