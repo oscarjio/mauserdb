@@ -962,59 +962,89 @@ class SkiftrapportController {
         if ($from > $to) [$from, $to] = [$to, $from];
 
         try {
-            // Hamta alla skiftrapporter i perioden med operatorsinfo
+            // Dedup delposter till EN rad per (skiftraknare, datum) via MAX — kumulativa
+            // räknare -> MAX = slutvärde — och joina produktens cykeltid. Samma dedup-mönster
+            // som verifierade realtids-OEE (RebotlingController). ibc_ok IS NOT NULL sållar
+            // bort tomma/driftlösa poster.
             $stmt = $this->pdo->prepare("
                 SELECT
-                    s.id, s.datum, s.skiftraknare,
-                    s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
-                    s.drifttid, s.rasttime, s.driftstopptime,
-                    s.op1, s.op2, s.op3
-                FROM rebotling_skiftrapport s
-                WHERE s.datum >= :from_date AND s.datum <= :to_date
-                ORDER BY s.datum ASC
+                    d.datum, d.skiftraknare,
+                    d.ibc_ok, d.ibc_ej_ok, d.bur_ej_ok, d.totalt,
+                    d.drifttid, d.rasttime, d.driftstopptime,
+                    d.op1, d.op2, d.op3,
+                    COALESCE(p.cycle_time_minutes, 0) AS cycle_time_minutes
+                FROM (
+                    SELECT datum, skiftraknare,
+                           MAX(COALESCE(ibc_ok,0))         AS ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok,0))      AS ibc_ej_ok,
+                           MAX(COALESCE(bur_ej_ok,0))      AS bur_ej_ok,
+                           MAX(COALESCE(totalt,0))         AS totalt,
+                           MAX(COALESCE(drifttid,0))       AS drifttid,
+                           MAX(COALESCE(rasttime,0))       AS rasttime,
+                           MAX(COALESCE(driftstopptime,0)) AS driftstopptime,
+                           MAX(COALESCE(op1,0))            AS op1,
+                           MAX(COALESCE(op2,0))            AS op2,
+                           MAX(COALESCE(op3,0))            AS op3,
+                           MAX(product_id)                 AS product_id
+                    FROM rebotling_skiftrapport
+                    WHERE datum >= :from_date AND datum <= :to_date
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY datum, skiftraknare
+                ) d
+                LEFT JOIN rebotling_products p ON p.id = d.product_id
+                ORDER BY d.datum ASC
             ");
             $stmt->execute(['from_date' => $from, 'to_date' => $to]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Samla data per operator (op_number)
-            $opData = []; // [opNumber => {ibc_ok, kasserade, totalt, drifttid, skift, oee_sum, oee_count}]
-
+            // Aggregera per operatör med SUM/SUM (samma metod som verifierade realtids-OEE)
+            // så OEE viktas av faktisk drifttid i stället för mean-of-ratios per delpost.
+            // OEE-komponenter beräknas EFTER aggregering av alla operatörens skift.
+            $opData = [];
             foreach ($rows as $r) {
-                $ibcOk     = intval($r['ibc_ok'] ?? 0);
-                $ibcEjOk   = intval($r['ibc_ej_ok'] ?? 0);
-                $burEjOk   = intval($r['bur_ej_ok'] ?? 0);
-                $totalt    = intval($r['totalt'] ?? 0);
-                $drifttid  = intval($r['drifttid'] ?? 0);
-                $kasserade = $ibcEjOk + $burEjOk;
+                $ibcOk     = (int)$r['ibc_ok'];
+                $ibcEjOk   = (int)$r['ibc_ej_ok'];
+                $burEjOk   = (int)$r['bur_ej_ok'];
+                $totalt    = (int)$r['totalt'];
+                $drifttid  = (float)$r['drifttid'];
+                $rast      = (float)$r['rasttime'];
+                $stopp     = (float)$r['driftstopptime'];
+                $ct        = (float)$r['cycle_time_minutes'];
+                $processed = $ibcOk + $ibcEjOk;        // OEE-processed (godk + ej godk), som realtids
+                $kasserade = $ibcEjOk + $burEjOk;      // för kassationsvisning
+                // Planerad tid = faktisk skiftlängd (drift + rast + driftstopp), ej flat 480.
+                $scheduled   = $drifttid + $rast + $stopp;
+                // Teoretisk max = drifttid / produktens cykeltid (min/IBC), ej hårdkodad 30 IBC/h.
+                $theoretical = ($ct > 0 && $drifttid > 0) ? ($drifttid / $ct) : 0.0;
 
-                // OEE for detta skift
-                $tillg = ($drifttid > 0) ? min(1.0, $drifttid / 480) : 0.0;
-                $prest = ($drifttid > 0 && $totalt > 0) ? min(1.0, ($totalt * 2) / $drifttid) : 0.0;
-                $kval  = ($totalt > 0) ? ($ibcOk / $totalt) : 0.0;
-                $oee   = $tillg * $prest * $kval * 100;
-
-                // Tilldela data till varje operatorsposition
                 $ops = [];
-                if (intval($r['op1'] ?? 0) > 0) $ops[] = intval($r['op1']);
-                if (intval($r['op2'] ?? 0) > 0) $ops[] = intval($r['op2']);
-                if (intval($r['op3'] ?? 0) > 0) $ops[] = intval($r['op3']);
+                if ((int)$r['op1'] > 0) $ops[] = (int)$r['op1'];
+                if ((int)$r['op2'] > 0) $ops[] = (int)$r['op2'];
+                if ((int)$r['op3'] > 0) $ops[] = (int)$r['op3'];
 
                 foreach ($ops as $opNum) {
                     if (!isset($opData[$opNum])) {
                         $opData[$opNum] = [
-                            'ibc_ok' => 0, 'kasserade' => 0, 'totalt' => 0,
-                            'drifttid' => 0, 'skift' => 0, 'oee_sum' => 0.0, 'oee_count' => 0,
+                            'ibc_ok' => 0, 'processed' => 0, 'kasserade' => 0, 'totalt' => 0,
+                            'drifttid' => 0.0, 'scheduled' => 0.0,
+                            'theoretical' => 0.0, 'processedP' => 0.0,
+                            'shiftKeys' => [],
                         ];
                     }
-                    $opData[$opNum]['ibc_ok'] += $ibcOk;
-                    $opData[$opNum]['kasserade'] += $kasserade;
-                    $opData[$opNum]['totalt'] += $totalt;
-                    $opData[$opNum]['drifttid'] += $drifttid;
-                    $opData[$opNum]['skift']++;
-                    if ($oee > 0) {
-                        $opData[$opNum]['oee_sum'] += $oee;
-                        $opData[$opNum]['oee_count']++;
+                    $o = &$opData[$opNum];
+                    $o['ibc_ok']    += $ibcOk;
+                    $o['processed'] += $processed;
+                    $o['kasserade'] += $kasserade;
+                    $o['totalt']    += $totalt;
+                    $o['drifttid']  += $drifttid;
+                    $o['scheduled'] += $scheduled;
+                    if ($theoretical > 0) {
+                        $o['theoretical'] += $theoretical;
+                        $o['processedP']  += (float)$processed;
                     }
+                    // Räkna verkliga skift (deduplicerade poster), inte delposter.
+                    $o['shiftKeys'][$r['datum'] . '#' . $r['skiftraknare']] = true;
+                    unset($o);
                 }
             }
 
@@ -1030,21 +1060,27 @@ class SkiftrapportController {
                 }
             }
 
-            // Bygg resultat
+            // Bygg resultat — OEE = A × P × Q med SUM/SUM-aggregering (P cappas vid 100%).
             $result = [];
             foreach ($opData as $opNum => $d) {
-                $snittIbcPerH = $d['drifttid'] > 0 ? round($d['ibc_ok'] / ($d['drifttid'] / 60), 1) : 0;
+                $antalSkift = count($d['shiftKeys']);
+                $driftH     = $d['drifttid'] / 60.0;
+                $avail = $d['scheduled']   > 0 ? ($d['drifttid'] / $d['scheduled']) : null;
+                $qual  = $d['processed']   > 0 ? ($d['ibc_ok']   / $d['processed'])  : null;
+                $perf  = $d['theoretical'] > 0 ? min($d['processedP'] / $d['theoretical'], 1.0) : null;
+                $oee   = ($avail !== null && $perf !== null && $qual !== null)
+                         ? round($avail * $perf * $qual * 100, 1) : 0.0;
                 $result[] = [
                     'operator_number'    => $opNum,
                     'operator_name'      => $opNames[$opNum] ?? 'Operator ' . $opNum,
-                    'antal_skift'        => $d['skift'],
+                    'antal_skift'        => $antalSkift,
                     'totalt_ibc_ok'      => $d['ibc_ok'],
                     'totalt_kasserade'   => $d['kasserade'],
-                    'snitt_ibc_per_skift' => $d['skift'] > 0 ? round($d['ibc_ok'] / $d['skift'], 1) : 0,
-                    'snitt_ibc_per_timme' => $snittIbcPerH,
-                    'snitt_oee_pct'      => $d['oee_count'] > 0 ? round($d['oee_sum'] / $d['oee_count'], 1) : 0,
+                    'snitt_ibc_per_skift' => $antalSkift > 0 ? round($d['ibc_ok'] / $antalSkift, 1) : 0,
+                    'snitt_ibc_per_timme' => $driftH > 0 ? round($d['ibc_ok'] / $driftH, 1) : 0,
+                    'snitt_oee_pct'      => $oee,
                     'kassation_pct'      => $d['totalt'] > 0 ? round(($d['kasserade'] / $d['totalt']) * 100, 1) : 0,
-                    'total_drifttid_h'   => round($d['drifttid'] / 60, 1),
+                    'total_drifttid_h'   => round($driftH, 1),
                 ];
             }
 
