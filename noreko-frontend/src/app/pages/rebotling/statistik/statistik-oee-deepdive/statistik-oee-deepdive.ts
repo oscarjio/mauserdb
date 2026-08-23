@@ -66,7 +66,12 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy, OnChang
     const annTo   = useRange ? (this.toDate as string)   : fmt(endDate);
     this.loadAnnotations(annFrom, annTo);
 
-    this.rebotlingService.getOEE('month').pipe(
+    // N138: summeringen ska följa samma spann som trend/waterfall (en sanning).
+    this.rebotlingService.getOEE(
+      useRange ? 'custom' : 'month',
+      useRange ? (this.fromDate as string) : undefined,
+      useRange ? (this.toDate as string) : undefined
+    ).pipe(
       timeout(15000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)

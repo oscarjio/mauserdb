@@ -182,11 +182,14 @@ export class RebotlingService {
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getOEE(period: string = 'today'): Observable<any> {
-    return this.http.get<OEEResponse>(
-      `${environment.apiUrl}?action=rebotling&run=oee&period=${period}`,
-      { withCredentials: true }
-    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  getOEE(period: string = 'today', from?: string, to?: string): Observable<any> {
+    // N138: stöd 'custom' med datumspann så deep-dive-summeringen följer vald period.
+    let url = `${environment.apiUrl}?action=rebotling&run=oee&period=${period}`;
+    if (period === 'custom' && from && to) {
+      url += `&from=${from}&to=${to}`;
+    }
+    return this.http.get<OEEResponse>(url, { withCredentials: true })
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getCycleHistogram(date: string): Observable<any> {

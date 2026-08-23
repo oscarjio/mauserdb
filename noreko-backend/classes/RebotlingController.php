@@ -166,7 +166,12 @@ class RebotlingController {
             } elseif ($action === 'day-stats') {
                 $this->getDayStats();
             } elseif ($action === 'oee') {
-                $this->cachedRun('rebotling_oee', 5, fn() => $this->getOEE());
+                // N138: cache-nyckeln måste inkludera period + from/to, annars delar alla
+                // spann samma cachefil och deep-dive får fel periods värde.
+                $oeePeriod = preg_replace('/[^a-z0-9]/', '', strtolower($_GET['period'] ?? 'today'));
+                $oeeFrom   = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'] ?? '') ? $_GET['from'] : '';
+                $oeeTo     = preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to'] ?? '')   ? $_GET['to']   : '';
+                $this->cachedRun("rebotling_oee_{$oeePeriod}_{$oeeFrom}_{$oeeTo}", 5, fn() => $this->getOEE());
             } elseif ($action === 'cycle-trend') {
                 $this->getCycleTrend();
             } elseif ($action === 'heatmap') {
@@ -1583,18 +1588,29 @@ class RebotlingController {
 
     private function getOEE() {
         $period = trim($_GET['period'] ?? 'today');
-        // Whitelist-validering av period
-        if (!in_array($period, ['today', 'week', 'month'], true)) {
+        // Whitelist-validering av period. N138: 'custom' = förälderns valda datumspann,
+        // så deep-dive-summeringen följer samma period som trend/waterfall (en sanning).
+        if (!in_array($period, ['today', 'week', 'month', 'custom'], true)) {
             $period = 'today';
         }
+        $from = (isset($_GET['from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from'])) ? $_GET['from'] : null;
+        $to   = (isset($_GET['to'])   && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to']))   ? $_GET['to']   : null;
+        if ($period === 'custom' && (!$from || !$to)) { $period = 'today'; } // ofullständigt spann → fallback
+        if ($from && $to && $from > $to) { [$from, $to] = [$to, $from]; }
 
         // Notera: alias "r" används i dateFilter och måste matcha yttre queryn
-        $dateFilter = match($period) {
-            'today' => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY",
-            'week'  => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
-            'month' => "r.datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
-            default => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY"
-        };
+        $params = [];
+        if ($period === 'custom') {
+            $dateFilter = "r.datum >= :from AND r.datum < :to + INTERVAL 1 DAY";
+            $params = [':from' => $from, ':to' => $to];
+        } else {
+            $dateFilter = match($period) {
+                'today' => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY",
+                'week'  => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
+                'month' => "r.datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
+                default => "r.datum >= CURDATE() AND r.datum < CURDATE() + INTERVAL 1 DAY"
+            };
+        }
 
         try {
             // ibc_ok/ibc_ej_ok/bur_ej_ok reset per skiftraknare — MAX() per skiftraknare
@@ -1640,12 +1656,12 @@ class RebotlingController {
                     GROUP BY dag
                 ) days
             ");
-            $stmt->execute();
+            $stmt->execute($params);
             $data = $stmt->fetch(PDO::FETCH_ASSOC);
 
             // Rå cykelräkning (ej aggregerad per skift)
             $stmtCycles = $this->pdo->prepare("SELECT COUNT(*) FROM rebotling_ibc r WHERE $dateFilter");
-            $stmtCycles->execute();
+            $stmtCycles->execute($params);
             $rawCycles = (int)$stmtCycles->fetchColumn();
 
             $totalIBC = ($data['total_ibc_ok'] ?? 0) + ($data['total_ibc_ej_ok'] ?? 0);
