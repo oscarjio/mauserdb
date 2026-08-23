@@ -5145,7 +5145,10 @@ class RebotlingController {
                     }
                 }
 
-                if ($totalSkift < 3) continue;
+                // N143: kräv minst 5 skift innan operatören tilldelas tier/bonusnivå —
+                // tunt underlag (2–4 skift) gav orättvisa ytterlighetsvärden i en
+                // bonusgrundande ranking. Samma golv som tvättlinjens operatörsranking.
+                if ($totalSkift < 5) continue;
 
                 $ibcPerH = $totalMin > 0 ? round($totalIbc / ($totalMin / 60.0), 2) : null;
                 $vsTeam  = ($ibcPerH !== null && $teamAvgIbcH !== null && $teamAvgIbcH > 0)

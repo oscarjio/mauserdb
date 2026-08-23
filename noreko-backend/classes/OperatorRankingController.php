@@ -340,8 +340,10 @@ class OperatorRankingController {
             return [];
         }
 
+        // $dagCount = kalenderspann (används av calcStreaks nedan). OBS: används INTE
+        // längre för stopp-bonusens nämnare — den använder nu operatörens faktiska
+        // arbetstimmar (estimateArbetsTimmar, prod_dagar) per operatör, se loopen.
         $dagCount = max(1, (int)(new \DateTime($from))->diff(new \DateTime($to))->days + 1);
-        $skiftSek = $dagCount * 8 * 3600; // 8h per dag
 
         // Berakna snitt IBC/h for alla
         $totalIbcAll = 0;
@@ -359,28 +361,37 @@ class OperatorRankingController {
             $okIbc = $op['ok_ibc'];
             $timmar = $this->estimateArbetsTimmar($op, $from, $to);
 
+            // Bonusgrundande minimikrav — samma golv som tempo-bonusen redan hade.
+            // Utan detta ger ett enda skräppass (t.ex. 1 IBC) full kvalitets-/stopp-bonus.
+            $bonusEligible = ($totalIbc >= 10 && $timmar >= 1.0);
+
             // Produktionspoang: 10 per IBC
             $produktionsPoang = $totalIbc * 10;
 
             // Kvalitetsbonus: (% godkanda - 90) x 5, max 50
             $okPct = $totalIbc > 0 ? ($okIbc / $totalIbc * 100) : 0;
-            $kvalitetsBonus = max(0, min(50, ($okPct - 90) * 5));
+            $kvalitetsBonus = $bonusEligible ? max(0, min(50, ($okPct - 90) * 5)) : 0;
 
             // Tempo-bonus: Om IBC/h > snitt
             $ibcPerH = $timmar > 0 ? ($totalIbc / $timmar) : 0;
             $tempoBonus = 0;
-            if ($ibcPerH > $avgIbcPerH && $avgIbcPerH > 0 && $totalIbc >= 10 && $timmar >= 1.0) {
+            if ($bonusEligible && $ibcPerH > $avgIbcPerH && $avgIbcPerH > 0) {
                 $tempoBonus = round(($ibcPerH - $avgIbcPerH) * 20, 1);
             }
 
-            // Stopp-bonus
+            // Stopp-bonus. Nämnaren = operatörens FAKTISKA arbetstimmar (prod_dagar x 8h),
+            // inte kalenderspannet — annars blir stopptidsandelen konstlat liten och
+            // bonusen delas ut för lätt.
+            $opSkiftSek = $timmar * 3600.0;
             $stopp = $stoppData[$uid] ?? null;
             $stopptidSek = $stopp ? $stopp['total_stopp_sek'] : 0;
             $antalStopp = $stopp ? $stopp['antal_stopp'] : 0;
             $stoppBonus = 0;
-            if ($antalStopp === 0 && $totalIbc > 0) {
+            if (!$bonusEligible) {
+                $stoppBonus = 0;
+            } elseif ($antalStopp === 0 && $totalIbc > 0) {
                 $stoppBonus = 50;
-            } elseif ($skiftSek > 0 && ($stopptidSek / $skiftSek) < 0.10) {
+            } elseif ($opSkiftSek > 0 && ($stopptidSek / $opSkiftSek) < 0.10) {
                 $stoppBonus = 30;
             }
 
