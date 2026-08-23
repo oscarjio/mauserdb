@@ -457,9 +457,10 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     const days = this.dashData.days7;
     const labels = days.map(d => this.formatDate(d.date));
     const ibc = days.map(d => d.ibc);
-    const target = days[0]?.target ?? 1000;
-    const colors = days.map(d => d.ibc >= target ? '#48bb78' : '#e53e3e');
-    const dimColors = days.map(d => d.ibc >= target ? 'rgba(72,187,120,0.75)' : 'rgba(229,62,62,0.75)');
+    const target = days[0]?.target ?? 1000; // fallback om enskild dag saknar target
+    // Färga per dags EGET mål (lör/sön=0) — inte days[0] för alla, annars färgas helg rött som missat.
+    const colors = days.map(d => d.ibc >= (d.target ?? target) ? '#48bb78' : '#e53e3e');
+    const dimColors = days.map(d => d.ibc >= (d.target ?? target) ? 'rgba(72,187,120,0.75)' : 'rgba(229,62,62,0.75)');
 
     if (this.barChart) { (this.barChart as any).destroy(); }
     this.barChart = new Chart(canvas, {
@@ -477,7 +478,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
           },
           {
             label: 'Dagsmål',
-            data: new Array(days.length).fill(target),
+            data: days.map(d => d.target ?? target),
             type: 'line',
             borderColor: '#667eea',
             borderWidth: 2,
