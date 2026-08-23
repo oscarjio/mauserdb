@@ -677,7 +677,8 @@
       }
 
       @defer (on viewport) {
-        <app-statistik-waterfall-oee></app-statistik-waterfall-oee>
+        <!-- N138: skicka valt datumspann så waterfall inte alltid kör 30d -->
+        <app-statistik-waterfall-oee [fromDate]="getDateRange().start" [toDate]="getDateRange().end"></app-statistik-waterfall-oee>
       } @placeholder {
         <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
       }
@@ -689,7 +690,8 @@
       }
 
       @defer (on viewport) {
-        <app-statistik-oee-deepdive></app-statistik-oee-deepdive>
+        <!-- N138: skicka valt datumspann så trend/annotationer inte alltid kör 30d -->
+        <app-statistik-oee-deepdive [fromDate]="getDateRange().start" [toDate]="getDateRange().end"></app-statistik-oee-deepdive>
       } @placeholder {
         <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
       }

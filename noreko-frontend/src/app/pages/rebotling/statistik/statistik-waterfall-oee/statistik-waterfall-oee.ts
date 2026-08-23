@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
@@ -12,7 +12,10 @@ import { RebotlingService, OeeWaterfallResponse } from '../../../../services/reb
   templateUrl: './statistik-waterfall-oee.html',
   imports: [CommonModule, FormsModule]
 })
-export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
+export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy, OnChanges {
+  // N138: förälderns valda datumspann — waterfall körde annars alltid senaste 30 dagar.
+  @Input() fromDate: string | null = null;
+  @Input() toDate: string | null = null;
   oeeWaterfallDays: number = 30;
   oeeWaterfallLoaded: boolean = false;
   oeeWaterfallLoading: boolean = false;
@@ -23,6 +26,12 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
 
   constructor(private rebotlingService: RebotlingService) {}
   ngOnInit() { this.loadOeeWaterfall(); }
+  ngOnChanges(changes: SimpleChanges) {
+    // Ladda om när förälderns datumspann ändras.
+    if ((changes['fromDate'] || changes['toDate']) && !changes['fromDate']?.firstChange) {
+      this.loadOeeWaterfall();
+    }
+  }
   ngOnDestroy() {
     try { this.oeeWaterfallChart?.destroy(); } catch (e) {}
     this.oeeWaterfallChart = null;
@@ -34,7 +43,11 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
     if (this.oeeWaterfallLoading) return;
     this.oeeWaterfallLoading = true;
     this.oeeWaterfallLoaded = false;
-    this.rebotlingService.getOeeWaterfall(this.oeeWaterfallDays).pipe(
+    this.rebotlingService.getOeeWaterfall(
+      this.oeeWaterfallDays,
+      this.fromDate ?? undefined,
+      this.toDate ?? undefined
+    ).pipe(
       timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: OeeWaterfallResponse | null) => {
       this.oeeWaterfallLoading = false;

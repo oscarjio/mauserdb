@@ -3153,8 +3153,16 @@ class RebotlingAnalyticsController {
 
     public function getOeeWaterfall() {
         $days = max(1, min(365, intval($_GET['days'] ?? 30)));
+        // N138: respektera förälderns valda datumspann (from_date/to_date) istället för
+        // att alltid köra senaste $days. Fallback till dagfönstret om spann saknas.
+        $from = (isset($_GET['from_date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['from_date'])) ? $_GET['from_date'] : null;
+        $to   = (isset($_GET['to_date'])   && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['to_date']))   ? $_GET['to_date']   : null;
+        if ($from && $to && $from > $to) { [$from, $to] = [$to, $from]; }
+        $useRange = ($from !== null && $to !== null);
 
         try {
+            $where  = $useRange ? "datum BETWEEN :from AND :to" : "datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)";
+            $params = $useRange ? [':from' => $from, ':to' => $to] : [':days' => $days];
             $stmt = $this->pdo->prepare("
                 WITH per_shift AS (
                     SELECT DATE(datum) AS dag, skiftraknare,
@@ -3163,7 +3171,7 @@ class RebotlingAnalyticsController {
                            MAX(COALESCE(ibc_ok, 0))      AS ibc_ok,
                            MAX(COALESCE(ibc_ej_ok, 0))   AS ibc_ej_ok
                     FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                    WHERE $where
                     GROUP BY DATE(datum), skiftraknare
                 )
                 SELECT SUM(shift_runtime)   AS total_runtime,
@@ -3172,7 +3180,7 @@ class RebotlingAnalyticsController {
                        SUM(ibc_ej_ok)       AS ibc_ej_ok
                 FROM per_shift
             ");
-            $stmt->execute([':days' => $days]);
+            $stmt->execute($params);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $runtime     = (float)($row['total_runtime'] ?? 0);  // minuter

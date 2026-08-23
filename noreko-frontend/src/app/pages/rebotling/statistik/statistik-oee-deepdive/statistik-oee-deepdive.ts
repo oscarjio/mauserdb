@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, OnChanges, SimpleChanges, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
@@ -11,7 +11,10 @@ import { RebotlingService, OEETrendDay, ChartAnnotation, ProductionEvent } from 
   templateUrl: './statistik-oee-deepdive.html',
   imports: [CommonModule]
 })
-export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
+export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy, OnChanges {
+  // N138: förälderns valda datumspann — trend/annotationer körde annars alltid 30 dagar.
+  @Input() fromDate: string | null = null;
+  @Input() toDate: string | null = null;
   oeeLoaded: boolean = false;
   oeeLoading: boolean = false;
   oeeData: any = null;
@@ -26,6 +29,14 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
   constructor(private rebotlingService: RebotlingService) {}
 
   ngOnInit() { this.loadOEE(); }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // Ladda om när förälderns datumspann ändras (ej vid första bindningen — ngOnInit sköter den).
+    if ((changes['fromDate'] || changes['toDate']) && !changes['fromDate']?.firstChange) {
+      this.oeeLoaded = false;
+      this.loadOEE();
+    }
+  }
 
   ngOnDestroy() {
     try { this.oeeTrendChart?.destroy(); } catch (e) {}
@@ -44,12 +55,16 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
   loadOEE() {
     if (this.oeeLoading) return;
     this.oeeLoading = true;
+    // N138: använd förälderns datumspann om det finns, annars senaste 30 dagar.
+    const useRange = !!this.fromDate && !!this.toDate;
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 29);
-    const fmt = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    this.loadAnnotations(fmt(startDate), fmt(endDate));
+    const annFrom = useRange ? (this.fromDate as string) : fmt(startDate);
+    const annTo   = useRange ? (this.toDate as string)   : fmt(endDate);
+    this.loadAnnotations(annFrom, annTo);
 
     this.rebotlingService.getOEE('month').pipe(
       timeout(15000),
@@ -59,7 +74,12 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
       if (oeeRes?.success && oeeRes.data) {
         this.oeeData = oeeRes.data;
       }
-      this.rebotlingService.getOEETrend(30, this.oeeGranularity).pipe(
+      this.rebotlingService.getOEETrend(
+        30,
+        this.oeeGranularity,
+        useRange ? (this.fromDate as string) : undefined,
+        useRange ? (this.toDate as string) : undefined
+      ).pipe(
         timeout(15000),
         catchError(() => of(null)),
         takeUntil(this.destroy$)

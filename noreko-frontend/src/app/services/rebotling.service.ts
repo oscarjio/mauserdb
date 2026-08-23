@@ -263,11 +263,13 @@ export class RebotlingService {
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
-  getOeeWaterfall(days: number = 30): Observable<any> {
-    return this.http.get<OeeWaterfallResponse>(
-      `${environment.apiUrl}?action=rebotling&run=oee-waterfall&days=${days}`,
-      { withCredentials: true }
-    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
+  getOeeWaterfall(days: number = 30, fromDate?: string, toDate?: string): Observable<any> {
+    // N138: skicka från/till om förälderns datumspann finns, annars dagfönster.
+    const url = (fromDate && toDate)
+      ? `${environment.apiUrl}?action=rebotling&run=oee-waterfall&from_date=${fromDate}&to_date=${toDate}`
+      : `${environment.apiUrl}?action=rebotling&run=oee-waterfall&days=${days}`;
+    return this.http.get<OeeWaterfallResponse>(url, { withCredentials: true })
+      .pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
 
   getWeekdayStats(dagar: number = 90): Observable<any> {
