@@ -3134,6 +3134,9 @@ class TvattlinjeController {
             // tvattlinje_skiftrapport: totalt är direkt antal (inte kumulativt).
             // E: Deduplicera per (dag, skiftraknare) — senaste posten (MAX id) — annars
             // dubbelräknar snapshot-poster operatörernas IBC, minuter och antal_skift i rankingen.
+            // N143: drifttid/totalt-filtret måste ligga INNE i subqueryn. Annars väljs
+            // MAX(id) = dagens sista snapshot först, och om den är 0/0 (t.ex. en tömd
+            // slutpost) tappas hela dagens riktiga produktion av den yttre WHERE:n.
             $stmtShifts = $this->pdo->prepare("
                 SELECT sr.totalt, sr.drifttid, sr.op1, sr.op2, sr.op3,
                        YEARWEEK(sr.datum, 1) AS yw
@@ -3142,9 +3145,9 @@ class TvattlinjeController {
                     SELECT MAX(id) AS max_id
                     FROM tvattlinje_skiftrapport
                     WHERE datum BETWEEN :from AND :to
+                      AND drifttid > 0 AND totalt > 0
                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                 ) latest ON sr.id = latest.max_id
-                WHERE sr.drifttid > 0 AND sr.totalt > 0
                 ORDER BY sr.datum ASC
             ");
             $stmtShifts->execute([':from' => $from, ':to' => $to]);
@@ -3164,10 +3167,14 @@ class TvattlinjeController {
                 if ($aktiva === 0) continue;
 
                 $tot = (float)$s['totalt'];
-                // Cap 600 min (~10h = max ett skift). En felregistrerad drifttid
-                // (t.ex. 1440) sänker annars ibc_per_h/score för ALLA operatörer på skiftet.
-                $min = min((float)$s['drifttid'], 600.0);
-                if ($min <= 0) continue;
+                $min = (float)$s['drifttid'];
+                // N144: en korrupt/orimlig drifttid (>= 600 min = >10h; max ett skift ~10h)
+                // ska EXKLUDERA skiftet, inte klampas till 600 — klampning förorenar ändå
+                // snittet och sänker ibc_per_h/score för ALLA operatörer på skiftet.
+                if ($min >= 600.0) continue;
+                // N143: undre gräns. Ett skräppass (t.ex. totalt=2, drifttid=480, 3 aktiva)
+                // klarar totalt>0 men lägger stor nämnare och drar snittet mot noll.
+                if ($min < 30 || $tot < 5) continue;
 
                 $ibcPerOp  = $tot / $aktiva;
                 $shiftIbcH = round($ibcPerOp / ($min / 60.0), 2);
@@ -3209,7 +3216,9 @@ class TvattlinjeController {
             foreach ($opNames as $num => $name) {
                 if (!isset($opTotals[$num])) continue;
                 $tot = $opTotals[$num];
-                if ($tot['count'] < 3) continue;
+                // N143: kräv minst 5 skift för statistisk stabilitet (var 3 -> för lågt
+                // underlag gav orättvisa ytterlighetsvärden i rankingen).
+                if ($tot['count'] < 5) continue;
 
                 $ibc_per_h = round($tot['ibc'] / ($tot['min'] / 60.0), 1);
 
