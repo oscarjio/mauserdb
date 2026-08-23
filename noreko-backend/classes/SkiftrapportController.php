@@ -1007,13 +1007,14 @@ class SkiftrapportController {
                 $burEjOk   = (int)$r['bur_ej_ok'];
                 $totalt    = (int)$r['totalt'];
                 $drifttid  = (float)$r['drifttid'];
-                $rast      = (float)$r['rasttime'];
                 $stopp     = (float)$r['driftstopptime'];
                 $ct        = (float)$r['cycle_time_minutes'];
                 $processed = $ibcOk + $ibcEjOk;        // OEE-processed (godk + ej godk), som realtids
                 $kasserade = $ibcEjOk + $burEjOk;      // för kassationsvisning
-                // Planerad tid = faktisk skiftlängd (drift + rast + driftstopp), ej flat 480.
-                $scheduled   = $drifttid + $rast + $stopp;
+                // Tillgänglighet-nämnare = drifttid + driftstopptime (EXKL rast). Rast är
+                // PLANERAD stopptid och räknas inte som tillgänglighetsförlust. Exakt samma
+                // kanoniska formel som realtids-OEE -> operatörspanelen matchar realtidspanelen.
+                $scheduled   = $drifttid + $stopp;
                 // Teoretisk max = drifttid / produktens cykeltid (min/IBC), ej hårdkodad 30 IBC/h.
                 $theoretical = ($ct > 0 && $drifttid > 0) ? ($drifttid / $ct) : 0.0;
 
