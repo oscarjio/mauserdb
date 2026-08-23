@@ -366,8 +366,13 @@
                       <span *ngIf="day.avgEfficiency == null" class="text-muted">–</span>
                     </td>
                     <td class="d-none d-lg-table-cell">
-                      <span *ngIf="day.totalDrift > 0" class="text-success">{{ formatDrifttid(day.totalDrift) }}</span>
-                      <span *ngIf="day.totalDrift === 0" class="text-muted">–</span>
+                      <!-- N142: korrupt total drifttid (>=600 min = >10h, omöjligt för ett skift) -->
+                      <span *ngIf="day.driftCorrupt" class="text-danger"
+                            title="Orimlig total drifttid (>10h) för {{ day.date }} — korrupt PLC-värde, ej TILLG-grundande">
+                        <i class="fas fa-exclamation-triangle me-1"></i>–
+                      </span>
+                      <span *ngIf="!day.driftCorrupt && day.totalDrift > 0" class="text-success">{{ formatDrifttid(day.totalDrift) }}</span>
+                      <span *ngIf="!day.driftCorrupt && day.totalDrift === 0" class="text-muted">–</span>
                     </td>
                     <td>
                       <!-- N127: domänregel = ETT skift per dag. Flera poster = varning, ej "N st skift". -->

@@ -273,6 +273,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     reports: any[];
     totalIbc: number;
     totalDrift: number;
+    driftCorrupt: boolean;
     products: string[];
     operators: string[];
     avgEfficiency: number | null;
@@ -286,9 +287,15 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     });
 
     const days = Object.entries(dayMap).map(([date, dayReports]) => {
-      const totalIbc = dayReports.reduce((s, r) => s + (r.totalt || 0), 0);
+      // N140: dagsraden ska summera ibc_ok (samma tal som delposterna visar, html:430)
+      // — inte r.totalt (ok+ej_ok+omtvätt) — annars off-by-one (dag 105 vs delpost 104).
+      const totalIbc = dayReports.reduce((s, r) => s + (r.ibc_ok || 0), 0);
       // N129: exkludera korrupta drifttider (>=600 min) ur dagssumman
       const totalDrift = dayReports.reduce((s, r) => s + (this._isDrifttidCorrupt(r) ? 0 : (r.drifttid || 0)), 0);
+      // N142: dagsraden är en SUMMA av flera poster. _isDrifttidCorrupt testar bara en
+      // enskild post, så 3 poster à ~220 min (=660) slinker igenom och visar 11h+ / TILLG 100%.
+      // Flagga hela dagen som korrupt när summan >= 600 min (>10h, omöjligt för ett skift).
+      const driftCorrupt = totalDrift >= 600;
 
       const productSet = new Set<string>();
       dayReports.forEach(r => {
@@ -312,9 +319,11 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         reports: dayReports,
         totalIbc,
         totalDrift,
+        driftCorrupt,
         products: Array.from(productSet),
         operators: Array.from(opSet),
-        avgEfficiency
+        // N142: en dag med korrupt total drifttid har meningslös TILLG (11h+ = 100%) → dölj.
+        avgEfficiency: driftCorrupt ? null : avgEfficiency
       };
     });
 
@@ -406,8 +415,18 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   // ========== Summary KPIs (filtered set) ==========
+  // N141: en rad måste bidra till BÅDE täljaren (IBC) och nämnaren (drifttid) i
+  // SNITT IBC/H. En driftlös rad (t.ex. misdaterad 2025-rad med 858 IBC, drifttid "-")
+  // låg bara i täljaren och blåste upp snittet (22.2 istf ~18.9). Korrupt drifttid
+  // (>=600) exkluderas också. Samma predikat filtrerar båda getters.
+  private _countsInSummary(r: any): boolean {
+    return !this._isDrifttidCorrupt(r) && (r?.drifttid || 0) > 0;
+  }
+
   get summaryTotalIbc(): number {
-    return this.filteredReports.reduce((s, r) => s + (r.ibc_ok || 0), 0);
+    return this.filteredReports
+      .filter(r => this._countsInSummary(r))
+      .reduce((s, r) => s + (r.ibc_ok || 0), 0);
   }
 
   get summaryAvgQuality(): number | null {
@@ -459,8 +478,10 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   get summaryTotalDrift(): number {
-    // N129: exkludera korrupta drifttider (>=600 min) ur totalsumman
-    return this.filteredReports.reduce((s, r) => s + (this._isDrifttidCorrupt(r) ? 0 : (r.drifttid || 0)), 0);
+    // N129: exkludera korrupta drifttider (>=600 min). N141: samma predikat som täljaren.
+    return this.filteredReports
+      .filter(r => this._countsInSummary(r))
+      .reduce((s, r) => s + (r.drifttid || 0), 0);
   }
 
   get summaryDeltaVsPrev(): number | null {
@@ -491,6 +512,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   getEfficiencyPct(r: any): number | null {
+    // N142: korrupt drifttid (>=600 min) → TILLG är meningslös, visa "-".
+    if (this._isDrifttidCorrupt(r)) return null;
     // N128: 0-IBC-dag (t.ex. 3 min drifttid, ingen produktion) gav 3/3 = 100%. Utan
     // faktisk produktion är TILLG meningslös → visa "-".
     if (!(r.totalt > 0)) return null;
