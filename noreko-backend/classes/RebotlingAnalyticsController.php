@@ -670,6 +670,7 @@ class RebotlingAnalyticsController {
             $dailyTarget = 1000;
             $shiftStart = '06:00:00';
             $shiftLengthMin = 480;
+            $undantagMal = null;
             try {
                 $this->ensureSettingsTable();
                 $this->ensureShiftTimesTable();
@@ -686,10 +687,29 @@ class RebotlingAnalyticsController {
                     $shiftLengthMin = (float)($settingsRow['shift_hours'] ?? 8.0) * 60;
                     if ($settingsRow['fm_start']) $shiftStart = $settingsRow['fm_start'];
                     if ($settingsRow['undantag_mal'] !== null) {
-                        $dailyTarget = (int)$settingsRow['undantag_mal'];
+                        $undantagMal = (int)$settingsRow['undantag_mal'];
                     }
                 }
             } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::getExecDashboard settings: ' . $e->getMessage()); }
+
+            // ---- Veckodagsmål (lör/sön = 0) — vinner över flat rebotling_target ----
+            // Samma mönster som getYearCalendar(): weekday 1=Måndag..7=Söndag (ISO, matchar date('N')).
+            $weekdayGoals = [];
+            try {
+                $wgStmt = $this->pdo->query("SELECT weekday, daily_goal FROM rebotling_weekday_goals");
+                foreach ($wgStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    $weekdayGoals[(int)$row['weekday']] = (int)$row['daily_goal'];
+                }
+            } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::getExecDashboard weekdayGoals: ' . $e->getMessage()); }
+
+            $todayWd = (int)$now->format('N'); // 1=Måndag .. 7=Söndag
+            if (isset($weekdayGoals[$todayWd])) {
+                $dailyTarget = $weekdayGoals[$todayWd];
+            }
+            // Undantag för specifikt datum vinner sist (över både settings och veckodagsmål)
+            if ($undantagMal !== null) {
+                $dailyTarget = $undantagMal;
+            }
 
             // ---- Konsoliderad IBC + OEE idag + igår (1 CTE-query istället för 3) ----
             $ibcToday = 0;
@@ -816,7 +836,10 @@ class RebotlingAnalyticsController {
             $days7 = [];
             for ($i = 6; $i >= 0; $i--) {
                 $d = date('Y-m-d', strtotime("-{$i} days"));
-                $days7[] = ['date' => $d, 'ibc' => (int)($map14[$d]['ibc_ok'] ?? 0), 'target' => $dailyTarget];
+                // Per-dags veckodagsmål så lör/sön får rätt mål (0) istället för dagens flata target.
+                $wd = (int)date('N', strtotime($d)); // 1=Måndag .. 7=Söndag
+                $dayTarget = $weekdayGoals[$wd] ?? $dailyTarget;
+                $days7[] = ['date' => $d, 'ibc' => (int)($map14[$d]['ibc_ok'] ?? 0), 'target' => $dayTarget];
             }
 
             // ---- Vecko-totaler och OEE beräknas från samma 14-dagars data ----
