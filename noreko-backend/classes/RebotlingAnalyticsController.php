@@ -662,6 +662,36 @@ class RebotlingAnalyticsController {
      * Används av statistiksidans heatmap-vy.
      */
 
+    /**
+     * N145b: Ladda rebotling_weekday_goals som [ISO-weekday => daily_goal].
+     * ISO weekday: 1=Måndag .. 7=Söndag (matchar date('N') och tabellens konvention
+     * i RebotlingAdminController). Gemensam helper så ALLA kodvägar som beräknar
+     * dagens rebotling-mål (getExecDashboard, getYearCalendar samt
+     * RebotlingController::getCachedSettingsAndWeather för startsidan) använder exakt
+     * samma konvention och inte kan divergera igen.
+     */
+    public static function loadWeekdayGoalsMap(\PDO $pdo): array {
+        $map = [];
+        try {
+            $stmt = $pdo->query("SELECT weekday, daily_goal FROM rebotling_weekday_goals");
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                $map[(int)$row['weekday']] = (int)$row['daily_goal'];
+            }
+        } catch (\Throwable $e) {
+            error_log('RebotlingAnalyticsController::loadWeekdayGoalsMap: ' . $e->getMessage());
+        }
+        return $map;
+    }
+
+    /**
+     * N145b: Dagens veckodagsmål (Europe/Stockholm), eller null om ingen rad finns.
+     */
+    public static function todaysWeekdayGoal(\PDO $pdo): ?int {
+        $iso = (int)(new \DateTime('now', new \DateTimeZone('Europe/Stockholm')))->format('N');
+        $map = self::loadWeekdayGoalsMap($pdo);
+        return $map[$iso] ?? null;
+    }
+
     public function getExecDashboard() {
             $tz  = new DateTimeZone('Europe/Stockholm');
             $now = new DateTime('now', $tz);
@@ -693,15 +723,8 @@ class RebotlingAnalyticsController {
             } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::getExecDashboard settings: ' . $e->getMessage()); }
 
             // ---- Veckodagsmål (lör/sön = 0) — vinner över flat rebotling_target ----
-            // Samma mönster som getYearCalendar(): weekday 1=Måndag..7=Söndag (ISO, matchar date('N')).
-            $weekdayGoals = [];
-            try {
-                $wgStmt = $this->pdo->query("SELECT weekday, daily_goal FROM rebotling_weekday_goals");
-                foreach ($wgStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $weekdayGoals[(int)$row['weekday']] = (int)$row['daily_goal'];
-                }
-            } catch (\Throwable $e) { error_log('RebotlingAnalyticsController::getExecDashboard weekdayGoals: ' . $e->getMessage()); }
-
+            // Gemensam helper (facit för konventionen); $weekdayGoals återanvänds av sparklinen nedan.
+            $weekdayGoals = self::loadWeekdayGoalsMap($this->pdo);
             $todayWd = (int)$now->format('N'); // 1=Måndag .. 7=Söndag
             if (isset($weekdayGoals[$todayWd])) {
                 $dailyTarget = $weekdayGoals[$todayWd];

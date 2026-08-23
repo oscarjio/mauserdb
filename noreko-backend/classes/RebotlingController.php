@@ -2,6 +2,7 @@
 require_once __DIR__ . '/RebotlingAdminController.php';
 require_once __DIR__ . '/RebotlingAnalyticsController.php';
 require_once __DIR__ . '/VeckotrendController.php';
+require_once __DIR__ . '/CodeVersion.php';
 
 class RebotlingController {
     private $pdo;
@@ -527,7 +528,14 @@ class RebotlingController {
      * Sparar 1 DB-roundtrip (~120ms) per getLiveStats-anrop.
      */
     private function getCachedSettingsAndWeather(): array {
-        $cacheFile = sys_get_temp_dir() . '/mauserdb_livestats_settings.json';
+        // N145b: nyckeln MÅSTE innehålla kodversion + datum. Utan kodversion kunde en
+        // process som kör äldre kod (t.ex. 8091-spegeln med gammal bytecode) skriva ett
+        // gammalt värde (Mål 1000 på helg) till samma delade /tmp-fil som edge sedan
+        // serverade — exakt samma spöke som redan fixats för swr_-cachen. Datumet gör att
+        // helgens/veckodagens mål alltid busts vid midnatt.
+        $cacheFile = sys_get_temp_dir() . '/mauserdb_livestats_settings_'
+            . CodeVersion::get() . '_'
+            . (new \DateTime('now', new \DateTimeZone('Europe/Stockholm')))->format('Y-m-d') . '.json';
         $cacheTtl = 30; // sekunder
 
         if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTtl) {
@@ -551,10 +559,19 @@ class RebotlingController {
             ");
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if ($row) {
+                // N145b: startsidan matas härifrån (action=rebotling bare -> getLiveStats).
+                // Prioritet settings -> veckodagsmål -> undantag vinner sist. Tidigare
+                // frågades rebotling_weekday_goals ALDRIG här, så helg visade "Mål 1000".
+                // Samma gemensamma helper/konvention som getExecDashboard (facit).
+                if ($row['settings_target'] !== null) {
+                    $result['rebotlingTarget'] = (int)$row['settings_target'];
+                }
+                $weekdayGoal = RebotlingAnalyticsController::todaysWeekdayGoal($this->pdo);
+                if ($weekdayGoal !== null) {
+                    $result['rebotlingTarget'] = $weekdayGoal;
+                }
                 if ($row['undantag_mal'] !== null) {
                     $result['rebotlingTarget'] = (int)$row['undantag_mal'];
-                } elseif ($row['settings_target'] !== null) {
-                    $result['rebotlingTarget'] = (int)$row['settings_target'];
                 }
                 if ($row['utetemperatur'] !== null) {
                     $result['utetemperatur'] = (float)$row['utetemperatur'];
@@ -579,7 +596,9 @@ class RebotlingController {
         // Filcache 5s TTL — getLiveStats anropas ofta och data ändras sällan
         $cacheDir = dirname(__DIR__) . '/cache';
         if (!is_dir($cacheDir)) { @mkdir($cacheDir, 0777, true); }
-        $cacheFile = $cacheDir . '/livestats_result.json';
+        // N145b: versionera nyckeln (som swr_-cachen) så en process med annan kodversion
+        // inte kan förgifta hela livestats-svaret i den delade cachefilen.
+        $cacheFile = $cacheDir . '/livestats_result_' . CodeVersion::get() . '.json';
         if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 5) {
             $cached = file_get_contents($cacheFile);
             if ($cached !== false) {
