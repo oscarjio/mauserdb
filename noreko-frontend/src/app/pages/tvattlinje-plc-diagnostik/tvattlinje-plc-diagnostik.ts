@@ -82,13 +82,43 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   ngOnInit(): void {
     this.selectedDate = this.todayStr();
     this.isToday = true;
-    this.fetchEvents(true);
+    // N-bug #9: om dagens datum saknar PLC-data (ofta tomt, t.ex. helg) — hoppa
+    // automatiskt till senaste dag MED data i stället för att visa en tom vy.
+    this.resolveDefaultDate();
     this.startPolling();
     this.healthIntervalId = setInterval(() => {
       if (this.lastFetchTime) {
         this.connectionHealthSec = Math.round((Date.now() - this.lastFetchTime.getTime()) / 1000);
       }
     }, 1000);
+  }
+
+  private resolveDefaultDate(): void {
+    const url = `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostik-latest-date`;
+    this.http.get<{ success: boolean; data?: { latest_date: string | null; is_today: boolean } }>(url, { withCredentials: true })
+      .pipe(timeout(5000), catchError(() => of(null)))
+      .subscribe(res => {
+        const latest = res?.success ? res.data?.latest_date : null;
+        if (latest && res?.data?.is_today === false) {
+          this.selectedDate = latest;
+          this.isToday = false;
+        }
+        this.fetchEvents(true);
+      });
+  }
+
+  /** Manuell genväg: hoppa till senaste dag med PLC-data (knapp bredvid "Gå till idag"). */
+  goToLatestShift(): void {
+    const url = `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostik-latest-date`;
+    this.http.get<{ success: boolean; data?: { latest_date: string | null } }>(url, { withCredentials: true })
+      .pipe(timeout(5000), catchError(() => of(null)))
+      .subscribe(res => {
+        const latest = res?.success ? res.data?.latest_date : null;
+        if (latest) {
+          this.selectedDate = latest;
+          this.onDateChange();
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -127,7 +157,9 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
     const requestDate = this.selectedDate;
     this.expectedDate = requestDate;
 
-    const url = `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostik&date=${requestDate}&limit=200`;
+    // N-bug #11: limit höjt 200→1000 (matchar backend-default) så dagar med >200 events
+    // (t.ex. 300+ IBC) inte tappar tidig del av skiftet. Backend sorterar nu ASC också.
+    const url = `${environment.apiUrl}?action=tvattlinje&run=plc-diagnostik&date=${requestDate}&limit=1000`;
 
     this.http.get<PlcDiagnostikResponse>(url, { withCredentials: true })
       .pipe(
@@ -285,6 +317,7 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
   get healthClass(): string {
     if (this.fetchError) return 'health-error';
     if (this.connectionHealthSec > 10) return 'health-warning';
+    if (this.isEventStale()) return 'health-stale';
     return 'health-ok';
   }
 
@@ -292,7 +325,17 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
     if (this.fetchError) return 'Anslutningsfel';
     if (!this.lastFetchTime) return 'Ansluter...';
     if (this.connectionHealthSec > 10) return `${this.connectionHealthSec}s sedan`;
+    if (this.isEventStale()) return 'Inaktiv (gammalt event)';
     return 'OK';
+  }
+
+  // N-bug #7: "OK" ska inte bara betyda "API:et svarar" — koppla status även till
+  // senaste PLC-EVENTETS ålder. >2h utan event trots frisk anslutning = "Inaktiv",
+  // en neutral (ej röd) signal eftersom linjen legitimt kan stå still (rast/helg/stopp).
+  private isEventStale(): boolean {
+    if (!this.isToday || !this.stats.last_event) return false;
+    const ageMin = (Date.now() - new Date(this.stats.last_event.replace(' ', 'T')).getTime()) / 60000;
+    return ageMin > 120;
   }
 
   get statusLabel(): string {
