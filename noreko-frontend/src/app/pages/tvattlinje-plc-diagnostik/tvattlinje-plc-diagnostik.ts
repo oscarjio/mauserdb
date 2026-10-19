@@ -298,9 +298,11 @@ export class TvattlinjePlcDiagnostikPage implements OnInit, OnDestroy, AfterView
       ibc_ok: 'ok', ibc_ej_ok: 'ejok', omtvaatt: 'omtv',
       antal_ok: 'ok', antal_ej_ok: 'ejok', totalt: 'tot',
       runtime_plc: 'drifttid(min)', rasttime: 'rast(min)',
-      driftstopptime: 'stopp(min)', lopnummer: 'lopnr',
+      // N-bug (Oscar 2026-10-19): kalla aldrig driftstopp för "stopp" — tvetydigt mot
+      // vanligt stopp (t.ex. ljusbom), som inte har egen räknare och ingår i drifttiden.
+      driftstopptime: 'driftstopp(min)', lopnummer: 'lopnr',
       effektivitet: 'eff%', running: 'running',
-      rast_status: 'rast', driftstopp_status: 'stopp',
+      rast_status: 'rast', driftstopp_status: 'driftstopp',
       kommentar: 'kommentar', user_id: 'user', inlagd: 'inlagd',
     };
     const parts: string[] = [];

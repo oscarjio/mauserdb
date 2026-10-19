@@ -1953,10 +1953,18 @@ class TvattlinjeController {
                 }
             }
 
-            // netRuntimeMinutes: dra ALLTID av rast + driftstopp. Antagandet att D4007/runtime_plc
-            // redan var netto stämde inte i praktiken — dag 2026-08-03 visade 7.9h körtid mot ~7.4h
-            // faktiskt (52 min rast medräknad i drifttiden). max(0,...) klämmer resultatet till >=0.
-            $netRuntimeMinutes = max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes);
+            // N-bug (Oscar 2026-10-19, DOMÄNREGEL se CLAUDE.md): D4007 ("drifttid", per_dag-
+            // källan SR/PLC) är REDAN NETTO — utan rast och utan driftstopp. Bevis: 2026-10-15
+            // drifttid 255 + rast 17 + driftstopp 26 = 298 = runtime_today exakt; drifttiden
+            // ökar inte under rast i rå-PLC-loggen. Den tidigare kommentaren här byggde på
+            // 2026-08-03, som är en KÄND KORRUPT dag (kumulativ D4007, ~22h) — ingen giltig grund
+            // för att dra av rast/driftstopp generellt. Dra ALDRIG av rast/driftstopp från D4007.
+            // onoff-spannet (fallback, $runtimeSource==='onoff', bara när varken SR eller PLC-ibc
+            // finns för perioden) är däremot RÅ påslagen-tid som FAKTISKT inkluderar rast/driftstopp
+            // — där är avdraget korrekt (Oscar: "avdrag är bara rätt från onoff-spann, aldrig D4007").
+            $netRuntimeMinutes = ($runtimeSource === 'onoff')
+                ? max(0, $totalRuntimeMinutes - $totalRastMinutes - $totalDriftstoppMinutes)
+                : $totalRuntimeMinutes;
             $total_runtime_hours = $netRuntimeMinutes / 60;
 
             // Snitt cykeltid — A: exkludera cykler vars wall-clock-gap överlappar ett rast-/
@@ -2014,8 +2022,12 @@ class TvattlinjeController {
             $netForCycle    = $netRuntimeMinutes;
             $cyclesForCycle = $total_cycles;
             foreach ($corruptDays as $cDay => $cRawDrift) {
-                $dayRuntime      = min($cRawDrift, 600); // samma klamp som drift-summan använde
-                $dayNet          = max(0, $dayRuntime - ($rastPerDay[$cDay] ?? 0) - ($dsPerDay[$cDay] ?? 0));
+                $dayRuntime = min($cRawDrift, 600); // samma klamp som drift-summan använde
+                // N-bug (Oscar 2026-10-19): samma regel som $netRuntimeMinutes ovan — D4007 är
+                // redan netto, dra inte av rast/driftstopp igen. Bara relevant för onoff-spannet.
+                $dayNet = ($runtimeSource === 'onoff')
+                    ? max(0, $dayRuntime - ($rastPerDay[$cDay] ?? 0) - ($dsPerDay[$cDay] ?? 0))
+                    : $dayRuntime;
                 $netForCycle    -= $dayNet;
                 $cyclesForCycle -= ($ibcPerDagPlc[$cDay] ?? 0);
             }

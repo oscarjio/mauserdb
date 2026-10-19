@@ -41,6 +41,27 @@ Mauserdb/Noreko Älvängen kör **ett skift per dag**, vardag som helg.
 
 ---
 
+## DOMÄNREGLER — DRIFTTID / RAST / DRIFTSTOPP (KRITISKT, fastställt av Oscar 2026-10-19)
+
+**D4007 ("drifttid") är REDAN NETTO — utan rast och UTAN driftstopp. Dra ALDRIG av
+rast eller driftstopp från drifttid någonstans i koden — det är dubbelavdrag.**
+
+- **DRIFTTID** = PLC D4007. Tiden linjen är IGÅNG, redan exklusive rast och driftstopp.
+- **RAST** = PLC D4008, egen räknare. Planerad paus. ALDRIG driftstopp, ALDRIG en förlust.
+- **DRIFTSTOPP** = PLC D4011, egen räknare. Sätts med egen knapp i PLC vid haveri/fel på
+  linjen. Kalla det ALDRIG bara "stopp" i UI/kod — "stopp" är tvetydigt mot vanligt stopp.
+- **VANLIGT STOPP** (t.ex. utlöst ljusbom) har INGEN egen räknare, ingår redan i
+  drifttiden (D4007 räknar INTE upp under ett sådant stopp) och syns bara som lägre takt.
+- Rast/driftstopp skickas in vid skiftrapport-inskick och får ENDAST dras av från
+  PÅSLAGEN tid (onoff-spann), ALDRIG från D4007/drifttid.
+- **Bevis** (2026-10-15): drifttid 255 + rast 17 + driftstopp 26 = 298 = runtime_today
+  exakt. PLC-diagnostiken samma dag: drifttid ökar INTE under rast (08:59–09:16: 118→121
+  nästan oförändrat; 11:59–12:33: 277→283 nästan oförändrat).
+- **Tillgänglighet** (kort/KPI) = drifttid / planerad skifttid — SAMMA definition som
+  OEE:s tillgänglighetsfaktor, INTE drifttid/(drifttid+driftstopp).
+
+---
+
 ## DEPLOYMENT
 
 Se `MEMORY.md` för full deployment-info. Sammanfattning:

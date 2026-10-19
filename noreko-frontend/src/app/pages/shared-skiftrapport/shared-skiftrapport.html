@@ -409,7 +409,7 @@
                           <th title="Effektivitet mot mål: (mål - faktisk)/mål. + = snabbare än mål, - = långsammare.">Eff%</th>
                           <th class="d-none d-md-table-cell" title="Netto drifttid exkl. rast">Drifttid</th>
                           <th class="d-none d-md-table-cell" title="Rasttid (min)">Rast</th>
-                          <th class="d-none d-md-table-cell" title="Driftstopp (min)">Stopp</th>
+                          <th class="d-none d-md-table-cell" title="Driftstopp (min)">{{ config.line === 'tvattlinje' ? 'Driftstopp' : 'Stopp' }}</th>
                           <th title="Inlagd i lönesystem">Inlagd</th>
                           <th></th>
                         </tr>
