@@ -851,6 +851,34 @@ class TvattlinjeController {
                 return;
             }
         }
+
+        // N-bug #2 (503 på live-vyn): getLiveStats saknade stampede-skydd — till skillnad
+        // från getPlcDiagnostikStream, som fick samma skydd mot FPM-kömättnad redan (se N-bug
+        // #11-fixet). Live-vyn pollar VAR 2 SEKUNDER från varje öppen flik; när 10s-cachen går
+        // ut samtidigt kör ALLA flikar de två tunga aggregatfrågorna (LAG/SUM över tvattlinje_ibc)
+        // samtidigt → FPM-kö mättas → 503. Samma mönster, samma fix: bara EN request regenererar
+        // vid cache-miss (flock NB), övriga serverar stale cache i stället.
+        $lock = @fopen($cacheFile . '.lock', 'c');
+        $haveLock = $lock && flock($lock, LOCK_EX | LOCK_NB);
+        if (!$haveLock && file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 60) {
+            $cached = @file_get_contents($cacheFile);
+            if ($cached !== false && $cached !== '') {
+                if ($lock) { fclose($lock); }
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
+        // Dubbelkoll under låset — någon kan ha regenererat precis före oss.
+        if ($haveLock && file_exists($cacheFile) && (time() - filemtime($cacheFile)) < 10) {
+            $cached = @file_get_contents($cacheFile);
+            if ($cached !== false && $cached !== '') {
+                @flock($lock, LOCK_UN); @fclose($lock);
+                header('Content-Type: application/json; charset=utf-8');
+                echo $cached;
+                return;
+            }
+        }
         try {
             // Primär källa: PLC (MAX(ibc_count) = kumulativ räknare, nollställs varje dag)
             $stmtPlc = $this->pdo->query('
@@ -1092,9 +1120,22 @@ class TvattlinjeController {
             
             $out = json_encode($response, JSON_UNESCAPED_UNICODE);
             @file_put_contents($cacheFile, $out, LOCK_EX);
+            if (isset($lock) && $lock) { @flock($lock, LOCK_UN); @fclose($lock); }
             echo $out;
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::getLiveStats: ' . $e->getMessage());
+            if (isset($lock) && $lock) { @flock($lock, LOCK_UN); @fclose($lock); }
+            // N-bug #2: hellre senast kända värde (stale, markerad som sådan) än ett hårt
+            // fel som får frontend att visa 0. Ingen cache alls kvar → fortsätt visa felet.
+            if (isset($cacheFile) && file_exists($cacheFile)) {
+                $stale = @file_get_contents($cacheFile);
+                if ($stale !== false && $stale !== '') {
+                    header('Content-Type: application/json; charset=utf-8');
+                    header('X-Stale-Cache: 1');
+                    echo $stale;
+                    return;
+                }
+            }
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -2916,7 +2957,8 @@ class TvattlinjeController {
                         COALESCE(sr.skift_count, 0)                       AS skift_count,
                         sr.total_runtime_min                             AS total_runtime_min,
                         COALESCE(plc.plc_runtime_min, 0)                 AS plc_runtime_min,
-                        COALESCE(onoff.onoff_runtime_min, 0)             AS onoff_runtime_min
+                        COALESCE(onoff.onoff_runtime_min, 0)             AS onoff_runtime_min,
+                        prod.cycle_time_minutes                          AS product_cycle_min
                     FROM (
                         SELECT DATE(datum) AS dag FROM tvattlinje_skiftrapport
                         WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY) AND datum < CURDATE() + INTERVAL 1 DAY
@@ -2931,7 +2973,8 @@ class TvattlinjeController {
                             SUM(GREATEST(0, COALESCE(sr.antal_ok,   0))) AS total_ok,
                             SUM(GREATEST(0, COALESCE(sr.antal_ej_ok, 0))) AS total_ej_ok,
                             COUNT(*)                                     AS skift_count,
-                            SUM(LEAST(GREATEST(0, COALESCE(sr.drifttid, 0)), 600)) AS total_runtime_min
+                            SUM(LEAST(GREATEST(0, COALESCE(sr.drifttid, 0)), 600)) AS total_runtime_min,
+                            MAX(sr.product_id)                           AS product_id
                         FROM tvattlinje_skiftrapport sr
                         INNER JOIN (
                             SELECT MAX(id) AS max_id
@@ -2972,6 +3015,9 @@ class TvattlinjeController {
                           AND runtime_today > 0
                         GROUP BY DATE(datum)
                     ) onoff ON onoff.dag = alldays.dag
+                    -- N-bug #3 (OEE kanonisk formel): produktens måltakt för prestanda-faktorn,
+                    -- samma fält (cycle_time_minutes) som shared-skiftrapport.ts använder.
+                    LEFT JOIN tvattlinje_products prod ON prod.id = sr.product_id
                     ORDER BY alldays.dag ASC
                 ");
                 $stmt->execute([
@@ -3079,19 +3125,21 @@ class TvattlinjeController {
                         : 0.0;
                 }
 
-                // A: Prestanda = FAKTISK takt / TEORETISK MAX-takt (IBC per KÖRD timme), INTE måluppfyllelse.
-                // Måluppfyllelse (tot/mål) sjunker redan när linjen stått still → att använda den som
-                // perf straffar stopptid TVÅ ggr i OEE=A×P×Q. mal_pct exponeras separat för UI.
-                // KONSISTENS: prestanda-nämnaren (throughput-taket) = tvättlinjens ETABLERADE
-                // teoretiska max 20 IBC/h — samma som Skiftjamforelse/HistoriskSammanfattning
-                // (TEORIETISK_MAX_IBC_H_PER_LINE['tvattlinje'] resp. MAX_IBC_H_TVATTLINJE).
-                // Tidigare härleddes taket ur dagsmålet (140/plannedHours ≈ 17 IBC/h) vilket gav
-                // avvikande OEE mot övriga ytor. Dagsmålet 140 används fortsatt ENDAST som MÅL (mal_pct).
-                $teoretiskMaxIbcH = 20.0; // tvättlinjens teoretiska max (IBC/h)
+                // N-bug #3 (OEE kanonisk formel — Oscar 2026-10-19): Prestanda = antal IBC ×
+                // produktens måltakt (cycle_time_minutes, fallback 3.0 min om produkt/fält
+                // saknas) / nettodrifttid, cap 100. Ersätter det tidigare fasta 20 IBC/h-taket
+                // — matchar nu EXAKT samma formel som shared-skiftrapport.ts::_computeOeePct
+                // (se den filen; kanonisk formel dokumenterad på båda ställena, algebraiskt
+                // identisk: IBC/((netto/60)) / (60/måltakt) == IBC×måltakt/netto).
+                // OBS: Skiftjamforelse/HistoriskSammanfattning/EFF-kontrollerna använder
+                // fortfarande det gamla fasta 20 IBC/h-taket — ej del av detta uppdrag, men de
+                // kan nu visa annan OEE än OEE-trend/skiftrapport för samma dag (flaggat separat).
+                $productCycleMin = (isset($r['product_cycle_min']) && $r['product_cycle_min'] !== null && (float)$r['product_cycle_min'] > 0)
+                    ? (float)$r['product_cycle_min']
+                    : 3.0;
                 $idealPerDag = $goalsMap[$weekday] ?? ($isWeekend ? 0 : 140); // MÅL/dag (mal_pct), ej prestandatak
-                $actualPerH  = $netRuntimeMin > 0 ? $tot / ($netRuntimeMin / 60.0) : 0.0;
-                $perf_pct = ($teoretiskMaxIbcH > 0 && $netRuntimeMin >= 10)
-                    ? min(100.0, round($actualPerH / $teoretiskMaxIbcH * 100, 1))
+                $perf_pct = ($netRuntimeMin >= 10)
+                    ? min(100.0, round(($tot * $productCycleMin) / $netRuntimeMin * 100, 1))
                     : 0.0;
                 $mal_pct = ($idealPerDag > 0) ? min(100.0, round($tot / $idealPerDag * 100, 1)) : 0.0;
 
