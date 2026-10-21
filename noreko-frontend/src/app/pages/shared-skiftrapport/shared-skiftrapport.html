@@ -130,6 +130,24 @@
         <div class="summary-label">Drifttid total</div>
       </div>
     </div>
+    <div class="col-6 col-md-2" *ngIf="config.line === 'tvattlinje'">
+      <div class="summary-card">
+        <div class="summary-icon text-info"><i class="fas fa-mug-hot"></i></div>
+        <div class="summary-value text-info">
+          {{ summaryTotalRast > 0 ? formatDrifttid(summaryTotalRast) : '–' }}
+        </div>
+        <div class="summary-label">Rast total</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2" *ngIf="config.line === 'tvattlinje'">
+      <div class="summary-card">
+        <div class="summary-icon text-danger"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="summary-value text-danger">
+          {{ summaryTotalDriftstopp > 0 ? formatDrifttid(summaryTotalDriftstopp) : '–' }}
+        </div>
+        <div class="summary-label">Driftstopp total</div>
+      </div>
+    </div>
     <div class="col-6 col-md-2" *ngIf="cachedTotalOmtvaatt > 0">
       <div class="summary-card">
         <div class="summary-icon text-warning"><i class="fas fa-redo"></i></div>
@@ -722,9 +740,20 @@
                                             <div class="kpi-value text-warning">{{ report.rasttime > 0 ? formatDrifttid(report.rasttime) : '0m' }}</div>
                                           </div>
                                         </div>
-                                        <div class="col-6 col-md-3">
+                                        <div class="col-6 col-md-3" *ngIf="config.line === 'tvattlinje'">
                                           <div class="kpi-card">
-                                            <div class="kpi-label">Stoppid</div>
+                                            <div class="kpi-label" title="PLC:ns driftstopp (D4011), inskickat med skiftrapporten">Driftstopp</div>
+                                            <div class="kpi-value"
+                                              [class.text-danger]="(report.driftstopptime || 0) >= 10"
+                                              [class.text-warning]="(report.driftstopptime || 0) > 0 && (report.driftstopptime || 0) < 10"
+                                              [class.text-success]="(report.driftstopptime || 0) === 0">
+                                              {{ (report.driftstopptime || 0) > 0 ? formatDrifttid(report.driftstopptime) : '0m' }}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div class="col-6 col-md-3" *ngIf="config.line !== 'tvattlinje'">
+                                          <div class="kpi-card">
+                                            <div class="kpi-label" title="Uppskattat från glapp mellan IBC-cykler, inte PLC:ns driftstopp">Uppehåll mellan cykler</div>
                                             <div class="kpi-value"
                                               [class.text-danger]="getPlcKpi(report.id).totalStopMin >= 10"
                                               [class.text-warning]="getPlcKpi(report.id).totalStopMin > 0 && getPlcKpi(report.id).totalStopMin < 10"
@@ -932,11 +961,13 @@
                                         </div>
                                       </div>
 
-                                      <!-- Stopplista -->
+                                      <!-- Uppehåll mellan cykler (tidigare "Stopplista"/"Detekterade stopp" —
+                                           omdöpt för tvättlinje 2026-10-20: gap-baserad uppskattning,
+                                           ska inte förväxlas med PLC:ns driftstopp (D4011). -->
                                       <div class="mb-3">
                                         <p class="text-muted small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">
-                                          <i class="fas fa-pause-circle me-1 text-danger"></i>Detekterade stopp
-                                          <span class="text-muted fw-normal" style="text-transform:none;">(gap &gt; 2× mediancykeltid)</span>
+                                          <i class="fas fa-pause-circle me-1 text-danger"></i>{{ config.line === 'tvattlinje' ? 'Uppehåll mellan cykler' : 'Detekterade stopp' }}
+                                          <span class="text-muted fw-normal" style="text-transform:none;">(gap &gt; 2× mediancykeltid{{ config.line === 'tvattlinje' ? ', ej PLC-driftstopp' : '' }})</span>
                                         </p>
                                         <div *ngIf="getDetectedStops(report.id).length > 0" class="d-flex flex-wrap gap-2">
                                           <span *ngFor="let stop of getDetectedStops(report.id)"
@@ -948,7 +979,7 @@
                                           </span>
                                         </div>
                                         <p *ngIf="getDetectedStops(report.id).length === 0" class="text-muted small mb-0">
-                                          <i class="fas fa-check-circle me-1 text-success"></i>Inga detekterade stopp
+                                          <i class="fas fa-check-circle me-1 text-success"></i>{{ config.line === 'tvattlinje' ? 'Inga uppehåll mellan cykler' : 'Inga detekterade stopp' }}
                                         </p>
                                       </div>
 
@@ -1251,7 +1282,15 @@
                       <div class="d-flex flex-wrap gap-2">
                         <div class="mobile-kpi"><div class="mobile-kpi-label">Cykler</div><div class="mobile-kpi-value text-info">{{ getPlcKpi(report.id).totalCycles }}</div></div>
                         <div class="mobile-kpi" *ngIf="getPlcKpi(report.id).avgCycleMin > 0"><div class="mobile-kpi-label">Snitt cykel</div><div class="mobile-kpi-value text-info">{{ getPlcKpi(report.id).avgCycleMin }} min</div></div>
-                        <div class="mobile-kpi"><div class="mobile-kpi-label">Stopp</div>
+                        <div class="mobile-kpi" *ngIf="config.line === 'tvattlinje'"><div class="mobile-kpi-label">Driftstopp</div>
+                          <div class="mobile-kpi-value"
+                            [class.text-danger]="(report.driftstopptime || 0) >= 10"
+                            [class.text-warning]="(report.driftstopptime || 0) > 0 && (report.driftstopptime || 0) < 10"
+                            [class.text-success]="(report.driftstopptime || 0) === 0">
+                            {{ (report.driftstopptime || 0) > 0 ? formatDrifttid(report.driftstopptime) : '0m' }}
+                          </div>
+                        </div>
+                        <div class="mobile-kpi" *ngIf="config.line !== 'tvattlinje'"><div class="mobile-kpi-label">Uppehåll mellan cykler</div>
                           <div class="mobile-kpi-value"
                             [class.text-danger]="getPlcKpi(report.id).totalStopMin >= 10"
                             [class.text-warning]="getPlcKpi(report.id).totalStopMin > 0 && getPlcKpi(report.id).totalStopMin < 10"

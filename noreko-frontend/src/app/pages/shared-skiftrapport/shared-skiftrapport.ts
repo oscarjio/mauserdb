@@ -6,6 +6,7 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
 import { localToday, localDateStr } from '../../utils/date-utils';
+import * as TM from '../../utils/tvattlinje-metrics';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -274,12 +275,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     // cykeltid, visa "-" istf absurt negativt. >=600 (inte >600): korrupta dagar landar på EXAKT
     // 600 (10h0m) och slank annars igenom.
     if (this._isDrifttidCorrupt(r)) return null;
-    const actualCycle = netMin / totalt;
     const product     = this.products.find((p: any) => p.id === (r.product_id ?? null));
     const targetCycle = product?.cycle_time_minutes ?? this.fallbackCycleMin;
-    if (!(targetCycle > 0) || !(actualCycle > 0)) return null;
-    // Effektivitet mot mål: (mål - faktisk)/mål * 100 — SIGNAD, ingen cap. + = snabbare, - = långsammare.
-    const v = Math.round(((targetCycle - actualCycle) / targetCycle) * 100);
+    // RÄKNEKÄRNA: signerad effektivitet mot mål via utils/tvattlinje-metrics.ts.
+    const ratio = TM.efficiency(targetCycle, totalt, netMin);
+    if (ratio === null) return null;
+    const v = Math.round(ratio * 100);
     return isFinite(v) ? v : null;
   }
 
@@ -302,14 +303,13 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // 0% annars). Ersätter det tidigare drift/(drift+driftstopp) — matchar nu EXAKT samma
   // formel som TvattlinjeController::getOeeTrend (backend). Endast tvättlinje (rebotling
   // behåller sin gamla formel — detta uppdrag gäller bara tvättlinje).
+  // Spegel av TvattlinjeMetrics::availability() + plannedMinutes() (se
+  // utils/tvattlinje-metrics.ts) för en enstaka rapportrad. Endast tvättlinje.
   private _getNettoAvailabilityRatio(r: any): number {
-    const netDrift = Math.min(r.drifttid ?? 0, 600);
-    const dateStr = String(r.datum || '').substring(0, 10);
-    const d = new Date(dateStr + 'T00:00:00');
-    const dayN = isNaN(d.getTime()) ? 1 : (d.getDay() === 0 ? 7 : d.getDay()); // ISO: 1=mån..7=sön
-    if (dayN >= 6) return netDrift > 0 ? 1 : 0; // helg: planerad = körd tid
-    const plannedMin = dayN === 5 ? 435 : 495;
-    return netDrift > 0 ? Math.min(1, netDrift / plannedMin) : 0;
+    const netDrift = TM.capDrifttid(r.drifttid ?? 0);
+    const dayN = TM.isoWeekday(r.datum || '');
+    const planned = TM.plannedMinutes(dayN, netDrift);
+    return TM.availability(netDrift, planned);
   }
 
   private _computeOeePct(r: any): number | null {
@@ -323,27 +323,30 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       // _computeEfficiencyPct, annars visar per-rad-OEE ett falskt värde från klampad drifttid.
       if (this._isDrifttidCorrupt(r)) return null;
 
-      // Kvalitet: godkända / totalt (kassationsförlust)
-      const kvalitet = okIbc / totalIbc;
-
-      const drifttidMin  = Math.min(r.drifttid ?? 0, 600);
+      const drifttidMin = TM.capDrifttid(r.drifttid ?? 0);
       if (drifttidMin <= 0) return null;
-      const tillganglighet = this.config.line === 'tvattlinje'
-        ? this._getNettoAvailabilityRatio(r)
-        : Math.min(drifttidMin / Math.max(1, drifttidMin + (r.driftstopptime ?? 0)), 1);
 
-      // Prestanda: faktisk IBC/h (totalt = antal_ok + antal_ej_ok) / mål IBC/h (baserat på cykeltid)
-      // Använd totalIbc, INTE okIbc — kvalitetsfaktorn straffar redan kassation, så okIbc här
-      // skulle dubbelbestraffa. Systermetoden summaryAvgOee använder (antal_ok + antal_ej_ok).
-      // Drifttid är nettotid inkl. rast; använd drifttidMin som bas för IBC/h
+      // RÄKNEKÄRNA (Oscar 2026-10-20): A/P/K via utils/tvattlinje-metrics.ts — speglar
+      // exakt TvattlinjeMetrics.php. Rebotling behåller sin gamla (oförändrade) formel.
       const product = this.productNameMap.size > 0
         ? this.products.find(p => p.id === (r.product_id ?? null))
         : null;
       const targetCycleMin = product?.cycle_time_minutes ?? this.fallbackCycleMin;
-      const targetIbcH     = 60 / targetCycleMin;
-      const netDriftMin    = drifttidMin;
-      const ibcH           = netDriftMin > 0 ? (totalIbc / (netDriftMin / 60)) : 0;
-      const prestanda      = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
+
+      let tillganglighet: number;
+      let prestanda: number;
+      let kvalitet: number;
+      if (this.config.line === 'tvattlinje') {
+        tillganglighet = this._getNettoAvailabilityRatio(r);
+        prestanda      = TM.performance(totalIbc, targetCycleMin, drifttidMin);
+        kvalitet       = TM.quality(okIbc, totalIbc) ?? 0;
+      } else {
+        tillganglighet = Math.min(drifttidMin / Math.max(1, drifttidMin + (r.driftstopptime ?? 0)), 1);
+        const targetIbcH = 60 / targetCycleMin;
+        const ibcH       = drifttidMin > 0 ? (totalIbc / (drifttidMin / 60)) : 0;
+        prestanda        = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
+        kvalitet         = okIbc / totalIbc;
+      }
 
       const v = Math.round(tillganglighet * prestanda * kvalitet * 100);
       return isFinite(v) ? v : null;
@@ -578,7 +581,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // Tvättlinje: netto drifttid / planerad skifttid (495/435/helg=körd). Övriga linjer
   // (rebotling): oförändrad gammal formel drift/(drift+driftstopp).
   private _computeWeightedAvailabilityRatio(reports: any[]): number {
-    const cappedDrift = (r: any) => Math.min(r.drifttid || 0, 600);
+    const cappedDrift = (r: any) => TM.capDrifttid(r.drifttid || 0);
     const totalDrift = reports.reduce((s, r) => s + cappedDrift(r), 0);
     if (this.config.line !== 'tvattlinje') {
       const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
@@ -586,14 +589,13 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const schema = totalDrift + totalDriftstopp;
       return schema > 0 ? totalDrift / schema : 0;
     }
+    // RÄKNEKÄRNA: planerad tid per rapport via utils/tvattlinje-metrics.ts, summerad
+    // över perioden (viktad tillgänglighet = total netto / total planerad).
     const totalPlannedMin = reports.reduce((s, r) => {
       const netDrift = cappedDrift(r);
-      const dateStr = String(r.datum || '').substring(0, 10);
-      const d = new Date(dateStr + 'T00:00:00');
-      const dayN = isNaN(d.getTime()) ? 1 : (d.getDay() === 0 ? 7 : d.getDay());
-      return s + (dayN >= 6 ? netDrift : (dayN === 5 ? 435 : 495));
+      return s + TM.plannedMinutes(TM.isoWeekday(r.datum || ''), netDrift);
     }, 0);
-    return totalPlannedMin > 0 ? Math.min(1, totalDrift / totalPlannedMin) : 0;
+    return TM.availability(totalDrift, totalPlannedMin);
   }
 
   get summaryAvgEfficiency(): number | null {
@@ -626,7 +628,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const totalNettoDriftSek = reports.reduce((s, r) => s + netDrift(r), 0) * 60;
     let totalIdealSek = 0;
     for (const r of reports) {
-      const rIbc     = (r.antal_ok || 0) + (r.antal_ej_ok || 0);
+      // RÄKNEKÄRNA (Oscar 2026-10-20): IBC för P = alla tvättade (totalt, inkl. omtvätt),
+      // inte ok+ej_ok — annars blandas två olika IBC-definitioner inom samma OEE-tal.
+      const rIbc     = this.config.line === 'tvattlinje'
+        ? (r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0)))
+        : (r.antal_ok || 0) + (r.antal_ej_ok || 0);
       const product  = this.products.find((p: any) => p.id === (r.product_id ?? null));
       const cycleSek = (product?.cycle_time_minutes ?? this.fallbackCycleMin) * 60;
       totalIdealSek += rIbc * cycleSek;
@@ -639,6 +645,16 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   get summaryTotalDrift(): number {
     // Cap per skift 600 min (~10h) för att förhindra att en felaktig DB-rad blåser upp totalen
     return this.groupedDays.reduce((s, d) => s + d.totalDrift, 0);
+  }
+
+  /** Rast totalt (D4008) — Oscar 2026-10-20: eget kort bredvid Drifttid total. */
+  get summaryTotalRast(): number {
+    return this.dedupSnapshots(this.filteredReports).reduce((s, r) => s + (r.rasttime || 0), 0);
+  }
+
+  /** Driftstopp totalt (D4011) — Oscar 2026-10-20: eget kort bredvid Drifttid total. */
+  get summaryTotalDriftstopp(): number {
+    return this.dedupSnapshots(this.filteredReports).reduce((s, r) => s + (r.driftstopptime || 0), 0);
   }
 
   get summaryAvgEff(): number | null {
@@ -2070,9 +2086,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     // upp EFF (+36% i stället för ~+13%). Cappad till 600 min (~10h, ett skift/dag).
     // Endast tvättlinje — rebotlings (ej granskade) semantik lämnas orörd.
     const raw = r?.drifttid || 0;
-    const net = this.config.line === 'tvattlinje'
-      ? raw
-      : raw - (r?.rasttime || 0) - (r?.driftstopptime || 0);
+    if (this.config.line === 'tvattlinje') return TM.capDrifttid(raw);
+    const net = raw - (r?.rasttime || 0) - (r?.driftstopptime || 0);
     return Math.max(0, Math.min(net, 600));
   }
 
@@ -2155,12 +2170,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         tSum += t;
       }
       const dayTargetCycle = tSum > 0 ? twSum / tSum : this.fallbackCycleMin;
-      const dayActualCycle = effIbc > 0 ? dayNet / effIbc : 0;
-      // Effektivitet mot mål: (mål - faktisk)/mål * 100 — SIGNAD, ingen cap.
+      // RÄKNEKÄRNA: signerad effektivitet mot mål via utils/tvattlinje-metrics.ts.
       // Fullt korrupta dagar (inga giltiga poster kvar) -> effIbc/dayNet = 0 -> null -> "-".
-      const avgEff = (effIbc > 0 && dayNet > 0 && dayTargetCycle > 0 && dayActualCycle > 0)
-        ? Math.round(((dayTargetCycle - dayActualCycle) / dayTargetCycle) * 100)
-        : null;
+      const effRatio = TM.efficiency(dayTargetCycle, effIbc, dayNet);
+      const avgEff = effRatio !== null ? Math.round(effRatio * 100) : null;
       const effWarning = false; // obsolet efter cap-borttag (signerad skala)
       const opSet = new Set<string>();
       submittedOnly.forEach(r => {

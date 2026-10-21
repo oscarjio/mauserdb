@@ -62,6 +62,56 @@ rast eller driftstopp från drifttid någonstans i koden — det är dubbelavdra
 
 ---
 
+## RÄKNEKÄRNA — TVÄTTLINJENS KPI:er (KRITISKT, fastställt av Oscar 2026-10-20)
+
+**Detta är de ENDA tillåtna formlerna för tvättlinjens nyckeltal.** De bor i EN PHP-klass
+och EN TS-fil som speglar varandra exakt — uppfinn ALDRIG en egen variant i en controller
+eller komponent. Rebotling/övriga linjer berörs inte och har sin egen (oförändrade)
+semantik.
+
+- **Källor:** `noreko-backend/classes/TvattlinjeMetrics.php` (PHP) och
+  `noreko-frontend/src/app/utils/tvattlinje-metrics.ts` (TS, identisk spegel).
+- **Används av:** `TvattlinjeController` (getStatistics, getOeeTrend,
+  getSkiftrapportStatistik), `SkiftjamforelseController`, `HistoriskSammanfattningController`
+  (alla tre endast när `?line=tvattlinje`), samt `shared-skiftrapport.ts` och
+  `tvattlinje-statistik.ts` i frontend (alla gated på `config.line === 'tvattlinje'`).
+
+**Definitioner:**
+- **Drifttid** = D4007, cappad till 600 min/skift, **inga avdrag** (se domänregeln ovan).
+- **Planerad tid** = 495 min mån–tor, 435 fre, **helg = planerad = körd tid** (drifttid)
+  → tillgänglighet 100% om körd, 0% annars — ALDRIG 0% rakt av för helg.
+- **IBC** (för P, EFF och snitt min/IBC) = **ALLA TVÄTTADE** = ok + ej_ok + omtvätt (samma
+  som PLC:ns "tot"). Varje omtvätt är en tvättcykel linjen utfört — blanda ALDRIG ihop
+  detta med ok+ej_ok (saknar omtvätt) på vissa ställen och totalt på andra.
+- **Måltakt** = produktens `cycle_time_minutes` (tvattlinje_produkter), IBC-viktad över
+  perioden om flera produkter körts. Fallback 3,0 min ENDAST om ingen produktkoppling
+  alls finns. ALDRIG ett fast tak som "20 IBC/h" (det motsvarar bara 3,0 min/IBC och är
+  fel för produkter med annan takt, t.ex. Vanlig Tvätt/Peroxid 3,40, Olja/Credin 4,00).
+- **A (Tillgänglighet)** = drifttid / planerad tid, cap 100%.
+- **P (Prestanda)** = IBC × måltakt / drifttid, cap 100%.
+- **K (Kvalitet)** = ok / IBC (ok / alla tvättade).
+- **OEE** = A × P × K.
+- **Effektivitet** = (måltakt − drifttid/IBC) / måltakt — **SIGNERAD, INGEN cap** (+ =
+  snabbare än mål, − = långsammare). Skilj den ALLTID från OEE:s prestandafaktor (som
+  ÄR kapad 0–100) — de är olika mått, blanda inte ihop dem.
+
+**Exempel (2026-10-15, torsdag, Vanlig Tvätt måltakt 3,40 min/IBC):**
+drifttid 255 min, ok 94, totalt 98 → A = 255/495 = 51,5%, P = 98×3,40/255 = 131% → cap
+100%, K = 94/98 = 95,9%, OEE ≈ 49,4%, EFF = (3,40−255/98)/3,40 ≈ +23,5%.
+
+---
+
+## GIT — LÖPANDE COMMIT & PUSH (fastställt av Oscar 2026-10-20)
+
+**Committa löpande i små, logiska steg** — minst efter varje avslutad delpunkt i ett
+uppdrag (t.ex. räknekärnan, ett enskilt kort/UI-fix, Excel-exporten, adminsidan var för
+sig). **Pusha branchen till GitHub efter varje commit** så arbetet aldrig bara ligger
+lokalt och går förlorat om sessionen avslutas. Tydliga commit-meddelanden som säger vad
+som ändrats och varför (inte bara "fix"). **Pusha ALDRIG till main** — bara till den
+aktuella feature-branchen. Gäller allt arbete framåt, inte bara detta uppdrag.
+
+---
+
 ## DEPLOYMENT
 
 Se `MEMORY.md` för full deployment-info. Sammanfattning:

@@ -8,6 +8,7 @@ import { Chart, registerables } from 'chart.js';
 import { TvattlinjeService, OeeTrendDay, OeeTrendSummary } from '../../services/tvattlinje.service';
 import { PdfExportService } from '../../services/pdf-export.service';
 import { localToday } from '../../utils/date-utils';
+import * as TM from '../../utils/tvattlinje-metrics';
 
 Chart.register(...registerables);
 
@@ -1375,9 +1376,14 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
           ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
           : 0;
 
-        const avgEff = periodCycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / periodCycles.length;
         cell.avgCycleTime = Math.round(avgCycleTime * 10) / 10;
-        cell.efficiency = Math.min(Math.round(avgEff), 100); // T5: cap 100
+        // RÄKNEKÄRNA (Oscar 2026-10-20): samma signerade effektivitet (mål-faktisk)/mål,
+        // INGEN cap, som resten av appen — i stället för PLC:ns eget per-cykel eff%
+        // (produktion_procent) kapat vid 100. avgCycleTime är redan "drifttid/IBC" för
+        // cellen (snitt av cykeltiderna), så TM.efficiency anropas med totalt=1.
+        const targetCycle = this.targetCycleTime || TM.FALLBACK_CYCLE_MIN;
+        const effRatio = avgCycleTime > 0 ? TM.efficiency(targetCycle, 1, avgCycleTime) : null;
+        cell.efficiency = effRatio !== null ? Math.round(effRatio * 100) : 0;
       }
     });
 

@@ -33,6 +33,55 @@ class HistoriskSammanfattningController {
         return $line === 'tvattlinje' ? self::MAX_IBC_H_TVATTLINJE : self::MAX_IBC_H_REBOTLING;
     }
 
+    /** True när förfrågan gäller tvättlinjen (då gäller TvattlinjeMetrics-kärnan). */
+    private function isTvattlinje(): bool {
+        return strtolower(trim($_GET['line'] ?? 'rebotling')) === 'tvattlinje';
+    }
+
+    /** Cache: IBC-viktad måltakt (min/IBC) för periodens produkter — tvättlinje. */
+    private ?float $targetCycleCache = null;
+
+    /**
+     * RÄKNEKÄRNA (Oscar 2026-10-20): IBC-viktad måltakt för perioden via
+     * TvattlinjeMetrics — samma min/IBC som statistik/OEE-trend/skiftrapport/
+     * Skiftjamforelse använder. Ersätter det fasta 20 IBC/h-taket (= 3,0 min/IBC)
+     * som gav fel takt för produkter med 3,40 resp. 4,00 min/IBC.
+     */
+    private function targetCycleMin(): float {
+        if ($this->targetCycleCache !== null) return $this->targetCycleCache;
+        $dagar = isset($_GET['dagar']) ? max(1, min(365, (int)$_GET['dagar'])) : 30;
+        $from  = trim($_GET['from'] ?? $_GET['start'] ?? '');
+        $to    = trim($_GET['to']   ?? $_GET['end']   ?? '');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) $from = date('Y-m-d', strtotime("-{$dagar} days"));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $to))   $to   = date('Y-m-d');
+        $this->targetCycleCache = TvattlinjeMetrics::weightedTargetCycleMin($this->pdo, $from, $to);
+        return $this->targetCycleCache;
+    }
+
+    /**
+     * RÄKNEKÄRNA: tillgänglighet. Tvättlinje = netto/planerad via kärnan (helg =
+     * planerad = körd tid, dvs. 100% om körd i stället för gamla 0%). Övriga linjer
+     * oförändrade. Se SkiftjamforelseController för samma resonemang om att SQL:en
+     * summerar planerad tid över perioden (helg = 0 där), så helgregeln kan bara
+     * tillämpas när planMin landar på exakt 0.
+     */
+    private function tillganglighetRatio(float $runtime, float $planMin): float {
+        if ($this->isTvattlinje() && $planMin <= 0) {
+            return $runtime > 0 ? 1.0 : 0.0;
+        }
+        return $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
+    }
+
+    /** RÄKNEKÄRNA: prestanda = IBC × produktens måltakt / drifttid (cap 100%) för tvättlinje. */
+    private function prestandaRatio(float $ibcOk, float $ibcTotal, float $runtime): float {
+        if ($this->isTvattlinje()) {
+            return TvattlinjeMetrics::performance($ibcTotal, $this->targetCycleMin(), $runtime);
+        }
+        if ($runtime <= 0) return 0.0;
+        $ibcPerH = $ibcOk / ($runtime / 60);
+        return min(1.0, $ibcPerH / $this->maxIbcH());
+    }
+
     /**
      * Planerad NETTO-tid (min) for EN dag ur skiftschema-fallback (efter 45min rast):
      * man-tors = 495, fre = 435, lor/son = 0 (inga helgskift).
@@ -230,8 +279,8 @@ class HistoriskSammanfattningController {
 
         // OEE — planerad tid ur skiftschema-fallback (vaxer med antal produktionsdagar)
         $planMinTotal   = (int)($row['planerad_min'] ?? 0);
-        $tillganglighet = $planMinTotal > 0 ? min(1.0, $runtime / $planMinTotal) : 0.0;
-        $prestanda      = $runtime > 0 ? min(1.0, ($ibcPerH / $maxIbcH)) : 0.0;
+        $tillganglighet = $this->tillganglighetRatio((float)$runtime, (float)$planMinTotal);
+        $prestanda      = $this->prestandaRatio((float)$ibcOk, (float)$ibcTotal, (float)$runtime);
         $kvalFaktor     = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
         $oee = $tillganglighet * $prestanda * $kvalFaktor;
 
@@ -499,8 +548,8 @@ class HistoriskSammanfattningController {
             $maxIbcH   = $this->maxIbcH();
             // Veckodagskorrekt planerad NETTO-tid (rn=1 per dag) i stallet for antal_skift*480
             $planMin   = (int)($row['planerad_min'] ?? 0);
-            $tillg     = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-            $prest     = $runtime > 0 ? min(1.0, $ibcPerH / $maxIbcH) : 0.0;
+            $tillg     = $this->tillganglighetRatio((float)$runtime, (float)$planMin);
+            $prest     = $this->prestandaRatio((float)$ibcOk, (float)$ibcTotal, (float)$runtime);
             $kvalFakt  = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
             $oee       = $tillg * $prest * $kvalFakt;
             $stopptid  = max(0, $planMin - $runtime);
@@ -589,8 +638,8 @@ class HistoriskSammanfattningController {
                     $maxIbcH = $this->maxIbcH();
                     // Veckodagskorrekt planerad NETTO-tid for denna dag (rader ar redan en-per-dag: GROUP BY dag)
                     $planMin = $this->planeradMinForDag($dag);
-                    $tillg   = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-                    $prest   = $runtime > 0 ? min(1.0, $ibcPerH / $maxIbcH) : 0.0;
+                    $tillg   = $this->tillganglighetRatio((float)$runtime, (float)$planMin);
+                    $prest   = $this->prestandaRatio((float)$ibcOk, (float)$ibcTotal, (float)$runtime);
                     $kvalF   = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
                     $oee     = $tillg * $prest * $kvalF;
 
@@ -721,8 +770,8 @@ class HistoriskSammanfattningController {
                 $maxIbcH = $this->maxIbcH();
                 // Veckodagskorrekt planerad NETTO-tid (rn=1 per operator+dag) i stallet for antal_skift*480
                 $planMin = (int)($row['planerad_min'] ?? 0);
-                $tillg   = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
-                $prest   = $runtime > 0 ? min(1.0, $ibcPerH / $maxIbcH) : 0.0;
+                $tillg   = $this->tillganglighetRatio((float)$runtime, (float)$planMin);
+                $prest   = $this->prestandaRatio((float)$ibcOk, (float)$ibcTotal, (float)$runtime);
                 $kvalF   = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
                 $oee     = $tillg * $prest * $kvalF;
 

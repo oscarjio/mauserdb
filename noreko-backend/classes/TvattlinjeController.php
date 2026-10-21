@@ -598,110 +598,10 @@ class TvattlinjeController {
      * SR-data finns returneras $fallback oförändrat. Speglar frontendens produkt-cykel.
      */
     private function weightedTargetCycleTvattlinje(string $start, string $end, float $fallback): float {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT sr.product_id, COALESCE(SUM(sr.totalt), 0) AS ibc
-                FROM tvattlinje_skiftrapport sr
-                INNER JOIN (
-                    SELECT MAX(id) AS max_id
-                    FROM tvattlinje_skiftrapport
-                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
-                    GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
-                ) latest ON sr.id = latest.max_id
-                GROUP BY sr.product_id
-            ");
-            $stmt->execute(['s' => $start, 'e' => $end]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-            // Produkt-ID -> cykeltid
-            $cycleById = [];
-            foreach ($this->pdo->query("SELECT id, cycle_time_minutes FROM tvattlinje_products")->fetchAll(\PDO::FETCH_ASSOC) as $p) {
-                if ($p['cycle_time_minutes'] !== null && (float)$p['cycle_time_minutes'] > 0) {
-                    $cycleById[(int)$p['id']] = (float)$p['cycle_time_minutes'];
-                }
-            }
-
-            $ibcWeighted = 0.0;
-            $ibcTotal    = 0;
-            foreach ($rows as $r) {
-                $ibc = (int)$r['ibc'];
-                if ($ibc <= 0) continue;
-                $cycle = $cycleById[(int)$r['product_id']] ?? $fallback;
-                if ($cycle <= 0) continue;
-                $ibcWeighted += $ibc * $cycle;
-                $ibcTotal    += $ibc;
-            }
-            if ($ibcTotal > 0) {
-                return $ibcWeighted / $ibcTotal;
-            }
-            // FIX A: Ingen inskickad skiftrapport för perioden (t.ex. pågående dag).
-            // Frikoppla INTE måltakten från körd produkt — vikta den mot produkten
-            // som körs på PLC-raderna i tvattlinje_ibc. takt_mal används ENBART om
-            // ingen produktkoppling alls finns. Speglar skiftrapportens produkt-cykel.
-            return $this->plcWeightedTargetCycleTvattlinje($start, $end, $cycleById, $fallback);
-        } catch (\Throwable $e) {
-            error_log('TvattlinjeController::weightedTargetCycleTvattlinje: ' . $e->getMessage());
-            return $fallback;
-        }
-    }
-
-    /**
-     * FIX A: IBC-viktad mål-cykeltid (min/IBC) från PLC-data när ingen skiftrapport
-     * finns för perioden (pågående dag). Viktar produkternas cycle_time_minutes mot
-     * producerad IBC per produkt (MAX(ibc_ok) per skift, summerat). Om ingen IBC ännu
-     * producerats (dagen precis startad) används senast körda produktens cykeltid.
-     * $fallback (settings takt_mal) returneras ENBART om ingen produktkoppling finns.
-     */
-    private function plcWeightedTargetCycleTvattlinje(string $start, string $end, array $cycleById, float $fallback): float {
-        try {
-            // IBC producerat per produkt: MAX(ibc_ok) per skift, summerat över perioden.
-            $stmt = $this->pdo->prepare("
-                SELECT produkt, COALESCE(SUM(shift_ibc), 0) AS ibc
-                FROM (
-                    SELECT COALESCE(skiftraknare, 0) AS sk, produkt, MAX(ibc_ok) AS shift_ibc
-                    FROM tvattlinje_ibc
-                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
-                      AND produkt IS NOT NULL
-                    GROUP BY COALESCE(skiftraknare, 0), produkt
-                ) t
-                GROUP BY produkt
-            ");
-            $stmt->execute(['s' => $start, 'e' => $end]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-            $ibcWeighted = 0.0;
-            $ibcTotal    = 0;
-            foreach ($rows as $r) {
-                $ibc   = (int)$r['ibc'];
-                $cycle = $cycleById[(int)$r['produkt']] ?? null;
-                if ($ibc <= 0 || $cycle === null || $cycle <= 0) continue;
-                $ibcWeighted += $ibc * $cycle;
-                $ibcTotal    += $ibc;
-            }
-            if ($ibcTotal > 0) {
-                return $ibcWeighted / $ibcTotal;
-            }
-
-            // Ingen producerad IBC ännu (pågående dag precis startad):
-            // använd senast körda produktens registrerade cykeltid.
-            $latest = $this->pdo->prepare("
-                SELECT produkt
-                FROM tvattlinje_ibc
-                WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
-                  AND produkt IS NOT NULL
-                ORDER BY datum DESC, id DESC
-                LIMIT 1
-            ");
-            $latest->execute(['s' => $start, 'e' => $end]);
-            $pid = $latest->fetchColumn();
-            if ($pid !== false && $pid !== null && isset($cycleById[(int)$pid])) {
-                return $cycleById[(int)$pid];
-            }
-        } catch (\Throwable $e) {
-            error_log('TvattlinjeController::plcWeightedTargetCycleTvattlinje: ' . $e->getMessage());
-        }
-        // Ingen produktkoppling finns → takt_mal.
-        return $fallback;
+        // RÄKNEKÄRNA (Oscar 2026-10-20): måltakten ägs av TvattlinjeMetrics så att
+        // statistik, OEE-trend, skiftrapport, Skiftjamforelse och HistoriskSammanfattning
+        // alla viktar fram EXAKT samma min/IBC. Tidigare låg logiken bara här.
+        return TvattlinjeMetrics::weightedTargetCycleMin($this->pdo, $start, $end, $fallback);
     }
 
     /**
@@ -2032,23 +1932,22 @@ class TvattlinjeController {
                 $cyclesForCycle -= ($ibcPerDagPlc[$cDay] ?? 0);
             }
             $netForCycle = max(0, $netForCycle);
-            $avg_cycle_time = $cyclesForCycle > 0
-                ? $netForCycle / $cyclesForCycle
-                : 0;
+            // RÄKNEKÄRNA (Oscar 2026-10-20): avg_cycle_time/avg_production_percent via EN delad
+            // klass (TvattlinjeMetrics), samma formel som getOeeTrend/getSkiftrapportStatistik/
+            // Skiftjamforelse/HistoriskSammanfattning.
+            $avg_cycle_time = TvattlinjeMetrics::avgCycleMin($netForCycle, $cyclesForCycle) ?? 0;
 
             // BUG3b: använd produktens cykeltid (tvattlinje_products.cycle_time_minutes),
             // IBC-viktad över perioden vid flera produkter — samma mål som korten använder.
             // Fallback: settings takt_mal ($target_cycle_time). Detta blir även emitterat mål nedan.
             $target_cycle_time = $this->weightedTargetCycleTvattlinje($start, $end, $target_cycle_time);
 
-            // Effektivitet mot mål: (mål - faktisk) / mål * 100 — SIGNAD, ingen cap.
+            // Effektivitet mot mål: (mål - faktisk) / mål * 100 — SIGNAD, ingen cap, via kärnan.
             // + = snabbare än mål, - = långsammare. Visad siffra = bonusgrundande (Oscar 2026-07-14).
             // OBS: detta är den fristående "Effektivitet"-KPI:n. OEE:s prestandafaktor
-            // beräknas separat och förblir kapad 0-100 (se getOee).
-            $avg_production_percent = null;
-            if ($avg_cycle_time > 0 && $target_cycle_time > 0) {
-                $avg_production_percent = round((($target_cycle_time - $avg_cycle_time) / $target_cycle_time) * 100, 1);
-            }
+            // beräknas separat och förblir kapad 0-100 (se getOeeTrend).
+            $effRatio = TvattlinjeMetrics::efficiency($target_cycle_time, $cyclesForCycle, $netForCycle);
+            $avg_production_percent = $effRatio !== null ? round($effRatio * 100, 1) : null;
 
             $unique_dates = array_unique(array_map(fn($c) => date('Y-m-d', strtotime($c['datum'])), $cycles));
             $days_with_production = count($unique_dates);
@@ -2238,10 +2137,14 @@ class TvattlinjeController {
             }
 
             // Kvalitets-KPI:er baseras på skiftrapportens OK/ej-OK (PLC saknar den uppdelningen)
+            // RÄKNEKÄRNA (Oscar 2026-10-20): K och snitt cykeltid via TvattlinjeMetrics, samma
+            // formel som getOeeTrend/getStatistics/Skiftjamforelse/HistoriskSammanfattning.
             $srTotalIbc = $totalOk + $totalEjOk + $totalOmtvaatt;
-            $avgGodkandPct = $srTotalIbc > 0 ? round($totalOk / $srTotalIbc * 100, 1) : null;
+            $qualRatioAgg  = TvattlinjeMetrics::quality((float)$totalOk, (float)$srTotalIbc);
+            $avgGodkandPct = $qualRatioAgg !== null ? round($qualRatioAgg * 100, 1) : null;
             // Viktat snitt cykeltid: total drifttid / totalt antal IBC (SR-baserad)
-            $avgCycleTime  = $srTotalIbc > 0 ? round($totalDrifttid / $srTotalIbc, 2) : null;
+            $avgCycleTimeRatio = TvattlinjeMetrics::avgCycleMin((float)$totalDrifttid, (float)$srTotalIbc);
+            $avgCycleTime  = $avgCycleTimeRatio !== null ? round($avgCycleTimeRatio, 2) : null;
 
             // TOTAL IBC = summa av PLC-baserad dagskarta (kontinuitet med staplar/hem)
             $totalIbc = array_sum($dagMap);
@@ -3093,12 +2996,9 @@ class TvattlinjeController {
                 }
 
                 // A: Kvalitet kräver FAKTISK kvalitetsdata (ok+ej_ok > 0). En tom skiftrapport (ok=0 OCH
-                // ej_ok=0) är INGEN kvalitetsdata (INTE 100% kassation) → null. qual = ok / sr_total_ibc
-                // (SR-INTERN nämnare — ej PLC-$tot, som återinför ok(SR)/ibc(PLC)-buggen).
+                // ej_ok=0) är INGEN kvalitetsdata (INTE 100% kassation) → null. K = ok / sr_total_ibc
+                // (SR-INTERN nämnare, "alla tvättade" — ej PLC-$tot, som återinför ok(SR)/ibc(PLC)-buggen).
                 $hasQualData = !$isPlcOnly && (($ok + $ejOk) > 0);
-                // C: nämnare = max(srTot, ok+ejOk) så kvaliteten aldrig >100 när sr.totalt < antal_ok
-                // (känt 06-25: ok=101 > totalt) — annars inflateras OEE=A×P×Q. Cappa dessutom 100.
-                $qual_pct = $hasQualData ? min(100.0, round($ok / max(1, max($srTot, $ok + $ejOk)) * 100, 1)) : null;
 
                 // N-bug #5 (kanonisk nettodrifttid): EN fallback-kedja, samma prioritet och
                 // 600-cap som dagsaggregatet i plcIbcPerDag/getIbcPerDag använder.
@@ -3114,52 +3014,32 @@ class TvattlinjeController {
                 if ($runtimeMin <= 0) {
                     $runtimeMin = max(0, isset($r['onoff_runtime_min']) ? (float)$r['onoff_runtime_min'] : 0);
                 }
-                $rastMin       = 0; // rast ingår inte i D4007
-                $netRuntimeMin = max(0, $runtimeMin - $rastMin);
+                $netRuntimeMin = TvattlinjeMetrics::capDrifttid($runtimeMin);
 
                 $dayN      = (int)date('N', strtotime($r['dag'])); // 1=mån … 7=sön
                 $weekday   = $dayN - 1;                            // 0=mån … 6=sön (matchar weekday_goals/WEEKDAY())
                 $isWeekend = ($dayN >= 6);
 
-                // B: Planerad skifttid — hämtas per rad med korrekt veckodag (fre 435 / mån–tors 495, netto).
-                // Helg = ingen fast planerad tid → mät mot faktisk nettokörtid.
-                $plannedShiftMin = $isWeekend ? null : $this->plannedShiftMinutesWeekday($dayN);
-                $plannedMin = $isWeekend
-                    ? max(1.0, $netRuntimeMin)
-                    : ($plannedShiftMin ?? (($dayN === 5) ? 435.0 : 495.0));
+                // RÄKNEKÄRNA (Oscar 2026-10-20, se classes/TvattlinjeMetrics.php + CLAUDE.md):
+                // A/P/K/OEE beräknas nu av EN delad klass, samma formel som getStatistics,
+                // getSkiftrapportStatistik, Skiftjamforelse och HistoriskSammanfattning.
+                $plannedMin = TvattlinjeMetrics::plannedMinutes($dayN, $netRuntimeMin);
+                $availRatio = TvattlinjeMetrics::availability($netRuntimeMin, $plannedMin);
+                $avail_pct  = round($availRatio * 100, 1);
 
-                // D: Tillgänglighet. Helg = ingen tillgänglighetsstraff (körd alls → 100%, annars 0%).
-                if ($isWeekend) {
-                    $avail_pct = $runtimeMin > 0 ? 100.0 : 0.0;
-                } else {
-                    $avail_pct = $runtimeMin > 0
-                        ? min(100.0, round(($netRuntimeMin / $plannedMin) * 100, 1))
-                        : 0.0;
-                }
-
-                // N-bug #3 (OEE kanonisk formel — Oscar 2026-10-19): Prestanda = antal IBC ×
-                // produktens måltakt (cycle_time_minutes, fallback 3.0 min om produkt/fält
-                // saknas) / nettodrifttid, cap 100. Ersätter det tidigare fasta 20 IBC/h-taket
-                // — matchar nu EXAKT samma formel som shared-skiftrapport.ts::_computeOeePct
-                // (se den filen; kanonisk formel dokumenterad på båda ställena, algebraiskt
-                // identisk: IBC/((netto/60)) / (60/måltakt) == IBC×måltakt/netto).
-                // OBS: Skiftjamforelse/HistoriskSammanfattning/EFF-kontrollerna använder
-                // fortfarande det gamla fasta 20 IBC/h-taket — ej del av detta uppdrag, men de
-                // kan nu visa annan OEE än OEE-trend/skiftrapport för samma dag (flaggat separat).
                 $productCycleMin = (isset($r['product_cycle_min']) && $r['product_cycle_min'] !== null && (float)$r['product_cycle_min'] > 0)
                     ? (float)$r['product_cycle_min']
-                    : 3.0;
+                    : TvattlinjeMetrics::FALLBACK_CYCLE_MIN;
                 $idealPerDag = $goalsMap[$weekday] ?? ($isWeekend ? 0 : 140); // MÅL/dag (mal_pct), ej prestandatak
-                $perf_pct = ($netRuntimeMin >= 10)
-                    ? min(100.0, round(($tot * $productCycleMin) / $netRuntimeMin * 100, 1))
-                    : 0.0;
+                $prestRatio = TvattlinjeMetrics::performance((float)$tot, $productCycleMin, $netRuntimeMin);
+                $perf_pct   = round($prestRatio * 100, 1);
                 $mal_pct = ($idealPerDag > 0) ? min(100.0, round($tot / $idealPerDag * 100, 1)) : 0.0;
 
-                // OEE = Tillgänglighet × Prestanda × Kvalitet (0-100 skala → dela med 10000).
-                // C5: PLC-only dag saknar kvalitet → OEE går ej att beräkna → null.
-                $oee_pct = ($qual_pct === null)
-                    ? null
-                    : round(($avail_pct / 100.0) * ($perf_pct / 100.0) * ($qual_pct / 100.0) * 100.0, 1);
+                $qualRatio = $hasQualData ? TvattlinjeMetrics::quality((float)$ok, (float)$srTot) : null;
+                $qual_pct  = $qualRatio !== null ? round($qualRatio * 100, 1) : null;
+
+                $oeeRatio = TvattlinjeMetrics::oee($availRatio, $prestRatio, $qualRatio);
+                $oee_pct  = $oeeRatio !== null ? round($oeeRatio * 100, 1) : null;
 
                 // C: snitt/dag exkluderar dagens halvfärdiga produktion (samma som bästa dag nedan).
                 $isToday = ($r['dag'] === date('Y-m-d'));
