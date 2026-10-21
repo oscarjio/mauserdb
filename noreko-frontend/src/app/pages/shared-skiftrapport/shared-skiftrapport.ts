@@ -1144,6 +1144,36 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Extraherad ur computePlcStats (oförändrad logik) — rapportens råa tvattlinje_ibc/
+   * rebotling_ibc-rader avgränsade till SAMMA fönster som getPlcKpi/getDetectedStops
+   * använder: max(prev_created_at, created_at−12h) → created_at. Återanvänds av
+   * Excel-exportens dag+produkt-uppdelning (endast tvättlinje) så fönstret alltid är
+   * konsekvent mellan sidan och exporten.
+   */
+  private _getWindowSubsForReport(reportId: number): { windowSubs: any[]; createdAtMs: number | null } {
+    const subs = this.subShiftsMap[reportId] || [];
+    const report = reportId === this.PRELIMINARY_ID
+      ? this.preliminaryReport
+      : reportId < 0
+        ? this.unreportedPasses.find(u => u.id === reportId)
+        : this.reports.find(r => r.id === reportId);
+
+    const createdAtMs = report?.created_at
+      ? new Date(String(report.created_at).replace(' ', 'T')).getTime() : null;
+    const prevCAtMs = report?.prev_created_at
+      ? new Date(String(report.prev_created_at).replace(' ', 'T')).getTime() : null;
+    const wsMs = (createdAtMs && !isNaN(createdAtMs))
+      ? ((prevCAtMs && !isNaN(prevCAtMs)) ? Math.max(prevCAtMs, createdAtMs - 12 * 3600000) : createdAtMs - 12 * 3600000)
+      : null;
+    const weMs = (createdAtMs && !isNaN(createdAtMs)) ? createdAtMs : null;
+
+    const windowSubs = (wsMs && weMs)
+      ? subs.filter((s: any) => { const t = new Date(String(s.datum).replace(' ', 'T')).getTime(); return !isNaN(t) && t > wsMs && t <= weMs; })
+      : subs;
+    return { windowSubs, createdAtMs: (createdAtMs && !isNaN(createdAtMs)) ? createdAtMs : null };
+  }
+
   private computePlcStats(reportId: number): void {
     const emptyResult = {
       kpi: { totalCycles: 0, medianCycleMin: 0, totalStopMin: 0, avgCycleMin: 0 },
@@ -1157,26 +1187,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       sentInskickad: false,
     };
     try {
-      const subs = this.subShiftsMap[reportId] || [];
-      const report = reportId === this.PRELIMINARY_ID
-        ? this.preliminaryReport
-        : reportId < 0
-          ? this.unreportedPasses.find(u => u.id === reportId)
-          : this.reports.find(r => r.id === reportId);
-
-      // Fönstergränser: spec C — max(prev_created_at, created_at−12h) → created_at
-      const createdAtMs = report?.created_at
-        ? new Date(String(report.created_at).replace(' ', 'T')).getTime() : null;
-      const prevCAtMs = report?.prev_created_at
-        ? new Date(String(report.prev_created_at).replace(' ', 'T')).getTime() : null;
-      const wsMs = (createdAtMs && !isNaN(createdAtMs))
-        ? ((prevCAtMs && !isNaN(prevCAtMs)) ? Math.max(prevCAtMs, createdAtMs - 12 * 3600000) : createdAtMs - 12 * 3600000)
-        : null;
-      const weMs = (createdAtMs && !isNaN(createdAtMs)) ? createdAtMs : null;
-
-      const windowSubs = (wsMs && weMs)
-        ? subs.filter((s: any) => { const t = new Date(String(s.datum).replace(' ', 'T')).getTime(); return !isNaN(t) && t > wsMs && t <= weMs; })
-        : subs;
+      const { windowSubs, createdAtMs } = this._getWindowSubsForReport(reportId);
 
       // Validera tidsstämplar — exkludera framtida, uråldriga och ogiltiga
       const now = Date.now();
@@ -1514,6 +1525,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   exportExcel() {
     if (!this.filteredReports.length) return;
+    if (this.config.line === 'tvattlinje') { this.exportExcelTvattlinje(); return; }
     import('xlsx').then(XLSX => {
       const headers = [
         'ID', 'Datum', 'Antal OK', 'Antal ej OK', 'Totalt',
@@ -1533,6 +1545,200 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Skiftrapporter');
       XLSX.writeFile(wb, `${this.config.line}-skiftrapport-${localToday()}.xlsx`);
+    });
+  }
+
+  // ============================================================================
+  // TVÄTTLINJE EXCEL-EXPORT (Oscar 2026-10-20) — EN RAD PER DAG OCH PRODUKT.
+  // Dagar med flera produkter (olika måltakt) delas upp per produkt via
+  // tvattlinje_ibc.produkt; drifttiden fördelas efter antal IBC × produktens
+  // måltakt. Alla tal kommer från räknekärnan (utils/tvattlinje-metrics.ts) så
+  // Excel och sidan alltid visar samma värden.
+  // ============================================================================
+
+  /** En slutgiltig exportrad — redan färdigberäknad, redo att skrivas till kalkylbladet. */
+  private _excelRow(r: {
+    datum: string; produkt: string; op1: string; op2: string; op3: string;
+    ok: number; ejOk: number; omtvaatt: number; totalt: number;
+    perTimme: number | null; snittCykel: number | null; maltakt: number;
+    drifttid: number; rast: number; driftstopp: number;
+    effRatio: number | null; lopnummer: string;
+    availRatio: number; qualRatio: number | null; oeeRatio: number | null;
+    skift: string; inskickad: string; kommentar: string; flerprodukt: string;
+  }): any[] {
+    return [
+      r.datum, r.produkt, r.op1, r.op2, r.op3,
+      r.ok, r.ejOk, r.omtvaatt, r.totalt,
+      r.perTimme !== null ? Math.round(r.perTimme * 10) / 10 : null,
+      r.snittCykel !== null ? Math.round(r.snittCykel * 100) / 100 : null,
+      Math.round(r.maltakt * 100) / 100,
+      Math.round(r.drifttid), Math.round(r.rast), Math.round(r.driftstopp),
+      r.effRatio,
+      r.lopnummer,
+      Math.round(r.availRatio * 1000) / 1000,
+      r.qualRatio !== null ? Math.round(r.qualRatio * 1000) / 1000 : null,
+      r.oeeRatio !== null ? Math.round(r.oeeRatio * 1000) / 1000 : null,
+      r.skift, r.inskickad, r.kommentar, r.flerprodukt
+    ];
+  }
+
+  /**
+   * Delar upp en skiftrapport per produkt via tvattlinje_ibc.produkt (samma fönster
+   * som getPlcKpi/getDetectedStops). Ingen produktdata alls i fönstret -> en rad med
+   * rapportens egen product_id (ingen uppdelning möjlig, flaggas inte som flerprodukt).
+   * Antal IBC per produkt = antal cykel-rader med den produkten (matchar hur
+   * totalCycles redan räknas i computePlcStats). Drifttid/rast/driftstopp fördelas
+   * proportionellt mot (antal IBC × produktens måltakt) — samma vikt som P-formeln.
+   */
+  private _splitReportByProduct(r: any): Array<{ productId: number | null; ibcCount: number; share: number; lopnrMin: number | null; lopnrMax: number | null }> {
+    const { windowSubs } = this._getWindowSubsForReport(r.id);
+    const byProduct = new Map<number | null, { count: number; lopnrMin: number | null; lopnrMax: number | null }>();
+    for (const s of windowSubs) {
+      const pid = (s.produkt !== null && s.produkt !== undefined && s.produkt !== 0) ? Number(s.produkt) : null;
+      const cur = byProduct.get(pid) || { count: 0, lopnrMin: null, lopnrMax: null };
+      cur.count++;
+      const lop = (s.lopnummer !== null && s.lopnummer !== undefined) ? Number(s.lopnummer) : null;
+      if (lop !== null && isFinite(lop)) {
+        cur.lopnrMin = cur.lopnrMin === null ? lop : Math.min(cur.lopnrMin, lop);
+        cur.lopnrMax = cur.lopnrMax === null ? lop : Math.max(cur.lopnrMax, lop);
+      }
+      byProduct.set(pid, cur);
+    }
+    if (byProduct.size === 0) {
+      return [{ productId: r.product_id ?? null, ibcCount: 1, share: 1, lopnrMin: null, lopnrMax: null }];
+    }
+    const products = this.products as any[];
+    const weighted: Array<{ productId: number | null; ibcCount: number; weight: number; lopnrMin: number | null; lopnrMax: number | null }> = [];
+    let totalWeight = 0;
+    byProduct.forEach((v, pid) => {
+      const cycle = products.find(p => p.id === pid)?.cycle_time_minutes ?? this.fallbackCycleMin;
+      const weight = v.count * cycle;
+      totalWeight += weight;
+      weighted.push({ productId: pid, ibcCount: v.count, weight, lopnrMin: v.lopnrMin, lopnrMax: v.lopnrMax });
+    });
+    return weighted.map(w => ({
+      productId: w.productId, ibcCount: w.ibcCount,
+      share: totalWeight > 0 ? w.weight / totalWeight : 1 / weighted.length,
+      lopnrMin: w.lopnrMin, lopnrMax: w.lopnrMax
+    }));
+  }
+
+  private _formatLopnummerRange(lopnrMin: number | null, lopnrMax: number | null, fallback: string): string {
+    if (lopnrMin !== null && lopnrMax !== null) {
+      return lopnrMin === lopnrMax ? String(lopnrMax) : `${lopnrMin}–${lopnrMax}`;
+    }
+    return fallback;
+  }
+
+  exportExcelTvattlinje() {
+    import('xlsx').then(XLSX => {
+      const reports = this.dedupSnapshots(this.filteredReports)
+        .filter((r: any) => !r.isPreliminary && !r.isUnreported)
+        .sort((a: any, b: any) => String(a.datum).localeCompare(String(b.datum)));
+
+      const headers = [
+        'Datum', 'Produkt', 'Op1 Påsatt', 'Op2 Spolplattform', 'Op3 Kontrollstation',
+        'IBC godkända', 'IBC ej godkända', 'Omtvätt', 'Totalt',
+        'Antal per timme', 'Snitt cykeltid min/IBC', 'Måltakt min/IBC',
+        'Drifttid aktiv (min)', 'Rast (min)', 'Driftstopp (min)',
+        'Effektivitet', 'Löpnummer',
+        'Tillgänglighet', 'Kvalitet', 'OEE',
+        'Skift', 'Inskickad', 'Kommentar', 'Flerprodukt-dag'
+      ];
+      const dataRows: any[][] = [];
+
+      for (const r of reports) {
+        const splits = this._splitReportByProduct(r);
+        const isMulti = splits.length > 1;
+        const op1 = this.getOpName(r.op1) || '–';
+        const op2 = this.getOpName(r.op2) || '–';
+        const op3 = this.getOpName(r.op3) || '–';
+        const skift = r.skiftraknare ? `Skift ${r.skiftraknare}` : '–';
+        const inskickad = r.sent_inskickad ? 'Efterregistrerad' : (r.inlagd == 1 ? 'Inlagd' : 'Ja');
+        const lopnummerFallback = this.lopnummerMap[r.id] || '–';
+        const drifttidTotal = TM.capDrifttid(r.drifttid || 0);
+        const rastTotal = r.rasttime || 0;
+        const driftstoppTotal = r.driftstopptime || 0;
+
+        for (const sp of splits) {
+          const product = this.products.find((p: any) => p.id === sp.productId);
+          const produktNamn = product?.name || (sp.productId == null ? (this.getProductName(r.product_id) || '–') : `#${sp.productId}`);
+          const maltakt = product?.cycle_time_minutes ?? this.fallbackCycleMin;
+
+          // Fördela IBC och tider efter produktens andel (share = vikt av antal IBC × måltakt).
+          const ok = Math.round((r.antal_ok || 0) * sp.share);
+          const ejOk = Math.round((r.antal_ej_ok || 0) * sp.share);
+          const omtv = Math.round((r.omtvaatt || 0) * sp.share);
+          const totalt = isMulti ? (ok + ejOk + omtv) : (r.totalt || (ok + ejOk + omtv));
+          const drifttid = isMulti ? drifttidTotal * sp.share : drifttidTotal;
+          const rast = isMulti ? rastTotal * sp.share : rastTotal;
+          const driftstopp = isMulti ? driftstoppTotal * sp.share : driftstoppTotal;
+
+          const perTimme = drifttid > 0 ? totalt / (drifttid / 60) : null;
+          const snittCykel = TM.avgCycleMin(drifttid, totalt);
+          const effRatio = TM.efficiency(maltakt, totalt, drifttid);
+          const dayN = TM.isoWeekday(r.datum || '');
+          const avail = TM.availability(drifttidTotal, TM.plannedMinutes(dayN, drifttidTotal));
+          const qual = TM.quality(r.antal_ok || 0, r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0)));
+          const oee = TM.oee(avail, TM.performance(r.totalt || totalt, maltakt, drifttidTotal), qual);
+
+          const lopnummer = isMulti
+            ? this._formatLopnummerRange(sp.lopnrMin, sp.lopnrMax, '–')
+            : lopnummerFallback;
+
+          dataRows.push(this._excelRow({
+            datum: String(r.datum || '').substring(0, 10),
+            produkt: produktNamn, op1, op2, op3,
+            ok, ejOk, omtvaatt: omtv, totalt,
+            perTimme, snittCykel, maltakt,
+            drifttid, rast, driftstopp,
+            effRatio, lopnummer,
+            availRatio: avail, qualRatio: qual, oeeRatio: oee,
+            skift, inskickad, kommentar: r.kommentar || '',
+            flerprodukt: isMulti ? 'Ja' : 'Nej'
+          }));
+        }
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+      const numFmt1dp = '0.0';
+      const numFmtInt = '0';
+      const pctFmt = '0.0%';
+      const pctFmtSigned = '+0.0%;-0.0%';
+      // Kolumnindex (0-baserat) för varje numerisk kolumn -> tillämpat talformat.
+      const colFormats: { [col: number]: string } = {
+        5: numFmtInt, 6: numFmtInt, 7: numFmtInt, 8: numFmtInt, // IBC ok/ejok/omtv/totalt
+        9: numFmt1dp,                 // Antal per timme
+        10: '0.00', 11: '0.00',       // Snitt cykeltid, Måltakt (2 decimaler — min/IBC kräver precision)
+        12: numFmtInt, 13: numFmtInt, 14: numFmtInt, // Drifttid/Rast/Driftstopp (min, heltal)
+        15: pctFmtSigned,             // Effektivitet (signerad)
+        17: pctFmt, 18: pctFmt, 19: pctFmt, // Tillgänglighet/Kvalitet/OEE
+      };
+      const range = XLSX.utils.decode_range(ws['!ref']!);
+      for (let R = 1; R <= range.e.r; R++) {
+        for (const colStr of Object.keys(colFormats)) {
+          const C = Number(colStr);
+          const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[cellRef];
+          if (cell && typeof cell.v === 'number') cell.z = colFormats[C];
+        }
+      }
+
+      ws['!cols'] = [
+        { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+        { wch: 12 }, { wch: 14 }, { wch: 9 }, { wch: 8 },
+        { wch: 13 }, { wch: 16 }, { wch: 13 },
+        { wch: 16 }, { wch: 10 }, { wch: 13 },
+        { wch: 12 }, { wch: 14 },
+        { wch: 13 }, { wch: 10 }, { wch: 8 },
+        { wch: 9 }, { wch: 14 }, { wch: 40 }, { wch: 13 }
+      ];
+      ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+      ws['!autofilter'] = { ref: ws['!ref']! };
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Skiftrapporter');
+      XLSX.writeFile(wb, `tvattlinje-skiftrapport-${localToday()}.xlsx`);
     });
   }
 
