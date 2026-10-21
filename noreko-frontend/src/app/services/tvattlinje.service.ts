@@ -193,4 +193,16 @@ export class TvattlinjeService {
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
   }
+
+  /**
+   * Fullständig cykeldata (en rad per IBC, ingen 500-cap) för Excel-exportens
+   * Löpnummer-blad. Oscar 2026-10-21: spårbarhet kräver varje löpnummer kopplat
+   * till dag/tid/skift, inte bara ett max-värde.
+   */
+  getCycleDetail(startDate: string, endDate: string): Observable<any> {
+    return this.http.get<any>(
+      `${environment.apiUrl}?action=tvattlinje&run=cycle-detail&start=${startDate}&end=${endDate}`,
+      { withCredentials: true }
+    ).pipe(timeout(30000), retry(1), catchError(() => of(null)));
+  }
 }

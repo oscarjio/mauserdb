@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, of, firstValueFrom } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
+import { TvattlinjeService } from '../../services/tvattlinje.service';
 import { AuthService } from '../../services/auth.service';
 import { localToday, localDateStr } from '../../utils/date-utils';
 import * as TM from '../../utils/tvattlinje-metrics';
@@ -129,6 +130,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   constructor(
     private service: LineSkiftrapportService,
+    private tvattlinjeService: TvattlinjeService,
     private auth: AuthService,
     private zone: NgZone
   ) {}
@@ -1549,10 +1551,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     drifttid: number; rast: number; driftstopp: number;
     effRatio: number | null; lopnummer: string;
     qualRatio: number | null; oeeRatio: number | null;
-    skift: string; inskickad: string; kommentar: string; flerprodukt: string;
+    inskickad: string; kommentar: string; flerprodukt: string;
   }): any[] {
     // N-bug (Oscar 2026-10-20): ingen "Tillgänglighet"-kolumn — borttagen som eget
     // nyckeltal (planerad skifttid är inte relevant för tvättlinjen).
+    // N-bug (Oscar 2026-10-21): "Skift"-kolumnen borttagen — inte relevant.
     return [
       r.datum, r.produkt, r.op1, r.op2, r.op3,
       r.ok, r.ejOk, r.omtvaatt, r.totalt,
@@ -1564,8 +1567,37 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       r.lopnummer,
       r.qualRatio !== null ? Math.round(r.qualRatio * 1000) / 1000 : null,
       r.oeeRatio !== null ? Math.round(r.oeeRatio * 1000) / 1000 : null,
-      r.skift, r.inskickad, r.kommentar, r.flerprodukt
+      r.inskickad, r.kommentar, r.flerprodukt
     ];
+  }
+
+  /**
+   * Löpnummer-intervall MED explicit flaggning av luckor/dubbletter (Oscar 2026-10-21).
+   * Tidigare visades bara ett sammanslaget intervall (luckor syntes bara implicit genom
+   * att det blev flera delintervall, dubbletter doldes helt). Nu räknas båda ut explicit
+   * och läggs på som en ⚠-suffix så en lucka/dubblett aldrig kan missas i genomläsning.
+   */
+  private _buildLopnummerRangeFlagged(nums: number[]): string {
+    if (!nums.length) return '–';
+    const counts = new Map<number, number>();
+    for (const n of nums) counts.set(n, (counts.get(n) || 0) + 1);
+    const duplicates = [...counts.values()].filter(c => c > 1).length;
+    const distinct = [...counts.keys()].sort((a, b) => a - b);
+    const ranges: string[] = [];
+    let start = distinct[0], prev = distinct[0];
+    for (let i = 1; i < distinct.length; i++) {
+      if (distinct[i] === prev + 1) { prev = distinct[i]; continue; }
+      ranges.push(start === prev ? String(start) : `${start}–${prev}`);
+      start = prev = distinct[i];
+    }
+    ranges.push(start === prev ? String(start) : `${start}–${prev}`);
+    const gaps = ranges.length - 1;
+    let out = ranges.join(', ');
+    const flags: string[] = [];
+    if (gaps > 0) flags.push(`${gaps} lucka${gaps > 1 ? 'or' : ''}`);
+    if (duplicates > 0) flags.push(`${duplicates} dubblett${duplicates > 1 ? 'er' : ''}`);
+    if (flags.length) out += ` ⚠ ${flags.join(', ')}`;
+    return out;
   }
 
   /**
@@ -1609,125 +1641,178 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     }));
   }
 
-  private _formatLopnummerRange(lopnrMin: number | null, lopnrMax: number | null, fallback: string): string {
-    if (lopnrMin !== null && lopnrMax !== null) {
-      return lopnrMin === lopnrMax ? String(lopnrMax) : `${lopnrMin}–${lopnrMax}`;
+  async exportExcelTvattlinje() {
+    const XLSX = await import('xlsx');
+    const reports = this.dedupSnapshots(this.filteredReports)
+      .filter((r: any) => !r.isPreliminary && !r.isUnreported)
+      .sort((a: any, b: any) => String(a.datum).localeCompare(String(b.datum)));
+
+    // Löpnummer-spårbarhet (Oscar 2026-10-21): hämta ALL cykeldata för hela den
+    // exporterade perioden i ETT anrop (ingen 500-cap, till skillnad från
+    // PLC-diagnostiken) i stället för en löpnummer-rundtripp per rapport.
+    let cycleRows: any[] = [];
+    if (reports.length > 0) {
+      const startDate = String(reports[0].datum || '').substring(0, 10);
+      const endDate = String(reports[reports.length - 1].datum || '').substring(0, 10);
+      const res = await firstValueFrom(this.tvattlinjeService.getCycleDetail(startDate, endDate)).catch(() => null);
+      cycleRows = res?.success ? (res.data || []) : [];
     }
-    return fallback;
-  }
+    const cyclesBySkift = new Map<number, any[]>();
+    for (const c of cycleRows) {
+      const sk = c.skiftraknare;
+      if (sk === null || sk === undefined) continue;
+      if (!cyclesBySkift.has(sk)) cyclesBySkift.set(sk, []);
+      cyclesBySkift.get(sk)!.push(c);
+    }
 
-  exportExcelTvattlinje() {
-    import('xlsx').then(XLSX => {
-      const reports = this.dedupSnapshots(this.filteredReports)
-        .filter((r: any) => !r.isPreliminary && !r.isUnreported)
-        .sort((a: any, b: any) => String(a.datum).localeCompare(String(b.datum)));
+    const headers = [
+      'Datum', 'Produkt', 'Op1 Påsatt', 'Op2 Spolplattform', 'Op3 Kontrollstation',
+      'IBC godkända', 'IBC ej godkända', 'Omtvätt', 'Totalt',
+      'Antal per timme', 'Snitt cykeltid min/IBC', 'Måltakt min/IBC',
+      'Drifttid aktiv (min)', 'Rast (min)', 'Driftstopp (min)',
+      'Effektivitet', 'Löpnummer',
+      'Kvalitet', 'OEE',
+      'Inskickad', 'Kommentar', 'Flerprodukt-dag'
+    ];
+    const dataRows: any[][] = [];
 
-      const headers = [
-        'Datum', 'Produkt', 'Op1 Påsatt', 'Op2 Spolplattform', 'Op3 Kontrollstation',
-        'IBC godkända', 'IBC ej godkända', 'Omtvätt', 'Totalt',
-        'Antal per timme', 'Snitt cykeltid min/IBC', 'Måltakt min/IBC',
-        'Drifttid aktiv (min)', 'Rast (min)', 'Driftstopp (min)',
-        'Effektivitet', 'Löpnummer',
-        'Kvalitet', 'OEE',
-        'Skift', 'Inskickad', 'Kommentar', 'Flerprodukt-dag'
-      ];
-      const dataRows: any[][] = [];
+    for (const r of reports) {
+      const splits = this._splitReportByProduct(r);
+      const isMulti = splits.length > 1;
+      const op1 = this.getOpName(r.op1) || '–';
+      const op2 = this.getOpName(r.op2) || '–';
+      const op3 = this.getOpName(r.op3) || '–';
+      const inskickad = r.sent_inskickad ? 'Efterregistrerad' : (r.inlagd == 1 ? 'Inlagd' : 'Ja');
+      const drifttidTotal = TM.capDrifttid(r.drifttid || 0);
+      const rastTotal = r.rasttime || 0;
+      const driftstoppTotal = r.driftstopptime || 0;
+      const skiftCycles = cyclesBySkift.get(r.skiftraknare) || [];
 
-      for (const r of reports) {
-        const splits = this._splitReportByProduct(r);
-        const isMulti = splits.length > 1;
-        const op1 = this.getOpName(r.op1) || '–';
-        const op2 = this.getOpName(r.op2) || '–';
-        const op3 = this.getOpName(r.op3) || '–';
-        const skift = r.skiftraknare ? `Skift ${r.skiftraknare}` : '–';
-        const inskickad = r.sent_inskickad ? 'Efterregistrerad' : (r.inlagd == 1 ? 'Inlagd' : 'Ja');
-        const lopnummerFallback = this.lopnummerMap[r.id] || '–';
-        const drifttidTotal = TM.capDrifttid(r.drifttid || 0);
-        const rastTotal = r.rasttime || 0;
-        const driftstoppTotal = r.driftstopptime || 0;
+      for (const sp of splits) {
+        const product = this.products.find((p: any) => p.id === sp.productId);
+        const produktNamn = product?.name || (sp.productId == null ? (this.getProductName(r.product_id) || '–') : `#${sp.productId}`);
+        const maltakt = product?.cycle_time_minutes ?? this.fallbackCycleMin;
 
-        for (const sp of splits) {
-          const product = this.products.find((p: any) => p.id === sp.productId);
-          const produktNamn = product?.name || (sp.productId == null ? (this.getProductName(r.product_id) || '–') : `#${sp.productId}`);
-          const maltakt = product?.cycle_time_minutes ?? this.fallbackCycleMin;
+        // Fördela IBC och tider efter produktens andel (share = vikt av antal IBC × måltakt).
+        const ok = Math.round((r.antal_ok || 0) * sp.share);
+        const ejOk = Math.round((r.antal_ej_ok || 0) * sp.share);
+        const omtv = Math.round((r.omtvaatt || 0) * sp.share);
+        const totalt = isMulti ? (ok + ejOk + omtv) : (r.totalt || (ok + ejOk + omtv));
+        const drifttid = isMulti ? drifttidTotal * sp.share : drifttidTotal;
+        const rast = isMulti ? rastTotal * sp.share : rastTotal;
+        const driftstopp = isMulti ? driftstoppTotal * sp.share : driftstoppTotal;
 
-          // Fördela IBC och tider efter produktens andel (share = vikt av antal IBC × måltakt).
-          const ok = Math.round((r.antal_ok || 0) * sp.share);
-          const ejOk = Math.round((r.antal_ej_ok || 0) * sp.share);
-          const omtv = Math.round((r.omtvaatt || 0) * sp.share);
-          const totalt = isMulti ? (ok + ejOk + omtv) : (r.totalt || (ok + ejOk + omtv));
-          const drifttid = isMulti ? drifttidTotal * sp.share : drifttidTotal;
-          const rast = isMulti ? rastTotal * sp.share : rastTotal;
-          const driftstopp = isMulti ? driftstoppTotal * sp.share : driftstoppTotal;
+        const perTimme = drifttid > 0 ? totalt / (drifttid / 60) : null;
+        const snittCykel = TM.avgCycleMin(drifttid, totalt);
+        const effRatio = TM.efficiency(maltakt, totalt, drifttid);
+        // N-bug (Oscar 2026-10-20): OEE:s första faktor är nu driftfaktor
+        // (drifttid/(drifttid+driftstopp)) — "Tillgänglighet" mot planerad skifttid är
+        // borttagen, visas inte längre som egen kolumn.
+        const driftfaktorRatio = TM.driftfaktor(drifttidTotal, driftstoppTotal);
+        const qual = TM.quality(r.antal_ok || 0, r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0)));
+        const oee = TM.oee(driftfaktorRatio, TM.performance(r.totalt || totalt, maltakt, drifttidTotal), qual);
 
-          const perTimme = drifttid > 0 ? totalt / (drifttid / 60) : null;
-          const snittCykel = TM.avgCycleMin(drifttid, totalt);
-          const effRatio = TM.efficiency(maltakt, totalt, drifttid);
-          // N-bug (Oscar 2026-10-20): OEE:s första faktor är nu driftfaktor
-          // (drifttid/(drifttid+driftstopp)) — "Tillgänglighet" mot planerad skifttid är
-          // borttagen, visas inte längre som egen kolumn.
-          const driftfaktorRatio = TM.driftfaktor(drifttidTotal, driftstoppTotal);
-          const qual = TM.quality(r.antal_ok || 0, r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0)));
-          const oee = TM.oee(driftfaktorRatio, TM.performance(r.totalt || totalt, maltakt, drifttidTotal), qual);
+        // Löpnummer (Oscar 2026-10-21): bara "godkänd"-cykler (c.lopnummer !== null,
+        // se TvattlinjeController::getCycleDetail) räknas in — luckor/dubbletter flaggas
+        // explicit i stället för att bara synas implicit som flera delintervall.
+        const relevantCycles = isMulti ? skiftCycles.filter(c => c.produkt === sp.productId) : skiftCycles;
+        const lopnummerNums = relevantCycles.filter(c => c.lopnummer !== null).map(c => Number(c.lopnummer));
+        const lopnummer = this._buildLopnummerRangeFlagged(lopnummerNums);
 
-          const lopnummer = isMulti
-            ? this._formatLopnummerRange(sp.lopnrMin, sp.lopnrMax, '–')
-            : lopnummerFallback;
-
-          dataRows.push(this._excelRow({
-            datum: String(r.datum || '').substring(0, 10),
-            produkt: produktNamn, op1, op2, op3,
-            ok, ejOk, omtvaatt: omtv, totalt,
-            perTimme, snittCykel, maltakt,
-            drifttid, rast, driftstopp,
-            effRatio, lopnummer,
-            qualRatio: qual, oeeRatio: oee,
-            skift, inskickad, kommentar: r.kommentar || '',
-            flerprodukt: isMulti ? 'Ja' : 'Nej'
-          }));
-        }
+        dataRows.push(this._excelRow({
+          datum: String(r.datum || '').substring(0, 10),
+          produkt: produktNamn, op1, op2, op3,
+          ok, ejOk, omtvaatt: omtv, totalt,
+          perTimme, snittCykel, maltakt,
+          drifttid, rast, driftstopp,
+          effRatio, lopnummer,
+          qualRatio: qual, oeeRatio: oee,
+          inskickad, kommentar: r.kommentar || '',
+          flerprodukt: isMulti ? 'Ja' : 'Nej'
+        }));
       }
+    }
 
-      const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
-      const numFmt1dp = '0.0';
-      const numFmtInt = '0';
-      const pctFmt = '0.0%';
-      const pctFmtSigned = '+0.0%;-0.0%';
-      // Kolumnindex (0-baserat) för varje numerisk kolumn -> tillämpat talformat.
-      const colFormats: { [col: number]: string } = {
-        5: numFmtInt, 6: numFmtInt, 7: numFmtInt, 8: numFmtInt, // IBC ok/ejok/omtv/totalt
-        9: numFmt1dp,                 // Antal per timme
-        10: '0.00', 11: '0.00',       // Snitt cykeltid, Måltakt (2 decimaler — min/IBC kräver precision)
-        12: numFmtInt, 13: numFmtInt, 14: numFmtInt, // Drifttid/Rast/Driftstopp (min, heltal)
-        15: pctFmtSigned,             // Effektivitet (signerad)
-        17: pctFmt, 18: pctFmt,       // Kvalitet/OEE
-      };
-      const range = XLSX.utils.decode_range(ws['!ref']!);
-      for (let R = 1; R <= range.e.r; R++) {
-        for (const colStr of Object.keys(colFormats)) {
-          const C = Number(colStr);
-          const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-          const cell = ws[cellRef];
-          if (cell && typeof cell.v === 'number') cell.z = colFormats[C];
-        }
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
+    const numFmt1dp = '0.0';
+    const numFmtInt = '0';
+    const pctFmt = '0.0%';
+    const pctFmtSigned = '+0.0%;-0.0%';
+    // Kolumnindex (0-baserat) för varje numerisk kolumn -> tillämpat talformat.
+    const colFormats: { [col: number]: string } = {
+      5: numFmtInt, 6: numFmtInt, 7: numFmtInt, 8: numFmtInt, // IBC ok/ejok/omtv/totalt
+      9: numFmt1dp,                 // Antal per timme
+      10: '0.00', 11: '0.00',       // Snitt cykeltid, Måltakt (2 decimaler — min/IBC kräver precision)
+      12: numFmtInt, 13: numFmtInt, 14: numFmtInt, // Drifttid/Rast/Driftstopp (min, heltal)
+      15: pctFmtSigned,             // Effektivitet (signerad)
+      17: pctFmt, 18: pctFmt,       // Kvalitet/OEE
+    };
+    const range = XLSX.utils.decode_range(ws['!ref']!);
+    for (let R = 1; R <= range.e.r; R++) {
+      for (const colStr of Object.keys(colFormats)) {
+        const C = Number(colStr);
+        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+        const cell = ws[cellRef];
+        if (cell && typeof cell.v === 'number') cell.z = colFormats[C];
       }
+    }
 
-      ws['!cols'] = [
-        { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
-        { wch: 12 }, { wch: 14 }, { wch: 9 }, { wch: 8 },
-        { wch: 13 }, { wch: 16 }, { wch: 13 },
-        { wch: 16 }, { wch: 10 }, { wch: 13 },
-        { wch: 12 }, { wch: 14 },
-        { wch: 10 }, { wch: 8 },
-        { wch: 9 }, { wch: 14 }, { wch: 40 }, { wch: 13 }
-      ];
-      ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-      ws['!autofilter'] = { ref: ws['!ref']! };
+    ws['!cols'] = [
+      { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+      { wch: 12 }, { wch: 14 }, { wch: 9 }, { wch: 8 },
+      { wch: 13 }, { wch: 16 }, { wch: 13 },
+      { wch: 16 }, { wch: 10 }, { wch: 13 },
+      { wch: 12 }, { wch: 20 },
+      { wch: 10 }, { wch: 8 },
+      { wch: 14 }, { wch: 40 }, { wch: 13 }
+    ];
+    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+    ws['!autofilter'] = { ref: ws['!ref']! };
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Skiftrapporter');
-      XLSX.writeFile(wb, `tvattlinje-skiftrapport-${localToday()}.xlsx`);
-    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Skiftrapporter');
+
+    // Nytt blad "Löpnummer" (Oscar 2026-10-21): en rad per IBC-cykel för full
+    // spårbarhet — datum, tid, löpnummer, produkt, resultat, operatörer. Datum ingår
+    // alltid i raden så datum+löpnummer blir unikt även när löpnumret börjar om per
+    // skift (bekräftat: det gör det, se rapporten till Oscar).
+    const lopHeaders = ['Datum', 'Tid', 'Löpnummer', 'Produkt', 'Resultat', 'Op1 Påsatt', 'Op2 Spolplattform', 'Op3 Kontrollstation'];
+    const lopRows: any[][] = [];
+    const sortedCycles = [...cycleRows].sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
+    for (const c of sortedCycles) {
+      const datumStr = String(c.datum || '');
+      const produktNamn = c.produkt == null
+        ? '–'
+        : (this.products.find((p: any) => p.id === c.produkt)?.name || `#${c.produkt}`);
+      lopRows.push([
+        datumStr.substring(0, 10),
+        datumStr.substring(11, 19) || '–',
+        c.lopnummer !== null && c.lopnummer !== undefined ? Number(c.lopnummer) : null,
+        produktNamn,
+        c.resultat || '–',
+        this.getOpName(c.op1) || '–',
+        this.getOpName(c.op2) || '–',
+        this.getOpName(c.op3) || '–'
+      ]);
+    }
+    const wsLop = XLSX.utils.aoa_to_sheet([lopHeaders, ...lopRows]);
+    if (lopRows.length > 0) {
+      const lopRange = XLSX.utils.decode_range(wsLop['!ref']!);
+      for (let R = 1; R <= lopRange.e.r; R++) {
+        const cellRef = XLSX.utils.encode_cell({ r: R, c: 2 });
+        const cell = wsLop[cellRef];
+        if (cell && typeof cell.v === 'number') cell.z = '0';
+      }
+    }
+    wsLop['!cols'] = [
+      { wch: 12 }, { wch: 10 }, { wch: 11 }, { wch: 16 }, { wch: 13 },
+      { wch: 18 }, { wch: 18 }, { wch: 18 }
+    ];
+    wsLop['!freeze'] = { xSplit: 0, ySplit: 1 };
+    wsLop['!autofilter'] = { ref: wsLop['!ref']! };
+    XLSX.utils.book_append_sheet(wb, wsLop, 'Löpnummer');
+
+    XLSX.writeFile(wb, `tvattlinje-skiftrapport-${localToday()}.xlsx`);
   }
 
   async exportPDF(report: any) {

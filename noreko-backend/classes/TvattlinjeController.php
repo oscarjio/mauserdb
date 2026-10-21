@@ -46,6 +46,8 @@ class TvattlinjeController {
                 $this->getSkiftrapportStatistik();
             } elseif ($action === 'plc-diagnostics') {
                 $this->getPlcDiagnostics();
+            } elseif ($action === 'cycle-detail') {
+                $this->getCycleDetail();
             } elseif ($action === 'plc-diagnostik') {
                 $this->getPlcDiagnostikStream();
             } elseif ($action === 'plc-diagnostik-latest-date') {
@@ -2792,6 +2794,75 @@ class TvattlinjeController {
                 'skiftrapporter'    => $skiftrapporter,
             ]
         ], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Löpnummer-spårbarhet (Oscar 2026-10-21): en rad per IBC-cykel, ingen 500-cap
+     * (till skillnad från getPlcDiagnostics — Excel-exportens Löpnummer-blad behöver
+     * ALLA cykler i den exporterade perioden, inte bara de 500 senaste).
+     *
+     * tvattlinje_ibc.ibc_ok/ibc_ej_ok/omtvaatt är KUMULATIVA räknare (D4007-stil), inte
+     * per-händelse-flaggor — varje rad är en PLC-ögonblicksbild vid NÄSTA cykel. Vilken
+     * typ av händelse en rad representerar avgörs här genom att jämföra mot FÖREGÅENDE
+     * rad inom samma skiftraknare (LAG i SQL): ökar ibc_ok → "godkänd", ökar ibc_ej_ok →
+     * "ej godkänd", ökar omtvaatt → "omtvätt". Första raden i ett skift (ingen föregående)
+     * klassas som "godkänd" om ibc_ok=1 vid den tidpunkten (dvs normal skiftstart).
+     *
+     * Löpnummer (D4009) verifierat (2026-10-21, skift 52+53, 439 cykler): ökar ENDAST på
+     * "godkänd"-rader (339/339 resp. 99/99 transitioner matchade, 3 mindre PLC-interna
+     * hopp av ±1 runt ej godkänd-gränser förekom men ändrade inte slutsatsen). Rader som
+     * INTE är "godkänd" får därför lopnummer = null här (de "fick" aldrig ett eget
+     * löpnummer, matchar hur det faktiskt beter sig i PLC:n) — även om kolumnen i
+     * tvattlinje_ibc råkar innehålla samma siffra som senast (oförändrat sedan den
+     * faktiskt INTE ökade för den raden).
+     */
+    private function getCycleDetail(): void {
+        $start = $_GET['start'] ?? date('Y-m-d');
+        $end   = $_GET['end']   ?? date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
+
+        $rows = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    datum, skiftraknare, produkt, op1, op2, op3,
+                    ibc_ok, ibc_ej_ok, omtvaatt, lopnummer,
+                    ibc_ok   - LAG(ibc_ok)   OVER (PARTITION BY COALESCE(skiftraknare, 0) ORDER BY datum, id) AS d_ok,
+                    ibc_ej_ok- LAG(ibc_ej_ok)OVER (PARTITION BY COALESCE(skiftraknare, 0) ORDER BY datum, id) AS d_ejok,
+                    omtvaatt - LAG(omtvaatt) OVER (PARTITION BY COALESCE(skiftraknare, 0) ORDER BY datum, id) AS d_om
+                FROM tvattlinje_ibc
+                WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                ORDER BY datum ASC, id ASC
+            ");
+            $stmt->execute(['start' => $start, 'end' => $end]);
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $dOk   = $r['d_ok']   !== null ? (int)$r['d_ok']   : (int)($r['ibc_ok'] ?? 0);
+                $dEjOk = $r['d_ejok'] !== null ? (int)$r['d_ejok'] : (int)($r['ibc_ej_ok'] ?? 0);
+                $dOm   = $r['d_om']   !== null ? (int)$r['d_om']   : (int)($r['omtvaatt'] ?? 0);
+                if ($dOk > 0)        { $resultat = 'godkänd'; }
+                elseif ($dEjOk > 0)  { $resultat = 'ej godkänd'; }
+                elseif ($dOm > 0)    { $resultat = 'omtvätt'; }
+                else                 { $resultat = 'okänd'; }
+                $rows[] = [
+                    'datum'        => $r['datum'],
+                    'skiftraknare' => $r['skiftraknare'] !== null ? (int)$r['skiftraknare'] : null,
+                    'produkt'      => $r['produkt'] !== null ? (int)$r['produkt'] : null,
+                    'op1'          => $r['op1'],
+                    'op2'          => $r['op2'],
+                    'op3'          => $r['op3'],
+                    'resultat'     => $resultat,
+                    // Bara "godkänd"-rader får ett eget löpnummer — se metodens docblock.
+                    'lopnummer'    => ($resultat === 'godkänd' && $r['lopnummer'] !== null) ? (int)$r['lopnummer'] : null,
+                ];
+            }
+        } catch (\Throwable $e) {
+            error_log('TvattlinjeController::getCycleDetail: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta cykeldata'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
     }
 
     /**
