@@ -71,7 +71,9 @@
         <div class="summary-label">Snitt min/IBC</div>
       </div>
     </div>
-    <div class="col-6 col-md-2">
+    <!-- N-bug (Oscar 2026-10-20): Tillgänglighet-kortet borttaget för tvättlinje — planerad
+         skifttid är inte relevant (linjen körs när det passar). Kvar för rebotling. -->
+    <div class="col-6 col-md-2" *ngIf="config.line !== 'tvattlinje'">
       <div class="summary-card">
         <div class="summary-icon"
           [class.text-success]="(summaryAvgEfficiency ?? -1) >= 80"
@@ -726,7 +728,7 @@
                                           </div>
                                         </div>
                                       </div>
-                                      <p class="text-muted small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">Tid &amp; Tillgänglighet</p>
+                                      <p class="text-muted small mb-2 fw-semibold text-uppercase" style="letter-spacing:.05em;">{{ config.line === 'tvattlinje' ? 'Tid & Driftstopp' : 'Tid & Tillgänglighet' }}</p>
                                       <div class="row g-2 mb-2">
                                         <div class="col-6 col-md-3">
                                           <div class="kpi-card">

@@ -59,15 +59,18 @@ class HistoriskSammanfattningController {
     }
 
     /**
-     * RÄKNEKÄRNA: tillgänglighet. Tvättlinje = netto/planerad via kärnan (helg =
-     * planerad = körd tid, dvs. 100% om körd i stället för gamla 0%). Övriga linjer
-     * oförändrade. Se SkiftjamforelseController för samma resonemang om att SQL:en
-     * summerar planerad tid över perioden (helg = 0 där), så helgregeln kan bara
-     * tillämpas när planMin landar på exakt 0.
+     * N-bug (Oscar 2026-10-20 BESLUT): "Tillgänglighet" mot planerad skifttid är BORTTAGEN
+     * för tvättlinje — planerad tid är inte relevant (linjen körs när det passar). OEE:s
+     * första faktor är nu driftfaktor = drifttid/(drifttid+driftstopp), se
+     * TvattlinjeMetrics::driftfaktor(). Denna controller har ingen driftstopp (D4011)
+     * wired in i sina SQL-frågor än (bara runtime/planerad tid) — OBS: oanvänd för
+     * tvättlinje i dag (ingen frontend-route skickar line=tvattlinje hit), inte live-kod.
+     * Per kärnans egen regel (saknad driftstopp => driftfaktor 100%) returneras 1.0 för
+     * tvättlinje tills ev. driftstopp-data wiras in här. Rebotling: oförändrad.
      */
     private function tillganglighetRatio(float $runtime, float $planMin): float {
-        if ($this->isTvattlinje() && $planMin <= 0) {
-            return $runtime > 0 ? 1.0 : 0.0;
+        if ($this->isTvattlinje()) {
+            return 1.0;
         }
         return $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
     }

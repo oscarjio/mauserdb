@@ -298,18 +298,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return isFinite(v) ? v : null;
   }
 
-  // N-bug #3 (OEE kanonisk formel — Oscar 2026-10-19): Tillgänglighet = netto drifttid /
-  // planerad skifttid (495 min mån-tor, 435 fre; helg = planerad = körd tid → 100% om körd,
-  // 0% annars). Ersätter det tidigare drift/(drift+driftstopp) — matchar nu EXAKT samma
-  // formel som TvattlinjeController::getOeeTrend (backend). Endast tvättlinje (rebotling
-  // behåller sin gamla formel — detta uppdrag gäller bara tvättlinje).
-  // Spegel av TvattlinjeMetrics::availability() + plannedMinutes() (se
-  // utils/tvattlinje-metrics.ts) för en enstaka rapportrad. Endast tvättlinje.
-  private _getNettoAvailabilityRatio(r: any): number {
+  // N-bug (Oscar 2026-10-20): "Tillgänglighet" mot PLANERAD skifttid är BORTTAGEN —
+  // planerad tid (495/435) är inte relevant för tvättlinjen (linjen körs när det
+  // passar). OEE:s första faktor är nu DRIFTFAKTOR = drifttid/(drifttid+driftstopp)
+  // (rast räknas aldrig in), exponeras INTE längre som eget nyckeltal. Spegel av
+  // TvattlinjeMetrics::driftfaktor() (se utils/tvattlinje-metrics.ts).
+  private _getDriftfaktorRatio(r: any): number {
     const netDrift = TM.capDrifttid(r.drifttid ?? 0);
-    const dayN = TM.isoWeekday(r.datum || '');
-    const planned = TM.plannedMinutes(dayN, netDrift);
-    return TM.availability(netDrift, planned);
+    return TM.driftfaktor(netDrift, r.driftstopptime ?? 0);
   }
 
   private _computeOeePct(r: any): number | null {
@@ -326,29 +322,28 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const drifttidMin = TM.capDrifttid(r.drifttid ?? 0);
       if (drifttidMin <= 0) return null;
 
-      // RÄKNEKÄRNA (Oscar 2026-10-20): A/P/K via utils/tvattlinje-metrics.ts — speglar
-      // exakt TvattlinjeMetrics.php. Rebotling behåller sin gamla (oförändrade) formel.
+      // RÄKNEKÄRNA (Oscar 2026-10-20): driftfaktor/P/K via utils/tvattlinje-metrics.ts —
+      // speglar exakt TvattlinjeMetrics.php. Samma formel för båda linjerna nu (tidigare
+      // skilde de sig: rebotling använde redan drift/(drift+driftstopp)).
       const product = this.productNameMap.size > 0
         ? this.products.find(p => p.id === (r.product_id ?? null))
         : null;
       const targetCycleMin = product?.cycle_time_minutes ?? this.fallbackCycleMin;
 
-      let tillganglighet: number;
+      const driftfaktor = this._getDriftfaktorRatio(r);
       let prestanda: number;
       let kvalitet: number;
       if (this.config.line === 'tvattlinje') {
-        tillganglighet = this._getNettoAvailabilityRatio(r);
-        prestanda      = TM.performance(totalIbc, targetCycleMin, drifttidMin);
-        kvalitet       = TM.quality(okIbc, totalIbc) ?? 0;
+        prestanda = TM.performance(totalIbc, targetCycleMin, drifttidMin);
+        kvalitet  = TM.quality(okIbc, totalIbc) ?? 0;
       } else {
-        tillganglighet = Math.min(drifttidMin / Math.max(1, drifttidMin + (r.driftstopptime ?? 0)), 1);
         const targetIbcH = 60 / targetCycleMin;
         const ibcH       = drifttidMin > 0 ? (totalIbc / (drifttidMin / 60)) : 0;
         prestanda        = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
         kvalitet         = okIbc / totalIbc;
       }
 
-      const v = Math.round(tillganglighet * prestanda * kvalitet * 100);
+      const v = Math.round(driftfaktor * prestanda * kvalitet * 100);
       return isFinite(v) ? v : null;
     } catch { return null; }
   }
@@ -578,24 +573,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   // N-bug (Oscar 2026-10-19): gemensam viktad tillgänglighet — EN plats, använd av både
   // "Tillgänglighet"-kortet (summaryAvgEfficiency) och summaryAvgOee, så de alltid är
   // konsekventa med varandra OCH med OEE-trend/per-rad-OEE (samma formel, se CLAUDE.md).
-  // Tvättlinje: netto drifttid / planerad skifttid (495/435/helg=körd). Övriga linjer
-  // (rebotling): oförändrad gammal formel drift/(drift+driftstopp).
+  // N-bug (Oscar 2026-10-20): "Tillgänglighet"/planerad-tid-formeln borttagen. Samma
+  // driftfaktor-formel (drift/(drift+driftstopp)) för BÅDA linjerna nu — rebotling
+  // använde redan exakt denna formel sedan tidigare, så ingen beteendeändring där.
   private _computeWeightedAvailabilityRatio(reports: any[]): number {
     const cappedDrift = (r: any) => TM.capDrifttid(r.drifttid || 0);
     const totalDrift = reports.reduce((s, r) => s + cappedDrift(r), 0);
-    if (this.config.line !== 'tvattlinje') {
-      const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
-      if (totalDriftstopp <= 0) return 1.0;
-      const schema = totalDrift + totalDriftstopp;
-      return schema > 0 ? totalDrift / schema : 0;
-    }
-    // RÄKNEKÄRNA: planerad tid per rapport via utils/tvattlinje-metrics.ts, summerad
-    // över perioden (viktad tillgänglighet = total netto / total planerad).
-    const totalPlannedMin = reports.reduce((s, r) => {
-      const netDrift = cappedDrift(r);
-      return s + TM.plannedMinutes(TM.isoWeekday(r.datum || ''), netDrift);
-    }, 0);
-    return TM.availability(totalDrift, totalPlannedMin);
+    const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
+    return TM.driftfaktor(totalDrift, totalDriftstopp);
   }
 
   get summaryAvgEfficiency(): number | null {
@@ -1563,9 +1548,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     perTimme: number | null; snittCykel: number | null; maltakt: number;
     drifttid: number; rast: number; driftstopp: number;
     effRatio: number | null; lopnummer: string;
-    availRatio: number; qualRatio: number | null; oeeRatio: number | null;
+    qualRatio: number | null; oeeRatio: number | null;
     skift: string; inskickad: string; kommentar: string; flerprodukt: string;
   }): any[] {
+    // N-bug (Oscar 2026-10-20): ingen "Tillgänglighet"-kolumn — borttagen som eget
+    // nyckeltal (planerad skifttid är inte relevant för tvättlinjen).
     return [
       r.datum, r.produkt, r.op1, r.op2, r.op3,
       r.ok, r.ejOk, r.omtvaatt, r.totalt,
@@ -1575,7 +1562,6 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       Math.round(r.drifttid), Math.round(r.rast), Math.round(r.driftstopp),
       r.effRatio,
       r.lopnummer,
-      Math.round(r.availRatio * 1000) / 1000,
       r.qualRatio !== null ? Math.round(r.qualRatio * 1000) / 1000 : null,
       r.oeeRatio !== null ? Math.round(r.oeeRatio * 1000) / 1000 : null,
       r.skift, r.inskickad, r.kommentar, r.flerprodukt
@@ -1642,7 +1628,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         'Antal per timme', 'Snitt cykeltid min/IBC', 'Måltakt min/IBC',
         'Drifttid aktiv (min)', 'Rast (min)', 'Driftstopp (min)',
         'Effektivitet', 'Löpnummer',
-        'Tillgänglighet', 'Kvalitet', 'OEE',
+        'Kvalitet', 'OEE',
         'Skift', 'Inskickad', 'Kommentar', 'Flerprodukt-dag'
       ];
       const dataRows: any[][] = [];
@@ -1677,10 +1663,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           const perTimme = drifttid > 0 ? totalt / (drifttid / 60) : null;
           const snittCykel = TM.avgCycleMin(drifttid, totalt);
           const effRatio = TM.efficiency(maltakt, totalt, drifttid);
-          const dayN = TM.isoWeekday(r.datum || '');
-          const avail = TM.availability(drifttidTotal, TM.plannedMinutes(dayN, drifttidTotal));
+          // N-bug (Oscar 2026-10-20): OEE:s första faktor är nu driftfaktor
+          // (drifttid/(drifttid+driftstopp)) — "Tillgänglighet" mot planerad skifttid är
+          // borttagen, visas inte längre som egen kolumn.
+          const driftfaktorRatio = TM.driftfaktor(drifttidTotal, driftstoppTotal);
           const qual = TM.quality(r.antal_ok || 0, r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0)));
-          const oee = TM.oee(avail, TM.performance(r.totalt || totalt, maltakt, drifttidTotal), qual);
+          const oee = TM.oee(driftfaktorRatio, TM.performance(r.totalt || totalt, maltakt, drifttidTotal), qual);
 
           const lopnummer = isMulti
             ? this._formatLopnummerRange(sp.lopnrMin, sp.lopnrMax, '–')
@@ -1693,7 +1681,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             perTimme, snittCykel, maltakt,
             drifttid, rast, driftstopp,
             effRatio, lopnummer,
-            availRatio: avail, qualRatio: qual, oeeRatio: oee,
+            qualRatio: qual, oeeRatio: oee,
             skift, inskickad, kommentar: r.kommentar || '',
             flerprodukt: isMulti ? 'Ja' : 'Nej'
           }));
@@ -1712,7 +1700,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         10: '0.00', 11: '0.00',       // Snitt cykeltid, Måltakt (2 decimaler — min/IBC kräver precision)
         12: numFmtInt, 13: numFmtInt, 14: numFmtInt, // Drifttid/Rast/Driftstopp (min, heltal)
         15: pctFmtSigned,             // Effektivitet (signerad)
-        17: pctFmt, 18: pctFmt, 19: pctFmt, // Tillgänglighet/Kvalitet/OEE
+        17: pctFmt, 18: pctFmt,       // Kvalitet/OEE
       };
       const range = XLSX.utils.decode_range(ws['!ref']!);
       for (let R = 1; R <= range.e.r; R++) {
@@ -1730,7 +1718,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         { wch: 13 }, { wch: 16 }, { wch: 13 },
         { wch: 16 }, { wch: 10 }, { wch: 13 },
         { wch: 12 }, { wch: 14 },
-        { wch: 13 }, { wch: 10 }, { wch: 8 },
+        { wch: 10 }, { wch: 8 },
         { wch: 9 }, { wch: 14 }, { wch: 40 }, { wch: 13 }
       ];
       ws['!freeze'] = { xSplit: 0, ySplit: 1 };
@@ -1813,12 +1801,13 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         })();
 
         // ── KPI-ber\u00e4kningar ──────────────────────────────────────────────
-        // Tillg\u00e4nglighet: drifttid / (drifttid + driftstopp)
-        // N-bug (Oscar 2026-10-19): Tillganglighet ska anvanda SAMMA definition som
-        // OEE:s tillganglighetsfaktor (netto drifttid / planerad skifttid), inte
-        // drifttid/(drifttid+driftstopp) - bara tvattlinje, rebotling oforandrad.
+        // Tillg\u00e4nglighet: BORTTAGEN som eget nyckeltal f\u00f6r tv\u00e4ttlinje (Oscar
+        // 2026-10-20 BESLUT) \u2014 planerad skifttid \u00e4r inte relevant, linjen k\u00f6rs
+        // n\u00e4r det passar. Driftfaktor (drifttid/(drifttid+driftstopp)) lever kvar
+        // bara som intern OEE-faktor, se _getDriftfaktorRatio/_computeOeePct. Rebotling
+        // of\u00f6r\u00e4ndrad.
         const tillgPct = this.config.line === 'tvattlinje'
-          ? Math.round(this._getNettoAvailabilityRatio(report) * 100)
+          ? 0
           : (() => {
               const plannadTid = drifttidRaw + driftstopp;
               return plannadTid > 0 ? Math.min(100, Math.max(0, Math.round((drifttidRaw / plannadTid) * 100))) : 0;
@@ -2069,10 +2058,13 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
               margin: [0, 0, 0, 10] as [number, number, number, number]
             },
 
-            // ── (3) NYCKELTAL ─ 4 donuts ──────────────────────────────────
+            // ── (3) NYCKELTAL ─ donuts (3 för tvättlinje sedan Tillgänglighet togs bort,
+            // 4 för rebotling, oförändrad) ──────────────────────────────────
             {
               columns: [
-                { svg: buildDonutSvg(tillgPct, C_GREEN,  'Tillg\u00e4nglighet'), width: 120, height: 130 },
+                ...(this.config.line === 'tvattlinje' ? [] : [
+                  { svg: buildDonutSvg(tillgPct, C_GREEN,  'Tillg\u00e4nglighet'), width: 120, height: 130 }
+                ]),
                 { svg: buildDonutSvg(oeePct,   C_BLUE,   'OEE'),                  width: 120, height: 130 },
                 { svg: buildDonutSvg(effPct,   C_TEAL,   'Effektivitet'),          width: 120, height: 130 },
                 { svg: buildDonutSvg(kvalPct,  C_PURPLE, 'Kvalitet'),              width: 120, height: 130 }

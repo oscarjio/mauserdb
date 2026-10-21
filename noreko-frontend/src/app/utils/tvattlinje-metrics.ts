@@ -5,21 +5,22 @@
  * med "en räknekärna". Rebotling berörs INTE av den här filen.
  *
  * Grunddefinitioner (se CLAUDE.md "DOMÄNREGLER — DRIFTTID / RAST / DRIFTSTOPP"):
- *   DRIFTTID     = D4007, redan netto (utan rast/driftstopp). Cappas till 600 min/skift.
- *   PLANERAD TID = 495 min mån–tor, 435 fre, helg = planerad = körd tid (drifttid).
+ *   DRIFTTID    = D4007, redan netto (utan rast/driftstopp). Cappas till 600 min/skift.
  *   IBC (för P/EFF/snitt min-per-IBC) = ALLA TVÄTTADE = ok + ej_ok + omtvätt.
- *   A (Tillgänglighet) = drifttid / planerad tid, cap 100%.
+ *   DRIFTFAKTOR (Oscar 2026-10-20, ersätter "Tillgänglighet"/planerad-tid-formeln) =
+ *     drifttid / (drifttid + driftstopp). Driftstopp = D4011 (rast räknas ALDRIG in).
+ *     Saknas driftstopp (=0) → driftfaktor 100%. Planerad skifttid (495/435) används
+ *     INTE längre — linjen körs när det passar. "Tillgänglighet" visas INTE som eget
+ *     nyckeltal någonstans — bara som intern faktor i OEE.
  *   P (Prestanda)      = IBC × produktens måltakt (fallback 3,0 min) / drifttid, cap 100%.
  *   K (Kvalitet)        = ok / IBC (ok / alla tvättade).
- *   OEE                 = A × P × K.
+ *   OEE                 = driftfaktor × P × K.
  *   EFFEKTIVITET         = (måltakt − drifttid/IBC) / måltakt — SIGNERAD, INGEN cap.
  *
  * Alla funktioner returnerar ANDELAR (0.0–1.0) utom isoWeekday. Anroparen multiplicerar
  * med 100 och avrundar enligt egen visningskonvention.
  */
 
-export const PLANNED_MIN_MON_THU = 495.0;
-export const PLANNED_MIN_FRI = 435.0;
 export const RUNTIME_CAP_MIN = 600.0;
 export const FALLBACK_CYCLE_MIN = 3.0;
 
@@ -36,24 +37,23 @@ export function isoWeekday(dateOrStr: string | Date): number {
   const d = typeof dateOrStr === 'string'
     ? new Date(dateOrStr.substring(0, 10) + 'T00:00:00')
     : dateOrStr;
-  if (isNaN(d.getTime())) return 1; // okänt datum -> behandla som vardag (mån-tors-planering)
+  if (isNaN(d.getTime())) return 1; // okänt datum -> behandla som vardag
   const js = d.getDay(); // 0=sön..6=lör
   return js === 0 ? 7 : js;
 }
 
 /**
- * Planerad skifttid för en dag. $dayOfWeekIso: 1=mån ... 7=sön.
- * Helg = planerad = körd tid => tillgänglighet blir 100% om körd, 0% annars.
+ * Driftfaktor (Oscar 2026-10-20, ersätter "Tillgänglighet"/planerad-tid-formeln) =
+ * drifttid / (drifttid + driftstopp). Driftstopp = D4011 (rast räknas ALDRIG in).
+ * Saknas driftstopp (=0 eller ej registrerat) → driftfaktor 100%. Detta är OEE:s
+ * första faktor — exponeras INTE som eget nyckeltal.
  */
-export function plannedMinutes(dayOfWeekIso: number, drifttidMin: number): number {
-  if (dayOfWeekIso >= 6) return Math.max(0, drifttidMin || 0);
-  return dayOfWeekIso === 5 ? PLANNED_MIN_FRI : PLANNED_MIN_MON_THU;
-}
-
-/** A = drifttid / planerad tid, cap 100%. */
-export function availability(drifttidMin: number, plannedMin: number): number {
-  if (plannedMin <= 0) return drifttidMin > 0 ? 1.0 : 0.0;
-  return Math.min(1.0, Math.max(0.0, drifttidMin / plannedMin));
+export function driftfaktor(drifttidMin: number, driftstoppMin: number): number {
+  const ds = driftstoppMin || 0;
+  if (ds <= 0) return 1.0;
+  const denom = drifttidMin + ds;
+  if (denom <= 0) return 1.0;
+  return Math.min(1.0, Math.max(0.0, drifttidMin / denom));
 }
 
 /**

@@ -2873,6 +2873,7 @@ class TvattlinjeController {
                         sr.total_runtime_min                             AS total_runtime_min,
                         COALESCE(plc.plc_runtime_min, 0)                 AS plc_runtime_min,
                         COALESCE(onoff.onoff_runtime_min, 0)             AS onoff_runtime_min,
+                        COALESCE(sr.total_driftstopp_min, 0)             AS total_driftstopp_min,
                         prod.cycle_time_minutes                          AS product_cycle_min
                     FROM (
                         SELECT DATE(datum) AS dag FROM tvattlinje_skiftrapport
@@ -2889,6 +2890,9 @@ class TvattlinjeController {
                             SUM(GREATEST(0, COALESCE(sr.antal_ej_ok, 0))) AS total_ej_ok,
                             COUNT(*)                                     AS skift_count,
                             SUM(LEAST(GREATEST(0, COALESCE(sr.drifttid, 0)), 600)) AS total_runtime_min,
+                            -- N-bug (Oscar 2026-10-20): driftstopp (D4011) för driftfaktor = drifttid/(drifttid+driftstopp).
+                            -- Rast räknas ALDRIG in här.
+                            SUM(LEAST(GREATEST(0, COALESCE(sr.driftstopptime, 0)), 600)) AS total_driftstopp_min,
                             MAX(sr.product_id)                           AS product_id
                         FROM tvattlinje_skiftrapport sr
                         INNER JOIN (
@@ -3015,17 +3019,19 @@ class TvattlinjeController {
                     $runtimeMin = max(0, isset($r['onoff_runtime_min']) ? (float)$r['onoff_runtime_min'] : 0);
                 }
                 $netRuntimeMin = TvattlinjeMetrics::capDrifttid($runtimeMin);
+                $driftstoppMin = max(0, isset($r['total_driftstopp_min']) ? (float)$r['total_driftstopp_min'] : 0);
 
                 $dayN      = (int)date('N', strtotime($r['dag'])); // 1=mån … 7=sön
                 $weekday   = $dayN - 1;                            // 0=mån … 6=sön (matchar weekday_goals/WEEKDAY())
                 $isWeekend = ($dayN >= 6);
 
                 // RÄKNEKÄRNA (Oscar 2026-10-20, se classes/TvattlinjeMetrics.php + CLAUDE.md):
-                // A/P/K/OEE beräknas nu av EN delad klass, samma formel som getStatistics,
+                // P/K/OEE beräknas av EN delad klass, samma formel som getStatistics,
                 // getSkiftrapportStatistik, Skiftjamforelse och HistoriskSammanfattning.
-                $plannedMin = TvattlinjeMetrics::plannedMinutes($dayN, $netRuntimeMin);
-                $availRatio = TvattlinjeMetrics::availability($netRuntimeMin, $plannedMin);
-                $avail_pct  = round($availRatio * 100, 1);
+                // "Tillgänglighet"/planerad skifttid är BORTTAGEN — OEE:s första faktor är nu
+                // driftfaktor (drifttid/(drifttid+driftstopp)), exponeras ej som eget nyckeltal.
+                $driftfaktorRatio = TvattlinjeMetrics::driftfaktor($netRuntimeMin, $driftstoppMin);
+                $driftfaktor_pct  = round($driftfaktorRatio * 100, 1);
 
                 $productCycleMin = (isset($r['product_cycle_min']) && $r['product_cycle_min'] !== null && (float)$r['product_cycle_min'] > 0)
                     ? (float)$r['product_cycle_min']
@@ -3038,7 +3044,7 @@ class TvattlinjeController {
                 $qualRatio = $hasQualData ? TvattlinjeMetrics::quality((float)$ok, (float)$srTot) : null;
                 $qual_pct  = $qualRatio !== null ? round($qualRatio * 100, 1) : null;
 
-                $oeeRatio = TvattlinjeMetrics::oee($availRatio, $prestRatio, $qualRatio);
+                $oeeRatio = TvattlinjeMetrics::oee($driftfaktorRatio, $prestRatio, $qualRatio);
                 $oee_pct  = $oeeRatio !== null ? round($oeeRatio * 100, 1) : null;
 
                 // C: snitt/dag exkluderar dagens halvfärdiga produktion (samma som bästa dag nedan).
@@ -3062,7 +3068,7 @@ class TvattlinjeController {
                     'total_ej_ok'   => $ejOk,
                     // B: flagga rader där rapporterad ok+ej_ok ändå överstiger totalen (frontend visar varning)
                     'data_mismatch' => ($ok + $ejOk) > $tot,
-                    'avail_pct'   => $avail_pct,
+                    'driftfaktor_pct' => $driftfaktor_pct,
                     'perf_pct'    => $perf_pct,
                     'mal_pct'     => $mal_pct,
                     'qual_pct'    => $qual_pct,

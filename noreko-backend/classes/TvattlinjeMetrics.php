@@ -8,13 +8,17 @@
  *
  * Grunddefinitioner:
  *   DRIFTTID    = D4007, redan netto (utan rast/driftstopp). Cappas till 600 min/skift.
- *   PLANERAD TID = 495 min mån–tor, 435 fre, helg = planerad = körd tid (drifttid).
  *   IBC (för P/EFF/snitt min-per-IBC) = ALLA TVÄTTADE = ok + ej_ok + omtvätt
  *                                       (varje omtvätt är en tvättcykel linjen utfört).
- *   A (Tillgänglighet) = drifttid / planerad tid, cap 100%.
+ *   DRIFTFAKTOR (Oscar 2026-10-20, ERSÄTTER "Tillgänglighet") = drifttid / (drifttid +
+ *     driftstopp), driftstopp = D4011 (rast räknas ALDRIG in). Saknas driftstopp (=0) →
+ *     driftfaktor 100%. Planerad skifttid (495/435) är INTE relevant för tvättlinjen —
+ *     linjen körs när det passar — och används INTE längre någonstans i OEE-vägen.
+ *     "Tillgänglighet" visas INTE längre som eget nyckeltal någonstans i UI:t — bara
+ *     som en intern faktor i OEE.
  *   P (Prestanda)      = IBC × produktens måltakt (fallback 3,0 min) / drifttid, cap 100%.
  *   K (Kvalitet)        = ok / IBC (ok / alla tvättade).
- *   OEE                 = A × P × K.
+ *   OEE                 = driftfaktor × P × K.
  *   EFFEKTIVITET         = (måltakt − drifttid/IBC) / måltakt — SIGNERAD, INGEN cap.
  *
  * Alla metoder returnerar ANDELAR (0.0–1.0), inte procent — anroparen multiplicerar med
@@ -24,8 +28,6 @@
  * bara SJÄLVA FORMELN, inte datainsamlingen.
  */
 final class TvattlinjeMetrics {
-    public const PLANNED_MIN_MON_THU = 495.0;
-    public const PLANNED_MIN_FRI     = 435.0;
     public const RUNTIME_CAP_MIN     = 600.0;
     public const FALLBACK_CYCLE_MIN  = 3.0;
 
@@ -35,23 +37,16 @@ final class TvattlinjeMetrics {
     }
 
     /**
-     * Planerad skifttid för en dag. $dayOfWeekIso: 1=mån ... 7=sön (PHP date('N') eller
-     * JS getDay() omräknat: dayN = getDay()===0 ? 7 : getDay()).
-     * Helg = planerad = körd tid (drifttidMin) => tillgänglighet blir 100% om körd, 0% annars.
+     * Driftfaktor (Oscar 2026-10-20, ersätter "Tillgänglighet"/planerad-tid-formeln) =
+     * drifttid / (drifttid + driftstopp). Driftstopp = D4011 (rast räknas ALDRIG in).
+     * Saknas driftstopp (=0 eller ej registrerat) → driftfaktor 100% (ingen känd förlust
+     * att straffa för). Detta är OEE:s första faktor — exponeras INTE som eget nyckeltal.
      */
-    public static function plannedMinutes(int $dayOfWeekIso, float $drifttidMin): float {
-        if ($dayOfWeekIso >= 6) {
-            return max(0.0, $drifttidMin);
-        }
-        return $dayOfWeekIso === 5 ? self::PLANNED_MIN_FRI : self::PLANNED_MIN_MON_THU;
-    }
-
-    /** A = drifttid / planerad tid, cap 100%. */
-    public static function availability(float $drifttidMin, float $plannedMin): float {
-        if ($plannedMin <= 0) {
-            return $drifttidMin > 0 ? 1.0 : 0.0;
-        }
-        return min(1.0, max(0.0, $drifttidMin / $plannedMin));
+    public static function driftfaktor(float $drifttidMin, float $driftstoppMin): float {
+        if ($driftstoppMin <= 0) return 1.0;
+        $denom = $drifttidMin + $driftstoppMin;
+        if ($denom <= 0) return 1.0;
+        return min(1.0, max(0.0, $drifttidMin / $denom));
     }
 
     /**
@@ -74,10 +69,10 @@ final class TvattlinjeMetrics {
         return min(1.0, max(0.0, $ok / $totalt));
     }
 
-    /** OEE = A × P × K. Null om kvalitet saknas (ingen OEE går att beräkna). */
-    public static function oee(float $availability, float $performance, ?float $quality): ?float {
+    /** OEE = driftfaktor × P × K. Null om kvalitet saknas (ingen OEE går att beräkna). */
+    public static function oee(float $driftfaktor, float $performance, ?float $quality): ?float {
         if ($quality === null) return null;
-        return $availability * $performance * $quality;
+        return $driftfaktor * $performance * $quality;
     }
 
     /**

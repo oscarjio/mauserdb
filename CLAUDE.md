@@ -57,8 +57,12 @@ rast eller driftstopp från drifttid någonstans i koden — det är dubbelavdra
 - **Bevis** (2026-10-15): drifttid 255 + rast 17 + driftstopp 26 = 298 = runtime_today
   exakt. PLC-diagnostiken samma dag: drifttid ökar INTE under rast (08:59–09:16: 118→121
   nästan oförändrat; 11:59–12:33: 277→283 nästan oförändrat).
-- **Tillgänglighet** (kort/KPI) = drifttid / planerad skifttid — SAMMA definition som
-  OEE:s tillgänglighetsfaktor, INTE drifttid/(drifttid+driftstopp).
+- **Tillgänglighet mot planerad skifttid är BORTTAGEN** för tvättlinje (Oscar 2026-10-20
+  BESLUT, ersätter raden ovan som gällde 2026-10-19 till 2026-10-20) — planerad tid
+  (495/435 min) är inte relevant, linjen körs när det passar. "Tillgänglighet" visas INTE
+  längre som eget nyckeltal någonstans i tvättlinjens UI (sammanfattningskort, TILLG%-
+  kolumner, Excel-kolumn, OEE-trendens serie, PDF-donut). Se RÄKNEKÄRNA-avsnittet nedan
+  för den nya **driftfaktor**-formeln som ersätter den som OEE:s första faktor.
 
 ---
 
@@ -78,8 +82,12 @@ semantik.
 
 **Definitioner:**
 - **Drifttid** = D4007, cappad till 600 min/skift, **inga avdrag** (se domänregeln ovan).
-- **Planerad tid** = 495 min mån–tor, 435 fre, **helg = planerad = körd tid** (drifttid)
-  → tillgänglighet 100% om körd, 0% annars — ALDRIG 0% rakt av för helg.
+- **Driftfaktor** (Oscar 2026-10-20 BESLUT, ERSÄTTER "Tillgänglighet"/planerad-tid-formeln
+  nedan) = drifttid / (drifttid + driftstopp). Driftstopp = D4011, inskickat med
+  skiftrapporten. Rast räknas ALDRIG in. Saknas driftstopp (=0 eller ej registrerat) →
+  driftfaktor 100% (ingen känd förlust att straffa för). Planerad skifttid (495/435 min)
+  används INTE längre någonstans i OEE-vägen — linjen körs när det passar, oavsett dag.
+  Driftfaktor exponeras ALDRIG som eget nyckeltal i UI:t — bara som OEE:s första faktor.
 - **IBC** (för P, EFF och snitt min/IBC) = **ALLA TVÄTTADE** = ok + ej_ok + omtvätt (samma
   som PLC:ns "tot"). Varje omtvätt är en tvättcykel linjen utfört — blanda ALDRIG ihop
   detta med ok+ej_ok (saknar omtvätt) på vissa ställen och totalt på andra.
@@ -87,17 +95,20 @@ semantik.
   perioden om flera produkter körts. Fallback 3,0 min ENDAST om ingen produktkoppling
   alls finns. ALDRIG ett fast tak som "20 IBC/h" (det motsvarar bara 3,0 min/IBC och är
   fel för produkter med annan takt, t.ex. Vanlig Tvätt/Peroxid 3,40, Olja/Credin 4,00).
-- **A (Tillgänglighet)** = drifttid / planerad tid, cap 100%.
 - **P (Prestanda)** = IBC × måltakt / drifttid, cap 100%.
 - **K (Kvalitet)** = ok / IBC (ok / alla tvättade).
-- **OEE** = A × P × K.
+- **OEE** = driftfaktor × P × K.
 - **Effektivitet** = (måltakt − drifttid/IBC) / måltakt — **SIGNERAD, INGEN cap** (+ =
   snabbare än mål, − = långsammare). Skilj den ALLTID från OEE:s prestandafaktor (som
   ÄR kapad 0–100) — de är olika mått, blanda inte ihop dem.
 
-**Exempel (2026-10-15, torsdag, Vanlig Tvätt måltakt 3,40 min/IBC):**
-drifttid 255 min, ok 94, totalt 98 → A = 255/495 = 51,5%, P = 98×3,40/255 = 131% → cap
-100%, K = 94/98 = 95,9%, OEE ≈ 49,4%, EFF = (3,40−255/98)/3,40 ≈ +23,5%.
+**Exempel (2026-10-15, torsdag, Vanlig Tvätt måltakt 3,40 min/IBC, driftstopp 26 min):**
+drifttid 255 min, ok 94, totalt 98 → driftfaktor = 255/(255+26) = 90,7%, P = 98×3,40/255
+= 131% → cap 100%, K = 94/98 = 95,9%, OEE ≈ 87,0%, EFF = (3,40−255/98)/3,40 ≈ +23,5%.
+
+**Historik:** 2026-10-19–2026-10-20 gällde A (Tillgänglighet) = drifttid/planerad tid som
+OEE:s första faktor (OEE ≈ 49,4% för exemplet ovan). Detta ersattes 2026-10-20 av
+driftfaktor eftersom planerad skifttid inte är relevant för hur linjen faktiskt körs.
 
 ---
 
@@ -109,6 +120,20 @@ sig). **Pusha branchen till GitHub efter varje commit** så arbetet aldrig bara 
 lokalt och går förlorat om sessionen avslutas. Tydliga commit-meddelanden som säger vad
 som ändrats och varför (inte bara "fix"). **Pusha ALDRIG till main** — bara till den
 aktuella feature-branchen. Gäller allt arbete framåt, inte bara detta uppdrag.
+
+**Lägg ut på DEV efter varje avslutat steg** (fastställt av Oscar 2026-10-21): så fort ett
+steg är committat och pushat, merga det direkt till dev också så att dev.mauserdb.com
+alltid visar senaste committade versionen — vänta inte tills hela uppdraget är klart.
+Gör i huvud-checkouten `/home/clawd/clawd/mauserdb` (inte i worktreen):
+```bash
+cd /home/clawd/clawd/mauserdb
+git merge --ff-only worktree-mauserdb-bugfixes
+bash noreko-backend/deploy-dev.sh
+# vänta in att ng build --watch (se BUILD-REGLER ovan) har byggt om och rsyncat frontend
+```
+Bekräfta med `CODE_VERSION`-filen att dev visar den nya committen. **Endast dev** — rör
+ALDRIG produktionen (Oscar deployar alltid prod själv), **ingen push till main**, och
+**kör ALDRIG migrationsfiler** automatiskt (Oscar godkänner och kör dem själv).
 
 ---
 

@@ -78,16 +78,20 @@ class SkiftjamforelseController {
     }
 
     /**
-     * RÄKNEKÄRNA (Oscar 2026-10-20): tillgänglighet via TvattlinjeMetrics för tvättlinje
-     * (netto/planerad, helg=körd), oförändrad gammal formel (planerad=0 på helg => 0%)
-     * för övriga linjer. Denna SQL-nivå summerar planerad tid över HELA perioden före PHP
-     * ser den, så "helg=planerad=körd" kan bara tillämpas i det degenererade fallet att
-     * planMinTotal landar på exakt 0 (perioden bestod bara av helgdagar) — ett mixat
-     * vardag+helg-intervall späds fortfarande ut något av helgens 0-bidrag i nämnaren.
+     * N-bug (Oscar 2026-10-20 BESLUT): "Tillgänglighet" mot planerad skifttid är BORTTAGEN
+     * för tvättlinje — planerad tid är inte relevant (linjen körs när det passar). OEE:s
+     * första faktor är nu driftfaktor = drifttid/(drifttid+driftstopp), se
+     * TvattlinjeMetrics::driftfaktor(). Den här controllern har dock ingen driftstopp
+     * (D4011) wired in i sina SQL-frågor (bara runtime_plc/planerad_min från
+     * tvattlinje_ibc/rebotling_ibc) — OBS: denna controller är obekräftat oanvänd för
+     * tvättlinje (ingen frontend-route skickar line=tvattlinje hit), så detta är inte
+     * live-kod. Per kärnans egen regel (saknad driftstopp => driftfaktor 100%) returneras
+     * 1.0 för tvättlinje tills ev. driftstopp-data wiras in här. Rebotling: oförändrad
+     * gammal formel (planerad tid relevant där).
      */
     private function tillganglighetRatio(float $runtime, float $planMinTotal): float {
-        if ($this->line === 'tvattlinje' && $planMinTotal <= 0) {
-            return $runtime > 0 ? 1.0 : 0.0;
+        if ($this->line === 'tvattlinje') {
+            return 1.0;
         }
         return $planMinTotal > 0 ? min(1.0, $runtime / $planMinTotal) : 0.0;
     }
