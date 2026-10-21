@@ -513,3 +513,15 @@
   .table-responsive { font-size: 0.78rem; }
   .form-control-sm { min-width: 90px; }
 }
+
+/* ---- Dolda produkter — sektion under aktiva (Oscar 2026-10-20) ---- */
+.hidden-products-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.hidden-products-section .table td,
+.hidden-products-section .table th {
+  opacity: 0.75;
+}

@@ -675,16 +675,32 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     product.has_lopnummer        = product.originalHasLopnummer;
   }
 
-  deleteProduct(product: any) {
-    if (!confirm(`Är du säker på att du vill ta bort produkten "${product.name}"?`)) return;
+  /**
+   * N-bug (Oscar 2026-10-20): produkter raderas ALDRIG (historisk data refererar
+   * produkt-ID) — dölj/visa i stället för hård borttagning. Kräver migrationen
+   * (dold-kolumnen); ger ett 409-fel med tydlig text om den inte körts ännu.
+   */
+  hideProduct(product: any) {
+    if (!confirm(`Dölj produkten "${product.name}"? Den försvinner ur val för nya skift men historiska rader påverkas inte. Kan återaktiveras när som helst.`)) return;
+    this.setProductHidden(product, true, 'Produkt dold');
+  }
+
+  showProduct(product: any) {
+    this.setProductHidden(product, false, 'Produkt återaktiverad');
+  }
+
+  private setProductHidden(product: any, hidden: boolean, successMsg: string) {
     this.loading = true;
-    this.http.post<any>(`${environment.apiUrl}?action=rebotlingproduct&run=delete`, { id: product.id }, { withCredentials: true })
+    const run = hidden ? 'hide' : 'show';
+    this.http.post<any>(`${environment.apiUrl}?action=rebotlingproduct&run=${run}`, { id: product.id }, { withCredentials: true })
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           if (response?.success) {
             this.loadProducts();
-            this.showSuccess('Produkt borttagen!');
+            this.showSuccess(successMsg);
+          } else if (response?.error) {
+            alert(response.error);
           }
           this.loading = false;
         },
@@ -692,6 +708,16 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           this.loading = false;
         }
       });
+  }
+
+  /** Aktiva produkter (dold=0 eller kolumnen saknas än). */
+  get activeProducts(): any[] {
+    return this.products.filter((p: any) => !p.dold);
+  }
+
+  /** Dolda produkter — egen lista under de aktiva, kan återaktiveras. */
+  get hiddenProducts(): any[] {
+    return this.products.filter((p: any) => !!p.dold);
   }
 
   trackByProductId(index: number, product: any): number {
