@@ -146,21 +146,14 @@
 
         <!-- Körtid -->
         <div class="col-6 col-md-3">
-          <div class="kpi-hero-card"
-               [class.kpi-hero-green]="viewMode === 'day' && dayUtilizationPct >= 75"
-               [class.kpi-hero-yellow]="viewMode === 'day' && dayUtilizationPct >= 50 && dayUtilizationPct < 75"
-               [class.kpi-hero-red]="viewMode === 'day' && dayUtilizationPct > 0 && dayUtilizationPct < 50"
-               [class.kpi-hero-neutral]="viewMode !== 'day' || dayUtilizationPct === 0">
+          <div class="kpi-hero-card kpi-hero-neutral">
             <div class="kpi-hero-icon"><i class="fas fa-clock"></i></div>
             <div class="kpi-hero-value">{{ totalRuntimeHours }}<span class="kpi-hero-unit">h</span></div>
             <div class="kpi-hero-label">Körtid
               <i class="fas fa-info-circle ms-1" style="font-size:0.75em;opacity:0.6;cursor:help;"
                  title="Netto körtid från PLC (D4007) — rast exkluderad. Samma källa som skiftrapporten."></i>
             </div>
-            <div class="kpi-hero-sub" *ngIf="viewMode === 'day' && dayUtilizationPct > 0">
-              Utnyttjande {{ dayUtilizationPct }}%
-            </div>
-            <div class="kpi-hero-sub" *ngIf="viewMode !== 'day' || dayUtilizationPct === 0">&nbsp;</div>
+            <div class="kpi-hero-sub">&nbsp;</div>
           </div>
         </div>
 

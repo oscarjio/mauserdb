@@ -2005,7 +2005,6 @@ class TvattlinjeController {
                         'total_driftstopp_minutes'  => round($totalDriftstoppMinutes, 1),
                         'days_with_production'      => $days_with_production,
                         'runtime_source'            => $runtimeSource,
-                        'planned_shift_minutes_weekday' => $this->plannedShiftMinutesWeekday(),
                         'ibc_per_dag_skiftrapport'  => $ibcPerDagSr,
                         'ibc_per_dag_plc'           => $ibcPerDagPlc,
                     ]
@@ -2917,46 +2916,6 @@ class TvattlinjeController {
         }
 
         echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-    }
-
-    /**
-     * Planerad nettoskifttid (min) per veckodag.
-     *
-     * Läser skift_start/skift_slut ur tvattlinje_settings och drar av 45 min rast.
-     * Returnerar veckodagskorrekta nettominuter:
-     *   - fredag (dayN=5) → 435 min  (8h brutto − 45 min rast)
-     *   - mån–tors (dayN=1−4) → 495 min  (9h brutto − 45 min rast)
-     *
-     * Motivering: EN skift_start/skift_slut kan inte uttrycka veckodagsskillnaden
-     * (fre 8h vs mån–tors 9h), så arbetstidsregeln kodas direkt i funktionen och
-     * DB-värdet används bara för sanity-check (om det avviker extrem → null).
-     * TODO: Proper lösning = egen tabell `tvattlinje_weekday_shift_minutes`
-     *       (likt weekday_goals) — denna fix hårdkodar regeln tills tabellen finns.
-     *
-     * Används av statistik-summary (frontend-utnyttjande) och OEE-trend.
-     *
-     * @param int $dayN ISO-veckodag (1=mån … 7=sön). null = okänd (returnerar mån–tors-värde).
-     */
-    private function plannedShiftMinutesWeekday(?int $dayN = null): ?float {
-        // Nettominuter per veckodagsgrupp (brutto − 45 min rast).
-        $netFriday  = 435.0; // 480 brutto − 45 rast
-        $netDefault = 495.0; // 540 brutto − 45 rast (mån–tors)
-
-        try {
-            $ss = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting='skift_start' ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
-            $se = $this->pdo->query("SELECT value FROM tvattlinje_settings WHERE setting='skift_slut'  ORDER BY id DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
-            if ($ss && $se && !empty($ss['value']) && !empty($se['value'])) {
-                $st = strtotime($ss['value']); $en = strtotime($se['value']);
-                if ($st !== false && $en !== false && $en > $st) {
-                    $brutto = ($en - $st) / 60.0;
-                    // Sanity-check: om brutto är helt orimlig (utanför 6–12h) → null.
-                    if ($brutto < 360 || $brutto > 720) { return null; }
-                }
-            }
-        } catch (\Throwable $e) { error_log('TvattlinjeController::plannedShiftMinutesWeekday: ' . $e->getMessage()); }
-
-        // Välj veckodagskorrekta nettominuter. Helg (6−7) ska ej anropas men ger default.
-        return ($dayN === 5) ? $netFriday : $netDefault;
     }
 
     // =========================================================

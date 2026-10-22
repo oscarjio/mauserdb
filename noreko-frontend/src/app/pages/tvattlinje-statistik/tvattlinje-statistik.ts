@@ -138,7 +138,6 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   // ---- Dag-metrics ----
   dayLongestStopMinutes: number = 0;
-  dayUtilizationPct: number = 0;
 
   // ---- Skiftrapport statistik (produktions-tab) ----
   skiftStatLoading: boolean = false;
@@ -890,9 +889,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   }
 
   private computeDayMetrics(data: any) {
-    if (this.viewMode !== 'day') { this.dayLongestStopMinutes = 0; this.dayUtilizationPct = 0; return; }
+    if (this.viewMode !== 'day') { this.dayLongestStopMinutes = 0; return; }
     const onoff: any[] = data.onoff_events || [];
-    if (onoff.length === 0) { this.dayLongestStopMinutes = 0; this.dayUtilizationPct = 0; return; }
+    if (onoff.length === 0) { this.dayLongestStopMinutes = 0; return; }
 
     const events = onoff
       .map((e: any) => {
@@ -904,12 +903,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       .sort((a: any, b: any) => a.min - b.min);
 
     let firstRunMin: number | null = null;
-    let lastEventMin: number | null = null;
     for (const ev of events) {
-      if (firstRunMin === null && ev.running) firstRunMin = ev.min;
-      lastEventMin = ev.min;
+      if (firstRunMin === null && ev.running) { firstRunMin = ev.min; break; }
     }
-    if (firstRunMin === null) { this.dayLongestStopMinutes = 0; this.dayUtilizationPct = 0; return; }
+    if (firstRunMin === null) { this.dayLongestStopMinutes = 0; return; }
 
     // EXTRA FIX 2: onoff.running går till 0 BÅDE vid rast och vid verkligt driftstopp, så dagens
     // rast (t.ex. 52 min) mislabelas annars som "Längsta Stopp" trots tom tvattlinje_driftstopp.
@@ -939,14 +936,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       return ov;
     };
 
-    let totalRunMinutes = 0;
     let longestStop = 0;
     let currentRunning = false;
-    let runStartMin = 0;
     let stopStart: number | null = null;
     for (const ev of events) {
       if (currentRunning && !ev.running) {
-        totalRunMinutes += ev.min - runStartMin;
         stopStart = ev.min;
         currentRunning = false;
       } else if (!currentRunning && ev.running) {
@@ -956,41 +950,15 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
           const netStopDur = Math.max(0, stopDur - rastOverlapMin(stopStart, ev.min));
           if (netStopDur > longestStop) longestStop = netStopDur;
         }
-        runStartMin = ev.min;
         currentRunning = true;
       }
     }
-    if (currentRunning && lastEventMin !== null) totalRunMinutes += lastEventMin - runStartMin;
 
     this.dayLongestStopMinutes = longestStop;
-    // BUGG E: computeDayMetrics läser bara onoff_events → rast/driftstopp genererar inga
-    // onoff-events, så täljare == nämnare och utnyttjandet låstes matematiskt vid ~100%.
-    // ROT: mät mot PLANERAD skifttid med rast och driftstopp avdragna från körtiden,
-    // samma planerade skift som backend getOeeTrend använder (vardag mån-tors=495, fre=480).
-    const rastMin = this.totalRastMinutes || 0;
-    const driftstoppMin = this.totalDriftstoppMinutes || 0;
-    const netRun = Math.max(0, totalRunMinutes - rastMin - driftstoppMin);
-    // Veckodag för vald dag: 1=mån..7=sön. getDay() ger 0=sön..6=lör → ((getDay()+6)%7)+1.
-    const dayN = this.selectedPeriods.length > 0
-      ? ((this.selectedPeriods[0].getDay() + 6) % 7) + 1
-      : 1;
-    // BUGG B: den planerade vardagsskifttiden (495 mån-tors / 480 fre) är hårdkodad och
-    // borde härledas ur skiftinställningarna (skift_start/skift_slut i tvattlinje_settings).
-    // TODO(backend): getStatistics-summaryn (TvattlinjeController.php ~rad 1759) exponerar INTE
-    //   skift_start/skift_slut/skiftlangd idag — den summaryn saknar ett planerat-skift-fält.
-    //   Lägg t.ex. till 'planned_shift_minutes_weekday' (= skift_slut − skift_start i minuter,
-    //   klampat till samma 8.25h-fallback som backend redan använder på rad ~377) i summaryn.
-    //   När fältet finns: läs det till shiftMin nedan och behåll 495/480 endast som fallback.
-    // Helg (lör/sön) = ingen fast planerad tid → mät mot faktisk körtid (100% om linjen kört).
-    const shiftMin: number | null =
-      (data?.summary?.planned_shift_minutes_weekday != null &&
-       Number(data.summary.planned_shift_minutes_weekday) > 0)
-        ? Number(data.summary.planned_shift_minutes_weekday)
-        : null;
-    const planned = (dayN >= 6)
-      ? Math.max(1, totalRunMinutes)
-      : (shiftMin && shiftMin > 0 ? shiftMin : (dayN === 5 ? 435 : 495));
-    this.dayUtilizationPct = Math.min(100, Math.round((netRun / planned) * 100));
+    // N-bug (Oscar 2026-10-22 BESLUT): "Utnyttjande"-KPI:n (nettokörtid mot PLANERAD
+    // skifttid, 495 mån-tors/435 fre) borttagen helt — samma regel som för Tillgänglighet
+    // i räknekärnan (CLAUDE.md "DRIFTTID/RAST/DRIFTSTOPP"): planerad skifttid är inte
+    // relevant, linjen körs när det passar. Se CLAUDE.md för historiken.
   }
 
   // =========================================================
