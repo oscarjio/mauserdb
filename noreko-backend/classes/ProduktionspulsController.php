@@ -331,7 +331,7 @@ class ProduktionspulsController {
                     ) AS cycle_time_seconds,
                     o1.name AS operator_namn,
                     p.name AS produkt_namn,
-                    p.cycle_time_minutes AS target_cycle_minutes
+                    ROUND(p.cycle_time_minutes, 2) AS target_cycle_minutes
                 FROM rebotling_ibc i
                 LEFT JOIN operators o1 ON i.op1 = o1.number
                 LEFT JOIN rebotling_products p ON i.produkt = p.id

@@ -110,7 +110,10 @@ class RebotlingProductController {
 
     private function getProducts() {
         try {
-            $cols = "id, name, cycle_time_minutes, COALESCE(has_lopnummer, 1) AS has_lopnummer, created_at";
+            // N-bug (Oscar 2026-10-22): cycle_time_minutes är FLOAT (Oscar ändrade den själv
+            // i DB) — FLOAT lagrar inte 3,2 exakt (blir 3.2000000476…). Avrunda alltid till 2
+            // decimaler vid läsning så admin/live/beräkningar aldrig ser float-bruset.
+            $cols = "id, name, ROUND(cycle_time_minutes, 2) AS cycle_time_minutes, COALESCE(has_lopnummer, 1) AS has_lopnummer, created_at";
             if ($this->hasDoldColumn()) $cols .= ", dold";
             if ($this->hasAndradColumns()) $cols .= ", andrad_tid, andrad_av";
             $stmt = $this->pdo->prepare("SELECT $cols FROM rebotling_products ORDER BY id");
@@ -118,6 +121,9 @@ class RebotlingProductController {
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($products as &$p) {
                 $p['dold'] = isset($p['dold']) ? (int)$p['dold'] : 0;
+                // Extra bälte-och-hängslen mot float-brus (utöver SQL-ROUND ovan) —
+                // PDO kan returnera FLOAT-kolumner som sträng beroende på drivrutin.
+                if (isset($p['cycle_time_minutes'])) $p['cycle_time_minutes'] = round((float)$p['cycle_time_minutes'], 2);
             }
             unset($p);
 
@@ -188,7 +194,10 @@ class RebotlingProductController {
         }
 
         $name = strip_tags(trim($data['name']));
-        $cycleTime = (float)$data['cycle_time_minutes'];
+        // N-bug (Oscar 2026-10-22): avrunda till 2 decimaler vid SPARNING också — FLOAT-
+        // kolumnen lagrar annars klientens råa inmatning (t.ex. 3.2000000476 om klienten
+        // skickat ett redan brusigt float-värde) i stället för de avsedda 3,20.
+        $cycleTime = round((float)$data['cycle_time_minutes'], 2);
         if ($name === '' || $cycleTime <= 0) {
             http_response_code(400);
             echo json_encode([
@@ -222,9 +231,8 @@ class RebotlingProductController {
 
             $productId = $this->pdo->lastInsertId();
             $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
-            $safeCycle = (float)$data['cycle_time_minutes'];
             AuditLogger::log($this->pdo, 'product_create', 'rebotling_products', (int)$productId,
-                "Skapad: name={$safeName}, cycle_time={$safeCycle}");
+                "Skapad: name={$safeName}, cycle_time={$cycleTime}");
             $this->pdo->commit();
             $this->touchAndrad((int)$productId);
 
@@ -234,7 +242,7 @@ class RebotlingProductController {
                 'data' => [
                     'id' => $productId,
                     'name' => $data['name'],
-                    'cycle_time_minutes' => $data['cycle_time_minutes']
+                    'cycle_time_minutes' => $cycleTime
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
@@ -264,7 +272,8 @@ class RebotlingProductController {
 
         $id = (int)$data['id'];
         $name = strip_tags(trim($data['name']));
-        $cycleTime = (float)$data['cycle_time_minutes'];
+        // N-bug (Oscar 2026-10-22): avrunda till 2 decimaler vid sparning, se createProduct.
+        $cycleTime = round((float)$data['cycle_time_minutes'], 2);
         if ($id <= 0 || $name === '' || $cycleTime <= 0) {
             http_response_code(400);
             echo json_encode([
@@ -292,9 +301,8 @@ class RebotlingProductController {
 
             if ($stmt->rowCount() > 0) {
                 $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
-                $safeCycle = (float)$data['cycle_time_minutes'];
                 AuditLogger::log($this->pdo, 'product_update', 'rebotling_products', (int)$data['id'],
-                    "Uppdaterad: name={$safeName}, cycle_time={$safeCycle}");
+                    "Uppdaterad: name={$safeName}, cycle_time={$cycleTime}");
                 $this->pdo->commit();
                 $this->touchAndrad((int)$data['id']);
                 echo json_encode([
@@ -303,7 +311,7 @@ class RebotlingProductController {
                     'data' => [
                         'id' => $data['id'],
                         'name' => $data['name'],
-                        'cycle_time_minutes' => $data['cycle_time_minutes']
+                        'cycle_time_minutes' => $cycleTime
                     ]
                 ], JSON_UNESCAPED_UNICODE);
             } else {

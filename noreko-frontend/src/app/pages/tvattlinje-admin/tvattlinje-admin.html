@@ -118,8 +118,14 @@
                   </div>
                   <div class="col-12 col-md-4">
                     <label for="newProductCycleTimeTvatt" class="form-label">Cykeltid (minuter)</label>
-                    <input type="number" class="form-control" id="newProductCycleTimeTvatt"
-                      [(ngModel)]="newProduct.cycle_time_minutes" min="0.1" max="9999" step="0.1" placeholder="0" required>
+                    <!-- N-bug (Oscar 2026-10-22): type="text" i stället för type="number" — en
+                         number-input accepterar bara "." på många webbläsare/OS-språk, aldrig
+                         "," tillförlitligt. step/min behålls som dokumenterad avsikt (0,01 min
+                         precision, aldrig under 0) — normaliseringen görs i TS (parseCykeltid). -->
+                    <input type="text" inputmode="decimal" class="form-control" id="newProductCycleTimeTvatt"
+                      step="0.01" min="0.01"
+                      [(ngModel)]="newProduct.cycle_time_minutes" placeholder="3,40" required
+                      title="T.ex. 3,40 eller 3.40 — två decimaler">
                   </div>
                   <div class="col-12 col-md-3">
                     <button class="btn btn-primary w-100" (click)="addProduct()"
@@ -163,9 +169,10 @@
                     (keyup.escape)="cancelEditProduct(product)">
                 </td>
                 <td>
-                  <span *ngIf="!product.editing">{{ product.cycle_time_minutes }}</span>
-                  <input *ngIf="product.editing" type="number" class="form-control form-control-sm"
-                    [(ngModel)]="product.cycle_time_minutes" min="0.1" max="9999" step="0.1"
+                  <span *ngIf="!product.editing">{{ product.cycle_time_minutes | number:'1.2-2' }}</span>
+                  <input *ngIf="product.editing" type="text" inputmode="decimal" class="form-control form-control-sm"
+                    step="0.01" min="0.01"
+                    [(ngModel)]="product.cycle_time_minutes" title="T.ex. 3,40 eller 3.40 — två decimaler"
                     (keyup.enter)="saveProduct(product)"
                     (keyup.escape)="cancelEditProduct(product)">
                 </td>
@@ -230,7 +237,7 @@
                 <tr *ngFor="let product of hiddenProducts; trackBy: trackByProductId">
                   <td>{{ product.id }}</td>
                   <td>{{ product.name }}</td>
-                  <td>{{ product.cycle_time_minutes }}</td>
+                  <td>{{ product.cycle_time_minutes | number:'1.2-2' }}</td>
                   <td>{{ product.andrad_tid ? (product.andrad_tid | date:'yyyy-MM-dd HH:mm') : '–' }}</td>
                   <td>{{ product.andrad_av || '–' }}</td>
                   <td>

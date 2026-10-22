@@ -631,12 +631,12 @@ class RebotlingController {
                     (SELECT MAX(COALESCE(ibc_ok, 0)) FROM rebotling_ibc
                      WHERE skiftraknare = (SELECT sk FROM skift)) AS ibc_shift,
                     COALESCE(
-                        (SELECT p.cycle_time_minutes
+                        (SELECT ROUND(p.cycle_time_minutes, 2)
                          FROM rebotling_onoff o
                          LEFT JOIN rebotling_products p ON p.id = o.produkt
                          WHERE o.skiftraknare = (SELECT sk FROM skift) AND o.produkt IS NOT NULL AND o.produkt > 0
                          ORDER BY o.datum DESC LIMIT 1),
-                        (SELECT p.cycle_time_minutes
+                        (SELECT ROUND(p.cycle_time_minutes, 2)
                          FROM rebotling_ibc i
                          LEFT JOIN rebotling_products p ON p.id = i.produkt
                          WHERE i.skiftraknare = (SELECT sk FROM skift) AND i.produkt IS NOT NULL AND i.produkt > 0
@@ -1059,7 +1059,7 @@ class RebotlingController {
                         LAG(i.datum) OVER (PARTITION BY i.skiftraknare ORDER BY i.datum),
                         i.datum
                     ) / 60.0, 2) as cycle_time,
-                    p.cycle_time_minutes as target_cycle_time
+                    ROUND(p.cycle_time_minutes, 2) as target_cycle_time
                 FROM rebotling_ibc i
                 LEFT JOIN rebotling_products p ON i.produkt = p.id
                 WHERE i.datum >= :start AND i.datum < DATE_ADD(:end, INTERVAL 1 DAY)
@@ -8403,7 +8403,7 @@ class RebotlingController {
                 SELECT
                     d.product_id,
                     COALESCE(p.name, CONCAT('Produkt ', d.product_id))         AS product_name,
-                    COALESCE(p.cycle_time_minutes, 0)                           AS cycle_time_minutes,
+                    ROUND(COALESCE(p.cycle_time_minutes, 0), 2)                 AS cycle_time_minutes,
                     COUNT(*)                                                    AS antal_skift,
                     SUM(d.ibc_ok)                                               AS total_ibc_ok,
                     SUM(d.ibc_ej_ok)                                            AS total_ibc_ej,
@@ -12674,7 +12674,7 @@ class RebotlingController {
                     d.driftstopptime,
                     d.product_id,
                     COALESCE(p.name, CONCAT('Produkt ', d.product_id)) AS product_name,
-                    COALESCE(p.cycle_time_minutes, 0)                  AS cycle_time_minutes
+                    ROUND(COALESCE(p.cycle_time_minutes, 0), 2)        AS cycle_time_minutes
                 FROM (
                     SELECT skiftraknare, datum, drifttid, driftstopptime, product_id,
                            ibc_ok,
@@ -16120,7 +16120,7 @@ class RebotlingController {
             $kpiStmt = $this->pdo->prepare("
                 SELECT d.product_id,
                        COALESCE(p.name, CONCAT('Produkt ', d.product_id)) AS name,
-                       COALESCE(p.cycle_time_minutes, 0)                   AS cycle_time,
+                       ROUND(COALESCE(p.cycle_time_minutes, 0), 2)         AS cycle_time,
                        COUNT(*)          AS antal_skift,
                        SUM(d.ibc_ok)     AS total_ibc,
                        SUM(d.ibc_ej)     AS total_ibc_ej,
@@ -16322,7 +16322,7 @@ class RebotlingController {
             $prodRows = [];
             try {
                 $prodRows = $this->pdo->query(
-                    "SELECT id, name, cycle_time_minutes FROM rebotling_products ORDER BY name ASC"
+                    "SELECT id, name, ROUND(cycle_time_minutes, 2) AS cycle_time_minutes FROM rebotling_products ORDER BY name ASC"
                 )->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Throwable $e) {
                 error_log('getProduktPrognos prodList: ' . $e->getMessage());

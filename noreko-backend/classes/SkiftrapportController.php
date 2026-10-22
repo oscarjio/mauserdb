@@ -972,7 +972,7 @@ class SkiftrapportController {
                     d.ibc_ok, d.ibc_ej_ok, d.bur_ej_ok, d.totalt,
                     d.drifttid, d.rasttime, d.driftstopptime,
                     d.op1, d.op2, d.op3,
-                    COALESCE(p.cycle_time_minutes, 0) AS cycle_time_minutes
+                    ROUND(COALESCE(p.cycle_time_minutes, 0), 2) AS cycle_time_minutes
                 FROM (
                     SELECT datum, skiftraknare,
                            MAX(COALESCE(ibc_ok,0))         AS ibc_ok,

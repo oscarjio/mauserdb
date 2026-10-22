@@ -861,7 +861,7 @@ class OperatorController {
                          NULLIF(SUM(sub.shift_runtime_min) / 60.0, 0))
                         / NULLIF(
                             COALESCE(
-                                MAX(p.cycle_time_minutes),
+                                MAX(ROUND(p.cycle_time_minutes, 2)),
                                 60.0 / 10.0
                             ), 0)
                         / 100.0,

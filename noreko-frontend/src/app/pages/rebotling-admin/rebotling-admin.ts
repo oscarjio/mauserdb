@@ -612,8 +612,24 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
       });
   }
 
+  /**
+   * N-bug (Oscar 2026-10-22): cykeltidsfältet är nu type="text" (en number-input
+   * accepterar inte svenskt decimalkomma tillförlitligt) — normalisera till ett rent
+   * tal med 2 decimaler innan det skickas till backend. Accepterar både "3,40" och
+   * "3.40". rebotling_products.cycle_time_minutes är FLOAT (Oscar ändrat i DB) —
+   * backend avrundar också vid läsning/sparning (ROUND i SQL + round() i PHP), men
+   * normaliseringen görs redan här så aldrig ett obehandlat float-brusigt värde
+   * (t.ex. 3.2000000476) skickas över huvud taget.
+   */
+  private parseCykeltid(v: any): number {
+    const s = String(v ?? '').trim().replace(',', '.');
+    const n = parseFloat(s);
+    return isFinite(n) ? Math.round(n * 100) / 100 : 0;
+  }
+
   addProduct() {
     if (!this.newProduct.name || !this.newProduct.cycle_time_minutes) return;
+    this.newProduct.cycle_time_minutes = this.parseCykeltid(this.newProduct.cycle_time_minutes);
     this.loading = true;
     this.http.post<any>(`${environment.apiUrl}?action=rebotlingproduct`, this.newProduct, { withCredentials: true })
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
@@ -648,6 +664,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
 
   saveProduct(product: any) {
     if (!product.name || !product.cycle_time_minutes) return;
+    product.cycle_time_minutes = this.parseCykeltid(product.cycle_time_minutes);
     this.loading = true;
     const updateData = { id: product.id, name: product.name, cycle_time_minutes: product.cycle_time_minutes, has_lopnummer: product.has_lopnummer ? 1 : 0 };
     this.http.put<any>(`${environment.apiUrl}?action=rebotlingproduct`, updateData, { withCredentials: true })

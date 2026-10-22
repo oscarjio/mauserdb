@@ -5442,9 +5442,11 @@ HTML;
             // Hämta cykeltider per produkt
             $productCycleTimes = [];
             try {
-                $ctStmt = $this->pdo->query("SELECT id, name, cycle_time_minutes FROM rebotling_products");
+                // N-bug (Oscar 2026-10-22): (int)-cast trunkerade decimaler (3,75 -> 3) —
+                // cycle_time_minutes är FLOAT och ska avrundas, inte heltalskastas.
+                $ctStmt = $this->pdo->query("SELECT id, name, ROUND(cycle_time_minutes, 2) AS cycle_time_minutes FROM rebotling_products");
                 while ($ct = $ctStmt->fetch(PDO::FETCH_ASSOC)) {
-                    $productCycleTimes[$ct['name']] = max((int)$ct['cycle_time_minutes'], 1);
+                    $productCycleTimes[$ct['name']] = max((float)$ct['cycle_time_minutes'], 1.0);
                 }
             } catch (\Throwable $e) { error_log('ShiftPdf products: ' . $e->getMessage()); }
 
