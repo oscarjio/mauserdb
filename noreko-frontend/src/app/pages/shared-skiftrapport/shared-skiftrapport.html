@@ -646,17 +646,17 @@
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      <tr *ngFor="let d of dagligBreakdownMap[report.id]">
+                                      <tr *ngFor="let d of dagligBreakdownMap[report.id]" [title]="d.flagReason">
                                         <td>{{ formatPeriodDate(d.dag) }}</td>
-                                        <td class="text-success">{{ d.antal_ok }}</td>
-                                        <td>{{ d.antal_ej_ok }}</td>
+                                        <td class="text-success">{{ d.ibc_ok }}</td>
+                                        <td>{{ d.ibc_ej_ok }}</td>
                                         <td>{{ d.omtvaatt }}</td>
-                                        <td>{{ d.drifttid_min }}min</td>
-                                        <td><span class="badge" [class.bg-success]="d.kalla==='plc_event'" [class.bg-secondary]="d.kalla==='pro_rata'" style="font-size:.65rem;">{{ d.kalla === 'plc_event' ? 'PLC' : 'Pro rata' }}</span></td>
+                                        <td>{{ d.drifttid }}min</td>
+                                        <td><span class="badge" [class.bg-success]="!d.estimated" [class.bg-secondary]="d.estimated" style="font-size:.65rem;">{{ d.estimated ? 'Uppskattad' : 'PLC' }}</span></td>
                                       </tr>
                                     </tbody>
                                   </table>
-                                  <div *ngIf="!dagligBreakdownLoading[report.id] && (dagligBreakdownMap[report.id]?.length ?? 0) === 0" class="text-muted small">Ingen per-dag-data tillgänglig (migration ej körd?).</div>
+                                  <div *ngIf="!dagligBreakdownLoading[report.id] && (dagligBreakdownMap[report.id]?.length ?? 0) === 0" class="text-muted small">Ingen per-dag-data tillgänglig.</div>
                                 </div>
 
                                 <!-- TABS -->
@@ -1270,11 +1270,11 @@
                     <div *ngIf="report.flerdagars == 1" class="px-3 py-2 border-bottom border-secondary">
                       <p class="text-muted small mb-1 fw-semibold">Fördelning per dag</p>
                       <div *ngIf="dagligBreakdownLoading[report.id]" class="text-muted small">Laddar...</div>
-                      <div *ngFor="let d of dagligBreakdownMap[report.id]" class="d-flex align-items-center gap-2 py-1 border-bottom border-secondary" style="font-size:.78rem;">
+                      <div *ngFor="let d of dagligBreakdownMap[report.id]" class="d-flex align-items-center gap-2 py-1 border-bottom border-secondary" style="font-size:.78rem;" [title]="d.flagReason">
                         <span class="text-muted" style="min-width:32px;">{{ formatPeriodDate(d.dag) }}</span>
-                        <span class="text-success fw-semibold">{{ d.antal_ok }} IBC</span>
-                        <span class="text-info">{{ d.drifttid_min }}min</span>
-                        <span class="badge ms-auto" [class.bg-success]="d.kalla==='plc_event'" [class.bg-secondary]="d.kalla==='pro_rata'" style="font-size:.6rem;">{{ d.kalla === 'plc_event' ? 'PLC' : 'Pro rata' }}</span>
+                        <span class="text-success fw-semibold">{{ d.ibc_ok }} IBC</span>
+                        <span class="text-info">{{ d.drifttid }}min</span>
+                        <span class="badge ms-auto" [class.bg-success]="!d.estimated" [class.bg-secondary]="d.estimated" style="font-size:.6rem;">{{ d.estimated ? 'Uppskattad' : 'PLC' }}</span>
                       </div>
                     </div>
 

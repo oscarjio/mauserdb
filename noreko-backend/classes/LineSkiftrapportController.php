@@ -807,13 +807,58 @@ class LineSkiftrapportController {
     }
 
     private function getDagligBreakdown($line) {
-        $dagligTable = $line . '_skiftrapport_daglig';
         $id = intval($_GET['id'] ?? 0);
         if ($id <= 0) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt id'], JSON_UNESCAPED_UNICODE);
             return;
         }
+
+        // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): tidigare lästes denna breakdown från
+        // `{line}_skiftrapport_daglig`, en tabell som bara fylldes av det skrivande
+        // reconcileFlerdagarsDrifttid() — vilket ALDRIG driftsatts (fel baslinje, se
+        // CLAUDE.md) och därför lämnar tabellen tom. Beräkna i stället live, läs-tid,
+        // direkt från tvattlinje_ibc:s PLC-cykler (TvattlinjeMetrics::splitMultiDaySkift) —
+        // tvättlinje-specifikt, övriga linjer har inte denna semantik.
+        if ($line === 'tvattlinje') {
+            try {
+                $repStmt = $this->pdo->prepare("SELECT skiftraknare, totalt, antal_ok, antal_ej_ok, omtvaatt FROM tvattlinje_skiftrapport WHERE id = ?");
+                $repStmt->execute([$id]);
+                $rep = $repStmt->fetch(PDO::FETCH_ASSOC);
+                if (!$rep || empty($rep['skiftraknare'])) {
+                    echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+                $sk = (int)$rep['skiftraknare'];
+                $cycleStmt = $this->pdo->prepare("
+                    SELECT datum, ibc_ok, ibc_ej_ok, omtvaatt, runtime_plc, rasttime, driftstopptime
+                    FROM tvattlinje_ibc WHERE skiftraknare = ? ORDER BY datum ASC, id ASC
+                ");
+                $cycleStmt->execute([$sk]);
+                $cycles = $cycleStmt->fetchAll(PDO::FETCH_ASSOC);
+                if (count($cycles) < 2) {
+                    echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+                $firstDag = substr($cycles[0]['datum'], 0, 10);
+                $lastDag  = substr($cycles[count($cycles) - 1]['datum'], 0, 10);
+                if ($firstDag === $lastDag) {
+                    echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+                $targetCycleMin = TvattlinjeMetrics::weightedTargetCycleMin($this->pdo, $firstDag, $lastDag);
+                $reportTotalt   = (int)($rep['totalt'] ?? ((int)$rep['antal_ok'] + (int)$rep['antal_ej_ok'] + (int)$rep['omtvaatt']));
+                $days = TvattlinjeMetrics::splitMultiDaySkift($cycles, $targetCycleMin, $reportTotalt);
+                echo json_encode(['success' => true, 'data' => $days], JSON_UNESCAPED_UNICODE);
+            } catch (\Throwable $e) {
+                error_log('LineSkiftrapportController::getDagligBreakdown(tvattlinje live): ' . $e->getMessage());
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
+            }
+            return;
+        }
+
+        $dagligTable = $line . '_skiftrapport_daglig';
         try {
             // Om tabellen saknas returnera tom array (migration ej körd ännu)
             $exists = $this->pdo->query("SHOW TABLES LIKE '$dagligTable'")->rowCount() > 0;

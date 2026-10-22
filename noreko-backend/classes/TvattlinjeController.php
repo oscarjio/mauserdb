@@ -590,6 +590,14 @@ class TvattlinjeController {
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::skiftrapportIbcPerDag: ' . $e->getMessage());
         }
+
+        // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): en flerdagars-rapport attribuerades
+        // tidigare HELA sin IBC-summa till inlämningsdagen (DATE(sr.datum)) ovan — ersätt
+        // med den korrekta per-dag-uppdelningen (läs-tid, se TvattlinjeMetrics). Filtrerat
+        // till [start,end] eftersom skiftet kan sträcka sig utanför det efterfrågade fönstret.
+        foreach (TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end)['byDag'] as $dag => $d) {
+            if ($dag >= $start && $dag <= $end) $out[$dag] = $d['totalt'];
+        }
         return $out;
     }
 
@@ -653,6 +661,13 @@ class TvattlinjeController {
             }
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::plcIbcWithSrFloor: ' . $e->getMessage());
+        }
+
+        // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): för dagar som tillhör en flerdagars-
+        // rapport är "golvet" ovan (max(PLC, hela SR-summan)) självt fel — hela SR-summan hör
+        // inte till EN dag. Ersätt (inte max()) med den korrekta per-dag-uppdelningen.
+        foreach (TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end)['byDag'] as $dag => $d) {
+            if ($dag >= $start && $dag <= $end) $out[$dag] = $d['totalt'];
         }
         return $out;
     }
@@ -1660,52 +1675,60 @@ class TvattlinjeController {
             // (831 IBC men bara 19.1h). LEAST(day_min, 600) kapar per dag (max ~10h/skift).
             try {
                 $driftStmt = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(day_min), 0)
+                    SELECT d.dag,
+                           COALESCE(NULLIF(sr.drift_min, 0), ibc.plc_min, onoff.onoff_min, 0) AS day_min
                     FROM (
-                        SELECT d.dag,
-                               COALESCE(NULLIF(sr.drift_min, 0), ibc.plc_min, onoff.onoff_min, 0) AS day_min
+                        SELECT DATE(datum) AS dag FROM tvattlinje_skiftrapport
+                        WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                        UNION
+                        SELECT DATE(datum) AS dag FROM tvattlinje_ibc
+                        WHERE datum >= :s2 AND datum < DATE_ADD(:e2, INTERVAL 1 DAY)
+                    ) d
+                    LEFT JOIN (
+                        SELECT DATE(sr.datum) AS dag, SUM(LEAST(GREATEST(0, COALESCE(sr.drifttid, 0)), 600)) AS drift_min
+                        FROM tvattlinje_skiftrapport sr
+                        INNER JOIN (
+                            SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
+                            WHERE datum >= :s3 AND datum < DATE_ADD(:e3, INTERVAL 1 DAY)
+                            GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                        ) latest ON sr.id = latest.max_id
+                        GROUP BY DATE(sr.datum)
+                    ) sr ON sr.dag = d.dag
+                    LEFT JOIN (
+                        SELECT dag, SUM(skift_runtime) AS plc_min
                         FROM (
-                            SELECT DATE(datum) AS dag FROM tvattlinje_skiftrapport
-                            WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
-                            UNION
-                            SELECT DATE(datum) AS dag FROM tvattlinje_ibc
-                            WHERE datum >= :s2 AND datum < DATE_ADD(:e2, INTERVAL 1 DAY)
-                        ) d
-                        LEFT JOIN (
-                            SELECT DATE(sr.datum) AS dag, SUM(LEAST(GREATEST(0, COALESCE(sr.drifttid, 0)), 600)) AS drift_min
-                            FROM tvattlinje_skiftrapport sr
-                            INNER JOIN (
-                                SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
-                                WHERE datum >= :s3 AND datum < DATE_ADD(:e3, INTERVAL 1 DAY)
-                                GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
-                            ) latest ON sr.id = latest.max_id
-                            GROUP BY DATE(sr.datum)
-                        ) sr ON sr.dag = d.dag
-                        LEFT JOIN (
-                            SELECT dag, SUM(skift_runtime) AS plc_min
-                            FROM (
-                                SELECT DATE(datum) AS dag, LEAST(MAX(runtime_plc), 600) AS skift_runtime
-                                FROM tvattlinje_ibc
-                                WHERE datum >= :s4 AND datum < DATE_ADD(:e4, INTERVAL 1 DAY)
-                                  AND runtime_plc IS NOT NULL AND runtime_plc > 0
-                                GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
-                            ) t GROUP BY dag
-                        ) ibc ON ibc.dag = d.dag
-                        LEFT JOIN (
-                            SELECT DATE(datum) AS dag, LEAST(MAX(runtime_today), 600) AS onoff_min
-                            FROM tvattlinje_onoff
-                            WHERE datum >= :s5 AND datum < DATE_ADD(:e5, INTERVAL 1 DAY)
-                              AND runtime_today > 0
-                            GROUP BY DATE(datum)
-                        ) onoff ON onoff.dag = d.dag
-                    ) per_dag
+                            SELECT DATE(datum) AS dag, LEAST(MAX(runtime_plc), 600) AS skift_runtime
+                            FROM tvattlinje_ibc
+                            WHERE datum >= :s4 AND datum < DATE_ADD(:e4, INTERVAL 1 DAY)
+                              AND runtime_plc IS NOT NULL AND runtime_plc > 0
+                            GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
+                        ) t GROUP BY dag
+                    ) ibc ON ibc.dag = d.dag
+                    LEFT JOIN (
+                        SELECT DATE(datum) AS dag, LEAST(MAX(runtime_today), 600) AS onoff_min
+                        FROM tvattlinje_onoff
+                        WHERE datum >= :s5 AND datum < DATE_ADD(:e5, INTERVAL 1 DAY)
+                          AND runtime_today > 0
+                        GROUP BY DATE(datum)
+                    ) onoff ON onoff.dag = d.dag
                 ");
                 $driftStmt->execute([
                     's'  => $start, 'e'  => $end, 's2' => $start, 'e2' => $end,
                     's3' => $start, 'e3' => $end, 's4' => $start, 'e4' => $end,
                     's5' => $start, 'e5' => $end,
                 ]);
-                $srDrifttid = (float)$driftStmt->fetchColumn();
+                $driftPerDagMap = [];
+                foreach ($driftStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+                    $driftPerDagMap[$row['dag']] = (float)$row['day_min'];
+                }
+                // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): ersätt flerdagars-dagarnas
+                // drifttid (tidigare hela rapportens råa D4007-värde på inlämningsdagen,
+                // vilket dubbelräknade mot den dag cyklerna faktiskt kördes PÅ) med den
+                // korrekta per-dag-uppdelningen. Läs-tid, ingen DB-skrivning.
+                foreach (TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end)['byDag'] as $dag => $d) {
+                    if ($dag >= $start && $dag <= $end) $driftPerDagMap[$dag] = $d['drifttid'];
+                }
+                $srDrifttid = array_sum($driftPerDagMap);
                 if ($srDrifttid > 0) {
                     $totalRuntimeMinutes = $srDrifttid;
                     $runtimeSource = 'per_dag';
@@ -2120,6 +2143,27 @@ class TvattlinjeController {
                 // Samla per dag för bästa dag (totalt inkl. omtvätt)
                 if ($dag) {
                     $dagMap[$dag] = ($dagMap[$dag] ?? 0) + $tot;
+                }
+            }
+
+            // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): flerdagars-rapporter bidrog ovan med
+            // HELA sin (per-rad-cappade) drifttid till inlämningsdagen i $driftPerDag — ta
+            // bort det felaktiga hela bidraget och ersätt med den korrekta per-dag-
+            // uppdelningen (läs-tid, ingen DB-skrivning, se TvattlinjeMetrics).
+            $multiDaySplit = TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end);
+            foreach ($multiDaySplit['bySkift'] as $sk => $info) {
+                $submissionDag = $info['submissionDag'];
+                $shiftKey = $submissionDag . '#' . $sk;
+                if (isset($latestPerShift[$shiftKey])) {
+                    $wrongContribution = min(600, max(0, (float)($latestPerShift[$shiftKey]['drifttid'] ?? 0)));
+                    if (isset($driftPerDag[$submissionDag])) {
+                        $driftPerDag[$submissionDag] = max(0, $driftPerDag[$submissionDag] - $wrongContribution);
+                    }
+                }
+                foreach ($info['days'] as $d) {
+                    if ($d['dag'] >= $start && $d['dag'] <= $end) {
+                        $driftPerDag[$d['dag']] = ($driftPerDag[$d['dag']] ?? 0) + $d['drifttid'];
+                    }
                 }
             }
 
@@ -2828,6 +2872,7 @@ class TvattlinjeController {
                 SELECT
                     datum, skiftraknare, produkt, op1, op2, op3,
                     ibc_ok, ibc_ej_ok, omtvaatt, lopnummer,
+                    runtime_plc, rasttime, driftstopptime,
                     ibc_ok   - LAG(ibc_ok)   OVER (PARTITION BY COALESCE(skiftraknare, 0) ORDER BY datum, id) AS d_ok,
                     ibc_ej_ok- LAG(ibc_ej_ok)OVER (PARTITION BY COALESCE(skiftraknare, 0) ORDER BY datum, id) AS d_ejok,
                     omtvaatt - LAG(omtvaatt) OVER (PARTITION BY COALESCE(skiftraknare, 0) ORDER BY datum, id) AS d_om
@@ -2854,6 +2899,15 @@ class TvattlinjeController {
                     'resultat'     => $resultat,
                     // Bara "godkänd"-rader får ett eget löpnummer — se metodens docblock.
                     'lopnummer'    => ($resultat === 'godkänd' && $r['lopnummer'] !== null) ? (int)$r['lopnummer'] : null,
+                    // Råa kumulativa PLC-räknare (Oscar 2026-10-21/22 DUBBELSKIFT) — används av
+                    // frontendens splitMultiDaySkift() (TS-spegel) för Excel-exportens
+                    // flerdagars-flaggning, samma kärna som backend använder vid läsning.
+                    'ibc_ok'         => (int)($r['ibc_ok'] ?? 0),
+                    'ibc_ej_ok'      => (int)($r['ibc_ej_ok'] ?? 0),
+                    'omtvaatt'       => (int)($r['omtvaatt'] ?? 0),
+                    'runtime_plc'    => $r['runtime_plc'] !== null ? (float)$r['runtime_plc'] : null,
+                    'rasttime'       => $r['rasttime'] !== null ? (float)$r['rasttime'] : null,
+                    'driftstopptime' => $r['driftstopptime'] !== null ? (float)$r['driftstopptime'] : null,
                 ];
             }
         } catch (\Throwable $e) {
@@ -3053,8 +3107,29 @@ class TvattlinjeController {
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getOeeTrend goals: ' . $e->getMessage()); }
 
+            // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): flerdagars-rapporter attribuerades
+            // tidigare HELA sin produktion/drifttid till inlämningsdagen → dubbelräkning mot
+            // den dag cyklerna faktiskt kördes på. Beräkna den korrekta per-dag-uppdelningen
+            // EN gång för hela perioden (läs-tid, ingen DB-skrivning) och override:a nedan.
+            $multiDaySplit = TvattlinjeMetrics::multiDaySplitPerDag(
+                $this->pdo, date('Y-m-d', strtotime("-{$dagar} days")), date('Y-m-d')
+            )['byDag'];
+
             $producerandeDagar = 0;
             foreach ($rows as $r) {
+                $splitDay = $multiDaySplit[$r['dag']] ?? null;
+
+                if ($splitDay !== null) {
+                    // Dagen tillhör en flerdagars-rapport — splitten är nu facit, ingen av de
+                    // vanliga SR/PLC-golv-reglerna nedan appliceras för den.
+                    $tot           = max(0, (int)$splitDay['totalt']);
+                    $ok            = max(0, (int)$splitDay['ibc_ok']);
+                    $ejOk          = max(0, (int)$splitDay['ibc_ej_ok']);
+                    $srTot         = $tot;
+                    $hasQualData   = ($ok + $ejOk) > 0;
+                    $netRuntimeMin = TvattlinjeMetrics::capDrifttid((float)$splitDay['drifttid']);
+                    $driftstoppMin = max(0.0, (float)$splitDay['driftstopp']);
+                } else {
                 // A: ingen skift_count-filtrering längre — dubbelposter deduplicerade i SQL.
                 $tot = max(0, (int)$r['total_ibc']);
                 $isPlcOnly = !empty($r['is_plc_only']);
@@ -3091,6 +3166,7 @@ class TvattlinjeController {
                 }
                 $netRuntimeMin = TvattlinjeMetrics::capDrifttid($runtimeMin);
                 $driftstoppMin = max(0, isset($r['total_driftstopp_min']) ? (float)$r['total_driftstopp_min'] : 0);
+                }
 
                 $dayN      = (int)date('N', strtotime($r['dag'])); // 1=mån … 7=sön
                 $weekday   = $dayN - 1;                            // 0=mån … 6=sön (matchar weekday_goals/WEEKDAY())

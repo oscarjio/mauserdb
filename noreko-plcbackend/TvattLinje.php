@@ -631,21 +631,18 @@ class TvattLinje {
                     'period_start' => $periodStart, 'period_end' => $periodEnd,
                 ]);
 
-                // N-bug #1 (rätta vid källan): vid flerdagars-skift har D4007 ackumulerat
-                // över HELA wall-clock-spannet (kan ge 100h+ "drifttid" för ett skift som
-                // sträcker sig över flera dygn/inte stängdes normalt). Ersätt med VERKLIG
-                // delta-drifttid sedan föregående rapport (samma metod som användes manuellt
-                // för att korrigera 2026-06-05-rapporten, se
-                // migrations/2026-06-05_backfill_tvattlinje_drifttid.sql) — nu generaliserad
-                // så den körs automatiskt. Körs i eget try/catch: misslyckas den, behålls
-                // råvärdet (ingen regression mot nuvarande beteende).
-                if ($flerdagars === 1) {
-                    try {
-                        $this->reconcileFlerdagarsDrifttid($skiftrapportId, $prevCreatedAt);
-                    } catch (\Throwable $e) {
-                        $this->log('handleSkiftrapport', "Flerdagars-rekonciliering misslyckades (drifttid oförändrad)", ['error' => $e->getMessage()]);
-                    }
-                }
+                // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT, ersätter tidigare N-bug #1-kommentar
+                // här): skrivande rekonciliering BORTTAGEN. reconcileFlerdagarsDrifttid()
+                // (som stod här) skrev drifttid/rasttime direkt i tvattlinje_skiftrapport med
+                // en FEL baslinje (MAX(ibc_count/runtime_plc) över HELA historiken i stället
+                // för per skiftraknare — PLC-räknarna nollställs varje skift, så den baslinjen
+                // är mestadels meningslös) och har ALDRIG driftsatts. Lösningen är nu i stället
+                // helt läs-tid: TvattlinjeMetrics::splitMultiDaySkift()/multiDaySplitPerDag()
+                // (noreko-backend/classes/TvattlinjeMetrics.php) läser tvattlinje_ibc:s cykler
+                // och delar upp produktionen per kalenderdag varje gång statistik/OEE-trend/
+                // skiftrapport/Excel visas — INGEN skrivning här alls. D4007/D4008/D4011 för
+                // SKIFTET i sin helhet (period_start–period_end) lämnas orörda ovan, exakt
+                // som kommentaren "PLC-värdena ... ändras aldrig här" redan sa.
             }
         } catch (\Throwable $e) {
             error_log('TvattLinje::handleSkiftrapport metadata: ' . $e->getMessage());
@@ -653,119 +650,6 @@ class TvattLinje {
         // ---- Slut period-metadata ----
 
         // ACK hanteras av handleCommand efter att handleSkiftrapport returnerar
-    }
-
-    // =====================================================
-    // N-bug #1: generaliserad version av engångs-backfillen i
-    // migrations/2026-06-05_backfill_tvattlinje_drifttid.sql — körs automatiskt för varje
-    // flerdagars-rapport i stället för att vara en manuell engångsfix. Ersätter den
-    // wall-clock-korrupta D4007-drifttiden med VERKLIG delta-drifttid (PLC-räknarens
-    // ökning sedan föregående rapport), och fördelar IBC/drifttid per kalenderdag i
-    // tvattlinje_skiftrapport_daglig för granskning/historik.
-    // =====================================================
-    private function reconcileFlerdagarsDrifttid(int $skiftrapportId, string $prevCreatedAt): void {
-        $now = date('Y-m-d H:i:s');
-
-        // Baseline = PLC-räknarvärden precis INNAN fönstret (föregående rapports slutläge)
-        $b = $this->db->prepare("
-            SELECT COALESCE(MAX(ibc_count), 0) AS ibc,
-                   COALESCE(MAX(COALESCE(runtime_plc, 0)), 0) AS rt,
-                   COALESCE(MAX(COALESCE(rasttime, 0)), 0) AS rast
-            FROM tvattlinje_ibc WHERE datum <= :prev
-        ");
-        $b->execute(['prev' => $prevCreatedAt]);
-        $base = $b->fetch(PDO::FETCH_ASSOC) ?: ['ibc' => 0, 'rt' => 0, 'rast' => 0];
-
-        // Periodens slutläge (inom fönstret, dvs t.o.m. denna rapport)
-        $e = $this->db->prepare("
-            SELECT COALESCE(MAX(COALESCE(runtime_plc, 0)), :brt) AS rt,
-                   COALESCE(MAX(COALESCE(rasttime, 0)), :brast) AS rast
-            FROM tvattlinje_ibc WHERE datum > :prev AND datum <= :now
-        ");
-        $e->execute(['brt' => $base['rt'], 'brast' => $base['rast'], 'prev' => $prevCreatedAt, 'now' => $now]);
-        $end = $e->fetch(PDO::FETCH_ASSOC) ?: ['rt' => $base['rt'], 'rast' => $base['rast']];
-
-        $deltaRt   = max(0.0, (float)$end['rt']   - (float)$base['rt']);
-        $deltaRast = max(0.0, (float)$end['rast'] - (float)$base['rast']);
-
-        // Skriv VERKLIG delta-drifttid till rapporten. 600-cap kvarstår som sista skyddsnät
-        // (matchar den cap som redan tillämpas överallt i läsvägen för KPI:er).
-        $this->db->prepare("UPDATE tvattlinje_skiftrapport SET drifttid = :dt, rasttime = :rt WHERE id = :id")
-            ->execute(['dt' => (int)min(600, round($deltaRt)), 'rt' => (int)round($deltaRast), 'id' => $skiftrapportId]);
-        $this->log('handleSkiftrapport', 'Flerdagars drifttid rekoncilierad', [
-            'id' => $skiftrapportId, 'delta_rt_min' => $deltaRt, 'delta_rast_min' => $deltaRast,
-        ]);
-
-        // Dagfördelning för historik/granskning (samma tabell/metod som 2026-06-05-backfillen)
-        $this->db->exec("CREATE TABLE IF NOT EXISTS tvattlinje_skiftrapport_daglig (
-            id               INT NOT NULL AUTO_INCREMENT,
-            skiftrapport_id  INT NOT NULL,
-            dag              DATE NOT NULL,
-            antal_ok         INT NOT NULL DEFAULT 0,
-            antal_ej_ok      INT NOT NULL DEFAULT 0,
-            omtvaatt         INT NOT NULL DEFAULT 0,
-            drifttid_min     INT NOT NULL DEFAULT 0,
-            rast_min         INT NOT NULL DEFAULT 0,
-            kalla            ENUM('plc_event','pro_rata') NOT NULL DEFAULT 'plc_event',
-            PRIMARY KEY (id),
-            UNIQUE KEY uq_rapport_dag (skiftrapport_id, dag),
-            KEY idx_dag (dag),
-            KEY idx_skiftrapport_id (skiftrapport_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-
-        $daysStmt = $this->db->prepare("
-            SELECT DATE(datum) AS dag,
-                   MAX(ibc_count) AS max_ibc,
-                   MAX(COALESCE(runtime_plc, 0)) AS max_rt,
-                   MAX(COALESCE(rasttime, 0)) AS max_rast
-            FROM tvattlinje_ibc WHERE datum > :prev AND datum <= :now
-            GROUP BY DATE(datum) ORDER BY dag ASC
-        ");
-        $daysStmt->execute(['prev' => $prevCreatedAt, 'now' => $now]);
-        $days = $daysStmt->fetchAll(PDO::FETCH_ASSOC);
-        if (empty($days)) return;
-
-        $rapStmt = $this->db->prepare("SELECT antal_ok, antal_ej_ok, omtvaatt FROM tvattlinje_skiftrapport WHERE id = :id");
-        $rapStmt->execute(['id' => $skiftrapportId]);
-        $rap = $rapStmt->fetch(PDO::FETCH_ASSOC) ?: ['antal_ok' => 0, 'antal_ej_ok' => 0, 'omtvaatt' => 0];
-
-        $prevIbc = (float)$base['ibc'];
-        $prevRt  = (float)$base['rt'];
-        $prevRast = (float)$base['rast'];
-        $dayDeltas = [];
-        $totIbcDelta = 0.0;
-        foreach ($days as $d) {
-            $ibcDelta  = max(0.0, (float)$d['max_ibc'] - $prevIbc);
-            $rtDelta   = max(0.0, (float)$d['max_rt']  - $prevRt);
-            $rastDelta = max(0.0, (float)$d['max_rast'] - $prevRast);
-            $dayDeltas[] = ['dag' => $d['dag'], 'ibc' => $ibcDelta, 'rt' => $rtDelta, 'rast' => $rastDelta];
-            $totIbcDelta += $ibcDelta;
-            $prevIbc  = (float)$d['max_ibc'];
-            $prevRt   = (float)$d['max_rt'];
-            $prevRast = (float)$d['max_rast'];
-        }
-        if ($totIbcDelta <= 0) return;
-
-        $ins = $this->db->prepare("
-            INSERT INTO tvattlinje_skiftrapport_daglig
-              (skiftrapport_id, dag, antal_ok, antal_ej_ok, omtvaatt, drifttid_min, rast_min, kalla)
-            VALUES (:sid, :dag, :ok, :ejok, :omtv, :dt, :rt, 'plc_event')
-            ON DUPLICATE KEY UPDATE
-              antal_ok = VALUES(antal_ok), antal_ej_ok = VALUES(antal_ej_ok), omtvaatt = VALUES(omtvaatt),
-              drifttid_min = VALUES(drifttid_min), rast_min = VALUES(rast_min), kalla = VALUES(kalla)
-        ");
-        foreach ($dayDeltas as $dd) {
-            $share = $dd['ibc'] / $totIbcDelta;
-            $ins->execute([
-                'sid'  => $skiftrapportId,
-                'dag'  => $dd['dag'],
-                'ok'   => (int)round($rap['antal_ok']    * $share),
-                'ejok' => (int)round($rap['antal_ej_ok'] * $share),
-                'omtv' => (int)round($rap['omtvaatt']    * $share),
-                'dt'   => (int)round($dd['rt']),
-                'rt'   => (int)round($dd['rast']),
-            ]);
-        }
     }
 
     // =====================================================

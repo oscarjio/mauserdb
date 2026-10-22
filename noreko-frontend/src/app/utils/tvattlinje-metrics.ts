@@ -96,3 +96,101 @@ export function avgCycleMin(drifttidMin: number, totalt: number): number | null 
   if (totalt <= 0) return null;
   return drifttidMin / totalt;
 }
+
+// ==================================================================
+// DUBBELSKIFT / SEN SKIFTRAPPORT (Oscar 2026-10-21/22 BESLUT) — TS-spegel av
+// TvattlinjeMetrics::splitMultiDaySkift(). Se PHP-docblocken för Regel 1-4 i detalj.
+// Ren funktion, ingen DB-åtkomst (det gör bara backend via multiDaySplitPerDag).
+// ==================================================================
+
+export interface TvattlinjeCycleRow {
+  datum: string;
+  ibc_ok: number;
+  ibc_ej_ok: number;
+  omtvaatt: number;
+  runtime_plc: number | null;
+  rasttime: number | null;
+  driftstopptime: number | null;
+}
+
+export interface DaySplitRow {
+  dag: string;
+  ibc_ok: number;
+  ibc_ej_ok: number;
+  omtvaatt: number;
+  totalt: number;
+  drifttid: number;
+  rast: number;
+  driftstopp: number;
+  estimated: boolean;
+  flagged: boolean;
+  flagReason: string;
+}
+
+export function splitMultiDaySkift(cycles: TvattlinjeCycleRow[], targetCycleMin: number, reportTotalt: number): DaySplitRow[] {
+  if (!cycles.length) return [];
+
+  const byDay = new Map<string, number[]>();
+  cycles.forEach((c, i) => {
+    const dag = c.datum.substring(0, 10);
+    if (!byDay.has(dag)) byDay.set(dag, []);
+    byDay.get(dag)!.push(i);
+  });
+  const days = [...byDay.keys()]; // kronologisk ordning (cycles är ASC)
+
+  const hasValidRuntime = cycles.every(c => c.runtime_plc !== null);
+
+  const out: DaySplitRow[] = [];
+  let prevOk = 0, prevEjOk = 0, prevOm = 0;
+  for (const dag of days) {
+    const idxs = byDay.get(dag)!;
+    const first = cycles[idxs[0]];
+    const last = cycles[idxs[idxs.length - 1]];
+
+    const ibcOk = Math.max(0, last.ibc_ok - prevOk);
+    const ibcEjOk = Math.max(0, last.ibc_ej_ok - prevEjOk);
+    const omtv = Math.max(0, last.omtvaatt - prevOm);
+    prevOk = last.ibc_ok; prevEjOk = last.ibc_ej_ok; prevOm = last.omtvaatt;
+
+    let estimated = false;
+    let flagReason = 'Inskickad i efterhand — fördelad per dag från PLC-cykler';
+    let drifttid: number, rast: number, driftstopp: number;
+
+    if (hasValidRuntime) {
+      drifttid = Math.max(0, (last.runtime_plc || 0) - (first.runtime_plc || 0)) + targetCycleMin;
+      rast = Math.max(0, (last.rasttime || 0) - (first.rasttime || 0));
+      driftstopp = Math.max(0, (last.driftstopptime || 0) - (first.driftstopptime || 0));
+    } else {
+      estimated = true;
+      flagReason = 'Drifttid uppskattad från cykeldata';
+      let sumGaps = 0;
+      for (let k = 1; k < idxs.length; k++) {
+        const tPrev = new Date(cycles[idxs[k - 1]].datum.replace(' ', 'T')).getTime();
+        const tCur = new Date(cycles[idxs[k]].datum.replace(' ', 'T')).getTime();
+        const gapMin = Math.max(0, (tCur - tPrev) / 60000);
+        if (gapMin < 30) sumGaps += gapMin;
+      }
+      drifttid = sumGaps;
+      rast = 0;
+      driftstopp = 0;
+    }
+
+    out.push({
+      dag, ibc_ok: ibcOk, ibc_ej_ok: ibcEjOk, omtvaatt: omtv,
+      totalt: ibcOk + ibcEjOk + omtv,
+      drifttid: Math.round(Math.min(drifttid, RUNTIME_CAP_MIN) * 10) / 10,
+      rast: Math.round(rast * 10) / 10,
+      driftstopp: Math.round(driftstopp * 10) / 10,
+      estimated, flagged: true, flagReason
+    });
+  }
+
+  const totalCyclesInShift = cycles.length;
+  if (Math.abs(reportTotalt - totalCyclesInShift) > 2) {
+    for (const row of out) {
+      row.flagReason += `; avvikelse: rapport ${reportTotalt} vs ${totalCyclesInShift} PLC-cykler`;
+    }
+  }
+
+  return out;
+}

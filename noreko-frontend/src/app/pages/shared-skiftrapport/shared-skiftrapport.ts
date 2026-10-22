@@ -1551,7 +1551,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     drifttid: number; rast: number; driftstopp: number;
     effRatio: number | null; lopnummer: string;
     qualRatio: number | null; oeeRatio: number | null;
-    inskickad: string; kommentar: string; flerprodukt: string;
+    inskickad: string; kommentar: string; flerprodukt: string; flagga: string;
   }): any[] {
     // N-bug (Oscar 2026-10-20): ingen "Tillgänglighet"-kolumn — borttagen som eget
     // nyckeltal (planerad skifttid är inte relevant för tvättlinjen).
@@ -1567,7 +1567,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       r.lopnummer,
       r.qualRatio !== null ? Math.round(r.qualRatio * 1000) / 1000 : null,
       r.oeeRatio !== null ? Math.round(r.oeeRatio * 1000) / 1000 : null,
-      r.inskickad, r.kommentar, r.flerprodukt
+      r.inskickad, r.kommentar, r.flerprodukt, r.flagga
     ];
   }
 
@@ -1672,13 +1672,11 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       'Drifttid aktiv (min)', 'Rast (min)', 'Driftstopp (min)',
       'Effektivitet', 'Löpnummer',
       'Kvalitet', 'OEE',
-      'Inskickad', 'Kommentar', 'Flerprodukt-dag'
+      'Inskickad', 'Kommentar', 'Flerprodukt-dag', 'Flagga'
     ];
     const dataRows: any[][] = [];
 
     for (const r of reports) {
-      const splits = this._splitReportByProduct(r);
-      const isMulti = splits.length > 1;
       const op1 = this.getOpName(r.op1) || '–';
       const op2 = this.getOpName(r.op2) || '–';
       const op3 = this.getOpName(r.op3) || '–';
@@ -1686,7 +1684,49 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const drifttidTotal = TM.capDrifttid(r.drifttid || 0);
       const rastTotal = r.rasttime || 0;
       const driftstoppTotal = r.driftstopptime || 0;
-      const skiftCycles = cyclesBySkift.get(r.skiftraknare) || [];
+      const skiftCycles = (cyclesBySkift.get(r.skiftraknare) || [])
+        .slice().sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
+
+      // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): en rapport vars cykler (samma
+      // skiftraknare) sträcker sig över flera kalenderdagar attribuerades tidigare HELA
+      // sin produktion till inlämningsdagen → dubbelräkning mot PLC-dagens egen siffra.
+      // En rad PER KALENDERDAG från räknekärnan (samma som backend) i stället, flaggad.
+      const spanDays = new Set(skiftCycles.map(c => String(c.datum).substring(0, 10)));
+      const isFlerdagars = spanDays.size > 1;
+
+      if (isFlerdagars) {
+        const product = this.products.find((p: any) => p.id === r.product_id);
+        const maltakt = product?.cycle_time_minutes ?? this.fallbackCycleMin;
+        const produktNamn = product?.name || this.getProductName(r.product_id) || '–';
+        const daySplits = TM.splitMultiDaySkift(skiftCycles as any, maltakt, r.totalt || 0);
+
+        for (const d of daySplits) {
+          const perTimme = d.drifttid > 0 ? d.totalt / (d.drifttid / 60) : null;
+          const snittCykel = TM.avgCycleMin(d.drifttid, d.totalt);
+          const effRatio = TM.efficiency(maltakt, d.totalt, d.drifttid);
+          const driftfaktorRatio = TM.driftfaktor(d.drifttid, d.driftstopp);
+          const qual = TM.quality(d.ibc_ok, d.totalt);
+          const oee = TM.oee(driftfaktorRatio, TM.performance(d.totalt, maltakt, d.drifttid), qual);
+          const relevantCycles = skiftCycles.filter(c => String(c.datum).substring(0, 10) === d.dag);
+          const lopnummerNums = relevantCycles.filter(c => c.lopnummer !== null).map(c => Number(c.lopnummer));
+          const lopnummer = this._buildLopnummerRangeFlagged(lopnummerNums);
+
+          dataRows.push(this._excelRow({
+            datum: d.dag, produkt: produktNamn, op1, op2, op3,
+            ok: d.ibc_ok, ejOk: d.ibc_ej_ok, omtvaatt: d.omtvaatt, totalt: d.totalt,
+            perTimme, snittCykel, maltakt,
+            drifttid: d.drifttid, rast: d.rast, driftstopp: d.driftstopp,
+            effRatio, lopnummer,
+            qualRatio: qual, oeeRatio: oee,
+            inskickad, kommentar: r.kommentar || '',
+            flerprodukt: 'Nej', flagga: d.flagReason
+          }));
+        }
+        continue;
+      }
+
+      const splits = this._splitReportByProduct(r);
+      const isMulti = splits.length > 1;
 
       for (const sp of splits) {
         const product = this.products.find((p: any) => p.id === sp.productId);
@@ -1728,7 +1768,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           effRatio, lopnummer,
           qualRatio: qual, oeeRatio: oee,
           inskickad, kommentar: r.kommentar || '',
-          flerprodukt: isMulti ? 'Ja' : 'Nej'
+          flerprodukt: isMulti ? 'Ja' : 'Nej', flagga: ''
         }));
       }
     }
@@ -1764,7 +1804,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       { wch: 16 }, { wch: 10 }, { wch: 13 },
       { wch: 12 }, { wch: 20 },
       { wch: 10 }, { wch: 8 },
-      { wch: 14 }, { wch: 40 }, { wch: 13 }
+      { wch: 14 }, { wch: 40 }, { wch: 13 }, { wch: 55 }
     ];
     ws['!freeze'] = { xSplit: 0, ySplit: 1 };
     ws['!autofilter'] = { ref: ws['!ref']! };
