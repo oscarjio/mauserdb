@@ -246,13 +246,22 @@ final class TvattlinjeMetrics {
     public static function multiDaySplitPerDag(\PDO $pdo, string $start, string $end): array {
         $out = ['bySkift' => [], 'byDag' => []];
         try {
+            // N-bug (Oscar 2026-10-22): en flerdagars-rapport SKICKAS IN på sin SISTA dag,
+            // men dess TIDIGARE produktionsdagar kan efterfrågas separat (t.ex. bara 19/10
+            // av ett 19/10–20/10-skift, rapporten skickad 20/10). Sök inlämningsdatum upp
+            // till 3 dagar EFTER :e också — annars missar en sådan förfrågan rapporten helt
+            // och den tidigare dagen faller tillbaka på den råa, mindre exakta PLC-delta-
+            // räkningen (177 i stället för korrekt 178). Varje anropare filtrerar ändå
+            // alltid de returnerade dagarna till sitt eget [start,end] (se byDag/days-
+            // användningen i TvattlinjeController) — den extra sökbredden läcker aldrig ut
+            // dagar utanför det efterfrågade fönstret.
             $stmt = $pdo->prepare("
                 SELECT sr.skiftraknare, sr.datum, sr.totalt, sr.antal_ok, sr.antal_ej_ok, sr.omtvaatt
                 FROM tvattlinje_skiftrapport sr
                 INNER JOIN (
                     SELECT MAX(id) AS max_id
                     FROM tvattlinje_skiftrapport
-                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
+                    WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 4 DAY)
                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                 ) latest ON sr.id = latest.max_id
                 WHERE sr.skiftraknare IS NOT NULL AND sr.skiftraknare > 0
