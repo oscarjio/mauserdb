@@ -1,7 +1,7 @@
 # Backup-kontroll — mauserdb (tvättlinje/rebotling-databasen)
 
-Läskontroll utförd 2026-10-21, uppdaterad 2026-10-22. Endast läsning — ingen SQL som
-skriver, inget ändrat på servern.
+Läskontroll utförd 2026-10-21, uppdaterad 2026-10-22 (två gånger). Endast läsning —
+ingen SQL som skriver, inget ändrat på servern.
 
 ## Mekanism
 
@@ -38,12 +38,14 @@ Tabellen är markerad **crashed** på lagringsmotor-nivå (MyISAM-korruption). E
 scriptet kör `mysqldump | gzip` blir `.sql.gz`-filen fortfarande en giltig gzip-ström
 (`gzip -t` = OK), men SQL-dumpen **innanför** avbryts mitt i den tabellen:
 
-- Ingen `-- Dump completed`-rad i någon testad fil (senast kontrollerat: 2026-10-22-filen).
+- Ingen `-- Dump completed`-rad i någon testad fil (senast kontrollerat: 2026-10-22-filen,
+  felet finns oförändrat i natten 2026-10-22s körning också).
 - **Alla tabeller som sorteras alfabetiskt efter `tvattlinje_settings_broken_backup`
   saknas helt** i varje backup sedan problemet uppstod (loggen visar felet redan i april).
-- Av `backup.log`:s totalt 1094 rader är endast 78 körningar fullständiga ("Backup
-  skapad"-rad skriven); 115 av körningarna slutar i rena felmeddelanden utan att nå
-  retentions-/loggningssteget.
+- **Senaste gången scriptet avslutade helt normalt (skrev "Backup skapad" OCH
+  "Rensning klar") var natten 2026-06-30 → 07-01.** Varje natt sedan dess (~114 dygn,
+  kontrollerat 2026-10-22) har avbrutits av detta fel INNAN scriptet kommer till
+  rensningssteget — se "Varför gallringen också slutade fungera" nedan.
 
 **Åtgärd krävs av någon med skrivbehörighet till databasen** — antingen:
 - `REPAIR TABLE tvattlinje_settings_broken_backup`, eller
@@ -55,10 +57,43 @@ läskontroll uttryckligen inte har/får använda.
 ## Retention fungerar inte i praktiken
 
 Scriptet är satt till 30 dagars retention, men äldsta kvarvarande fil är från
-**2026-05-31** (~144 dagar gammal, kontrollerat 2026-10-22). `find -mtime +30 -delete`
-körs tekniskt sett (loggen skriver "Rensning klar" oavsett om något faktiskt togs bort),
-men gamla filer rensas inte bort. Disk: 86 GB ledigt av 100 GB (15 % använt) — inte
-akut utrymmesbrist ännu, men bör åtgärdas.
+**2026-05-31** (~144 dagar gammal, kontrollerat 2026-10-22). Disk: 86 GB ledigt av
+100 GB (15 % använt) — inte akut utrymmesbrist ännu, men bör åtgärdas.
+
+### Varför gallringen också slutade fungera — SAMMA rotorsak, inte ett separat fel
+
+`mauserdb-backup.sh` kör med `set -euo pipefail`. Pipelinen
+`mysqldump ... | gzip > "$FILENAME"` får ett icke-noll-exitkod varje natt (mysqldump
+felar på den crashade tabellen), och `set -e` avslutar DÅ hela scriptet omedelbart —
+**innan** raderna för "Backup skapad", `find ... -mtime +30 -delete` och "Rensning
+klar" ens körs. Det är alltså INTE två separata buggar: gallringen har inte kört en
+enda gång sedan 2026-07-01, av exakt samma anledning som dumpen är ofullständig.
+
+## Föreslagen minimal rättning (ENDAST förslag — INGET genomfört)
+
+Lägg till `--ignore-table=mauserdb.tvattlinje_settings_broken_backup` på
+`mysqldump`-anropet i `mauserdb-backup.sh`:
+
+```bash
+mysqldump \
+  -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" \
+  --single-transaction --routines --triggers \
+  --ignore-table=mauserdb.tvattlinje_settings_broken_backup \
+  "$DB_NAME" \
+  | gzip > "$FILENAME"
+```
+
+Det får mysqldump att hoppa över exakt den crashade tabellen och avsluta med
+exitkod 0 — resten av databasen dumpas fullständigt igen, OCH scriptet når
+retentionsraden igen (`find ... -mtime +30 -delete`) eftersom `set -e` inte längre
+avbryter det. **Ingen separat rättning behövs för gallringen** — den börjar fungera
+automatiskt så snart scriptet slutar krascha.
+
+Detta är en ren arbetsrunda (ingen data förloras som annars skulle sparats — tabellen
+saknas redan helt i varje backup idag) och kräver INGEN databas-skrivbehörighet,
+bara en filändring på backup-servern. Den riktiga långsiktiga lösningen är
+fortfarande `REPAIR TABLE` eller en bedömning av om tabellen kan droppas (se ovan) —
+`--ignore-table` är en snabb, säker väg tillbaka till fungerande backuper under tiden.
 
 ## Kod/uploads
 
