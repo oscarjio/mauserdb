@@ -2196,10 +2196,12 @@ class TvattlinjeController {
             }
 
             // Summerade KPI:er + dagsaggregat — från deduplicerade skift
+            $ghostSkiftCount = 0;
             foreach ($latestPerShift as $r) {
                 $sk = (int)($r['skiftraknare'] ?? 0);
 
                 if ($sk > 0 && !in_array($sk, $validSkiftraknare, true)) {
+                    $ghostSkiftCount++;
                     continue; // spökrapport — ingen PLC-evidens, exkluderad ur summeringen
                 }
 
@@ -2329,7 +2331,7 @@ class TvattlinjeController {
                     // snapshot-rader — annars överräknas skift_count på multi-snapshot-dagar.
                     // + extraSkiftCount (Oscar 2026-10-22): flerdagars-skift som bidrog med
                     // produktion i fönstret men vars rad (inlämningsdagen) ligger utanför det.
-                    'skift_count'     => count($latestPerShift) + $extraSkiftCount,
+                    'skift_count'     => count($latestPerShift) + $extraSkiftCount - $ghostSkiftCount,
                     'avg_godkand_pct' => $avgGodkandPct,
                     'avg_cycle_time'  => $avgCycleTime,
                     'basta_dag'       => $bastaDag,
