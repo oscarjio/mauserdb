@@ -83,7 +83,7 @@ class ShiftHandoverController {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        return isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+        return isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'developer'], true);
     }
 
     private function currentUserId(): ?int {

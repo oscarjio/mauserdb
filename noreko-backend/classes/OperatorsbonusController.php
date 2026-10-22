@@ -77,7 +77,7 @@ class OperatorsbonusController {
             $this->sendError('Sessionen har gått ut. Logga in igen.', 401);
             exit;
         }
-        if (($_SESSION['role'] ?? '') !== 'admin') {
+        if (!in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             $this->sendError('Admin-behörighet krävs.', 403);
             exit;
         }

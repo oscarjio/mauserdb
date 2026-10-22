@@ -41,7 +41,7 @@ class NewsController {
                 session_start();
             }
         }
-        if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+        if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             error_log('NewsController::requireAdmin: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);

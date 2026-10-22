@@ -6958,7 +6958,7 @@ HTML;
 
     public function setProductionGoal(): void {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
-        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+        if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Admin-behörighet krävs'], JSON_UNESCAPED_UNICODE);
             return;

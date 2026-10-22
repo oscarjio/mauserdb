@@ -311,7 +311,7 @@ class ProduktionsTaktController {
             session_start(['read_and_close' => true]);
         }
 
-        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+        if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             $this->sendError('Adminbehorighet kravs', 403);
             return;
         }

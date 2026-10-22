@@ -79,7 +79,7 @@ class ProduktionsSlaController {
 
     private function requireAdmin(): void {
         $this->requireLogin();
-        if (($_SESSION['role'] ?? '') !== 'admin') {
+        if (!in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             $this->sendError('Kräver admin-behörighet', 403);
             exit;
         }

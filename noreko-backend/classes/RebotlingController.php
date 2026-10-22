@@ -2289,7 +2289,7 @@ class RebotlingController {
 
     private function addEvent(): void {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+        if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
@@ -2338,7 +2338,7 @@ class RebotlingController {
 
     private function deleteEvent(): void {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+        if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
@@ -2651,7 +2651,7 @@ class RebotlingController {
 
     private function getAttendance() {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
-        if (($_SESSION['role'] ?? '') !== 'admin') {
+        if (!in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;

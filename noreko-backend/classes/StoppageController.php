@@ -677,7 +677,7 @@ class StoppageController {
     }
 
     private function checkAccess($id) {
-        if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'developer'], true)) {
             return;
         }
         $stmt = $this->pdo->prepare("SELECT user_id FROM stoppage_log WHERE id = ?");

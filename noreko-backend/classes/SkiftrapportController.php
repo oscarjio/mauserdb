@@ -115,7 +115,7 @@ class SkiftrapportController {
         }
 
         // Admins can do anything
-        if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'developer'], true)) {
             return;
         }
 

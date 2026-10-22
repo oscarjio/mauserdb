@@ -67,7 +67,7 @@ class MaintenanceController {
             }
         }
 
-        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+        if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             error_log('MaintenanceController::handle: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . ($_SESSION['role'] ?? 'none'));
             $this->sendError('Åtkomst nekad', 403);
             return;

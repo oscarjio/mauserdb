@@ -831,7 +831,7 @@ class RebotlingAdminController {
 
     public function getGoalHistory() {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
-        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+        if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;
@@ -890,7 +890,7 @@ class RebotlingAdminController {
 
     public function getLiveRankingSettings(): void {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
-        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+        if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;
@@ -921,7 +921,7 @@ class RebotlingAdminController {
 
     public function saveLiveRankingSettings(): void {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (($_SESSION['role'] ?? '') !== 'admin') {
+        if (!in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);
             return;
@@ -961,7 +961,7 @@ class RebotlingAdminController {
      */
     public function getLiveRankingConfig(): void {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
-        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+        if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;
@@ -1001,7 +1001,7 @@ class RebotlingAdminController {
      */
     public function setLiveRankingConfig(): void {
         if (session_status() === PHP_SESSION_NONE) session_start();
-        if (($_SESSION['role'] ?? '') !== 'admin') {
+        if (!in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);
             return;

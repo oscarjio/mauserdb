@@ -287,7 +287,7 @@ class StopporsakRegistreringController {
 
             $userId  = (int)$_SESSION['user_id'];
             $role    = $_SESSION['role'] ?? '';
-            if ($role !== 'admin' && (int)$row['user_id'] !== $userId) {
+            if (!in_array($role, ['admin', 'developer'], true) && (int)$row['user_id'] !== $userId) {
                 $this->pdo->rollBack();
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);

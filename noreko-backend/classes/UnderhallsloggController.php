@@ -527,7 +527,7 @@ class UnderhallsloggController {
         try {
             // Kraver admin-roll (konsekvent med deleteEntry)
             $role = $_SESSION['role'] ?? '';
-            if ($role !== 'admin') {
+            if (!in_array($role, ['admin', 'developer'], true)) {
                 $this->sendError('Atkomst nekad — kraver admin', 403);
                 return;
             }
@@ -718,7 +718,7 @@ class UnderhallsloggController {
     private function deleteEntry(): void {
         try {
             $role = $_SESSION['role'] ?? '';
-            if ($role !== 'admin') {
+            if (!in_array($role, ['admin', 'developer'], true)) {
                 error_log('UnderhallsloggController::deleteEntry: Obehörig åtkomst, user_id=' . ($_SESSION['user_id'] ?? 'none') . ', role=' . $role);
                 $this->sendError('Åtkomst nekad — kräver admin', 403);
                 return;

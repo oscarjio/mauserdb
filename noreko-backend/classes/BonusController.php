@@ -1957,7 +1957,7 @@ class BonusController {
             return;
         }
 
-        $isAdmin = (($_SESSION['role'] ?? '') === 'admin');
+        $isAdmin = (in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true));
         if (!$isAdmin && (!$sessionOpId || $sessionOpId !== $requestedOpId)) {
             $this->sendError('Obehörig: op_id matchar inte inloggad användare', 403);
             return;
@@ -2296,7 +2296,7 @@ class BonusController {
 
         if (!$sessionOpId || $sessionOpId <= 0) {
             // Admin utan kopplad operatör — returnera tom men giltig respons
-            if (($_SESSION['role'] ?? '') === 'admin') {
+            if (in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
                 echo json_encode(['success' => true, 'data' => null, 'message' => 'Inget operatörs-ID kopplat till kontot'], JSON_UNESCAPED_UNICODE);
                 return;
             }

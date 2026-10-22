@@ -121,7 +121,7 @@ class LineSkiftrapportController {
             echo json_encode(['success' => false, 'error' => 'Inte inloggad'], JSON_UNESCAPED_UNICODE);
             exit;
         }
-        if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        if (isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin', 'developer'], true)) {
             return;
         }
         try {
