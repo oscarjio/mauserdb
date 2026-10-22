@@ -1708,6 +1708,10 @@ class TvattlinjeController {
                         WHERE datum >= :s2 AND datum < DATE_ADD(:e2, INTERVAL 1 DAY)
                     ) d
                     LEFT JOIN (
+                        -- N-bug (Oscar 2026-10-22, BRÅDSKANDE 2026-09-29): exkludera skiftraknare
+                        -- utan EN ENDA rad i tvattlinje_ibc (spökrapport, se skiftrapportIbcPerDag()
+                        -- för bevis) — annars läggs dess cappade 600 min drifttid ovanpå den riktiga
+                        -- dagens drifttid (2026-09-29 visade 1070 min/17,8h i stället för verkliga ~508).
                         SELECT DATE(sr.datum) AS dag, SUM(LEAST(GREATEST(0, COALESCE(sr.drifttid, 0)), 600)) AS drift_min
                         FROM tvattlinje_skiftrapport sr
                         INNER JOIN (
@@ -1715,6 +1719,8 @@ class TvattlinjeController {
                             WHERE datum >= :s3 AND datum < DATE_ADD(:e3, INTERVAL 1 DAY)
                             GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                         ) latest ON sr.id = latest.max_id
+                        WHERE sr.skiftraknare IS NULL OR sr.skiftraknare = 0
+                           OR EXISTS (SELECT 1 FROM tvattlinje_ibc gx WHERE gx.skiftraknare = sr.skiftraknare)
                         GROUP BY DATE(sr.datum)
                     ) sr ON sr.dag = d.dag
                     LEFT JOIN (
@@ -1941,6 +1947,11 @@ class TvattlinjeController {
                 $corruptStmt = $this->pdo->prepare("
                     SELECT sr.dag, sr.raw_drift, plc.span_min
                     FROM (
+                        -- N-bug (Oscar 2026-10-22, BRÅDSKANDE 2026-09-29): exkludera skiftraknare
+                        -- utan EN ENDA rad i tvattlinje_ibc (spökrapport) — annars blåser dess
+                        -- ocappade drifttid (t.ex. 1384 min) upp raw_drift för en i övrigt helt
+                        -- ren dag och ger en falsk korrupt-dag-flagga (09-29 fick avg_cycle_time
+                        -- null trots att skiftraknare=40:s egna data var felfri).
                         SELECT DATE(s.datum) AS dag, SUM(GREATEST(0, COALESCE(s.drifttid, 0))) AS raw_drift
                         FROM tvattlinje_skiftrapport s
                         INNER JOIN (
@@ -1948,6 +1959,8 @@ class TvattlinjeController {
                             WHERE datum >= :cs AND datum < DATE_ADD(:ce, INTERVAL 1 DAY)
                             GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                         ) latest ON s.id = latest.max_id
+                        WHERE s.skiftraknare IS NULL OR s.skiftraknare = 0
+                           OR EXISTS (SELECT 1 FROM tvattlinje_ibc gx WHERE gx.skiftraknare = s.skiftraknare)
                         GROUP BY DATE(s.datum)
                     ) sr
                     LEFT JOIN (
