@@ -1977,26 +1977,29 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
     // Oscar 2026-10-21/22 BESLUT (statistiksidans design, "som på mauserdb.com"):
     // HÖJD = 100 % + signerad effektivitet (mål = 100 %, +23 % blir 123 %, -15 % blir 85 %).
-    // ETIKETT ovanför = antal IBC den dagen (oförändrat). FÄRG = stapelns HÖJD (inte den
-    // råa effektiviteten): grön ≥90 %, gul ≥70 %, röd <70 %. Grå = ingen produktionsdata
-    // den dagen (varningen om saknade skiftrapporter/förlorade signaler finns kvar
-    // oförändrad, se hasReport nedan och KPI-rutan "förlorade signaler" i mallen).
-    const heightData = effData.map((eff: number) => 100 + eff);
+    // ETIKETT ovanför = antal IBC den dagen (ok+ej_ok+omtvätt, oförändrat). FÄRG = stapelns
+    // HÖJD (inte den råa effektiviteten): grön ≥90 %, gul ≥70 %, röd <70 %.
+    // N-bug (Oscar 2026-10-22): dagar UTAN IBC ritas INTE som en stapel alls (null i stället
+    // för en grå 100%-stapel) — "Dagar utan IBC: ingen stapel/EFF". Varningen om saknade
+    // skiftrapporter/förlorade signaler ligger kvar oförändrad i en separat KPI-ruta.
+    const heightData: Array<number | null> = effData.map((eff: number, i: number) =>
+      countData[i] > 0 ? 100 + eff : null
+    );
 
-    const barColors = heightData.map((h: number, i: number) => {
-      if (!hasReport[i]) return 'rgba(80, 80, 80, 0.25)';
+    const barColors = heightData.map((h: number | null, i: number) => {
+      if (h === null || !hasReport[i]) return 'rgba(80, 80, 80, 0.25)';
       if (h >= 90) return 'rgba(39, 174, 96, 0.75)';
       if (h >= 70) return 'rgba(255, 193, 7, 0.75)';
       return 'rgba(220, 53, 69, 0.7)';
     });
-    const barBorderColors = heightData.map((h: number, i: number) => {
-      if (!hasReport[i]) return '#444';
+    const barBorderColors = heightData.map((h: number | null, i: number) => {
+      if (h === null || !hasReport[i]) return '#444';
       if (h >= 90) return '#27ae60';
       if (h >= 70) return '#ffc107';
       return '#dc3545';
     });
 
-    const suggestedMax = Math.max(130, Math.max(...heightData.filter(v => isFinite(v)), 0) * 1.1);
+    const suggestedMax = Math.max(130, Math.max(...heightData.filter((v): v is number => v !== null && isFinite(v)), 0) * 1.1);
 
     if (this.productionChart) { try { this.productionChart.destroy(); } catch (e) {} }
 
@@ -2042,8 +2045,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
                 const idx = context.dataIndex;
                 const eff = effData[idx] || 0;
                 const count = countData[idx] || 0;
-                if (!hasReport[idx]) return [`Antal IBC: ${count} st`, 'Ej rapporterad (ingen skiftrapport)'];
-                const h = heightData[idx];
+                if (!hasReport[idx] || count <= 0) return [`Antal IBC: ${count} st`, 'Ej rapporterad (ingen skiftrapport)'];
+                const h = heightData[idx] as number;
                 const effStatus = h >= 90 ? ' (över/vid mål)' : h >= 70 ? ' (nära mål)' : ' (under mål)';
                 return [`Antal IBC: ${count} st`, `Effektivitet: ${eff > 0 ? '+' : ''}${eff}% (${h}% av mål)${effStatus}`];
               }
