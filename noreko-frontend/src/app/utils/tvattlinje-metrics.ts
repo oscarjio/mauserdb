@@ -125,6 +125,8 @@ export interface DaySplitRow {
   estimated: boolean;
   flagged: boolean;
   flagReason: string;
+  firstDatum: string;
+  lastDatum: string;
 }
 
 export function splitMultiDaySkift(cycles: TvattlinjeCycleRow[], targetCycleMin: number, reportTotalt: number): DaySplitRow[] {
@@ -181,7 +183,8 @@ export function splitMultiDaySkift(cycles: TvattlinjeCycleRow[], targetCycleMin:
       drifttid: Math.round(Math.min(drifttid, RUNTIME_CAP_MIN) * 10) / 10,
       rast: Math.round(rast * 10) / 10,
       driftstopp: Math.round(driftstopp * 10) / 10,
-      estimated, flagged: true, flagReason
+      estimated, flagged: true, flagReason,
+      firstDatum: first.datum, lastDatum: last.datum
     });
   }
 

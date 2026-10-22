@@ -210,6 +210,11 @@ final class TvattlinjeMetrics {
                 'estimated'   => $estimated,
                 'flagged'     => true,
                 'flagReason'  => $flagReason,
+                // Dagens första/sista cykeltidpunkt (Oscar 2026-10-22) — så UI kan visa en
+                // tidsrymd (t.ex. "07:15→15:39") för en dag-uppdelad rad, likt plc_start/
+                // plc_end för en vanlig rapport.
+                'firstDatum'  => $first['datum'],
+                'lastDatum'   => $last['datum'],
             ];
         }
 

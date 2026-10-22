@@ -917,6 +917,20 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * N-bug (Oscar 2026-10-22): hämtar dag-uppdelningen proaktivt för varje flerdagars-
+   * rapport så snart rapportlistan laddas, i stället för att vänta på expand-klick.
+   * groupedDays() läser dagligBreakdownMap för att visa separata dagrader direkt.
+   */
+  private prefetchFlerdagarsBreakdowns(rows: any[]): void {
+    if (this.config.line !== 'tvattlinje') return;
+    for (const r of rows) {
+      if (r.flerdagars == 1 && this.dagligBreakdownMap[r.id] === undefined && !this.dagligBreakdownLoading[r.id]) {
+        this.loadDagligBreakdown(r.id);
+      }
+    }
+  }
+
   private loadPreliminaryShift(): void {
     // Gräns = senaste rapport med innehåll (antal_ok > 0), annars senaste rapport, annars dagens midnatt
     let from: string;
@@ -1322,6 +1336,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             // VPS-lokal PLC-först dag-totaler (lineskiftrapport är Pi-passthru på dev
             // och kan inte leverera day_totals). Endast tvattlinje har PLC-pipeline.
             this.fetchDayTotals(nr);
+            // N-bug (Oscar 2026-10-22): hämta dag-uppdelningen proaktivt för ALLA
+            // flerdagars-rapporter (inte bara vid expand) så listan/groupedDays kan
+            // visa dem som separata dagrader direkt, inte bara i expand-vyn.
+            this.prefetchFlerdagarsBreakdowns(nr);
           } else {
             this.fetchFailed = true;
             this.errorMessage = res.error || 'Kunde inte hämta rapporter';
@@ -2431,11 +2449,70 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     return ok > 0 && dt > 0 ? (dt / ok).toFixed(1) : '-';
   }
 
+  /**
+   * N-bug (Oscar 2026-10-22): deterministisk, unik syntetisk id för en dag-uppdelad
+   * rad — stort negativt tal (kolliderar inte med riktiga id:n >0, PRELIMINARY_ID=-1
+   * eller unreportedPasses' små negativa nextId-räknare).
+   */
+  private _dagligSliceId(parentId: number, dag: string): number {
+    const ymd = Number(dag.replace(/-/g, '')) || 0;
+    return -(parentId * 100000000 + ymd);
+  }
+
+  /**
+   * N-bug (Oscar 2026-10-22): bygger en synlig rad PER KALENDERDAG för en flerdagars-
+   * rapport, från den redan korrekta dag-uppdelningen (dagligBreakdownMap, samma
+   * räknekärna som statistik/OEE-trend/Excel) — i stället för att visa HELA rapporten
+   * som en rad på inlämningsdagen. Returnerar null om dag-uppdelningen inte laddats än
+   * (groupedDays() faller då tillbaka på den ursprungliga raden, uppgraderas automatiskt
+   * när prefetchFlerdagarsBreakdowns() svarar).
+   */
+  private _buildDagligSlices(r: any): any[] | null {
+    const days = this.dagligBreakdownMap[r.id];
+    if (!days || days.length === 0) return null;
+    return days.map((d: any) => ({
+      ...r,
+      _isDagligSlice: true,
+      _parentId: r.id,
+      _parentReport: r,
+      id: this._dagligSliceId(r.id, d.dag),
+      datum: d.dag,
+      plc_start: d.firstDatum,
+      plc_end: d.lastDatum,
+      antal_ok: d.ibc_ok,
+      antal_ej_ok: d.ibc_ej_ok,
+      omtvaatt: d.omtvaatt,
+      totalt: d.totalt,
+      drifttid: d.drifttid,
+      rasttime: d.rast,
+      driftstopptime: d.driftstopp,
+      flerdagars: 0,
+      antal_dagar: 1,
+      _dagligFlagReason: d.flagReason,
+      _dagligEstimated: d.estimated,
+    }));
+  }
+
   get groupedDays(): Array<{ date: string; reports: any[]; totalIbc: number; totalDrift: number; driftWarning: boolean; avgEff: number | null; effWarning: boolean; operators: string[]; products: string[]; submittedCount: number; hasPreliminary: boolean; unreportedCount: number; }> {
     const dayMap: { [date: string]: any[] } = {};
 
-    // Alla rapporter visas i sin datum-grupp (inlämningsdag)
+    // Alla rapporter visas i sin datum-grupp (inlämningsdag) — FÖRUTOM flerdagars-
+    // rapporter (Oscar 2026-10-22): de visas i stället som en rad PER KALENDERDAG
+    // cyklerna faktiskt kördes på (se _buildDagligSlices), aldrig som en rad på
+    // inlämningsdagen med hela produktionen — annars dubbelräknas mot statistiksidan.
     this.filteredReports.forEach(r => {
+      if (this.config.line === 'tvattlinje' && r.flerdagars == 1) {
+        const slices = this._buildDagligSlices(r);
+        if (slices) {
+          for (const s of slices) {
+            const d = (s.datum || '').substring(0, 10);
+            if (!dayMap[d]) dayMap[d] = [];
+            dayMap[d].push(s);
+          }
+          return;
+        }
+        // Dag-uppdelningen inte laddad än — visa ursprungsraden som fallback tills den är klar.
+      }
       const d = (r.datum || '').substring(0, 10);
       if (!dayMap[d]) dayMap[d] = [];
       dayMap[d].push(r);
