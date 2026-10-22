@@ -3220,7 +3220,12 @@ class TvattlinjeController {
                     'mal_pct'     => $mal_pct,
                     'qual_pct'    => $qual_pct,
                     'oee_pct'     => $oee_pct,
-                    'skift_count' => (int)$r['skift_count'],
+                    // N-bug (Oscar 2026-10-22): skift_count ska räkna skift som BIDRAR MED
+                    // PRODUKTION den dagen (inkl. dag-uppdelade flerdagars-skift, t.ex. en
+                    // dag som bara syns via splitDay — $r['skift_count'] är 0 där eftersom
+                    // ingen rapport SKICKADES just den dagen). Minst 1 när vi vet att ett
+                    // skiftraknare bidrog den dagen via splitten, annars oförändrat.
+                    'skift_count' => $splitDay !== null ? max(1, (int)$r['skift_count']) : (int)$r['skift_count'],
                 ];
             }
 
