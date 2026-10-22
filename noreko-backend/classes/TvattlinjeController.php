@@ -2254,7 +2254,13 @@ class TvattlinjeController {
             }
 
             // Dagar med PLC-data men utan skiftrapport
-            $skiftDagar   = array_unique(array_map(fn($r) => substr($r['datum'] ?? '', 0, 10), $rows));
+            // N-bug (Oscar 2026-10-22): en dag som bara täcks av ett flerdagars-skifts
+            // dag-uppdelning (ingen egen rad i $rows, se ovan) har FAKTISKT en skiftrapport
+            // — bara inlämnad en annan dag. Räkna inte den som "PLC-only" längre.
+            $skiftDagar   = array_unique(array_merge(
+                array_map(fn($r) => substr($r['datum'] ?? '', 0, 10), $rows),
+                array_keys($multiDaySplit['byDag'])
+            ));
             $plcOnlyDays  = array_values(array_filter(array_keys($plcSpanPerDag), fn($d) => !in_array($d, $skiftDagar)));
             sort($plcOnlyDays);
 
