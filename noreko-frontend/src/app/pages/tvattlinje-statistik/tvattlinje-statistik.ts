@@ -2368,16 +2368,23 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       // IBC-antalet (rowIbc nedan) räknar fortfarande alla cykler — bara snittet rensas.
       const cyclesForAvg = this.viewMode === 'day' ? cycles.filter(c => !inRastDay(c)) : cycles;
       const validCycleTimes = cyclesForAvg.map(c => parseFloat(c.cycle_time)).filter(t => !isNaN(t) && t > 0 && t <= 30);
-      const avgCycleTime = validCycleTimes.length > 0
+      const rawAvgCycleTime = validCycleTimes.length > 0
         ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length : 0;
       const taktMal = this.targetCycleTime || 3;
-      // SIGNAD avvikelse mot mål, ingen cap (+ = snabbare, - = långsammare).
-      const efficiency = (avgCycleTime > 0 && taktMal > 0) ? Math.round(((taktMal - avgCycleTime) / taktMal) * 100) : 0;
 
       // BUGG H: cycles.length är RÅA cykelrader (ej dedupade, PLC ej idempotent).
       // Månadsvyn har en rad per dag → använd dagens IBC (ibcPerDag) för både IBC-antal
       // och drifttid, med 600-min-cap. Övriga vyer räknar cykler i egen bucket.
       const rowIbc = this.viewMode === 'month' ? (this.ibcPerDag[this.formatDate(date)] ?? cycles.length) : cycles.length;
+
+      // N-bug (Oscar 2026-10-22, hälsokontroll punkt 4): i månadsvyn kommer rowIbc från
+      // ibcPerDag (en ANNAN källa än cycles) medan avgCycleTime/efficiency räknas från de
+      // råa cycles-raderna i egen bucket — en dag med rowIbc=0 (t.ex. 2026-07-01) kunde
+      // ändå visa en nollskild effektivitet om cycles innehöll några få råa/ströradscykler
+      // som aldrig räknades med i rowIbc. Ingen effektivitet/cykeltid utan IBC.
+      const avgCycleTime = rowIbc > 0 ? rawAvgCycleTime : 0;
+      // SIGNAD avvikelse mot mål, ingen cap (+ = snabbare, - = långsammare).
+      const efficiency = (rowIbc > 0 && avgCycleTime > 0 && taktMal > 0) ? Math.round(((taktMal - avgCycleTime) / taktMal) * 100) : 0;
       // B2: 600-min-cap (max 10h/dag, per CLAUDE.md) appliceras KONSEKVENT. Månad/dag-rad = 1 dag
       // → cap 600. Årsvy-rad = en HEL månad → cap 600 × antal produktionsdagar i månaden (annars
       // okappat rå-cykel×snitt som blåser upp drifttiden). Dagvyn (10-min-intervall) okappad.
