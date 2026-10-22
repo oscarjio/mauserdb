@@ -2191,6 +2191,32 @@ class TvattlinjeController {
                 }
             }
 
+            // N-bug (Oscar 2026-10-22): en förfrågan på BARA en TIDIGARE dag av ett
+            // flerdagars-skift (t.ex. bara 19/10 av 19/10-20/10-skiftet, inskickat 20/10)
+            // har INGEN rad i $rows/$latestPerShift alls (sr.datum=20/10 ligger utanför
+            // [start,end]=[19/10,19/10]) — loopen ovan hinner då aldrig ersätta något för
+            // den dagen. Komplettera direkt från $multiDaySplit för skift som inte redan
+            // producerade en rad i $latestPerShift.
+            $extraSkiftCount = 0;
+            foreach ($multiDaySplit['bySkift'] as $sk => $info) {
+                $alreadyHandled = false;
+                foreach ($latestPerShift as $r) {
+                    if ((int)($r['skiftraknare'] ?? 0) === $sk) { $alreadyHandled = true; break; }
+                }
+                if ($alreadyHandled) continue;
+                $hasDayInWindow = false;
+                foreach ($info['days'] as $d) {
+                    if ($d['dag'] < $start || $d['dag'] > $end) continue;
+                    $hasDayInWindow = true;
+                    $totalOk       += $d['ibc_ok'];
+                    $totalEjOk     += $d['ibc_ej_ok'];
+                    $totalOmtvaatt += $d['omtvaatt'];
+                    $driftPerDag[$d['dag']] = ($driftPerDag[$d['dag']] ?? 0) + $d['drifttid'];
+                    $dagMap[$d['dag']]      = ($dagMap[$d['dag']] ?? 0) + $d['totalt'];
+                }
+                if ($hasDayInWindow) $extraSkiftCount++;
+            }
+
             // Cappa dygnssumman mot PLC-spann och summera till total_drifttid
             $totalDrifttid = 0;
             foreach ($driftPerDag as $d => $sum) {
@@ -2243,7 +2269,9 @@ class TvattlinjeController {
                     'total_drifttid'  => $totalDrifttid,
                     // D: räkna deduplicerade skift (senaste post per dag+skiftraknare), inte
                     // snapshot-rader — annars överräknas skift_count på multi-snapshot-dagar.
-                    'skift_count'     => count($latestPerShift),
+                    // + extraSkiftCount (Oscar 2026-10-22): flerdagars-skift som bidrog med
+                    // produktion i fönstret men vars rad (inlämningsdagen) ligger utanför det.
+                    'skift_count'     => count($latestPerShift) + $extraSkiftCount,
                     'avg_godkand_pct' => $avgGodkandPct,
                     'avg_cycle_time'  => $avgCycleTime,
                     'basta_dag'       => $bastaDag,
