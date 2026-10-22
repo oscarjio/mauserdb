@@ -572,6 +572,15 @@ class TvattlinjeController {
     private function skiftrapportIbcPerDag(string $start, string $end): array {
         $out = [];
         try {
+            // N-bug (Oscar 2026-10-22, BRÅDSKANDE 2026-09-29=331): en skiftrapport-rad med
+            // ett skiftraknare-värde som INTE har EN ENDA rad i tvattlinje_ibc är en spökrapport
+            // — ingen PLC-cykel styrker att det skiftet någonsin kördes. Bevis: skiftraknare=39
+            // (datum 2026-09-29, totalt=176) har 0 rader i tvattlinje_ibc, men matchar EXAKT
+            // skiftraknare=38:s (kördes 2026-09-28) sista PLC-värden (163/9/4) — en felnumrerad/
+            // feldaterad dubblett, saknar egen skiftrapport för 38. Utan detta filter summeras
+            // spökraden IN på 2026-09-29 ovanpå den riktiga rapporten (skiftraknare=40, 155) =
+            // 331 i stället för de verkliga 156 PLC-cyklerna. Exkludera skiftraknare utan PLC-stöd
+            // (men behåll rader utan skiftraknare alls — de har aldrig haft PLC-koppling).
             $stmt = $this->pdo->prepare("
                 SELECT DATE(sr.datum) AS dag, COALESCE(SUM(sr.totalt), 0) AS ibc
                 FROM tvattlinje_skiftrapport sr
@@ -581,6 +590,8 @@ class TvattlinjeController {
                     WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                 ) latest ON sr.id = latest.max_id
+                WHERE sr.skiftraknare IS NULL OR sr.skiftraknare = 0
+                   OR EXISTS (SELECT 1 FROM tvattlinje_ibc gx WHERE gx.skiftraknare = sr.skiftraknare)
                 GROUP BY DATE(sr.datum)
             ");
             $stmt->execute(['s' => $start, 'e' => $end]);
@@ -643,6 +654,9 @@ class TvattlinjeController {
 
             // SR-golv: SUM(totalt) per dag från senaste posten per (dag, skiftraknare) — samma
             // dedup som getOeeTrend/skiftrapportIbcPerDag. På dag med rapport: max(PLC, SR).
+            // N-bug (Oscar 2026-10-22, BRÅDSKANDE 2026-09-29=331): exkludera skiftraknare utan
+            // EN ENDA rad i tvattlinje_ibc (spökrapport, se skiftrapportIbcPerDag ovan för bevis)
+            // — annars höjer "golvet" IBC/dag långt över PLC:s verkliga antal för den dagen.
             $srStmt = $this->pdo->prepare("
                 SELECT DATE(sr.datum) AS dag, COALESCE(SUM(sr.totalt), 0) AS ibc
                 FROM tvattlinje_skiftrapport sr
@@ -652,6 +666,8 @@ class TvattlinjeController {
                     WHERE datum >= :s AND datum < DATE_ADD(:e, INTERVAL 1 DAY)
                     GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                 ) latest ON sr.id = latest.max_id
+                WHERE sr.skiftraknare IS NULL OR sr.skiftraknare = 0
+                   OR EXISTS (SELECT 1 FROM tvattlinje_ibc gx WHERE gx.skiftraknare = sr.skiftraknare)
                 GROUP BY DATE(sr.datum)
             ");
             $srStmt->execute(['s' => $start, 'e' => $end]);
@@ -2147,9 +2163,32 @@ class TvattlinjeController {
             // OEE-trend/Excel).
             $multiDaySplit = TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end);
 
+            // N-bug (Oscar 2026-10-22, BRÅDSKANDE 2026-09-29=331): skiftraknare utan EN ENDA
+            // rad i tvattlinje_ibc är en spökrapport — ingen PLC-cykel styrker att skiftet
+            // kördes. Bevis: skiftraknare=39 (datum 2026-09-29, totalt=176, 0 PLC-rader)
+            // dubblade skiftraknare=40:s verkliga 155 till 331 för samma dag. Raden syns
+            // fortfarande i listan (ibc_avviker flaggar den), men räknas inte in i
+            // total_ok/total_ej_ok/total_omtvaatt/skift_count/driftPerDag nedan.
+            $skiftraknareIds = array_values(array_unique(array_filter(
+                array_map(fn($r) => (int)($r['skiftraknare'] ?? 0), $rows)
+            )));
+            $validSkiftraknare = [];
+            if (!empty($skiftraknareIds)) {
+                try {
+                    $ph = implode(',', array_fill(0, count($skiftraknareIds), '?'));
+                    $vstmt = $this->pdo->prepare("SELECT DISTINCT skiftraknare FROM tvattlinje_ibc WHERE skiftraknare IN ($ph)");
+                    $vstmt->execute($skiftraknareIds);
+                    $validSkiftraknare = array_map('intval', $vstmt->fetchAll(\PDO::FETCH_COLUMN));
+                } catch (\Throwable $e) { error_log('TvattlinjeController::getSkiftrapportStatistik validSkiftraknare: ' . $e->getMessage()); }
+            }
+
             // Summerade KPI:er + dagsaggregat — från deduplicerade skift
             foreach ($latestPerShift as $r) {
                 $sk = (int)($r['skiftraknare'] ?? 0);
+
+                if ($sk > 0 && !in_array($sk, $validSkiftraknare, true)) {
+                    continue; // spökrapport — ingen PLC-evidens, exkluderad ur summeringen
+                }
 
                 if (isset($multiDaySplit['bySkift'][$sk])) {
                     // Flerdagars-skift: ersätt HELA radens bidrag med summan av bara de
@@ -3044,6 +3083,12 @@ class TvattlinjeController {
                             WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :dagar3 DAY) AND datum < CURDATE() + INTERVAL 1 DAY
                             GROUP BY DATE(datum), COALESCE(skiftraknare, 0)
                         ) latest ON sr.id = latest.max_id
+                        -- N-bug (Oscar 2026-10-22, BRÅDSKANDE 2026-09-29=331): exkludera skiftraknare
+                        -- utan EN ENDA rad i tvattlinje_ibc (spökrapport — se skiftrapportIbcPerDag()
+                        -- för bevis: skiftraknare=39 hade totalt=176 men 0 PLC-cykler, dubblerade
+                        -- skiftraknare=40:s 155 till 331 för samma dag).
+                        WHERE sr.skiftraknare IS NULL OR sr.skiftraknare = 0
+                           OR EXISTS (SELECT 1 FROM tvattlinje_ibc gx WHERE gx.skiftraknare = sr.skiftraknare)
                         GROUP BY DATE(sr.datum)
                     ) sr ON sr.dag = alldays.dag
                     LEFT JOIN (
