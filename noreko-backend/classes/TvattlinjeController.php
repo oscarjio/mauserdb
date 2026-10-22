@@ -1525,6 +1525,13 @@ class TvattlinjeController {
                 }
             }
 
+            // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): EN gemensam dag-uppdelning för hela
+            // metoden (drifttid-primärkällan nedan OCH korrupt-dag-detektorn längre ner) —
+            // undviker två identiska DB-anrop och ser till att korrupt-dag-detektorn känner
+            // till samma dagar som redan fått sin drifttid rättad, så den aldrig återigen drar
+            // bort en redan korrekt dag-uppdelad dags nettodrifttid/IBC ur cykeltidssnittet.
+            $multiDaySplitByDag = TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end)['byDag'];
+
             // Hämta takt_mal från settings
             $target_cycle_time = 3.0;
             try {
@@ -1725,7 +1732,7 @@ class TvattlinjeController {
                 // drifttid (tidigare hela rapportens råa D4007-värde på inlämningsdagen,
                 // vilket dubbelräknade mot den dag cyklerna faktiskt kördes PÅ) med den
                 // korrekta per-dag-uppdelningen. Läs-tid, ingen DB-skrivning.
-                foreach (TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end)['byDag'] as $dag => $d) {
+                foreach ($multiDaySplitByDag as $dag => $d) {
                     if ($dag >= $start && $dag <= $end) $driftPerDagMap[$dag] = $d['drifttid'];
                 }
                 $srDrifttid = array_sum($driftPerDagMap);
@@ -1939,6 +1946,17 @@ class TvattlinjeController {
                 $corruptStmt->execute(['cs' => $start, 'ce' => $end, 'cs2' => $start, 'ce2' => $end]);
                 foreach ($corruptStmt->fetchAll(\PDO::FETCH_ASSOC) as $cd) {
                     $corruptDays[$cd['dag']] = (float)$cd['raw_drift'];
+                }
+                // N-bug (Oscar 2026-10-22, hälsokontroll punkt 2): denna detektor jämför
+                // sr.raw_drift (HELA flerdagars-rapportens råa, ocappade drifttid, t.ex. 1893
+                // för ett 2-dagarsskift) mot DAGENS EGNA PLC-spann — träffar därför alltid på
+                // en legitim dag-uppdelad dag (1893 > dagens span×1,5) trots att den redan har
+                // en korrekt, validerad, cappad drifttid från multiDaySplitPerDag(). Det drog
+                // bort HELA dagens redan korrekta nettodrifttid/IBC ur cykeltidssnittet nedan
+                // (→ avg_cycle_time 0, avg_production_percent null). Dagar som redan har en
+                // dag-uppdelning är ALDRIG korrupta i den här bemärkelsen — ta bort dem.
+                foreach (array_keys($multiDaySplitByDag) as $splitDag) {
+                    unset($corruptDays[$splitDag]);
                 }
             } catch (\Throwable $e) { error_log('TvattlinjeController::getStatistics corruptDays: ' . $e->getMessage()); }
 
