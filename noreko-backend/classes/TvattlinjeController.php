@@ -2136,8 +2136,36 @@ class TvattlinjeController {
             }
             unset($r);
 
+            // N-bug (Oscar 2026-10-22 DUBBELSKIFT): flerdagars-rapporter attribuerade
+            // tidigare HELA sin ok/ej_ok/omtvätt/drifttid till inlämningsdagen i summeringen
+            // nedan, oavsett vilket [start,end]-fönster som efterfrågades — en narrow
+            // förfrågan på BARA inlämningsdagen (t.ex. bara 20/10 av ett 19/10-20/10-skift)
+            // fick då hela skiftets 321 ok trots att total_ibc för samma dag redan korrekt
+            // visade bara 162. Beräkna dag-uppdelningen EN gång här, före summerings-
+            // loopen, så flerdagars-skift kan ersättas rad-för-rad i stället för att
+            // efterhandskorrigeras (mindre felbenäget, samma källa som daglig-breakdown/
+            // OEE-trend/Excel).
+            $multiDaySplit = TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end);
+
             // Summerade KPI:er + dagsaggregat — från deduplicerade skift
             foreach ($latestPerShift as $r) {
+                $sk = (int)($r['skiftraknare'] ?? 0);
+
+                if (isset($multiDaySplit['bySkift'][$sk])) {
+                    // Flerdagars-skift: ersätt HELA radens bidrag med summan av bara de
+                    // kalenderdagar (inom [start,end]) cyklerna faktiskt kördes på — aldrig
+                    // hela rapportens råa totalt/drifttid på inlämningsdagen.
+                    foreach ($multiDaySplit['bySkift'][$sk]['days'] as $d) {
+                        if ($d['dag'] < $start || $d['dag'] > $end) continue;
+                        $totalOk       += $d['ibc_ok'];
+                        $totalEjOk     += $d['ibc_ej_ok'];
+                        $totalOmtvaatt += $d['omtvaatt'];
+                        $driftPerDag[$d['dag']] = ($driftPerDag[$d['dag']] ?? 0) + $d['drifttid'];
+                        $dagMap[$d['dag']]      = ($dagMap[$d['dag']] ?? 0) + $d['totalt'];
+                    }
+                    continue;
+                }
+
                 $ok       = (int)($r['antal_ok']    ?? 0);
                 $ejOk     = (int)($r['antal_ej_ok'] ?? 0);
                 $omtv     = (int)($r['omtvaatt']    ?? 0);
@@ -2160,27 +2188,6 @@ class TvattlinjeController {
                 // Samla per dag för bästa dag (totalt inkl. omtvätt)
                 if ($dag) {
                     $dagMap[$dag] = ($dagMap[$dag] ?? 0) + $tot;
-                }
-            }
-
-            // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): flerdagars-rapporter bidrog ovan med
-            // HELA sin (per-rad-cappade) drifttid till inlämningsdagen i $driftPerDag — ta
-            // bort det felaktiga hela bidraget och ersätt med den korrekta per-dag-
-            // uppdelningen (läs-tid, ingen DB-skrivning, se TvattlinjeMetrics).
-            $multiDaySplit = TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end);
-            foreach ($multiDaySplit['bySkift'] as $sk => $info) {
-                $submissionDag = $info['submissionDag'];
-                $shiftKey = $submissionDag . '#' . $sk;
-                if (isset($latestPerShift[$shiftKey])) {
-                    $wrongContribution = min(600, max(0, (float)($latestPerShift[$shiftKey]['drifttid'] ?? 0)));
-                    if (isset($driftPerDag[$submissionDag])) {
-                        $driftPerDag[$submissionDag] = max(0, $driftPerDag[$submissionDag] - $wrongContribution);
-                    }
-                }
-                foreach ($info['days'] as $d) {
-                    if ($d['dag'] >= $start && $d['dag'] <= $end) {
-                        $driftPerDag[$d['dag']] = ($driftPerDag[$d['dag']] ?? 0) + $d['drifttid'];
-                    }
                 }
             }
 
