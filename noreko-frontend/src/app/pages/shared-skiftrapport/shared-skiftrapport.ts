@@ -1320,7 +1320,16 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
             // Backend PLC-först/deduperade totaler direkt från lineskiftrapport (finns
             // när Pi kör ny kod). På dev är lineskiftrapport Pi-passthru → saknas här,
             // hämtas då separat via VPS-lokala fetchDayTotals() nedan.
-            this.backendDayTotals = res.day_totals ?? null;
+            // N-bug (Oscar 2026-10-23, "siffror hoppar"): för tvättlinje nollställde denna
+            // rad backendDayTotals vid VARJE 15s-poll (res.day_totals saknas alltid på
+            // Pi-passthru) → recomputeKpis() blixtrade fram rå-summan (dubbelräknade
+            // snapshots) i väntan på att fetchDayTotals() hann korrigera den en liten
+            // stund senare — upprepades varje poll, inte bara vid första laddning. Behåll
+            // i stället senaste kända PLC-först-värdet för tvättlinje tills fetchDayTotals
+            // faktiskt har ett nytt (eller misslyckas — se fetchDayTotals nedan).
+            if (this.config.line !== 'tvattlinje') {
+              this.backendDayTotals = res.day_totals ?? null;
+            }
             this.backendGrandTotalIbc = (typeof res.grand_total_ibc === 'number') ? res.grand_total_ibc : null;
             if (silent) {
               const ec = { ...this.expanded };
