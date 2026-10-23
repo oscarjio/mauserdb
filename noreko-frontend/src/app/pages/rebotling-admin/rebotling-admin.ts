@@ -12,12 +12,6 @@ import { environment } from '../../../environments/environment';
 
 Chart.register(...registerables);
 
-interface GoalException {
-  datum: string;
-  justerat_mal: number;
-  orsak: string;
-}
-
 interface ServiceStatus {
   service_interval: number;
   last_service_at: string | null;
@@ -59,7 +53,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
 
   // ---- Admin-inställningar (befintliga) ----
   settings = {
-    rebotlingTarget: 1000,
     hourlyTarget: 50,
     shiftHours: 8.0,
     minOperators: 2,
@@ -69,17 +62,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
   settingsSaving  = false;
   settingsError   = '';
   settingsSaved   = false;
-
-  // ---- Veckodagsmål ----
-  weekdayGoals: { weekday: number; daily_goal: number; label: string }[] = [];
-  weekdayLoading = false;
-  weekdaySaving  = false;
-  weekdayError   = '';
-  weekdaySaved   = false;
-  // Snabbval
-  quickSetValue: number = 0;
-  // ISO-veckodagsnummer idag (1=Måndag ... 7=Söndag)
-  todayWeekday: number = new Date().getDay() === 0 ? 7 : new Date().getDay();
 
   // ---- Skifttider ----
   shiftTimes: { shift_name: string; start_time: string; end_time: string; enabled: boolean }[] = [];
@@ -182,7 +164,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
       ibc_per_hour: true,
       quality_pct: true,
       bonus_level: false,
-      goal_progress: true,
       ibc_today: true
     },
     sort_by: 'ibc_per_hour',
@@ -208,21 +189,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
   private correlationChart: Chart | null = null;
   @ViewChild('correlationChartCanvas') correlationChartRef!: ElementRef;
 
-  // ---- Dagsmål-historik ----
-  goalHistory: any[] = [];
-  goalHistoryLoading = false;
-  goalHistoryPeriod = 180;  // 90 = 3 mån, 180 = 6 mån, 365 = 12 mån
-  private goalHistoryChart: Chart | null = null;
-
-  // ---- Anpassade dagsmål (datum-undantag) ----
-  goalExceptions: GoalException[] = [];
-  goalExceptionsLoading = false;
-  newExceptionDatum: string = localToday();
-  newExceptionMal: number = 0;
-  newExceptionOrsak: string = '';
-  savingException = false;
-  exceptionSaveMsg = '';
-
   // ---- Visibilitychange-guard ----
   private visibilityHandler = () => this.onVisibilityChange();
 
@@ -244,8 +210,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     clearInterval(this.todaySnapshotInterval);
     try { this.maintenanceChart?.destroy(); } catch (e) {}
     this.maintenanceChart = null;
-    try { this.goalHistoryChart?.destroy(); } catch (e) {}
-    this.goalHistoryChart = null;
     try { this.correlationChart?.destroy(); } catch (e) {}
     this.correlationChart = null;
     this.destroy$.next();
@@ -257,7 +221,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
 
     this.loadProducts();
     this.loadSettings();
-    this.loadWeekdayGoals();
     this.loadShiftTimes();
     this.loadSystemStatus();
     this.loadTodaySnapshot();
@@ -265,8 +228,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     this.loadNotificationSettings();
     this.loadLrSettings();
     this.loadLrConfig();
-    this.loadGoalHistory();
-    this.loadGoalExceptions();
     this.loadServiceStatus();
     this.loadMaintenanceCorrelation();
     this.loadKassationTyper();
@@ -333,7 +294,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
       .subscribe({
         next: (res) => {
           if (res?.success && res.data) {
-            this.settings.rebotlingTarget = res.data.rebotlingTarget;
             this.settings.hourlyTarget    = res.data.hourlyTarget;
             this.settings.shiftHours      = res.data.shiftHours;
             this.settings.minOperators    = res.data.minOperators ?? 2;
@@ -356,11 +316,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
     this.settingsSaved  = false;
 
     // Validera att nyckeltal inte är negativa/noll
-    if (!this.settings.rebotlingTarget || this.settings.rebotlingTarget < 1) {
-      this.settingsError = 'Dagsmål måste vara minst 1';
-      this.settingsSaving = false;
-      return;
-    }
     if (!this.settings.hourlyTarget || this.settings.hourlyTarget < 1) {
       this.settingsError = 'Timmål måste vara minst 1';
       this.settingsSaving = false;
@@ -390,80 +345,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           this.settingsSaving = false;
         }
       });
-  }
-
-  // ========== Veckodagsmål ==========
-  loadWeekdayGoals() {
-    this.weekdayLoading = true;
-    this.weekdayError   = '';
-    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=weekday-goals`, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe({
-        next: (res) => {
-          if (res?.success && res.data) {
-            this.weekdayGoals = res.data;
-          }
-          this.weekdayLoading = false;
-        },
-        error: () => {
-          this.weekdayError   = 'Kunde inte ladda veckodagsmål';
-          this.weekdayLoading = false;
-        }
-      });
-  }
-
-  saveWeekdayGoals() {
-    this.weekdaySaving = true;
-    this.weekdayError  = '';
-    this.weekdaySaved  = false;
-    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=weekday-goals`,
-      { goals: this.weekdayGoals }, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe({
-        next: (res) => {
-          if (res?.success) {
-            this.weekdaySaved = true;
-            this.showSuccess('Veckodagsmål sparade!');
-            this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.weekdaySaved = false; }, 3000));
-          } else {
-            this.weekdayError = res?.error || 'Kunde inte spara';
-          }
-          this.weekdaySaving = false;
-        },
-        error: () => {
-          this.weekdayError  = 'Serverfel vid sparning';
-          this.weekdaySaving = false;
-        }
-      });
-  }
-
-  /** Kopiera mån-fre-snittet till helgen (lör+sön) */
-  copyWeekdayToWeekend() {
-    const weekdays = this.weekdayGoals.filter(g => g.weekday >= 1 && g.weekday <= 5);
-    if (!weekdays.length) return;
-    const avg = Math.round(weekdays.reduce((s, g) => s + g.daily_goal, 0) / weekdays.length);
-    this.weekdayGoals.forEach(g => {
-      if (g.weekday === 6 || g.weekday === 7) g.daily_goal = avg;
-    });
-  }
-
-  /** Sätt alla veckodagsmål till quickSetValue */
-  setAllWeekdayGoals() {
-    const val = Math.max(0, Math.round(this.quickSetValue || 0));
-    this.weekdayGoals.forEach(g => g.daily_goal = val);
-  }
-
-  /** Returnerar true om veckodagets weekday är idag */
-  isToday(weekday: number): boolean {
-    return weekday === this.todayWeekday;
-  }
-
-  /** Returnerar 'on-goal'|'below-goal'|null beroende på om snapshot finns */
-  weekdayGoalStatus(goal: number): 'on-goal' | 'below-goal' | null {
-    if (!this.todaySnapshot) return null;
-    if (goal === 0) return null;
-    const pct = this.todaySnapshot.pct_of_goal;
-    return pct >= 100 ? 'on-goal' : 'below-goal';
   }
 
   // ========== Skifttider ==========
@@ -892,22 +773,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
       });
   }
 
-  get snapshotColorClass(): string {
-    if (!this.todaySnapshot) return 'text-secondary';
-    const pct = this.todaySnapshot.pct_of_goal;
-    if (pct >= 100) return 'text-success';
-    if (pct >= 80)  return 'text-warning';
-    return 'text-danger';
-  }
-
-  get snapshotBorderClass(): string {
-    if (!this.todaySnapshot) return '';
-    const pct = this.todaySnapshot.pct_of_goal;
-    if (pct >= 100) return 'snapshot-green';
-    if (pct >= 80)  return 'snapshot-orange';
-    return 'snapshot-red';
-  }
-
   // ========== Alert-trösklar ==========
   loadAlertThresholds() {
     this.alertThresholdsLoading = true;
@@ -1014,104 +879,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           this.notificationSettingsSaving = false;
         }
       });
-  }
-
-  // ========== Dagsmål-historik ==========
-  changeGoalHistoryPeriod(days: number) {
-    this.goalHistoryPeriod = days;
-    this.loadGoalHistory();
-  }
-
-  loadGoalHistory() {
-    this.goalHistoryLoading = true;
-    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=goal-history&days=${this.goalHistoryPeriod}`, { withCredentials: true })
-      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.goalHistoryLoading = false;
-        if (res?.success) {
-          this.goalHistory = res.data;
-          this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.buildGoalHistoryChart(); }, 100));
-        }
-      });
-  }
-
-  buildGoalHistoryChart() {
-    const canvas = document.getElementById('goalHistoryChart') as HTMLCanvasElement | null;
-    if (!canvas || this.goalHistory.length < 1) return;
-
-    try { this.goalHistoryChart?.destroy(); } catch (e) {}
-
-    // Bygg steg-data: varje ändring gäller tills nästa ändring
-    const labels = this.goalHistory.map((h: any) => {
-      const d = parseLocalDate(h.changed_at);
-      return d.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric', year: '2-digit' });
-    });
-    const values = this.goalHistory.map((h: any) => h.value);
-
-    // Nuvarande mål = senaste värdet
-    const currentGoal = values.length > 0 ? values[values.length - 1] : null;
-
-    // Markera nuvarande mål med en horisontell linje (annotation via extra dataset)
-    const datasets: any[] = [{
-      label: 'Dagsmål (IBC/dag)',
-      data: values,
-      borderColor: '#f6ad55',
-      backgroundColor: 'rgba(246,173,85,0.12)',
-      borderWidth: 2,
-      pointRadius: 5,
-      pointBackgroundColor: '#f6ad55',
-      stepped: true,
-      fill: true,
-    }];
-
-    // Lägg till en horisontell referenslinje för nuvarande mål
-    if (currentGoal !== null && values.length > 1) {
-      datasets.push({
-        label: `Nuvarande mål: ${currentGoal} IBC`,
-        data: labels.map(() => currentGoal),
-        borderColor: '#63b3ed',
-        borderWidth: 1,
-        borderDash: [6, 4],
-        pointRadius: 0,
-        fill: false,
-      });
-    }
-
-    if (this.goalHistoryChart) { (this.goalHistoryChart as any).destroy(); }
-    this.goalHistoryChart = new Chart(canvas, {
-      type: 'line',
-      data: { labels, datasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: '#e2e8f0' } },
-          tooltip: {
-            intersect: false, mode: 'nearest',
-            callbacks: {
-              label: (ctx: any) => {
-                const v = ctx.parsed.y;
-                if (v == null) return '';
-                if (ctx.datasetIndex === 1) return `Nuvarande mål: ${v} IBC/dag`;
-                return `Mål: ${v} IBC/dag`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: {
-            ticks: { color: '#a0aec0', maxTicksLimit: 10 },
-            grid: { color: 'rgba(255,255,255,0.06)' }
-          },
-          y: {
-            title: { display: true, text: 'IBC per dag', color: '#a0aec0' },
-            ticks: { color: '#a0aec0' },
-            grid: { color: 'rgba(255,255,255,0.06)' },
-            beginAtZero: false
-          }
-        }
-      }
-    });
   }
 
   // ========== Live Ranking TV-inställningar ==========
@@ -1261,70 +1028,6 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit, Com
           this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.kassationSaved = false; }, 3000));
         } else {
           this.kassationError = res?.error || 'Kunde inte registrera kassation';
-        }
-      });
-  }
-
-  // ========== Anpassade dagsmål (datum-undantag) ==========
-  loadGoalExceptions() {
-    this.goalExceptionsLoading = true;
-    this.http.get<any>(`${environment.apiUrl}?action=rebotling&run=goal-exceptions`, { withCredentials: true })
-      .pipe(
-        timeout(15000),
-        catchError(() => of(null)), takeUntil(this.destroy$)
-      )
-      .subscribe((res: any) => {
-        this.goalExceptionsLoading = false;
-        if (res?.success) {
-          this.goalExceptions = res.exceptions || [];
-        }
-      });
-  }
-
-  saveGoalException() {
-    if (!this.newExceptionDatum || this.newExceptionMal <= 0) {
-      this.exceptionSaveMsg = 'Fyll i datum och mål (> 0)';
-      return;
-    }
-    this.savingException = true;
-    this.exceptionSaveMsg = '';
-    const body = {
-      datum: this.newExceptionDatum,
-      justerat_mal: this.newExceptionMal,
-      orsak: this.newExceptionOrsak
-    };
-    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=save-goal-exception`, body, { withCredentials: true })
-      .pipe(
-        timeout(15000),
-        catchError(() => of(null)), takeUntil(this.destroy$)
-      )
-      .subscribe((res: any) => {
-        this.savingException = false;
-        if (res?.success) {
-          this.exceptionSaveMsg = 'Undantag sparat!';
-          this.newExceptionMal = 0;
-          this.newExceptionOrsak = '';
-          this.newExceptionDatum = localToday();
-          this.loadGoalExceptions();
-          this.showSuccess('Undantag sparat!');
-          this._feedbackTimers.push(setTimeout(() => { if (!this.destroy$.closed) this.exceptionSaveMsg = ''; }, 3000));
-        } else {
-          this.exceptionSaveMsg = res?.error || 'Kunde inte spara undantag';
-        }
-      });
-  }
-
-  deleteGoalException(datum: string) {
-    this.http.post<any>(`${environment.apiUrl}?action=rebotling&run=delete-goal-exception`,
-      { datum }, { withCredentials: true })
-      .pipe(
-        timeout(15000),
-        catchError(() => of(null)), takeUntil(this.destroy$)
-      )
-      .subscribe((res: any) => {
-        if (res?.success) {
-          this.loadGoalExceptions();
-          this.showSuccess('Undantag borttaget');
         }
       });
   }

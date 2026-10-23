@@ -28,7 +28,6 @@ import { StatistikSkiftrapportOperatorComponent } from './statistik/statistik-sk
 import { StatistikKvalitetDeepdiveComponent } from './statistik/statistik-kvalitet-deepdive/statistik-kvalitet-deepdive';
 import { StatistikAnnotationerComponent } from './statistik/statistik-annotationer/statistik-annotationer';
 import { StatistikOeeGaugeComponent } from './statistik/statistik-oee-gauge/statistik-oee-gauge';
-import { StatistikProduktionsmalComponent } from './statistik/statistik-produktionsmal/statistik-produktionsmal';
 import { StatistikSkiftjamforelseComponent } from './statistik/statistik-skiftjamforelse/statistik-skiftjamforelse';
 import { StatistikBonusSimulatorComponent } from './statistik/statistik-bonus-simulator/statistik-bonus-simulator';
 import { StatistikLeaderboardComponent } from './statistik/statistik-leaderboard/statistik-leaderboard';
@@ -119,7 +118,7 @@ interface TableRow {
     StatistikOeeKomponenterComponent, StatistikKvalitetsanalysComponent, StatistikHandelserComponent,
     StatistikVeckojamforelseComponent, StatistikPrediktionComponent, StatistikOeeDeepdiveComponent, StatistikCykeltrendComponent,
     StatistikSkiftrapportOperatorComponent, StatistikKvalitetDeepdiveComponent,
-    StatistikAnnotationerComponent, StatistikOeeGaugeComponent, StatistikProduktionsmalComponent,
+    StatistikAnnotationerComponent, StatistikOeeGaugeComponent,
     StatistikSkiftjamforelseComponent, StatistikBonusSimulatorComponent,
     StatistikLeaderboardComponent, StatistikUptidHeatmapComponent,
     StatistikVeckotrendComponent, StatistikKassationsanalysComponent]

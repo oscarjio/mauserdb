@@ -58,7 +58,6 @@ class RebotlingAdminController {
             $row = $this->pdo->query("SELECT * FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
 
             $settings = [
-                'rebotlingTarget' => (int)($row['rebotling_target'] ?? 1000),
                 'hourlyTarget'    => (int)($row['hourly_target']    ?? 50),
                 'shiftHours'      => (float)($row['shift_hours']    ?? 8.0),
                 'minOperators'    => (int)($row['min_operators']    ?? 2),
@@ -89,7 +88,6 @@ class RebotlingAdminController {
         try {
             $this->ensureSettingsTable();
 
-            $rebotlingTarget = isset($data['rebotlingTarget']) ? max(1, min(99999, intval($data['rebotlingTarget']))) : null;
             $hourlyTarget    = isset($data['hourlyTarget'])    ? max(1, min(9999, intval($data['hourlyTarget'])))    : null;
             $shiftHoursRaw   = isset($data['shiftHours'])      ? floatval($data['shiftHours']) : null;
             $shiftHours      = ($shiftHoursRaw !== null && is_finite($shiftHoursRaw)) ? max(1.0, min(24.0, $shiftHoursRaw)) : null;
@@ -101,7 +99,6 @@ class RebotlingAdminController {
 
             $fields = [];
             $params = [];
-            if ($rebotlingTarget !== null) { $fields[] = 'rebotling_target = ?'; $params[] = $rebotlingTarget; }
             if ($hourlyTarget    !== null) { $fields[] = 'hourly_target = ?';    $params[] = $hourlyTarget; }
             if ($shiftHours      !== null) { $fields[] = 'shift_hours = ?';      $params[] = $shiftHours; }
             if ($autoStart       !== null) { $fields[] = 'auto_start = ?';       $params[] = $autoStart; }
@@ -121,29 +118,6 @@ class RebotlingAdminController {
                 $stmt->execute($params);
             }
 
-            // Logga mål-ändringar i historiktoken
-            if ($rebotlingTarget !== null) {
-                $user = $_SESSION['username'] ?? ($_SESSION['user_login'] ?? 'system');
-                try {
-                    $this->pdo->exec("
-                        CREATE TABLE IF NOT EXISTS rebotling_goal_history (
-                            id INT AUTO_INCREMENT PRIMARY KEY,
-                            goal_type VARCHAR(50) NOT NULL DEFAULT 'dagmal',
-                            value INT NOT NULL,
-                            changed_by VARCHAR(100),
-                            changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            INDEX idx_type_time (goal_type, changed_at)
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-                    ");
-                    $logStmt = $this->pdo->prepare(
-                        "INSERT INTO rebotling_goal_history (goal_type, value, changed_by) VALUES ('dagmal', ?, ?)"
-                    );
-                    $logStmt->execute([intval($rebotlingTarget), $user]);
-                } catch (\Throwable $logEx) {
-                    error_log('RebotlingAdminController::saveAdminSettings (goal history): ' . $logEx->getMessage());
-                }
-            }
-
             // Invalidera cache: settings påverkar livestats, month-compare, dashboards
             $this->invalidateCache(['livestats_result', 'month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
 
@@ -155,91 +129,6 @@ class RebotlingAdminController {
         }
     }
 
-
-    private function ensureWeekdayGoalsTable() {
-        $this->pdo->exec("
-            CREATE TABLE IF NOT EXISTS `rebotling_weekday_goals` (
-                `id`          INT         NOT NULL AUTO_INCREMENT,
-                `weekday`     TINYINT     NOT NULL COMMENT '1=Måndag ... 7=Söndag (ISO)',
-                `daily_goal`  INT         NOT NULL DEFAULT 1000,
-                `label`       VARCHAR(20) NOT NULL DEFAULT '',
-                `updated_at`  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                PRIMARY KEY (`id`),
-                UNIQUE KEY `uq_weekday` (`weekday`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        ");
-        // Standardvärden
-        $defaults = [
-            [1, 900,  'Måndag'],
-            [2, 1000, 'Tisdag'],
-            [3, 1000, 'Onsdag'],
-            [4, 1000, 'Torsdag'],
-            [5, 950,  'Fredag'],
-            [6, 0,    'Lördag'],
-            [7, 0,    'Söndag'],
-        ];
-        $stmt = $this->pdo->prepare("INSERT IGNORE INTO rebotling_weekday_goals (weekday, daily_goal, label) VALUES (?, ?, ?)");
-        foreach ($defaults as [$wd, $goal, $lbl]) {
-            $stmt->execute([$wd, $goal, $lbl]);
-        }
-    }
-
-
-    public function getWeekdayGoals() {
-        try {
-            $this->ensureWeekdayGoalsTable();
-            $rows = $this->pdo->query("SELECT weekday, daily_goal, label FROM rebotling_weekday_goals ORDER BY weekday")->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (\Throwable $e) {
-            error_log('RebotlingAdminController::getWeekdayGoals: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål'], JSON_UNESCAPED_UNICODE);
-        }
-    }
-
-
-    public function saveWeekdayGoals() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!is_array($data)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
-            return;
-        }
-        $goals = $data['goals'] ?? [];
-        if (!is_array($goals)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltig data'], JSON_UNESCAPED_UNICODE);
-            return;
-        }
-        try {
-            $this->ensureWeekdayGoalsTable();
-            $this->pdo->beginTransaction();
-            try {
-                $stmt = $this->pdo->prepare("UPDATE rebotling_weekday_goals SET daily_goal = ? WHERE weekday = ?");
-                foreach ($goals as $item) {
-                    $wd   = intval($item['weekday'] ?? 0);
-                    $goal = max(0, intval($item['daily_goal'] ?? 0));
-                    if ($wd >= 1 && $wd <= 7) {
-                        $stmt->execute([$goal, $wd]);
-                    }
-                }
-                $this->pdo->commit();
-            } catch (\Throwable $txEx) {
-                if ($this->pdo->inTransaction()) {
-                    $this->pdo->rollBack();
-                }
-                throw $txEx;
-            }
-            // Invalidera cache: veckodagsmål påverkar month-compare och dashboards
-            $this->invalidateCache(['month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
-
-            echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade'], JSON_UNESCAPED_UNICODE);
-        } catch (\Throwable $e) {
-            error_log('RebotlingAdminController::saveWeekdayGoals: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål'], JSON_UNESCAPED_UNICODE);
-        }
-    }
 
     // =========================================================
     // Alert-trösklar
@@ -355,7 +244,6 @@ class RebotlingAdminController {
         try {
             $tz  = new DateTimeZone('Europe/Stockholm');
             $now = new DateTime('now', $tz);
-            $iso = (int)$now->format('N');
 
             // Konsoliderad query: IBC idag + takt + running + settings i en enda fråga
             $this->ensureSettingsTable();
@@ -364,12 +252,9 @@ class RebotlingAdminController {
                     (SELECT COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY) AS ibc_today,
                     (SELECT COALESCE(SUM(GREATEST(max_ok - min_ok, 0)), 0) FROM (SELECT skiftraknare, MAX(ibc_ok) AS max_ok, MIN(ibc_ok) AS min_ok FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR) AND ibc_ok IS NOT NULL GROUP BY skiftraknare) ps2) AS ibc_2h,
                     (SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1) AS is_running,
-                    (SELECT rebotling_target FROM rebotling_settings WHERE id = 1) AS rebotling_target,
-                    (SELECT shift_hours FROM rebotling_settings WHERE id = 1) AS shift_hours,
-                    (SELECT daily_goal FROM rebotling_weekday_goals WHERE weekday = ? LIMIT 1) AS weekday_goal,
-                    (SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE() LIMIT 1) AS undantag_mal
+                    (SELECT shift_hours FROM rebotling_settings WHERE id = 1) AS shift_hours
             ");
-            $combo->execute([$iso]);
+            $combo->execute();
             $row = $combo->fetch(PDO::FETCH_ASSOC);
 
             $ibcToday = (int)($row['ibc_today'] ?? 0);
@@ -377,29 +262,16 @@ class RebotlingAdminController {
             $isRunning = (bool)($row['is_running'] ?? false);
             $shiftHours = (float)($row['shift_hours'] ?? 8.0);
 
-            // Dagsmål: undantag > veckodagsmål > settings
-            $dailyTarget = (int)($row['rebotling_target'] ?? 1000);
-            if ($row['weekday_goal'] !== null && (int)$row['weekday_goal'] > 0) {
-                $dailyTarget = (int)$row['weekday_goal'];
-            }
-            if ($row['undantag_mal'] !== null) {
-                $dailyTarget = (int)$row['undantag_mal'];
-            }
-
             // Prognos: skiftstart 06:00 lokal tid
             $shiftStart = new DateTime($now->format('Y-m-d') . ' 06:00:00', $tz);
             $minutesSinceStart = max(1, ($now->getTimestamp() - $shiftStart->getTimestamp()) / 60);
             $remainingMin = max(0, ($shiftHours * 60) - $minutesSinceStart);
             $forecast = (int)round($ibcToday + ($ratePerHour / 60.0) * $remainingMin);
 
-            $pct = $dailyTarget > 0 ? round($ibcToday / $dailyTarget * 100, 1) : 0;
-
             echo json_encode([
                 'success' => true,
                 'data' => [
                     'ibc_today'    => $ibcToday,
-                    'daily_target' => $dailyTarget,
-                    'pct_of_goal'  => $pct,
                     'rate_per_h'   => $ratePerHour,
                     'forecast'     => $forecast,
                     'is_running'   => $isRunning,
@@ -829,61 +701,6 @@ class RebotlingAdminController {
     // GET ?action=rebotling&run=personal-bests
     // =========================================================
 
-    public function getGoalHistory() {
-        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
-        if (empty($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'developer'], true)) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
-            return;
-        }
-
-        $days = intval($_GET['days'] ?? 180);
-        if ($days < 1 || $days > 730) $days = 180;
-
-        try {
-            // Skapa tabellen om den inte finns
-            $this->pdo->exec("
-                CREATE TABLE IF NOT EXISTS rebotling_goal_history (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    goal_type VARCHAR(50) NOT NULL DEFAULT 'dagmal',
-                    value INT NOT NULL,
-                    changed_by VARCHAR(100),
-                    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    INDEX idx_type_time (goal_type, changed_at)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            ");
-
-            $stmt = $this->pdo->prepare("
-                SELECT goal_type, value, changed_by, changed_at
-                FROM rebotling_goal_history
-                WHERE changed_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-                ORDER BY changed_at ASC
-            ");
-            $stmt->execute([$days]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-            // Om inga rader: returnera nuvarande värde som startpunkt
-            if (empty($rows)) {
-                $current = $this->pdo->query(
-                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
-                )->fetchColumn();
-                if ($current !== false) {
-                    $rows = [[
-                        'goal_type'  => 'dagmal',
-                        'value'      => (int)$current,
-                        'changed_by' => 'system',
-                        'changed_at' => date('Y-m-d H:i:s', strtotime('-' . $days . ' days'))
-                    ]];
-                }
-            }
-
-            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
-        } catch (\Throwable $e) {
-            error_log('RebotlingAdminController::getGoalHistory: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
-        }
-    }
     /**
      * GET ?action=rebotling&run=live-ranking-settings
      */
@@ -1161,113 +978,6 @@ class RebotlingAdminController {
      * GET ?action=rebotling&run=kassation-typer
      * Returnerar alla aktiva kassationsorsakstyper.
      */
-
-    public function getGoalExceptions() {
-        $month = isset($_GET['month']) && preg_match('/^\d{4}-\d{2}$/', $_GET['month'])
-            ? $_GET['month']
-            : null;
-        try {
-            $stmt = $this->pdo->prepare(
-                "SELECT datum, justerat_mal, orsak
-                 FROM produktionsmal_undantag
-                 WHERE (:month_check IS NULL OR DATE_FORMAT(datum, '%Y-%m') = :month_val)
-                 ORDER BY datum ASC"
-            );
-            $stmt->execute([':month_check' => $month, ':month_val' => $month]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            $exceptions = array_map(function ($r) {
-                return [
-                    'datum'        => $r['datum'],
-                    'justerat_mal' => (int)$r['justerat_mal'],
-                    'orsak'        => $r['orsak'],
-                ];
-            }, $rows);
-            echo json_encode(['success' => true, 'exceptions' => $exceptions], JSON_UNESCAPED_UNICODE);
-        } catch (\Throwable $e) {
-            error_log('RebotlingAdminController::getGoalExceptions: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta undantag'], JSON_UNESCAPED_UNICODE);
-        }
-    }
-
-    /**
-     * POST ?action=rebotling&run=save-goal-exception
-     * Body: {"datum":"YYYY-MM-DD","justerat_mal":40,"orsak":"..."}
-     */
-
-    public function saveGoalException() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!is_array($data)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON'], JSON_UNESCAPED_UNICODE);
-            return;
-        }
-        $datum = $data['datum'] ?? '';
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat (YYYY-MM-DD krävs)'], JSON_UNESCAPED_UNICODE);
-            return;
-        }
-        $mal = intval($data['justerat_mal'] ?? 0);
-        if ($mal <= 0 || $mal >= 10000) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Justerat mål måste vara mellan 1 och 9999'], JSON_UNESCAPED_UNICODE);
-            return;
-        }
-        $orsak = isset($data['orsak']) ? mb_substr(strip_tags(trim((string)$data['orsak'])), 0, 255) : null;
-        try {
-            $userId = $_SESSION['user_id'] ?? null;
-            $stmt = $this->pdo->prepare(
-                'INSERT INTO produktionsmal_undantag (datum, justerat_mal, orsak, skapad_av)
-                 VALUES (:datum, :mal, :orsak, :uid)
-                 ON DUPLICATE KEY UPDATE
-                   justerat_mal  = VALUES(justerat_mal),
-                   orsak         = VALUES(orsak),
-                   uppdaterad_at = NOW()'
-            );
-            $stmt->execute([
-                ':datum' => $datum,
-                ':mal'   => $mal,
-                ':orsak' => $orsak,
-                ':uid'   => $userId,
-            ]);
-            // Invalidera cache: mål-undantag påverkar dashboards och month-compare
-            $this->invalidateCache(['month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
-
-            echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
-        } catch (\Throwable $e) {
-            error_log('RebotlingAdminController::saveGoalException: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte spara undantag'], JSON_UNESCAPED_UNICODE);
-        }
-    }
-
-    /**
-     * POST ?action=rebotling&run=delete-goal-exception
-     * Body: {"datum":"YYYY-MM-DD"}
-     */
-
-    public function deleteGoalException() {
-        $data = json_decode(file_get_contents('php://input'), true) ?? [];
-        $datum = $data['datum'] ?? '';
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
-            return;
-        }
-        try {
-            $stmt = $this->pdo->prepare('DELETE FROM produktionsmal_undantag WHERE datum = :datum');
-            $stmt->execute([':datum' => $datum]);
-            // Invalidera cache: mål-undantag påverkar dashboards och month-compare
-            $this->invalidateCache(['month_compare_*', 'produktionsdashboard_*', 'daglig_briefing_*']);
-
-            echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
-        } catch (\Throwable $e) {
-            error_log('RebotlingAdminController::deleteGoalException: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort undantag'], JSON_UNESCAPED_UNICODE);
-        }
-    }
 
 
     /**

@@ -60,8 +60,6 @@ export class News implements OnInit, OnDestroy {
   // Rebotling data
   rebotlingStatus: boolean = false;
   rebotlingToday: number = 0;
-  rebotlingTarget: number = 0;
-  rebotlingPercentage: number = 0;
 
   // Tvättlinje data
   tvattlinjeStatus: boolean = false;
@@ -182,9 +180,6 @@ export class News implements OnInit, OnDestroy {
     ).subscribe((res: RebotlingLiveStatsResponse | null) => {
       if (res && res.success && res.data) {
         this.rebotlingToday = res.data.ibcToday || 0;
-        this.rebotlingTarget = res.data.rebotlingTarget || 0;
-        this.rebotlingPercentage = this.rebotlingTarget > 0
-          ? Math.round((this.rebotlingToday / this.rebotlingTarget) * 100) : 0;
       }
       done();
     });

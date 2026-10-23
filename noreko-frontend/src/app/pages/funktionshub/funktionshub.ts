@@ -33,8 +33,6 @@ const CATEGORIES: HubCategory[] = [
       { route: '/rebotling/produktionseffektivitet', label: 'Effektivitet/h', icon: 'fas fa-clock', featureKey: 'rebotling/produktionseffektivitet', description: 'Effektivitet uppdelat per timme' },
       { route: '/rebotling/produktionskostnad', label: 'Kostnad/IBC', icon: 'fas fa-coins', featureKey: 'rebotling/produktionskostnad', description: 'Produktionskostnad per IBC-enhet' },
       { route: '/rebotling/produktionsflode', label: 'Produktionsflöde', icon: 'fas fa-project-diagram', featureKey: 'rebotling/produktionsflode', description: 'Visualisera flödet genom stationerna' },
-      { route: '/rebotling/produktionsmal', label: 'Produktionsmål', icon: 'fas fa-bullseye', featureKey: 'rebotling/produktionsmal', description: 'Sätt och följ upp produktionsmål' },
-      { route: '/rebotling/produktionsmal-uppfoljning', label: 'Måluppföljning', icon: 'fas fa-chart-line', featureKey: 'rebotling/produktionsmal-uppfoljning', description: 'Detaljerad uppföljning mot mål' },
       { route: '/rebotling/produktions-sla', label: 'Måluppfyllnad', icon: 'fas fa-bullseye', featureKey: 'rebotling/produktions-sla', description: 'SLA och måluppfyllnad över tid' },
       { route: '/rebotling/kapacitetsplanering', label: 'Kapacitetsplanering', icon: 'fas fa-chart-area', featureKey: 'rebotling/kapacitetsplanering', description: 'Planera kapacitet och beläggning' },
       { route: '/rebotling/historisk-produktion', label: 'Historisk produktion', icon: 'fas fa-chart-line', featureKey: 'rebotling/historisk-produktion', description: 'Produktion över längre tidsperioder' },

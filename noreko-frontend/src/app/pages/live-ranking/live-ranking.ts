@@ -20,37 +20,11 @@ interface LiveRankingResponse {
   ranking: RankingEntry[];
   date: string;
   period: string;
-  goal: number;
   ibc_idag_total?: number;
   rekord_ibc?: number;
   rekord_datum?: string | null;
   error?: string;
 }
-
-// Roterande meddelanden per prestation-nivå
-const MOTTOS_OVER100: string[] = [
-  'Fantastisk prestation idag!',
-  'Rekordnivå — ni är oslagbara!',
-  'Hela laget levererar maximalt!',
-  'Suveränt — fortsätt rulla!',
-  'Ni sätter standarden — bra jobbat!',
-];
-
-const MOTTOS_OVER80: string[] = [
-  'Fortsätt så! Ni är på rätt spår.',
-  'Bra tempo — målet är inom räckhåll!',
-  'Teamet levererar — ge allt nu!',
-  'Starkt skift — håll farten!',
-  'Ni klarar det — kör på!',
-];
-
-const MOTTOS_UNDER80: string[] = [
-  'Ni klarar det — justera takten lite!',
-  'Varje IBC räknas — kör hårt!',
-  'Fokus ger resultat — ge allt!',
-  'Tillsammans når vi målet!',
-  'Ännu ett IBC — bra jobbat!',
-];
 
 @Component({
   selector: 'app-live-ranking',
@@ -65,7 +39,6 @@ export class LiveRankingPage implements OnInit, OnDestroy {
   ranking: RankingEntry[] = [];
   date: string = '';
   period: string = '';
-  goal: number = 0;
   loading = true;
   lastRefresh: Date = new Date();
   isFetching = false;
@@ -75,10 +48,6 @@ export class LiveRankingPage implements OnInit, OnDestroy {
   ibcIdagTotal: number = 0;
   rekordIbc: number = 0;
   rekordDatum: string | null = null;
-
-  // Motivation
-  mottoIndex = 0;
-  currentMottos: string[] = MOTTOS_UNDER80;
 
   // Skiftnedräkning
   skiftSlutOm: string = '';
@@ -93,7 +62,6 @@ export class LiveRankingPage implements OnInit, OnDestroy {
       ibc_per_hour: true,
       quality_pct: true,
       bonus_level: false,
-      goal_progress: true,
       ibc_today: true
     },
     sort_by: 'ibc_per_hour',
@@ -120,7 +88,6 @@ export class LiveRankingPage implements OnInit, OnDestroy {
   private destroy$       = new Subject<void>();
   private pollTimer:       any = null;
   private countdownTimer:  any = null;
-  private motivationTimer: any = null;
 
   constructor(private http: HttpClient) {}
 
@@ -137,10 +104,6 @@ export class LiveRankingPage implements OnInit, OnDestroy {
       this.updatePrognos();
     }, 60000);
 
-    // Rotera motivationsmeddelanden var 10s
-    this.motivationTimer = setInterval(() => {
-      this.mottoIndex = (this.mottoIndex + 1) % this.currentMottos.length;
-    }, 10000);
   }
 
   ngOnDestroy(): void {
@@ -148,7 +111,6 @@ export class LiveRankingPage implements OnInit, OnDestroy {
     this.destroy$.complete();
     clearInterval(this.pollTimer);
     clearInterval(this.countdownTimer);
-    clearInterval(this.motivationTimer);
   }
 
   loadLrSettings(): void {
@@ -222,14 +184,12 @@ export class LiveRankingPage implements OnInit, OnDestroy {
             this.ranking        = res.ranking       ?? [];
             this.date           = res.date          ?? '';
             this.period         = res.period        ?? '';
-            this.goal           = res.goal          ?? 0;
             this.ibcIdagTotal   = res.ibc_idag_total ?? 0;
             this.rekordIbc      = res.rekord_ibc    ?? 0;
             this.rekordDatum    = res.rekord_datum   ?? null;
             this.lastRefresh    = new Date();
             this.error          = null;
             this.sortRanking();
-            this.updateCurrentMottos();
             this.updatePrognos();
           } else if (res && !res.success) {
             this.error = res.error ?? 'Kunde inte hämta data';
@@ -253,21 +213,6 @@ export class LiveRankingPage implements OnInit, OnDestroy {
     if (this.ibcIdagTotal >= this.rekordIbc * 0.9)      return 'nara';
     if (this.ibcIdagTotal >= this.rekordIbc * 0.8)      return 'bra';
     return 'normal';
-  }
-
-  // ---- Teamtotal progress ----
-
-  get teamPct(): number {
-    if (!this.goal || this.ibcIdagTotal <= 0) return 0;
-    return Math.min(Math.round((this.ibcIdagTotal / this.goal) * 100), 100);
-  }
-
-  get teamProgressClass(): string {
-    const p = this.teamPct;
-    if (p >= 100) return 'bar-gold';
-    if (p >= 80)  return 'bar-green';
-    if (p >= 50)  return 'bar-yellow';
-    return 'bar-red';
   }
 
   // ---- Skiftprognos ----
@@ -307,22 +252,6 @@ export class LiveRankingPage implements OnInit, OnDestroy {
     this.skiftSlutOm = `${hh}:${mm}`;
   }
 
-  // ---- Roterande motivation ----
-
-  updateCurrentMottos(): void {
-    const pct = this.teamPct;
-    if (pct >= 100)     this.currentMottos = MOTTOS_OVER100;
-    else if (pct >= 80) this.currentMottos = MOTTOS_OVER80;
-    else                this.currentMottos = MOTTOS_UNDER80;
-    this.mottoIndex = 0;
-  }
-
-  get currentMotto(): string {
-    const list = this.currentMottos;
-    if (!list || list.length === 0) return '';
-    return list[this.mottoIndex % list.length];
-  }
-
   // ---- Helpers ----
 
   getMedalClass(rank: number): string {
@@ -330,19 +259,6 @@ export class LiveRankingPage implements OnInit, OnDestroy {
     if (rank === 2) return 'medal-silver';
     if (rank === 3) return 'medal-bronze';
     return 'medal-default';
-  }
-
-  getProgressPct(ibcOk: number): number {
-    if (!this.goal) return 0;
-    return Math.min(Math.round((ibcOk / this.goal) * 100), 100);
-  }
-
-  getProgressClass(ibcOk: number): string {
-    const pct = this.getProgressPct(ibcOk);
-    if (pct >= 100) return 'bar-gold';
-    if (pct >= 80)  return 'bar-green';
-    if (pct >= 50)  return 'bar-yellow';
-    return 'bar-red';
   }
 
   formatTime(d: Date): string {

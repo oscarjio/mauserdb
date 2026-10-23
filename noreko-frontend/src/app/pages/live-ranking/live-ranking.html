@@ -87,17 +87,6 @@
           <span class="stat-unit">IBC totalt</span>
         </div>
 
-        <!-- Progress mot dagsmål -->
-        <div class="progress-section" *ngIf="goal > 0 && lrConfig.columns.goal_progress && lrSettings.lr_show_progress">
-          <div class="progress-track">
-            <div
-              class="progress-fill"
-              [ngClass]="getProgressClass(entry.ibc_ok)"
-              [style.width.%]="getProgressPct(entry.ibc_ok)"
-            ></div>
-          </div>
-          <span class="progress-label">{{ getProgressPct(entry.ibc_ok) }}% av dagsmål</span>
-        </div>
       </div>
     </div>
 
@@ -106,36 +95,14 @@
       <div class="team-total-header">
         <span class="team-label">LAG IDAG</span>
         <span class="team-ibc">{{ ibcIdagTotal }} IBC</span>
-        <span class="team-goal" *ngIf="goal > 0">MÅL: {{ goal }}</span>
-        <span class="team-pct" *ngIf="goal > 0">{{ teamPct }}% av dagsmålet</span>
-      </div>
-      <div class="team-progress-track" *ngIf="goal > 0">
-        <div
-          class="team-progress-fill progress-fill"
-          [ngClass]="teamProgressClass"
-          [style.width.%]="teamPct"
-        ></div>
-        <div class="team-progress-target"></div>
       </div>
 
       <!-- Prognos -->
       <div class="prognos-row" *ngIf="visaPrognos && prognos !== null">
         <span class="prognos-label">Prognos vid skiftslut:</span>
         <span class="prognos-value">~{{ prognos }} IBC</span>
-        <span class="prognos-diff" *ngIf="goal > 0 && prognos >= goal" class="prognos-ok">
-          Mål uppnås!
-        </span>
-        <span class="prognos-diff" *ngIf="goal > 0 && prognos < goal" class="prognos-warn">
-          {{ goal - prognos }} IBC kvar till mål
-        </span>
       </div>
     </div>
   </main>
-
-  <!-- FOOTER: roterande motto -->
-  <footer class="tv-footer">
-    <span class="motto-text" *ngIf="lrSettings.lr_show_motto">{{ currentMotto }}</span>
-    <span class="goal-label" *ngIf="goal > 0">Dagsmål: {{ goal }} IBC</span>
-  </footer>
 
 </div>

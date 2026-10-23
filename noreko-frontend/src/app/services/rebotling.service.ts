@@ -8,7 +8,6 @@ export interface RebotlingLiveStatsResponse {
   success: boolean;
   data: {
     rebotlingToday: number;
-    rebotlingTarget: number;
     rebotlingThisHour: number;
     hourlyTarget: number;
     ibcToday: number;
@@ -462,21 +461,6 @@ export class RebotlingService {
       `${environment.apiUrl}?action=rebotling&run=month-compare&month=${m}`,
       { withCredentials: true }
     ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
-  }
-
-  getProductionGoalProgress(period: string = 'today'): Observable<any> {
-    return this.http.get<ProductionGoalProgressResponse>(
-      `${environment.apiUrl}?action=rebotling&run=production-goal-progress&period=${period}`,
-      { withCredentials: true }
-    ).pipe(timeout(15000), retry(1), catchError(() => of(null)));
-  }
-
-  setProductionGoal(periodType: string, targetCount: number): Observable<any> {
-    return this.http.post<any>(
-      `${environment.apiUrl}?action=rebotling&run=set-production-goal`,
-      JSON.stringify({ period_type: periodType, target_count: targetCount }),
-      { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
-    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
   getShiftDayNightComparison(days: number = 30): Observable<any> {
@@ -1471,19 +1455,6 @@ export interface MonthCompareResponse {
   operator_ranking: MonthCompareOperatorRank[];
   best_day: MonthCompareDay | null;
   worst_day: MonthCompareDay | null;
-  error?: string;
-}
-
-export interface ProductionGoalProgressResponse {
-  success: boolean;
-  period?: string;
-  target?: number;
-  actual?: number;
-  percentage?: number;
-  remaining?: number;
-  time_remaining_seconds?: number;
-  streak?: number;
-  period_label?: string;
   error?: string;
 }
 

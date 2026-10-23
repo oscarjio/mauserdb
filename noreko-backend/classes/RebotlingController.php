@@ -25,10 +25,10 @@ class RebotlingController {
         if ($method === 'GET') {
             // Skydda admin-only GET-endpoints med sessions-kontroll
             $adminOnlyActions = [
-                'admin-settings', 'weekday-goals', 'shift-times', 'system-status',
+                'admin-settings', 'shift-times', 'system-status',
                 'alert-thresholds', 'today-snapshot', 'notification-settings',
-                'all-lines-status', 'goal-exceptions', 'weekly-summary-email',
-                'live-ranking-settings', 'live-ranking-config', 'goal-history',
+                'all-lines-status', 'weekly-summary-email',
+                'live-ranking-settings', 'live-ranking-config',
                 'service-status', 'plc-diagnostik',
             ];
             if (in_array($action, $adminOnlyActions, true)) {
@@ -52,8 +52,6 @@ class RebotlingController {
             // --- Admin GET endpoints ---
             if ($action === 'admin-settings') {
                 $this->adminController->getAdminSettings();
-            } elseif ($action === 'weekday-goals') {
-                $this->adminController->getWeekdayGoals();
             } elseif ($action === 'shift-times') {
                 $this->adminController->getShiftTimes();
             } elseif ($action === 'system-status') {
@@ -70,10 +68,6 @@ class RebotlingController {
                 $this->adminController->getLiveRankingSettings();
             } elseif ($action === 'live-ranking-config') {
                 $this->adminController->getLiveRankingConfig();
-            } elseif ($action === 'goal-history') {
-                $this->adminController->getGoalHistory();
-            } elseif ($action === 'goal-exceptions') {
-                $this->adminController->getGoalExceptions();
             } elseif ($action === 'service-status') {
                 $this->adminController->getServiceStatus();
 
@@ -146,8 +140,6 @@ class RebotlingController {
                 $this->analyticsController->getWeeklySummaryEmail();
             } elseif ($action === 'realtime-oee') {
                 $this->analyticsController->getRealtimeOee();
-            } elseif ($action === 'production-goal-progress') {
-                $this->analyticsController->getProductionGoalProgress();
             } elseif ($action === 'shift-day-night') {
                 $this->analyticsController->getShiftDayNightComparison();
             } elseif ($action === 'top-operators-leaderboard') {
@@ -341,8 +333,6 @@ class RebotlingController {
                 $this->getPersonalKalender();
             } elseif ($action === 'skift-sekvens') {
                 $this->getSkiftSekvens();
-            } elseif ($action === 'produktionsmaal') {
-                $this->getProduktionsmaal();
             } elseif ($action === 'operator-utveckling') {
                 $this->getOperatorUtveckling();
             } elseif ($action === 'veckosammanfattning') {
@@ -452,8 +442,6 @@ class RebotlingController {
             // --- Admin POST endpoints ---
             if ($action === 'admin-settings') {
                 $this->adminController->saveAdminSettings();
-            } elseif ($action === 'weekday-goals') {
-                $this->adminController->saveWeekdayGoals();
             } elseif ($action === 'shift-times') {
                 $this->adminController->saveShiftTimes();
             } elseif ($action === 'save-alert-thresholds') {
@@ -468,10 +456,6 @@ class RebotlingController {
                 $this->adminController->createRecordNewsManual();
             } elseif ($action === 'save-maintenance-log') {
                 $this->adminController->saveMaintenanceLog();
-            } elseif ($action === 'save-goal-exception') {
-                $this->adminController->saveGoalException();
-            } elseif ($action === 'delete-goal-exception') {
-                $this->adminController->deleteGoalException();
             } elseif ($action === 'reset-service') {
                 $this->adminController->resetService();
             } elseif ($action === 'save-service-interval') {
@@ -488,8 +472,6 @@ class RebotlingController {
                 $this->analyticsController->sendAutoShiftReport();
             } elseif ($action === 'send-weekly-summary') {
                 $this->analyticsController->sendWeeklySummaryEmail();
-            } elseif ($action === 'set-production-goal') {
-                $this->analyticsController->setProductionGoal();
             } else {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Ogiltig action'], JSON_UNESCAPED_UNICODE);
@@ -546,46 +528,20 @@ class RebotlingController {
         }
 
         $result = [
-            'rebotlingTarget' => 1000,
             'utetemperatur' => null,
         ];
 
         try {
             $stmt = $this->pdo->query("
                 SELECT
-                    (SELECT rebotling_target FROM rebotling_settings WHERE id = 1) AS settings_target,
-                    (SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE() LIMIT 1) AS undantag_mal,
                     (SELECT utetemperatur FROM vader_data ORDER BY datum DESC LIMIT 1) AS utetemperatur
             ");
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($row) {
-                // N145b: startsidan matas härifrån (action=rebotling bare -> getLiveStats).
-                // Prioritet settings -> veckodagsmål -> undantag vinner sist. Tidigare
-                // frågades rebotling_weekday_goals ALDRIG här, så helg visade "Mål 1000".
-                // Samma gemensamma helper/konvention som getExecDashboard (facit).
-                if ($row['settings_target'] !== null) {
-                    $result['rebotlingTarget'] = (int)$row['settings_target'];
-                }
-                $weekdayGoal = RebotlingAnalyticsController::todaysWeekdayGoal($this->pdo);
-                if ($weekdayGoal !== null) {
-                    $result['rebotlingTarget'] = $weekdayGoal;
-                }
-                if ($row['undantag_mal'] !== null) {
-                    $result['rebotlingTarget'] = (int)$row['undantag_mal'];
-                }
-                if ($row['utetemperatur'] !== null) {
-                    $result['utetemperatur'] = (float)$row['utetemperatur'];
-                }
+            if ($row && $row['utetemperatur'] !== null) {
+                $result['utetemperatur'] = (float)$row['utetemperatur'];
             }
         } catch (\Throwable $e) {
             error_log('RebotlingController::getCachedSettingsAndWeather: ' . $e->getMessage());
-            try {
-                $this->ensureSettingsTable();
-                $sRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
-                if ($sRow) $result['rebotlingTarget'] = (int)$sRow['rebotling_target'];
-            } catch (\Throwable $e2) {
-                error_log('RebotlingController::getCachedSettingsAndWeather fallback: ' . $e2->getMessage());
-            }
         }
 
         file_put_contents($cacheFile, json_encode($result), LOCK_EX);
@@ -710,14 +666,12 @@ class RebotlingController {
 
             // Settings + väder: hämta från filcache (30s TTL) — sparar 1 DB-roundtrip
             $settingsCache = $this->getCachedSettingsAndWeather();
-            $rebotlingTarget = $settingsCache['rebotlingTarget'];
             $utetemperatur = $settingsCache['utetemperatur'];
 
             $jsonResult = json_encode([
                 'success' => true,
                 'data' => [
                     'rebotlingToday' => $ibcToday,
-                    'rebotlingTarget' => $rebotlingTarget,
                     'rebotlingThisHour' => $rebotlingThisHour,
                     'hourlyTarget' => $hourlyTarget,
                     'ibcToday' => $ibcToday,
@@ -1993,14 +1947,6 @@ class RebotlingController {
 
     private function getLiveRanking() {
         try {
-            // Dagsmål från settings
-            $dailyGoal = 1000;
-            try {
-                $this->ensureSettingsTable();
-                $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
-                if ($sr) $dailyGoal = (int)$sr['rebotling_target'];
-            } catch (\Throwable $e) { error_log('RebotlingController::getLiveRanking dagsMal: ' . $e->getMessage()); }
-
             $today = date('Y-m-d');
 
             // Försök hämta data för idag. Om inga skiftrapporter finns idag — fall tillbaka på senaste 7 dagarna.
@@ -2141,7 +2087,6 @@ class RebotlingController {
                 'ranking'         => $ranking,
                 'date'            => $today,
                 'period'          => $periodLabel,
-                'goal'            => $dailyGoal,
                 'ibc_idag_total'  => $ibcIdagTotal,
                 'rekord_ibc'      => $rekordIbc,
                 'rekord_datum'    => $rekordDatum,
@@ -2747,11 +2692,6 @@ class RebotlingController {
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
-
-    /**
-     * GET ?action=rebotling&run=goal-history
-     * Returnerar historik för dagsmål-ändringar
-     */
 
     private function getHourlyRhythm(): void {
         $days = intval($_GET['days'] ?? 30);
@@ -3479,15 +3419,6 @@ class RebotlingController {
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopporsaker'], JSON_UNESCAPED_UNICODE);
         }
     }
-
-    // =========================================================
-    // Flexibla dagsmål per datum (undantag)
-    // =========================================================
-
-    /**
-     * GET ?action=rebotling&run=goal-exceptions[&month=YYYY-MM]
-     * Admin-only. Returnerar alla undantag, optionellt filtrerat per månad.
-     */
 
     private function getOeeComponents() {
         $days = isset($_GET['days']) ? (int)$_GET['days'] : 14;
@@ -12130,124 +12061,6 @@ class RebotlingController {
             error_log('RebotlingController::getSkiftSekvens: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid skift-sekvens'], \JSON_UNESCAPED_UNICODE);
-        }
-    }
-
-    private function getProduktionsmaal(): void {
-        try {
-            $period = $_GET['period'] ?? 'month';
-            $today  = date('Y-m-d');
-
-            switch ($period) {
-                case 'week':
-                    $from = date('Y-m-d', strtotime('monday this week'));
-                    $to   = date('Y-m-d', strtotime('sunday this week'));
-                    break;
-                case 'quarter':
-                    $m      = (int)date('n');
-                    $qStart = ((int)(($m - 1) / 3)) * 3 + 1;
-                    $from   = date('Y-') . str_pad($qStart, 2, '0', STR_PAD_LEFT) . '-01';
-                    $qEnd   = $qStart + 2;
-                    $to     = date('Y-') . str_pad($qEnd, 2, '0', STR_PAD_LEFT)
-                              . '-' . date('t', mktime(0, 0, 0, $qEnd, 1, (int)date('Y')));
-                    break;
-                default: // month
-                    $from = date('Y-m-01');
-                    $to   = date('Y-m-t');
-            }
-
-            // Daily totals for the period up to today
-            // ibc_ok is a PLC daily running counter — LAG() computes per-shift delta.
-            $actualTo = $today < $to ? $today : $to;
-            $sqlDaily = "
-                SELECT
-                    datum,
-                    SUM(ibc_ok)    AS ibc,
-                    COUNT(*)       AS antal_skift
-                FROM (
-                    SELECT datum,
-                           ibc_ok
-                    FROM (
-                        SELECT skiftraknare,
-                               DATE(MAX(datum))              AS datum,
-                               MAX(COALESCE(ibc_ok, 0))      AS ibc_ok
-                        FROM rebotling_skiftrapport
-                        WHERE datum BETWEEN :from1 AND :to1
-                          AND drifttid >= 30
-                        GROUP BY skiftraknare
-                    ) base
-                ) lag_q
-                GROUP BY datum
-                ORDER BY datum
-            ";
-            $stmt = $this->pdo->prepare($sqlDaily);
-            $stmt->execute([':from1' => $from, ':to1' => $actualTo]);
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-            // Build cumulative series
-            $daily       = [];
-            $runningSum  = 0;
-            foreach ($rows as $r) {
-                $runningSum += (int)$r['ibc'];
-                $daily[] = [
-                    'datum'       => $r['datum'],
-                    'ibc'         => (int)$r['ibc'],
-                    'cumulative'  => $runningSum,
-                    'antal_skift' => (int)$r['antal_skift'],
-                ];
-            }
-
-            // Recent 14-day pace for projection — LAG() per-shift delta
-            $pace14From = date('Y-m-d', strtotime('-14 days'));
-            $sqlPace = "
-                SELECT SUM(ibc_ok)            AS total_ibc,
-                       COUNT(DISTINCT datum)  AS prod_days
-                FROM (
-                    SELECT datum,
-                           ibc_ok
-                    FROM (
-                        SELECT skiftraknare,
-                               DATE(MAX(datum))              AS datum,
-                               MAX(COALESCE(ibc_ok, 0))      AS ibc_ok
-                        FROM rebotling_skiftrapport
-                        WHERE datum BETWEEN :from2 AND :to2
-                          AND drifttid >= 30
-                        GROUP BY skiftraknare
-                    ) base
-                ) lag_q
-            ";
-            $stmtP = $this->pdo->prepare($sqlPace);
-            $stmtP->execute([':from2' => $pace14From, ':to2' => $today]);
-            $paceRow     = $stmtP->fetch(\PDO::FETCH_ASSOC);
-            $paceIbcDay  = ($paceRow && $paceRow['prod_days'] > 0)
-                           ? round((float)$paceRow['total_ibc'] / (float)$paceRow['prod_days'], 1)
-                           : 0;
-
-            $totalDays   = max(1, (int)(round((strtotime($to) - strtotime($from)) / 86400)) + 1);
-            $daysElapsed = max(1, min($totalDays, (int)(round((strtotime($today) - strtotime($from)) / 86400)) + 1));
-            $daysLeft    = max(0, $totalDays - $daysElapsed);
-            $actualIbc   = $runningSum;
-            $projected   = (int)round($actualIbc + $paceIbcDay * $daysLeft);
-
-            echo json_encode([
-                'success'       => true,
-                'period'        => $period,
-                'from'          => $from,
-                'to'            => $to,
-                'today'         => $today,
-                'daily'         => $daily,
-                'actual_ibc'    => $actualIbc,
-                'projected_ibc' => $projected,
-                'pace_ibc_day'  => $paceIbcDay,
-                'days_elapsed'  => $daysElapsed,
-                'days_left'     => $daysLeft,
-                'total_days'    => $totalDays,
-            ], \JSON_UNESCAPED_UNICODE);
-
-        } catch (\Throwable $e) {
-            error_log('RebotlingController::getProduktionsmaal: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel vid produktionsmål'], \JSON_UNESCAPED_UNICODE);
         }
     }
 

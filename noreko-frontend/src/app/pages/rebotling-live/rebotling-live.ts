@@ -38,7 +38,6 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   // Rebotling data
   Math = Math;
   rebotlingToday: number = 0;
-  rebotlingTarget: number = 0;
   rebotlingThisHour: number = 0;
   hourlyTarget: number = 0;
   ibcToday: number = 0;
@@ -94,36 +93,6 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   oeeRastHours: number = 0;
   oeeRuntimeHours: number = 0;
   private isFetchingOEE = false;
-
-  // Goal tracker
-  dailyGoal: number = 120; // Will be calculated from hourlyTarget * shift hours
-  shiftHours: number = 8;
-
-  get ibcRemaining(): number {
-    return Math.max(0, this.dailyGoal - this.ibcToday);
-  }
-
-  get goalProgress(): number {
-    if (this.dailyGoal <= 0) return 0;
-    return Math.min(100, Math.round((this.ibcToday / this.dailyGoal) * 100));
-  }
-
-  get estimatedCompletion(): string {
-    if (this.ibcToday >= this.dailyGoal) return 'Mål uppnått!';
-    if (this.hourlyTarget <= 0 || !this.isLineRunning) return '--';
-    const hoursLeft = this.ibcRemaining / this.hourlyTarget;
-    const completionTime = new Date(Date.now() + hoursLeft * 3600000);
-    const h = completionTime.getHours().toString().padStart(2, '0');
-    const m = completionTime.getMinutes().toString().padStart(2, '0');
-    return `~${h}:${m}`;
-  }
-
-  get goalStatusClass(): string {
-    if (this.goalProgress >= 100) return 'goal-complete';
-    if (this.goalProgress >= 75) return 'goal-good';
-    if (this.goalProgress >= 50) return 'goal-mid';
-    return 'goal-low';
-  }
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -191,17 +160,11 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
           this.lastDataUpdate = new Date();
           this.dataAgeSec = 0;
           this.rebotlingToday = res.data.rebotlingToday;
-          this.rebotlingTarget = res.data.rebotlingTarget;
           this.rebotlingThisHour = res.data.rebotlingThisHour;
           this.hourlyTarget = res.data.hourlyTarget;
           this.ibcToday = res.data.ibcToday || 0;
           this.nextLopnummer = res.data.nextLopnummer ?? null;
           this.productionPercentage = res.data.productionPercentage ?? 0;
-
-          if (this.hourlyTarget > 0) {
-            this.dailyGoal = Math.round(this.hourlyTarget * this.shiftHours);
-          }
-
           this.utetemperatur = res.data.utetemperatur ?? null;
         } else {
           // API failed or returned no data — show neutral/unknown state

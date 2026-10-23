@@ -141,7 +141,6 @@ export class OperatorPrestationPage implements OnInit {
       label: 'Bonus & Planering',
       tools: [
         { title: 'Operatörsmål', desc: 'Sätt individuella IBC/h-mål per operatör och följ framsteg — sparas i webbläsaren', route: '/rebotling/operatormaal', icon: 'fas fa-crosshairs', color: '#68d391' },
-        { title: 'Produktionsmål', desc: 'Sätt vecko-/månads-/kvartalsmål för IBC och följ framsteg med prognos och kumulativt diagram', route: '/rebotling/produktionsmaal', icon: 'fas fa-bullseye', color: '#68d391' },
         { title: 'Bonuskalkylator', desc: 'Räkna ut bonus manuellt', route: '/rebotling/bonus-kalkylator', icon: 'fas fa-calculator', color: '#68d391' },
         { title: 'Teamoptimering', desc: 'Föreslaget skiftlag', route: '/rebotling/team-optimizer', icon: 'fas fa-users-cog', color: '#63b3ed' },
         { title: 'Skift-kalender', desc: 'Kalender med skiftdata', route: '/rebotling/skift-kalender', icon: 'fas fa-calendar-week', color: '#63b3ed' },
