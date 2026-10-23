@@ -1059,6 +1059,29 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       ]);
       const wsData = XLSX.utils.aoa_to_sheet([dataHeaders, ...dataRows]);
 
+      // N-bug (Oscar 2026-10-23, Excel ska matcha tvättlinjens design): samma
+      // mönster som tvättlinjens exportExcelTvattlinje() — numeriska talformat per
+      // kolumn (rebotling saknade detta helt, allt stod som rått text/tal) + autofilter.
+      const pctFmt1dp = '0';
+      const minFmt = '0';
+      const dataColFormats: { [col: number]: string } = {
+        4: '0', 5: '0', 6: '0', 7: '0',           // IBC OK/Bur ej OK/IBC ej OK/Totalt
+        8: pctFmt1dp, 9: pctFmt1dp, 11: pctFmt1dp, // Kvalitet/Effektivitet/Kassation %
+        10: '0.0', 12: '0.0',                     // IBC/timme, Snitt cykeltid
+        13: '0',                                  // Bonus-estimat
+        17: minFmt, 18: minFmt,                   // Drifttid/Rasttid (min)
+      };
+      const dataRange = XLSX.utils.decode_range(wsData['!ref']!);
+      for (let R = 1; R <= dataRange.e.r; R++) {
+        for (const colStr of Object.keys(dataColFormats)) {
+          const C = Number(colStr);
+          const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = wsData[cellRef];
+          if (cell && typeof cell.v === 'number') cell.z = dataColFormats[C];
+        }
+      }
+      wsData['!autofilter'] = { ref: wsData['!ref']! };
+
       // Kolumnbredder
       wsData['!cols'] = [
         { wch: 6  },  // ID
