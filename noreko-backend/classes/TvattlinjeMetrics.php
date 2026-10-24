@@ -269,16 +269,31 @@ final class TvattlinjeMetrics {
 
     /**
      * Hittar alla skiftraknare med inskickad (deduplicerad, senaste) skiftrapport som
-     * överlappar [$start,$end] och vars cykler (tvattlinje_ibc) spänner över MER ÄN en
-     * kalenderdag, och delar upp dem via splitMultiDaySkift(). Rent läs-tid — anropas av
-     * varje konsument (statistik, OEE-trend, Excel, skiftrapport-vyn) som annars skulle
-     * attribuera flerdagars-produktion till fel dag/dubbelräkna den. INGA DB-skrivningar.
+     * överlappar [$start,$end] och som behöver särbehandling innan dess tal används som
+     * dagssiffra, och delar upp/exkluderar dem. Rent läs-tid — anropas av varje konsument
+     * (statistik, OEE-trend, Excel, skiftrapport-vyn) som annars skulle attribuera
+     * produktion till fel dag/dubbelräkna/uppblåsa den. INGA DB-skrivningar.
+     *
+     * Tre fall fångas (Oscar 2026-10-21/22/24), alla via samma `bySkift`-mekanism:
+     *   1) Flerdagars (cyklerna spänner över MER ÄN en kalenderdag) — dag-delas via
+     *      splitMultiDaySkift(), en byDag-rad per berörd dag.
+     *   2) Feldaterad enkeldagsrapport (cyklerna ligger på EN dag, men sr.datum avviker
+     *      från den) — dag-delas likaså (producerar i praktiken en enda byDag-rad, på
+     *      cyklernas verkliga dag i stället för sr.datum).
+     *   3) Onollställd räknare mot ett TIDIGARE, orapporterat skiftraknare (sr.flerdagars=1
+     *      på rapporten trots att DETTA skiftraknares EGNA cykler ligger på en enda,
+     *      korrekt daterad dag — se bevis i koden nedan, skiftraknare=18/2026-08-31). Kan
+     *      INTE dag-delas (saknar det tidigare skiftraknarets cykler), så 'days' blir tom
+     *      — rapporten exkluderas BARA ur SR-golvet (anroparen faller tillbaka på den
+     *      räknarkontinuitet-medvetna råa PLC-summan per dag, som redan är korrekt).
      *
      * Returnerar ['bySkift' => [skiftraknare => ['days'=>[...], 'submissionDag'=>'Y-m-d']],
      *             'byDag'   => ['Y-m-d' => <en splitMultiDaySkift-rad> + 'skiftraknare']].
-     * byDag innehåller EN rad per kalenderdag en flerdagars-skiftrapport berör — anroparen
-     * ersätter (inte adderar till) sin egen dag-siffra med dessa värden, filtrerat mot sitt
-     * eget [start,end]-fönster (en flerdagars-rapport kan sträcka sig utanför fönstret).
+     * bySkift (nycklarna i den) är den fullständiga exkluderingslistan för SR-golvet —
+     * ALLA tre fallen ska uteslutas där, oavsett om de har byDag-rader eller inte. byDag
+     * innehåller EN rad per kalenderdag fall 1/2 berör — anroparen ersätter (inte adderar
+     * till) sin egen dag-siffra med dessa värden, filtrerat mot sitt eget [start,end]-
+     * fönster (ett skift kan sträcka sig utanför fönstret).
      */
     public static function multiDaySplitPerDag(\PDO $pdo, string $start, string $end): array {
         $out = ['bySkift' => [], 'byDag' => []];
@@ -293,7 +308,8 @@ final class TvattlinjeMetrics {
             // användningen i TvattlinjeController) — den extra sökbredden läcker aldrig ut
             // dagar utanför det efterfrågade fönstret.
             $stmt = $pdo->prepare("
-                SELECT sr.skiftraknare, sr.datum, sr.totalt, sr.antal_ok, sr.antal_ej_ok, sr.omtvaatt
+                SELECT sr.skiftraknare, sr.datum, sr.totalt, sr.antal_ok, sr.antal_ej_ok, sr.omtvaatt,
+                       COALESCE(sr.flerdagars, 0) AS flerdagars
                 FROM tvattlinje_skiftrapport sr
                 INNER JOIN (
                     SELECT MAX(id) AS max_id
@@ -325,17 +341,41 @@ final class TvattlinjeMetrics {
                 $firstDag      = substr($cycles[0]['datum'], 0, 10);
                 $lastDag       = substr($cycles[count($cycles) - 1]['datum'], 0, 10);
                 $submissionDag = substr($rep['datum'], 0, 10);
-                // Enkeldags-skift där sr.datum REDAN matchar produktionsdagen — redan
-                // korrekt attribuerad, ingen omfördelning behövs. En enkeldags-rapport
-                // vars sr.datum AVVIKER (sen/feldaterad inlämning) måste, precis som ett
-                // flerdagars-skift, omfördelas till cyklernas verkliga dag (se bevis ovan).
-                if ($firstDag === $lastDag && $firstDag === $submissionDag) continue;
+                // sr.flerdagars = 1 på RAPPORTEN SJÄLV (sr.period_start sträcker sig över
+                // flera dagar bakåt) trots att DETTA skiftraknares EGNA cykler ligger på EN
+                // enda dag som matchar sr.datum (Oscar 2026-10-24 BEVIS: skiftraknare=18,
+                // 2026-08-31, sr.period_start='2026-08-27'). Orsak: PLC-räknaren (ibc_ok/
+                // ibc_ej_ok/omtvaatt) nollställdes ALDRIG mellan detta skiftraknare och ett
+                // TIDIGARE, ORELATERAT skiftraknare (här: skiftraknare=17, samma dag,
+                // 07:07–11:56, utan egen rapport) — sr.antal_ok/totalt speglar då den RÅA
+                // ackumulerade räknarnivån sedan den senaste FAKTISKA nollställningen (här
+                // 2026-08-27), INTE ett sant dagsdelta. 299/15/4=318 i stället för de
+                // verkliga 149/8/2=159 för 2026-08-31 (159 = exakt antal PLC-cykelrader den
+                // dagen, sk=17:s 92 + sk=18:s 67).
+                $reportFlerdagars  = (int)($rep['flerdagars'] ?? 0) === 1;
+                $dayMismatch       = !($firstDag === $lastDag && $firstDag === $submissionDag);
+
+                if (!$dayMismatch && !$reportFlerdagars) continue; // helt normal enkeldagsrapport
+
+                if (!$dayMismatch && $reportFlerdagars) {
+                    // Kan INTE dag-delas via detta skiftraknares EGNA cykler (de ligger
+                    // redan på en enda, korrekt dag) — den saknade produktionen hör till
+                    // ett ANNAT skiftraknare som denna metod aldrig ser (den itererar bara
+                    // över INSKICKADE rapporter). Ingen byDag-ersättning att erbjuda här;
+                    // exkludera BARA detta skiftraknare ur SR-golvet (se plcIbcWithSrFloor/
+                    // skiftrapportIbcPerDag) så den råa, räknarkontinuitet-medvetna PLC-
+                    // beräkningen (som redan korrekt summerar ALLA skiftraknares cykler per
+                    // kalenderdag, inklusive det orapporterade skiftraknare=17) får stå
+                    // oflorerad i stället för att dras upp mot den här rapportens råa tal.
+                    $out['bySkift'][$sk] = ['days' => [], 'submissionDag' => $submissionDag];
+                    continue;
+                }
 
                 $targetCycleMin = self::weightedTargetCycleMin($pdo, $firstDag, $lastDag);
                 $reportTotalt   = (int)($rep['totalt'] ?? ((int)$rep['antal_ok'] + (int)$rep['antal_ej_ok'] + (int)$rep['omtvaatt']));
                 $days = self::splitMultiDaySkift($cycles, $targetCycleMin, $reportTotalt);
 
-                $out['bySkift'][$sk] = ['days' => $days, 'submissionDag' => substr($rep['datum'], 0, 10)];
+                $out['bySkift'][$sk] = ['days' => $days, 'submissionDag' => $submissionDag];
                 foreach ($days as $d) {
                     $out['byDag'][$d['dag']] = $d + ['skiftraknare' => $sk];
                 }
