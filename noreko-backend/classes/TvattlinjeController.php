@@ -571,6 +571,16 @@ class TvattlinjeController {
      */
     private function skiftrapportIbcPerDag(string $start, string $end): array {
         $out = [];
+
+        // N-bug (Oscar 2026-10-21/22/24 DUBBELSKIFT): en rapport vars sr.datum avviker
+        // från cyklernas verkliga produktionsdag(ar) — flerdagars ELLER feldaterad
+        // enkeldagsrapport, se TvattlinjeMetrics::multiDaySplitPerDag() — ska ALDRIG
+        // bidra med sin IBC-summa till sr.datum-dagen nedan. Hämtas EN gång här så
+        // både exkluderingslistan och den avslutande byDag-ersättningen använder samma
+        // körning (annars missar exkluderingen skift som byDag-loopen senare korrigerar).
+        $multiDaySplit = TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end);
+        $redistributedSk = array_map('intval', array_keys($multiDaySplit['bySkift']));
+
         try {
             // N-bug (Oscar 2026-10-22, BRÅDSKANDE 2026-09-29=331): en skiftrapport-rad med
             // ett skiftraknare-värde som INTE har EN ENDA rad i tvattlinje_ibc är en spökrapport
@@ -582,7 +592,7 @@ class TvattlinjeController {
             // 331 i stället för de verkliga 156 PLC-cyklerna. Exkludera skiftraknare utan PLC-stöd
             // (men behåll rader utan skiftraknare alls — de har aldrig haft PLC-koppling).
             $stmt = $this->pdo->prepare("
-                SELECT DATE(sr.datum) AS dag, COALESCE(SUM(sr.totalt), 0) AS ibc
+                SELECT DATE(sr.datum) AS dag, COALESCE(sr.skiftraknare, 0) AS sk, sr.totalt AS ibc
                 FROM tvattlinje_skiftrapport sr
                 INNER JOIN (
                     SELECT MAX(id) AS max_id
@@ -592,21 +602,26 @@ class TvattlinjeController {
                 ) latest ON sr.id = latest.max_id
                 WHERE sr.skiftraknare IS NULL OR sr.skiftraknare = 0
                    OR EXISTS (SELECT 1 FROM tvattlinje_ibc gx WHERE gx.skiftraknare = sr.skiftraknare)
-                GROUP BY DATE(sr.datum)
             ");
             $stmt->execute(['s' => $start, 'e' => $end]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                $out[$row['dag']] = (int)$row['ibc'];
+                $sk = (int)$row['sk'];
+                // Omfördelas redan via byDag nedan på sin VERKLIGA produktionsdag — ska
+                // inte ÄVEN räknas in på sr.datum (annars dubbelräknas den, se bevis ovan
+                // i klassens docblock för multiDaySplitPerDag).
+                if ($sk > 0 && in_array($sk, $redistributedSk, true)) continue;
+                $out[$row['dag']] = ($out[$row['dag']] ?? 0) + (int)$row['ibc'];
             }
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::skiftrapportIbcPerDag: ' . $e->getMessage());
         }
 
-        // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): en flerdagars-rapport attribuerades
-        // tidigare HELA sin IBC-summa till inlämningsdagen (DATE(sr.datum)) ovan — ersätt
-        // med den korrekta per-dag-uppdelningen (läs-tid, se TvattlinjeMetrics). Filtrerat
-        // till [start,end] eftersom skiftet kan sträcka sig utanför det efterfrågade fönstret.
-        foreach (TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end)['byDag'] as $dag => $d) {
+        // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): en flerdagars-rapport (eller, sedan
+        // 2026-10-24, en feldaterad enkeldagsrapport) attribuerades tidigare HELA sin
+        // IBC-summa till inlämningsdagen (DATE(sr.datum)) ovan — ersätt med den korrekta
+        // per-dag-uppdelningen (läs-tid, se TvattlinjeMetrics). Filtrerat till [start,end]
+        // eftersom skiftet kan sträcka sig utanför det efterfrågade fönstret.
+        foreach ($multiDaySplit['byDag'] as $dag => $d) {
             if ($dag >= $start && $dag <= $end) $out[$dag] = $d['totalt'];
         }
         return $out;
@@ -635,6 +650,14 @@ class TvattlinjeController {
      */
     private function plcIbcWithSrFloor(string $start, string $end): array {
         $out = [];
+
+        // N-bug (Oscar 2026-10-21/22/24 DUBBELSKIFT): hämtas EN gång här (se samma
+        // resonemang i skiftrapportIbcPerDag ovan) — en rapport vars sr.datum avviker
+        // från cyklernas verkliga produktionsdag(ar) ska aldrig bidra till SR-golvet på
+        // sr.datum-dagen; dess bidrag kommer enbart via byDag-ersättningen längst ner.
+        $multiDaySplit = TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end);
+        $redistributedSk = array_map('intval', array_keys($multiDaySplit['bySkift']));
+
         try {
             // PLC-IBC per dag (reset-säker ibc_count-delta).
             $plcStmt = $this->pdo->prepare("
@@ -658,7 +681,7 @@ class TvattlinjeController {
             // EN ENDA rad i tvattlinje_ibc (spökrapport, se skiftrapportIbcPerDag ovan för bevis)
             // — annars höjer "golvet" IBC/dag långt över PLC:s verkliga antal för den dagen.
             $srStmt = $this->pdo->prepare("
-                SELECT DATE(sr.datum) AS dag, COALESCE(SUM(sr.totalt), 0) AS ibc
+                SELECT DATE(sr.datum) AS dag, COALESCE(sr.skiftraknare, 0) AS sk, sr.totalt AS ibc
                 FROM tvattlinje_skiftrapport sr
                 INNER JOIN (
                     SELECT MAX(id) AS max_id
@@ -668,21 +691,30 @@ class TvattlinjeController {
                 ) latest ON sr.id = latest.max_id
                 WHERE sr.skiftraknare IS NULL OR sr.skiftraknare = 0
                    OR EXISTS (SELECT 1 FROM tvattlinje_ibc gx WHERE gx.skiftraknare = sr.skiftraknare)
-                GROUP BY DATE(sr.datum)
             ");
             $srStmt->execute(['s' => $start, 'e' => $end]);
+            $srPerDag = [];
             foreach ($srStmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                $srIbc = (int)$row['ibc'];
-                $out[$row['dag']] = max($out[$row['dag']] ?? 0, $srIbc);
+                $sk = (int)$row['sk'];
+                // N-bug (Oscar 2026-10-24): omfördelas redan via byDag nedan på sin
+                // VERKLIGA produktionsdag — ska inte ÄVEN höja golvet på sr.datum-dagen
+                // (bevis: skiftraknare=9, sr.datum='2026-08-20', verklig dag 2026-08-19 —
+                // utan denna uteslutning höjdes 08-20:s golv till 322 i stället för 137).
+                if ($sk > 0 && in_array($sk, $redistributedSk, true)) continue;
+                $srPerDag[$row['dag']] = ($srPerDag[$row['dag']] ?? 0) + (int)$row['ibc'];
+            }
+            foreach ($srPerDag as $dag => $srIbc) {
+                $out[$dag] = max($out[$dag] ?? 0, $srIbc);
             }
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::plcIbcWithSrFloor: ' . $e->getMessage());
         }
 
         // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): för dagar som tillhör en flerdagars-
-        // rapport är "golvet" ovan (max(PLC, hela SR-summan)) självt fel — hela SR-summan hör
-        // inte till EN dag. Ersätt (inte max()) med den korrekta per-dag-uppdelningen.
-        foreach (TvattlinjeMetrics::multiDaySplitPerDag($this->pdo, $start, $end)['byDag'] as $dag => $d) {
+        // rapport (eller, sedan 2026-10-24, en feldaterad enkeldagsrapport) är "golvet"
+        // ovan (max(PLC, hela SR-summan)) självt fel — hela SR-summan hör inte till EN
+        // dag. Ersätt (inte max()) med den korrekta per-dag-uppdelningen.
+        foreach ($multiDaySplit['byDag'] as $dag => $d) {
             if ($dag >= $start && $dag <= $end) $out[$dag] = $d['totalt'];
         }
         return $out;
