@@ -1714,14 +1714,20 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const skiftCycles = (cyclesBySkift.get(r.skiftraknare) || [])
         .slice().sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
 
-      // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT): en rapport vars cykler (samma
-      // skiftraknare) sträcker sig över flera kalenderdagar attribuerades tidigare HELA
-      // sin produktion till inlämningsdagen → dubbelräkning mot PLC-dagens egen siffra.
-      // En rad PER KALENDERDAG från räknekärnan (samma som backend) i stället, flaggad.
+      // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT, utökat 2026-10-24): en rapport vars
+      // cykler (samma skiftraknare) sträcker sig över flera kalenderdagar attribuerades
+      // tidigare HELA sin produktion till inlämningsdagen → dubbelräkning mot PLC-
+      // dagens egen siffra. Samma bugg finns även när skiftet INTE sträcker sig över
+      // flera dagar men r.datum ÄNDÅ avviker från cyklernas enda kalenderdag (sen/
+      // feldaterad enkeldagsrapport — bevis: 2026-08-19 skiftraknare=9 feldaterad som
+      // 2026-08-20, se TvattlinjeMetrics::multiDaySplitPerDag). En rad PER KALENDERDAG
+      // från räknekärnan (samma som backend) i stället, flaggad.
       const spanDays = new Set(skiftCycles.map(c => String(c.datum).substring(0, 10)));
-      const isFlerdagars = spanDays.size > 1;
+      const singleDay = spanDays.size === 1 ? [...spanDays][0] : null;
+      const submissionDag = String(r.datum || '').substring(0, 10);
+      const needsDaySplit = spanDays.size > 1 || (singleDay !== null && singleDay !== submissionDag);
 
-      if (isFlerdagars) {
+      if (needsDaySplit) {
         const product = this.products.find((p: any) => p.id === r.product_id);
         const maltakt = product?.cycle_time_minutes ?? this.fallbackCycleMin;
         const produktNamn = product?.name || this.getProductName(r.product_id) || '–';

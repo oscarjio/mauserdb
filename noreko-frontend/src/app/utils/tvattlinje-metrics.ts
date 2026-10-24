@@ -98,9 +98,13 @@ export function avgCycleMin(drifttidMin: number, totalt: number): number | null 
 }
 
 // ==================================================================
-// DUBBELSKIFT / SEN SKIFTRAPPORT (Oscar 2026-10-21/22 BESLUT) — TS-spegel av
-// TvattlinjeMetrics::splitMultiDaySkift(). Se PHP-docblocken för Regel 1-4 i detalj.
-// Ren funktion, ingen DB-åtkomst (det gör bara backend via multiDaySplitPerDag).
+// DUBBELSKIFT / SEN SKIFTRAPPORT (Oscar 2026-10-21/22 BESLUT, utökat 2026-10-24) —
+// TS-spegel av TvattlinjeMetrics::splitMultiDaySkift(). Se PHP-docblocken för
+// Regel 1-4 och dubbelskift-varningen i detalj. Ren funktion, ingen DB-åtkomst
+// (det gör bara backend via multiDaySplitPerDag) — anroparen (shared-skiftrapport.ts)
+// avgör numera om en rapport ska dag-delas ÄVEN när den bara täcker EN kalenderdag
+// men sr.datum avviker från den dagen (feldaterad enkeldagsrapport, samma bugg som
+// flerdagars-fallet, se PHP).
 // ==================================================================
 
 export interface TvattlinjeCycleRow {
@@ -177,9 +181,22 @@ export function splitMultiDaySkift(cycles: TvattlinjeCycleRow[], targetCycleMin:
       driftstopp = 0;
     }
 
+    // Dubbelskift-varning (Oscar 2026-10-24, Steg 3, spegel av PHP) — rent informativt,
+    // ändrar inga beräknade värden. Se PHP-docblocken för bakgrund/bevis.
+    const totalt = ibcOk + ibcEjOk + omtv;
+    let maxGapMin = 0;
+    for (let k = 1; k < idxs.length; k++) {
+      const tPrev = new Date(cycles[idxs[k - 1]].datum.replace(' ', 'T')).getTime();
+      const tCur = new Date(cycles[idxs[k]].datum.replace(' ', 'T')).getTime();
+      maxGapMin = Math.max(maxGapMin, (tCur - tPrev) / 60000);
+    }
+    if (totalt > 200 || maxGapMin > 180) {
+      flagReason += `; möjligt dubbelskift inom samma dag (totalt=${totalt} IBC, max-glapp=${Math.round(maxGapMin)} min)`;
+    }
+
     out.push({
       dag, ibc_ok: ibcOk, ibc_ej_ok: ibcEjOk, omtvaatt: omtv,
-      totalt: ibcOk + ibcEjOk + omtv,
+      totalt,
       drifttid: Math.round(Math.min(drifttid, RUNTIME_CAP_MIN) * 10) / 10,
       rast: Math.round(rast * 10) / 10,
       driftstopp: Math.round(driftstopp * 10) / 10,

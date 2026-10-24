@@ -98,7 +98,7 @@ final class TvattlinjeMetrics {
     }
 
     // ==================================================================
-    // DUBBELSKIFT / SEN SKIFTRAPPORT (Oscar 2026-10-21/22 BESLUT)
+    // DUBBELSKIFT / SEN SKIFTRAPPORT (Oscar 2026-10-21/22 BESLUT, utökat 2026-10-24)
     //
     // Problem: en skiftrapport vars cykler (samma skiftraknare) sträcker sig över flera
     // kalenderdagar attribuerades tidigare HELA sin produktion/drifttid till
@@ -109,6 +109,20 @@ final class TvattlinjeMetrics {
     // Lösning: läs ALLTID tvattlinje_ibc-cyklerna för skiftraknaret och dela upp
     // produktionen per den kalenderdag cyklerna faktiskt registrerades på — ALDRIG
     // inlämningsdagen. Rent läs-tid, INGA databasskrivningar (se multiDaySplitPerDag).
+    //
+    // UTÖKNING (Oscar 2026-10-24, "bästa dag" visade 320+ IBC för en dag): samma bugg
+    // finns även när ett skiftraknare INTE sträcker sig över flera dagar men sr.datum
+    // ÄNDÅ avviker från cyklernas enda kalenderdag (sen/feldaterad enkeldags-rapport).
+    // BEVIS: 2026-08-19 kördes skiftraknare=9 (171 ok, 12 ej_ok, 2 omtvätt = 185 IBC,
+    // 07:06–15:50, drifttid ≈ 476 min — en helt normal enkelskift) men rapporten har
+    // sr.datum='2026-08-20', samma dag som skiftraknare=10:s EGNA rapport (137 IBC).
+    // plcIbcWithSrFloor summerade båda rapporternas totalt på sr.datum-dagen (2026-08-20)
+    // = 322 IBC/dag, medan 2026-08-19 (den riktiga produktionsdagen för skiftraknare=9)
+    // stod utan skiftrapport ("PLC-only"). Samma mönster: 2026-08-10 (skiftraknare=2,
+    // 151 IBC) feldaterad som 2026-08-11 → den dagen visade 291 i stället för sina
+    // egna 140 (skiftraknare=3). multiDaySplitPerDag() hoppade tidigare ALLTID över
+    // enkeldags-skift ($firstDag === $lastDag) utan att kolla om sr.datum stämde — se
+    // villkoret nedan som nu även omfördelar en feldaterad enkeldagsrapport.
     // ==================================================================
 
     /**
@@ -200,10 +214,33 @@ final class TvattlinjeMetrics {
                 $driftstopp = 0.0;
             }
 
+            // Dubbelskift-varning (Oscar 2026-10-24, Steg 3): en enskild kalenderdags
+            // cykler som antingen (a) summerar till orimligt mycket IBC för ETT skift
+            // (CLAUDE.md: mål 140 IBC/dag, "ETT skift per dag — ALLTID") eller (b) har
+            // ett internt glapp > 180 min (linjen troligen av/på mellan två riktiga
+            // arbetspass) flaggas här — rent informativt, ändrar INGA beräknade värden.
+            // Observera: den validerade 2026-08/08-11-buggen ovan var i praktiken en
+            // feldaterad ENKELSKIFTS-rapport (löst av submissionDag-kontrollen ovan),
+            // inte ett genuint dubbelskift — detta är ett kompletterande skyddsnät för
+            // den dag ett verkligt dubbelskift inom samma kalenderdag skulle uppstå.
+            $totalt = $ibcOk + $ibcEjOk + $omtv;
+            $maxGapMin = 0.0;
+            for ($k = 1; $k < count($idxs); $k++) {
+                $tPrev = strtotime($cycles[$idxs[$k - 1]]['datum']);
+                $tCur  = strtotime($cycles[$idxs[$k]]['datum']);
+                $maxGapMin = max($maxGapMin, ($tCur - $tPrev) / 60.0);
+            }
+            if ($totalt > 200 || $maxGapMin > 180) {
+                $flagReason .= sprintf(
+                    '; möjligt dubbelskift inom samma dag (totalt=%d IBC, max-glapp=%d min)',
+                    $totalt, (int)round($maxGapMin)
+                );
+            }
+
             $out[] = [
                 'dag'         => $dag,
                 'ibc_ok'      => $ibcOk, 'ibc_ej_ok' => $ibcEjOk, 'omtvaatt' => $omtv,
-                'totalt'      => $ibcOk + $ibcEjOk + $omtv,
+                'totalt'      => $totalt,
                 'drifttid'    => round(min($drifttid, self::RUNTIME_CAP_MIN), 1),
                 'rast'        => round($rast, 1),
                 'driftstopp'  => round($driftstopp, 1),
@@ -285,9 +322,14 @@ final class TvattlinjeMetrics {
                 $cycles = $cycleStmt->fetchAll(\PDO::FETCH_ASSOC);
                 if (count($cycles) < 2) continue;
 
-                $firstDag = substr($cycles[0]['datum'], 0, 10);
-                $lastDag  = substr($cycles[count($cycles) - 1]['datum'], 0, 10);
-                if ($firstDag === $lastDag) continue; // enkeldags-skift — ingen särbehandling
+                $firstDag      = substr($cycles[0]['datum'], 0, 10);
+                $lastDag       = substr($cycles[count($cycles) - 1]['datum'], 0, 10);
+                $submissionDag = substr($rep['datum'], 0, 10);
+                // Enkeldags-skift där sr.datum REDAN matchar produktionsdagen — redan
+                // korrekt attribuerad, ingen omfördelning behövs. En enkeldags-rapport
+                // vars sr.datum AVVIKER (sen/feldaterad inlämning) måste, precis som ett
+                // flerdagars-skift, omfördelas till cyklernas verkliga dag (se bevis ovan).
+                if ($firstDag === $lastDag && $firstDag === $submissionDag) continue;
 
                 $targetCycleMin = self::weightedTargetCycleMin($pdo, $firstDag, $lastDag);
                 $reportTotalt   = (int)($rep['totalt'] ?? ((int)$rep['antal_ok'] + (int)$rep['antal_ej_ok'] + (int)$rep['omtvaatt']));
