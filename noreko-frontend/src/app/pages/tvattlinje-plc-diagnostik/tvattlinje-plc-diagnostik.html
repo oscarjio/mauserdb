@@ -55,6 +55,9 @@
       <button class="btn-console" (click)="goToToday()" [disabled]="isToday" title="Gå till idag">
         <i class="fas fa-calendar-day"></i>
       </button>
+      <button class="btn-console" (click)="goToLatestShift()" title="Senaste skift med data">
+        <i class="fas fa-history"></i>
+      </button>
       <button class="btn-console" (click)="togglePause()" [title]="isPaused ? 'Starta live-uppdatering' : 'Pausa live-uppdatering'">
         <i class="fas" [ngClass]="isPaused ? 'fa-play' : 'fa-pause'"></i>
       </button>

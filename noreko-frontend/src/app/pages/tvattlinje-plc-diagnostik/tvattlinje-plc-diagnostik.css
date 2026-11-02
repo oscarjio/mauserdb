@@ -55,6 +55,7 @@
 .health-ok { color: #3fb950; }
 .health-warning { color: #d29922; }
 .health-error { color: #f85149; }
+.health-stale { color: #8b949e; }
 
 /* ---- Toolbar ---- */
 .toolbar {

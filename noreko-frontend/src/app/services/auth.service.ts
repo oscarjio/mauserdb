@@ -62,6 +62,14 @@ export class AuthService {
     }
   }
 
+  // N-bug #3: sann när SENASTE fetchStatus()-anropet själv misslyckades (503/timeout/
+  // nätverksfel), INTE när det lyckades och gav loggedIn=false. "Misslyckades" betyder
+  // att inloggningsstatusen är OKÄND, inte definitivt nej — en ny flik (tom sessionStorage,
+  // loggedIn$ startar på false) som råkar boota under en backend-överbelastning fick annars
+  // guard:en att tolka "okänt" som "inte inloggad" och skicka en faktiskt inloggad
+  // användare till /login. Guards läser denna flagga (se auth.guard.ts).
+  lastStatusCheckFailed = false;
+
   fetchStatus(): Observable<void> {
     return this.http.get<{ loggedIn?: boolean; user?: AuthUser | null; csrfToken?: string }>(`${environment.apiUrl}?action=status`, { withCredentials: true }).pipe(
       timeout(15000),
@@ -71,9 +79,11 @@ export class AuthService {
         if (res === null) {
           // Transienta fel (timeout, nätverksfel) loggar inte ut användaren.
           // Sätt initialized så guards inte fastnar.
+          this.lastStatusCheckFailed = true;
           this.initialized$.next(true);
           return;
         }
+        this.lastStatusCheckFailed = false;
         const loggedIn = !!res?.loggedIn;
         this.loggedIn$.next(loggedIn);
         this.user$.next(res?.user || null);

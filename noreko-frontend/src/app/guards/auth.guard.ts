@@ -18,6 +18,13 @@ export const authGuard: CanActivateFn = (_route, state): Observable<boolean | Ur
     switchMap(() => auth.loggedIn$.pipe(take(1))),
     map(loggedIn => {
       if (loggedIn) return true;
+      // N-bug #3: om senaste statuskollen själv misslyckades (503/nätverksfel vid boot,
+      // t.ex. en ny flik som bootar precis under en backend-överbelastning) är
+      // inloggningsstatusen OKÄND — inte definitivt nej. Tvinga inte till /login på en
+      // giltig session bara pga en tillfällig hicka; släpp igenom optimistiskt och låt
+      // sidans egna API-anrop 401:a (errorInterceptor skickar till /login då) om
+      // sessionen verkligen är ogiltig.
+      if (auth.lastStatusCheckFailed) return true;
       // Spara önskad URL så login-sidan kan redirecta tillbaka efter inloggning
       return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
     })
@@ -43,6 +50,9 @@ export const adminGuard: CanActivateFn = (_route, state): Observable<boolean | U
     map(user => {
       if (user?.role === 'admin' || user?.role === 'developer') return true;
       if (!user) {
+        // N-bug #3: samma resonemang som authGuard — en misslyckad statuskoll är OKÄND
+        // status, inte definitivt "ej inloggad". Släpp igenom, låt API-anropen 401:a.
+        if (auth.lastStatusCheckFailed) return true;
         // Ej inloggad — skicka till login med returnUrl
         return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
       }

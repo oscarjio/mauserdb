@@ -284,10 +284,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeIbcPerHour(r: any): number | null {
-    const netMin = Math.max(0, Math.min(r.drifttid || 0, 600));
+    // FIX: Använd getNetDrifttidMin (drifttid − rast − driftstopp) — inte raw drifttid.
+    // FIX: Returnera IBC/h (totalt / (netMin/60)), inte min/IBC (netMin/totalt).
+    const netMin = this.getNetDrifttidMin(r);
     const totalt = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0));
     if (!(netMin > 0) || !(totalt > 0)) return null;
-    const v = Math.round(netMin / totalt * 10) / 10;
+    const v = Math.round((totalt / (netMin / 60)) * 10) / 10;
     return isFinite(v) ? v : null;
   }
 
@@ -295,6 +297,21 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     if (!r.totalt) return null;
     const v = Math.round((r.antal_ok / r.totalt) * 1000) / 10;
     return isFinite(v) ? v : null;
+  }
+
+  // N-bug #3 (OEE kanonisk formel — Oscar 2026-10-19): Tillgänglighet = netto drifttid /
+  // planerad skifttid (495 min mån-tor, 435 fre; helg = planerad = körd tid → 100% om körd,
+  // 0% annars). Ersätter det tidigare drift/(drift+driftstopp) — matchar nu EXAKT samma
+  // formel som TvattlinjeController::getOeeTrend (backend). Endast tvättlinje (rebotling
+  // behåller sin gamla formel — detta uppdrag gäller bara tvättlinje).
+  private _getNettoAvailabilityRatio(r: any): number {
+    const netDrift = Math.min(r.drifttid ?? 0, 600);
+    const dateStr = String(r.datum || '').substring(0, 10);
+    const d = new Date(dateStr + 'T00:00:00');
+    const dayN = isNaN(d.getTime()) ? 1 : (d.getDay() === 0 ? 7 : d.getDay()); // ISO: 1=mån..7=sön
+    if (dayN >= 6) return netDrift > 0 ? 1 : 0; // helg: planerad = körd tid
+    const plannedMin = dayN === 5 ? 435 : 495;
+    return netDrift > 0 ? Math.min(1, netDrift / plannedMin) : 0;
   }
 
   private _computeOeePct(r: any): number | null {
@@ -311,26 +328,22 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       // Kvalitet: godkända / totalt (kassationsförlust)
       const kvalitet = okIbc / totalIbc;
 
-      // Tillgänglighet: drifttid / (drifttid + driftstopp)
-      // C: drifttid (D4007) är REDAN netto exkl rast → rast räknas INTE som tillgänglighetsförlust
-      // här (annars blir per-rad-OEE systematiskt lägre än header-KPI:n summaryAvgOee som använder
-      // schema = drift + driftstopp utan rast). driftstopp = oplanerade stopp.
       const drifttidMin  = Math.min(r.drifttid ?? 0, 600);
-      const driftstopp   = r.driftstopptime ?? 0;
-      const plannadTid   = drifttidMin + driftstopp;
-      if (plannadTid <= 0) return null;
-      const tillganglighet = Math.min(drifttidMin / plannadTid, 1);
+      if (drifttidMin <= 0) return null;
+      const tillganglighet = this.config.line === 'tvattlinje'
+        ? this._getNettoAvailabilityRatio(r)
+        : Math.min(drifttidMin / Math.max(1, drifttidMin + (r.driftstopptime ?? 0)), 1);
 
       // Prestanda: faktisk IBC/h (totalt = antal_ok + antal_ej_ok) / mål IBC/h (baserat på cykeltid)
       // Använd totalIbc, INTE okIbc — kvalitetsfaktorn straffar redan kassation, så okIbc här
       // skulle dubbelbestraffa. Systermetoden summaryAvgOee använder (antal_ok + antal_ej_ok).
-      // Drifttid är nettotid inkl. rast; använd drifttidMin som bas för IBC/h
+      // FIX: Använd getNetDrifttidMin (drifttid − rast − driftstopp) som bas för IBC/h.
       const product = this.productNameMap.size > 0
         ? this.products.find(p => p.id === (r.product_id ?? null))
         : null;
       const targetCycleMin = product?.cycle_time_minutes ?? this.fallbackCycleMin;
       const targetIbcH     = 60 / targetCycleMin;
-      const netDriftMin    = drifttidMin;
+      const netDriftMin    = this.getNetDrifttidMin(r);
       const ibcH           = netDriftMin > 0 ? (totalIbc / (netDriftMin / 60)) : 0;
       const prestanda      = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
 
@@ -340,8 +353,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeMinPerIbc(r: any): string {
+    // FIX: Använd getNetDrifttidMin (drifttid − rast − driftstopp) — inte raw drifttid.
     const ok  = r.antal_ok ?? 0;
-    const net = Math.max(0, Math.min(r.drifttid ?? 0, 600));
+    const net = this.getNetDrifttidMin(r);
     if (ok <= 0 || net <= 0) return '–';
     const v = net / ok;
     return isFinite(v) ? v.toFixed(1) : '–';
@@ -580,12 +594,26 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const cappedDrift     = (r: any) => Math.min(r.drifttid || 0, 600);
     const netDrift        = (r: any) => Math.max(0, cappedDrift(r));
     const totalDrift      = reports.reduce((s, r) => s + cappedDrift(r), 0);
-    const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
     if (totalDrift <= 0) return null;
     const totalIbc = this.cachedTotalIbc;
     if (totalIbc <= 0) return null;
-    const schema         = totalDrift + totalDriftstopp;
-    const tillganglighet = totalDriftstopp > 0 ? totalDrift / schema : 1.0;
+    // N-bug #3: samma kanoniska tillgänglighetsformel som _computeOeePct/getOeeTrend
+    // (netto/planerad skifttid, viktat över periodens dagar) — endast tvättlinje.
+    let tillganglighet: number;
+    if (this.config.line === 'tvattlinje') {
+      const totalPlannedMin = reports.reduce((s, r) => {
+        const netDrift = cappedDrift(r);
+        const dateStr = String(r.datum || '').substring(0, 10);
+        const d = new Date(dateStr + 'T00:00:00');
+        const dayN = isNaN(d.getTime()) ? 1 : (d.getDay() === 0 ? 7 : d.getDay());
+        return s + (dayN >= 6 ? netDrift : (dayN === 5 ? 435 : 495));
+      }, 0);
+      tillganglighet = totalPlannedMin > 0 ? Math.min(1, totalDrift / totalPlannedMin) : 0;
+    } else {
+      const totalDriftstopp = reports.reduce((s, r) => s + (r.driftstopptime || 0), 0);
+      const schema = totalDrift + totalDriftstopp;
+      tillganglighet = totalDriftstopp > 0 ? totalDrift / schema : 1.0;
+    }
     // Kvalitet beräknas INOM skiftrapport-källan (ok / (ok+ejOk+omtvaatt)) — inte ok/totalIbc,
     // där totalIbc är PLC-först dagtotal (PLC räknar fler än SR rapporterar) → blandade källor
     // deflaterade OEE och motsade per-rad-OEE. Se BUGG D.
@@ -1527,7 +1555,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const drifttidRaw = Math.min(report.drifttid || 0, 600);
         const driftstopp  = report.driftstopptime ?? 0;
         const rasttime    = report.rasttime ?? 0;
-        const nettoMin    = Math.max(0, drifttidRaw);
+        // FIX: nettoMin = drifttid − rast − driftstopp (samma som getNetDrifttidMin).
+        // Tidigare var det bara drifttidRaw → IBC/h, min/IBC och effektivitet i PDFen var fel.
+        const nettoMin    = Math.max(0, drifttidRaw - rasttime - driftstopp);
         const produkt     = this.getProductName(report.product_id) || '\u2013';
         const lopnr       = this.lopnummerMap[report.id] || '\u2013';
         const kommentar   = report.kommentar || 'Ingen kommentar l\u00e4mnad';
@@ -1569,7 +1599,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         // Frikopplad från den signerade "Effektivitet"-KPI:n — en gauge kan inte visa
         // negativa värden, och OEE-faktorer ska förbli 0-100 (Oscar 2026-07-14).
         const totForEff = (report.totalt || ((report.antal_ok || 0) + (report.antal_ej_ok || 0) + (report.omtvaatt || 0)));
-        const netForEff = Math.max(0, Math.min(report.drifttid || 0, 600));
+        // FIX: netForEff använder netto (drifttid − rast − driftstopp), inte raw drifttid.
+        const netForEff = nettoMin;
         const actualCycleEff = (totForEff > 0 && netForEff > 0) ? netForEff / totForEff : 0;
         const prodForEff = this.products.find((p: any) => p.id === (report.product_id ?? null));
         const targetCycleEff = prodForEff?.cycle_time_minutes ?? this.fallbackCycleMin;

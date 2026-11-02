@@ -620,6 +620,7 @@
                   <th class="text-end" scope="col">IBC OK</th>
                   <th class="text-end" scope="col">IBC Ej OK</th>
                   <th class="text-end" scope="col">Totalt</th>
+                  <th class="text-end" scope="col" title="IBC räknat av PLC-räknaren för dagen (oberoende av inmatat totalt). Används bl.a. för 'bästa dag'-statistiken.">PLC IBC</th>
                   <th class="text-end" scope="col">Godkänd %</th>
                   <th scope="col">Kommentar</th>
                 </tr>
@@ -630,6 +631,14 @@
                   <td class="text-end text-success"><strong>{{ r.antal_ok || 0 }}</strong></td>
                   <td class="text-end text-danger">{{ r.antal_ej_ok || 0 }}</td>
                   <td class="text-end"><strong>{{ r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0)) }}</strong></td>
+                  <td class="text-end">
+                    <span *ngIf="r.plc_ibc !== null && r.plc_ibc !== undefined"
+                          [class.text-warning]="r.ibc_avviker"
+                          [title]="r.ibc_avviker ? 'Avviker från inmatat totalt (' + r.totalt + ')' : ''">
+                      {{ r.plc_ibc }}<i *ngIf="r.ibc_avviker" class="fas fa-triangle-exclamation ms-1"></i>
+                    </span>
+                    <span *ngIf="r.plc_ibc === null || r.plc_ibc === undefined" class="text-muted">–</span>
+                  </td>
                   <td class="text-end">
                     <span *ngIf="r.godkand_pct !== null && r.godkand_pct !== undefined"
                           [class.text-success]="r.godkand_pct >= 90"
@@ -642,7 +651,7 @@
                   <td class="text-muted small">{{ r.kommentar || '' }}</td>
                 </tr>
                 <tr *ngIf="skiftStatFilteredData.length === 0">
-                  <td colspan="6" class="text-center text-muted py-3">Inga rader matchar sökningen.</td>
+                  <td colspan="7" class="text-center text-muted py-3">Inga rader matchar sökningen.</td>
                 </tr>
               </tbody>
             </table>
