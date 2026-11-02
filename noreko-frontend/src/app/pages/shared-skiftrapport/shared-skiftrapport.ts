@@ -284,10 +284,12 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeIbcPerHour(r: any): number | null {
-    const netMin = Math.max(0, Math.min(r.drifttid || 0, 600));
+    // FIX: Använd getNetDrifttidMin (drifttid − rast − driftstopp) — inte raw drifttid.
+    // FIX: Returnera IBC/h (totalt / (netMin/60)), inte min/IBC (netMin/totalt).
+    const netMin = this.getNetDrifttidMin(r);
     const totalt = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0));
     if (!(netMin > 0) || !(totalt > 0)) return null;
-    const v = Math.round(netMin / totalt * 10) / 10;
+    const v = Math.round((totalt / (netMin / 60)) * 10) / 10;
     return isFinite(v) ? v : null;
   }
 
@@ -335,13 +337,13 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       // Prestanda: faktisk IBC/h (totalt = antal_ok + antal_ej_ok) / mål IBC/h (baserat på cykeltid)
       // Använd totalIbc, INTE okIbc — kvalitetsfaktorn straffar redan kassation, så okIbc här
       // skulle dubbelbestraffa. Systermetoden summaryAvgOee använder (antal_ok + antal_ej_ok).
-      // Drifttid är nettotid inkl. rast; använd drifttidMin som bas för IBC/h
+      // FIX: Använd getNetDrifttidMin (drifttid − rast − driftstopp) som bas för IBC/h.
       const product = this.productNameMap.size > 0
         ? this.products.find(p => p.id === (r.product_id ?? null))
         : null;
       const targetCycleMin = product?.cycle_time_minutes ?? this.fallbackCycleMin;
       const targetIbcH     = 60 / targetCycleMin;
-      const netDriftMin    = drifttidMin;
+      const netDriftMin    = this.getNetDrifttidMin(r);
       const ibcH           = netDriftMin > 0 ? (totalIbc / (netDriftMin / 60)) : 0;
       const prestanda      = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
 
@@ -351,8 +353,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeMinPerIbc(r: any): string {
+    // FIX: Använd getNetDrifttidMin (drifttid − rast − driftstopp) — inte raw drifttid.
     const ok  = r.antal_ok ?? 0;
-    const net = Math.max(0, Math.min(r.drifttid ?? 0, 600));
+    const net = this.getNetDrifttidMin(r);
     if (ok <= 0 || net <= 0) return '–';
     const v = net / ok;
     return isFinite(v) ? v.toFixed(1) : '–';
@@ -1552,7 +1555,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const drifttidRaw = Math.min(report.drifttid || 0, 600);
         const driftstopp  = report.driftstopptime ?? 0;
         const rasttime    = report.rasttime ?? 0;
-        const nettoMin    = Math.max(0, drifttidRaw);
+        // FIX: nettoMin = drifttid − rast − driftstopp (samma som getNetDrifttidMin).
+        // Tidigare var det bara drifttidRaw → IBC/h, min/IBC och effektivitet i PDFen var fel.
+        const nettoMin    = Math.max(0, drifttidRaw - rasttime - driftstopp);
         const produkt     = this.getProductName(report.product_id) || '\u2013';
         const lopnr       = this.lopnummerMap[report.id] || '\u2013';
         const kommentar   = report.kommentar || 'Ingen kommentar l\u00e4mnad';
@@ -1594,7 +1599,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         // Frikopplad från den signerade "Effektivitet"-KPI:n — en gauge kan inte visa
         // negativa värden, och OEE-faktorer ska förbli 0-100 (Oscar 2026-07-14).
         const totForEff = (report.totalt || ((report.antal_ok || 0) + (report.antal_ej_ok || 0) + (report.omtvaatt || 0)));
-        const netForEff = Math.max(0, Math.min(report.drifttid || 0, 600));
+        // FIX: netForEff använder netto (drifttid − rast − driftstopp), inte raw drifttid.
+        const netForEff = nettoMin;
         const actualCycleEff = (totForEff > 0 && netForEff > 0) ? netForEff / totForEff : 0;
         const prodForEff = this.products.find((p: any) => p.id === (report.product_id ?? null));
         const targetCycleEff = prodForEff?.cycle_time_minutes ?? this.fallbackCycleMin;
