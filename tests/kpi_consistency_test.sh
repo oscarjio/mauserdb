@@ -308,6 +308,93 @@ fi
 echo ""
 
 # ─────────────────────────────────────────────
+# BLOCK 7: Stapeldiagram-effektivitet vs KPI-kort
+# ─────────────────────────────────────────────
+# KPI-kortet använder avg_production_percent (D4007-baserad).
+# Stapeldiagrammets tooltip beräknar effektivitet från rå cykel-GAP:
+#   (target_cycle_time - avg_raw_cycle) / target_cycle_time * 100
+# Dessa ger OLIKA värden — det är känt och delvis avsiktligt (samma
+# källa som Detaljerad Statistik). Testet loggar WARN om de avviker
+# mer än 15 pp, vilket vore tecken på ny bugg snarare än känd design.
+# ─────────────────────────────────────────────
+
+echo -e "${BLUE}── Block 7: Stapeldiagram-effektivitet vs KPI-kort ────${NC}"
+
+# Hämta cykler för att beräkna rå snitt-cykeltid (samma logik som frontend rad 2465-2469)
+CYCLES_FILE="/tmp/kpi_test_cycles.json"
+CODE=$(fetch_json "$BASE?action=tvattlinje&run=statistics&start=$TEST_DATE&end=$TEST_DATE" "$CYCLES_FILE")
+
+if [ "$CODE" = "200" ]; then
+    # Beräkna rå avg_cycle_time från cykler (frontend: validCycleTimes, t > 0 och t <= 30)
+    STAPEL_EFF=$(python3 - <<PYEOF 2>/dev/null || echo "null"
+import json, sys
+
+with open("$CYCLES_FILE") as f:
+    d = json.load(f)
+
+cycles = d.get("data", {}).get("cycles", [])
+summary = d.get("data", {}).get("summary", {})
+
+# Rå cykeltider (samma filter som frontend line 2464)
+raw_times = []
+for c in cycles:
+    t = c.get("cycle_time")
+    try:
+        t = float(t)
+        if t > 0 and t <= 30:
+            raw_times.append(t)
+    except (TypeError, ValueError):
+        pass
+
+target = summary.get("target_cycle_time") or 3.45
+try:
+    target = float(target)
+except (TypeError, ValueError):
+    target = 3.45
+
+if raw_times:
+    avg_raw = sum(raw_times) / len(raw_times)
+    eff = round(((target - avg_raw) / target) * 100) if target > 0 else 0
+    print(f"{eff}|{round(avg_raw, 2)}|{target}|{len(raw_times)}")
+else:
+    print("null")
+PYEOF
+)
+
+    if [ "$STAPEL_EFF" != "null" ] && [[ "$STAPEL_EFF" != ERR* ]]; then
+        STAPEL_PCT=$(echo "$STAPEL_EFF" | cut -d'|' -f1)
+        RAW_AVG=$(echo "$STAPEL_EFF"   | cut -d'|' -f2)
+        TARGET=$(echo "$STAPEL_EFF"    | cut -d'|' -f3)
+        N_CYCLES=$(echo "$STAPEL_EFF"  | cut -d'|' -f4)
+
+        ok "Stapeldiagram (rå cykel-GAP): avg_cycle=${RAW_AVG}min, taktmål=${TARGET}min, n=${N_CYCLES} cykler → effektivitet=${STAPEL_PCT}%"
+
+        if [ "$STAT_AVG_PROD" != "null" ] && [[ "$STAT_AVG_PROD" != ERR* ]]; then
+            ok "KPI-kort (D4007-baserad): avg_production_percent=${STAT_AVG_PROD}%"
+
+            # Beräkna avvikelse mellan de två metoderna
+            DIFF=$(python3 -c "print(abs(int('$STAPEL_PCT') - float('$STAT_AVG_PROD')))" 2>/dev/null || echo "null")
+            if [ "$DIFF" != "null" ]; then
+                # Känd avvikelse: WARN bara om den överstiger 15 pp (tecken på ny bugg)
+                TOO_BIG=$(python3 -c "print('yes' if float('$DIFF') > 15 else 'no')" 2>/dev/null || echo "no")
+                if [ "$TOO_BIG" = "yes" ]; then
+                    warn "Stapeldiagram vs KPI-kort avviker ${DIFF}pp (>${STAPEL_PCT}% vs ${STAT_AVG_PROD}%) — UNDERSÖK"
+                else
+                    warn "KÄND DESIGN-SKILLNAD: Stapel=${STAPEL_PCT}% (rå cykel-GAP) vs KPI-kort=${STAT_AVG_PROD}% (D4007) — avviker ${DIFF}pp (normalt ≤15pp)"
+                fi
+            fi
+        else
+            warn "Kan inte jämföra: KPI-kort avg_production_percent saknas"
+        fi
+    else
+        warn "Stapeldiagram-beräkning misslyckades (inga giltiga cykler för $TEST_DATE?)"
+    fi
+else
+    warn "statistics HTTP $CODE — hoppar Block 7"
+fi
+echo ""
+
+# ─────────────────────────────────────────────
 # Sammanfattning
 # ─────────────────────────────────────────────
 
