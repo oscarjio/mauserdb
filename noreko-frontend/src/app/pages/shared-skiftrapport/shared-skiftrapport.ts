@@ -266,8 +266,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   private _computeEfficiencyPct(r: any): number | null {
     const totalt   = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
-    // NET körtid (drifttid − rast − driftstopp) delat på IBC = faktisk cykel. Tidigare RÅ
-    // drifttid inkl. rast → för låg EFF (skiftrapport +15% vs dagvy +25%). Nu samma bas.
+    // NET körtid (cappad D4007, inga avdrag) delat på IBC = faktisk cykel.
+    // D4007 exkluderar rast och driftstopp automatiskt.
     const netMin   = this.getNetDrifttidMin(r);
     if (totalt <= 0 || netMin <= 0) return null;
     // BUG2a/A: korrupt/kumulativ drifttid (>=600 min = 10h+, eller > skiftets spann) -> okänd
@@ -284,7 +284,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeIbcPerHour(r: any): number | null {
-    // Använd getNetDrifttidMin (drifttid − driftstopp, rast redan exkl. i D4007) — inte raw drifttid.
+    // Använd getNetDrifttidMin (cappad D4007, inga avdrag) — inte raw drifttid.
     // Returnera IBC/h (totalt / (netMin/60)), inte min/IBC (netMin/totalt).
     const netMin = this.getNetDrifttidMin(r);
     const totalt = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0));
@@ -337,7 +337,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       // Prestanda: faktisk IBC/h (totalt = antal_ok + antal_ej_ok) / mål IBC/h (baserat på cykeltid)
       // Använd totalIbc, INTE okIbc — kvalitetsfaktorn straffar redan kassation, så okIbc här
       // skulle dubbelbestraffa. Systermetoden summaryAvgOee använder (antal_ok + antal_ej_ok).
-      // Använd getNetDrifttidMin (drifttid − driftstopp) som bas för IBC/h.
+      // Använd getNetDrifttidMin (cappad D4007, inga avdrag) som bas för IBC/h.
       const product = this.productNameMap.size > 0
         ? this.products.find(p => p.id === (r.product_id ?? null))
         : null;
@@ -353,7 +353,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeMinPerIbc(r: any): string {
-    // Använd getNetDrifttidMin (drifttid − driftstopp) — inte raw drifttid.
+    // Använd getNetDrifttidMin (cappad D4007, inga avdrag) — inte raw drifttid.
     const ok  = r.antal_ok ?? 0;
     const net = this.getNetDrifttidMin(r);
     if (ok <= 0 || net <= 0) return '–';
@@ -565,7 +565,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     // Exkludera korrupta dagar (samma guard som summaryAvgEff/_computeEfficiencyPct) så SNITT
     // min/IBC inte förgiftas av kumulativ/trasig drifttid och matchar EFFEKTIVITET-KPI:n.
     const reports = this.dedupSnapshots(this.filteredReports).filter(r => !this._isDrifttidCorrupt(r));
-    // SNITT min/IBC = faktisk cykel → samma NET-körtidsbas (drifttid − driftstopp, D4007 excl. rast) som
+    // SNITT min/IBC = faktisk cykel → samma NET-körtidsbas (cappad D4007, inga avdrag) som
     // summaryAvgEff, annars motsäger de två header-KPI:erna varandra (se T4 i summaryAvgEff).
     const totalNet = reports.reduce(
       (s, r) => s + this.getNetDrifttidMin(r), 0);
@@ -1554,9 +1554,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const omtvaatt    = report.omtvaatt ?? 0;
         const drifttidRaw = Math.min(report.drifttid || 0, 600);
         const driftstopp  = report.driftstopptime ?? 0;
-        // nettoMin = drifttid − driftstopp (samma som getNetDrifttidMin).
-        // drifttid (D4007) exkluderar redan rast — subtrahera INTE rasttime (dubbelsubtrahering).
-        const nettoMin    = Math.max(0, drifttidRaw - driftstopp);
+        // nettoMin = drifttid cappad (samma som getNetDrifttidMin).
+        // D4007 stoppar under både rast och driftstopp → inga avdrag.
+        const nettoMin    = drifttidRaw;
         const produkt     = this.getProductName(report.product_id) || '\u2013';
         const lopnr       = this.lopnummerMap[report.id] || '\u2013';
         const kommentar   = report.kommentar || 'Ingen kommentar l\u00e4mnad';
@@ -2055,13 +2055,15 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   getNetDrifttidMin(r: any): number {
-    // Kanonisk regel: NET körtid = drifttid − driftstopp.
-    // drifttid = D4007 = PLC-register som räknar NETTO körtid (exkluderar rast automatiskt).
-    // rasttime (D4008) är ett SEPARAT register — ska INTE subtraheras här (dubbelsubtrahering).
-    // driftstopptime (D4011) är separat och inkluderas i D4007 → subtraheras.
+    // Kanonisk regel: NET körtid = drifttid (cappad).
+    // drifttid = D4007 = PLC-register som räknar NETTO körtid.
+    // D4007 STOPPAR under rast (D4008) → rast är redan EXKLUDERAT.
+    // D4007 STOPPAR under driftstopp (D4011) → driftstopp är redan EXKLUDERAT.
+    // Bevis: 255 (D4007) + 17 (rast) + 26 (driftstopp) = 298 = runtime_today exakt (CLAUDE.md rad 57).
+    // Dra ALDRIG av rasttime eller driftstopptime — det är dubbelsubtrahering.
+    // Driftstopptime används ENBART i driftfaktorn: drifttid / (drifttid + driftstopp).
     // Cappad till 600 min (~10h, ett skift/dag).
-    const net = (r?.drifttid || 0) - (r?.driftstopptime || 0);
-    return Math.max(0, Math.min(net, 600));
+    return Math.max(0, Math.min(r?.drifttid || 0, 600));
   }
 
   formatNetDrifttid(r: any): string {
