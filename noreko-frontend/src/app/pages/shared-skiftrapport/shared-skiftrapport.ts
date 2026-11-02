@@ -284,12 +284,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeIbcPerHour(r: any): number | null {
-    // Använd getNetDrifttidMin (cappad D4007, inga avdrag) — inte raw drifttid.
-    // Returnera IBC/h (totalt / (netMin/60)), inte min/IBC (netMin/totalt).
+    // OBS: Trots namnet returnerar denna funktion min/IBC (legacy-namn).
+    // Alla HTML-etiketter som binder ibcPerHour() visar "min/IBC".
+    // Formel: netMin / totalt = minuter per IBC (faktisk cykeltid).
+    // Använd getNetDrifttidMin (cappad D4007, inga avdrag) som täljare.
     const netMin = this.getNetDrifttidMin(r);
     const totalt = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0));
     if (!(netMin > 0) || !(totalt > 0)) return null;
-    const v = Math.round((totalt / (netMin / 60)) * 10) / 10;
+    const v = Math.round((netMin / totalt) * 10) / 10;
     return isFinite(v) ? v : null;
   }
 
