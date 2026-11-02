@@ -668,6 +668,9 @@ class RebotlingController {
             $settingsCache = $this->getCachedSettingsAndWeather();
             $utetemperatur = $settingsCache['utetemperatur'];
 
+            // Dagssnitt IBC/h över alla skift idag, därför inte $totalRuntimeMinutes (bara nuvarande skift).
+            $runtimeTodayMinutes = $this->runningMinutesToday();
+
             $jsonResult = json_encode([
                 'success' => true,
                 'data' => [
@@ -677,7 +680,10 @@ class RebotlingController {
                     'ibcToday' => $ibcToday,
                     'productionPercentage' => $productionPercentage,
                     'nextLopnummer' => $nextLopnummer,
-                    'utetemperatur' => $utetemperatur
+                    'utetemperatur' => $utetemperatur,
+                    'ibcPerHour' => $runtimeTodayMinutes > 0
+                        ? round($ibcToday / ($runtimeTodayMinutes / 60), 1)
+                        : 0.0,
                 ]
             ], JSON_UNESCAPED_UNICODE);
 
@@ -706,6 +712,32 @@ class RebotlingController {
         }
     }
 
+
+    /** Summan av dagens running=true-perioder i minuter. En pågående period räknas till nu. */
+    private function runningMinutesToday(): float {
+        $entries = $this->pdo->query('
+            SELECT datum, running
+            FROM rebotling_onoff
+            WHERE datum >= CURDATE() AND datum < CURDATE() + INTERVAL 1 DAY
+            ORDER BY datum ASC
+        ')->fetchAll(PDO::FETCH_ASSOC);
+
+        $seconds = 0;
+        $runningSince = null;
+        foreach ($entries as $entry) {
+            $t = strtotime($entry['datum']);
+            if ($entry['running'] && $runningSince === null) {
+                $runningSince = $t;
+            } elseif (!$entry['running'] && $runningSince !== null) {
+                $seconds += $t - $runningSince;
+                $runningSince = null;
+            }
+        }
+        if ($runningSince !== null) {
+            $seconds += max(0, time() - $runningSince);
+        }
+        return $seconds / 60;
+    }
 
     private function getRunningStatus() {
         // Kort filcache (3s) — statusen är minut-skalig (running/rast); 3s är osynligt

@@ -1032,11 +1032,34 @@ class TvattlinjeController {
                 error_log('TvattlinjeController::getLiveStats taktPerH: ' . $e->getMessage());
             }
 
+            // Dagssnitt IBC/h exkl. rast och driftstopp: dagens IBC / D4007 (runtime_plc, redan
+            // netto). INTE $totalRuntimeMinutes ovan, den är on/off-tid inkl. rast/driftstopp.
+            // Reset-säker summa: räknaren kan nollställas vid skiftbyte (2026-10-30: MAX 201 min
+            // mot verkliga ~390), och föregående rad hämtas före dagens start så att en räknare
+            // som inte nollställts sedan en tidigare dag bara bidrar med dagens ökning.
+            $ibcPerHour = 0.0;
+            try {
+                $drifttidIdag = (float)$this->pdo->query(
+                    "SELECT COALESCE(SUM(CASE WHEN prev IS NULL OR r < prev THEN r ELSE r - prev END), 0)
+                     FROM (SELECT datum, runtime_plc AS r,
+                                  LAG(runtime_plc) OVER (ORDER BY datum, id) AS prev
+                           FROM tvattlinje_ibc
+                           WHERE datum >= CURDATE() - INTERVAL 7 DAY AND runtime_plc > 0) t
+                     WHERE datum >= CURDATE()"
+                )->fetchColumn();
+                $drifttidIdag = TvattlinjeMetrics::capDrifttid($drifttidIdag);
+                if ($drifttidIdag > 0) {
+                    $ibcPerHour = round($ibcToday / ($drifttidIdag / 60), 1);
+                }
+            } catch (\Throwable $e) {
+                error_log('TvattlinjeController::getLiveStats ibcPerHour: ' . $e->getMessage());
+            }
+
             $utetemperatur = null;
             try {
                 $stmt = $this->pdo->prepare('
                     SELECT utetemperatur, datum
-                    FROM vader_data 
+                    FROM vader_data
                     ORDER BY datum DESC 
                     LIMIT 1
                 ');
@@ -1062,6 +1085,7 @@ class TvattlinjeController {
                     'divergent'         => $divergent,
                     'empty'             => $ibcEmpty,
                     'taktPerH'          => $taktPerH,
+                    'ibcPerHour'        => $ibcPerHour,
                     'hourlyTarget'      => round($hourlyTarget, 1),
                     'taktPercentage'    => $taktPercentage,
                     // Körstatus mot faktisk PLC-produktion (VPS-lokal — run=status är Pi-passthru)

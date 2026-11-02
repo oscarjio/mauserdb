@@ -23,6 +23,7 @@ export interface TvattlinjeLiveStatsResponse {
     productionPercentage: number;
     utetemperatur: number | null;
     taktPerH?: number;
+    ibcPerHour?: number;
     hourlyTarget?: number;
     taktPercentage?: number;
     running?: boolean;

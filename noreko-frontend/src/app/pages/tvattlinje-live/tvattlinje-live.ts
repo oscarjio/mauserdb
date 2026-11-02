@@ -50,7 +50,7 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   // Live stats
   ibcToday: number = 0;
   ibcTarget: number = 0;
-  utetemperatur: number | null = null;
+  ibcPerHour: number = 0;
   productionPercentage: number = 0;
   taktPercentage: number = 0;
 
@@ -163,7 +163,7 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
         if (res?.success && res.data) {
           this.ibcToday = res.data.ibcToday;
           this.ibcTarget = res.data.ibcTarget;
-          this.utetemperatur = res.data.utetemperatur;
+          this.ibcPerHour = res.data.ibcPerHour ?? 0;
           this.productionPercentage = res.data.productionPercentage ?? 0;
           this.taktPercentage = res.data.taktPercentage ?? 0;
           this.updateSpeedometer();

@@ -42,7 +42,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   hourlyTarget: number = 0;
   ibcToday: number = 0;
   productionPercentage: number = 0;
-  utetemperatur: number | null = null;
+  ibcPerHour: number = 0;
   
   // Speedometer properties
   needleRotation: number = -180; // Far left = 0%
@@ -165,7 +165,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
           this.ibcToday = res.data.ibcToday || 0;
           this.nextLopnummer = res.data.nextLopnummer ?? null;
           this.productionPercentage = res.data.productionPercentage ?? 0;
-          this.utetemperatur = res.data.utetemperatur ?? null;
+          this.ibcPerHour = res.data.ibcPerHour ?? 0;
         } else {
           // API failed or returned no data — show neutral/unknown state
           this.productionPercentage = -1;
