@@ -158,7 +158,7 @@ class SkiftrapportExportController {
                 $skiftIbcPerH = $runtime > 0
                     ? round($ibcOk / ($runtime / 60), 1) : 0.0;
                 // Löpnummer för detta skift
-                $lopnummer = $this->fetchLopnummer((int)$r['skiftraknare']);
+                $lopnummer = $this->fetchLopnummer((int)$r['skiftraknare'], $date);
                 $lopnummerRange = $this->buildRanges($lopnummer);
 
                 $skiftLista[] = [
@@ -382,11 +382,11 @@ class SkiftrapportExportController {
     // run=multi-day&start=YYYY-MM-DD&end=YYYY-MM-DD
     // ================================================================
 
-    private function fetchLopnummer(int $skiftraknare): array {
+    private function fetchLopnummer(int $skiftraknare, string $date): array {
         $stmt = $this->pdo->prepare(
-            "SELECT lopnummer FROM rebotling_ibc WHERE skiftraknare = ? ORDER BY lopnummer"
+            "SELECT lopnummer FROM rebotling_ibc WHERE skiftraknare = ? AND datum >= ? AND datum < DATE_ADD(?, INTERVAL 1 DAY) ORDER BY lopnummer"
         );
-        $stmt->execute([$skiftraknare]);
+        $stmt->execute([$skiftraknare, $date, $date]);
         $rows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
         $nums = array_map('intval', $rows);
         return array_values(array_unique(array_filter($nums, fn($n) => $n > 0 && $n < 998)));
