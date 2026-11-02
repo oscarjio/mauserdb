@@ -117,6 +117,51 @@ export interface TvattlinjeCycleRow {
   driftstopptime: number | null;
 }
 
+/** Rapportfält som behövs för att avgöra vilka cykler en skiftrapport täcker. */
+export interface ReportPeriod {
+  period_start?: string | null;
+  period_end?: string | null;
+}
+
+/**
+ * Cyklerna en skiftrapport faktiskt täcker. PLC:n kan byta skiftraknare mitt i ett pass
+ * utan nollställning och utan att någon rapport skickas för den gamla räknaren (bevis:
+ * rapport 90, 2026-11-02: sk=63 07:05–08:27 + sk=64 08:29–11:41, 81 IBC, löpnummer 2–77).
+ * Rapporten bär då bara den SISTA räknaren, så enbart skiftraknare-matchning tappar passets
+ * första cykler. Rapporten äger därför även cykler inom sin period från räknare UTAN egen
+ * rapport. Räknare med egen rapport tas aldrig med, de hör till den rapporten.
+ */
+export function cyclesForReport<T extends { datum: string; skiftraknare: number | null }>(
+  report: ReportPeriod & { skiftraknare?: number | null },
+  cycles: T[],
+  reportedSkift: Set<number>
+): T[] {
+  const own = report.skiftraknare ?? null;
+  const start = report.period_start || null;
+  const end = report.period_end || null;
+  return cycles.filter(c => {
+    if (!c.skiftraknare) return false;
+    if (c.skiftraknare === own) return true;
+    if (!start || !end || reportedSkift.has(c.skiftraknare)) return false;
+    return c.datum >= start && c.datum <= end;
+  });
+}
+
+/**
+ * Datumspann som cykeldata måste hämtas för så att alla rapporters cykler kommer med.
+ * Ett skift kan ha startat före rapportdatumet, så period_start/period_end vägs in.
+ */
+export function cycleFetchRange(
+  reports: Array<ReportPeriod & { datum?: string | null }>
+): { start: string; end: string } | null {
+  const days = reports
+    .flatMap(r => [r.datum, r.period_start, r.period_end])
+    .filter((d): d is string => !!d)
+    .map(d => String(d).substring(0, 10))
+    .sort();
+  return days.length ? { start: days[0], end: days[days.length - 1] } : null;
+}
+
 export interface DaySplitRow {
   dag: string;
   ibc_ok: number;

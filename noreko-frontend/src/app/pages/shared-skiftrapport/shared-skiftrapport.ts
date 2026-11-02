@@ -1678,12 +1678,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     // exporterade perioden i ETT anrop (ingen 500-cap, till skillnad från
     // PLC-diagnostiken) i stället för en löpnummer-rundtripp per rapport.
     let cycleRows: any[] = [];
-    if (reports.length > 0) {
-      const startDate = String(reports[0].datum || '').substring(0, 10);
-      const endDate = String(reports[reports.length - 1].datum || '').substring(0, 10);
-      const res = await firstValueFrom(this.tvattlinjeService.getCycleDetail(startDate, endDate)).catch(() => null);
+    const fetchRange = TM.cycleFetchRange(reports);
+    if (fetchRange) {
+      const res = await firstValueFrom(this.tvattlinjeService.getCycleDetail(fetchRange.start, fetchRange.end)).catch(() => null);
       cycleRows = res?.success ? (res.data || []) : [];
     }
+    const reportedSkift = new Set<number>(
+      (this.reports as any[]).map(r => Number(r.skiftraknare)).filter(sk => sk > 0)
+    );
     const cyclesBySkift = new Map<number, any[]>();
     for (const c of cycleRows) {
       const sk = c.skiftraknare;
@@ -1713,6 +1715,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       const driftstoppTotal = r.driftstopptime || 0;
       const skiftCycles = (cyclesBySkift.get(r.skiftraknare) || [])
         .slice().sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
+      // Löpnummerspannet ska täcka hela rapportens pass, även cykler under en tidigare
+      // orapporterad skiftraknare. IBC-tal och dag-delning går fortsatt på skiftCycles.
+      const lopCycles = TM.cyclesForReport(r, cycleRows, reportedSkift);
 
       // N-bug (Oscar 2026-10-21/22 DUBBELSKIFT, utökat 2026-10-24): en rapport vars
       // cykler (samma skiftraknare) sträcker sig över flera kalenderdagar attribuerades
@@ -1740,7 +1745,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           const driftfaktorRatio = TM.driftfaktor(d.drifttid, d.driftstopp);
           const qual = TM.quality(d.ibc_ok, d.totalt);
           const oee = TM.oee(driftfaktorRatio, TM.performance(d.totalt, maltakt, d.drifttid), qual);
-          const relevantCycles = skiftCycles.filter(c => String(c.datum).substring(0, 10) === d.dag);
+          const relevantCycles = lopCycles.filter(c => String(c.datum).substring(0, 10) === d.dag);
           const lopnummerNums = relevantCycles.filter(c => c.lopnummer !== null).map(c => Number(c.lopnummer));
           const lopnummer = this._buildLopnummerRangeFlagged(lopnummerNums);
 
@@ -1788,7 +1793,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         // Löpnummer (Oscar 2026-10-21): bara "godkänd"-cykler (c.lopnummer !== null,
         // se TvattlinjeController::getCycleDetail) räknas in — luckor/dubbletter flaggas
         // explicit i stället för att bara synas implicit som flera delintervall.
-        const relevantCycles = isMulti ? skiftCycles.filter(c => c.produkt === sp.productId) : skiftCycles;
+        const relevantCycles = isMulti ? lopCycles.filter(c => c.produkt === sp.productId) : lopCycles;
         const lopnummerNums = relevantCycles.filter(c => c.lopnummer !== null).map(c => Number(c.lopnummer));
         const lopnummer = this._buildLopnummerRangeFlagged(lopnummerNums);
 
