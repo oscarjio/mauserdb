@@ -269,8 +269,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   private _computeEfficiencyPct(r: any): number | null {
     const totalt   = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0) + (r.omtvaatt || 0));
-    // NET körtid (drifttid − rast − driftstopp) delat på IBC = faktisk cykel. Tidigare RÅ
-    // drifttid inkl. rast → för låg EFF (skiftrapport +15% vs dagvy +25%). Nu samma bas.
+    // NET körtid (cappad D4007, inga avdrag) delat på IBC = faktisk cykel.
+    // D4007 exkluderar rast och driftstopp automatiskt.
     const netMin   = this.getNetDrifttidMin(r);
     if (totalt <= 0 || netMin <= 0) return null;
     // BUG2a/A: korrupt/kumulativ drifttid (>=600 min = 10h+, eller > skiftets spann) -> okänd
@@ -287,6 +287,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   }
 
   private _computeIbcPerHour(r: any): number | null {
+    // OBS: returnerar min/IBC trots namnet, alla visningar i templaten är märkta min/IBC.
     const netMin = Math.max(0, Math.min(r.drifttid || 0, 600));
     const totalt = r.totalt || ((r.antal_ok || 0) + (r.antal_ej_ok || 0));
     if (!(netMin > 0) || !(totalt > 0)) return null;
@@ -1931,8 +1932,10 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         const omtvaatt    = report.omtvaatt ?? 0;
         const drifttidRaw = Math.min(report.drifttid || 0, 600);
         const driftstopp  = report.driftstopptime ?? 0;
+        // nettoMin = drifttid cappad (samma som getNetDrifttidMin).
+        // D4007 stoppar under både rast och driftstopp → inga avdrag.
         const rasttime    = report.rasttime ?? 0;
-        const nettoMin    = Math.max(0, drifttidRaw);
+        const nettoMin    = drifttidRaw;
         const produkt     = this.getProductName(report.product_id) || '\u2013';
         const lopnr       = this.lopnummerMap[report.id] || '\u2013';
         const kommentar   = report.kommentar || 'Ingen kommentar l\u00e4mnad';
@@ -1980,7 +1983,8 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         // Frikopplad från den signerade "Effektivitet"-KPI:n — en gauge kan inte visa
         // negativa värden, och OEE-faktorer ska förbli 0-100 (Oscar 2026-07-14).
         const totForEff = (report.totalt || ((report.antal_ok || 0) + (report.antal_ej_ok || 0) + (report.omtvaatt || 0)));
-        const netForEff = Math.max(0, Math.min(report.drifttid || 0, 600));
+        // netForEff = cappad D4007, inga avdrag (samma bas som nettoMin).
+        const netForEff = nettoMin;
         const actualCycleEff = (totForEff > 0 && netForEff > 0) ? netForEff / totForEff : 0;
         const prodForEff = this.products.find((p: any) => p.id === (report.product_id ?? null));
         const targetCycleEff = prodForEff?.cycle_time_minutes ?? this.fallbackCycleMin;
