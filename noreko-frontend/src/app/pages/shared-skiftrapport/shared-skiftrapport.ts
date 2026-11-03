@@ -443,6 +443,38 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     this.recomputeKpis();
   }
 
+  setDatePreset(preset: 'denna-vecka' | 'forra-vecka' | 'denna-manad' | 'forra-manad'): void {
+    const today = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (preset === 'denna-vecka') {
+      const dow = today.getDay() === 0 ? 6 : today.getDay() - 1; // mån=0
+      const mon = new Date(today); mon.setDate(today.getDate() - dow);
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      this.filterFrom = fmt(mon);
+      this.filterTo   = fmt(sun);
+    } else if (preset === 'forra-vecka') {
+      const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
+      const thisMon = new Date(today); thisMon.setDate(today.getDate() - dow);
+      const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate() - 7);
+      const lastSun = new Date(lastMon); lastSun.setDate(lastMon.getDate() + 6);
+      this.filterFrom = fmt(lastMon);
+      this.filterTo   = fmt(lastSun);
+    } else if (preset === 'denna-manad') {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const last  = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      this.filterFrom = fmt(first);
+      this.filterTo   = fmt(last);
+    } else if (preset === 'forra-manad') {
+      const first = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const last  = new Date(today.getFullYear(), today.getMonth(), 0);
+      this.filterFrom = fmt(first);
+      this.filterTo   = fmt(last);
+    }
+    this.recomputeKpis();
+  }
+
   onSearchInput(): void { this.recomputeKpis(); }
   onOperatorFilterChange(): void { this.recomputeKpis(); }
 
@@ -1543,18 +1575,18 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     if (this.config.line === 'tvattlinje') { this.exportExcelTvattlinje(); return; }
     import('xlsx').then(XLSX => {
       const headers = [
-        'ID', 'Datum', 'Antal OK', 'Antal ej OK', 'Totalt',
+        'ID', 'Datum', 'Antal OK', 'Antal ej OK', 'Omtvätt', 'Totalt',
         'Kvalitet %', 'Kommentar', 'Användare', 'Inlagd'
       ];
       const rows = this.filteredReports.map(r => [
-        r.id, r.datum, r.antal_ok, r.antal_ej_ok, r.totalt,
+        r.id, r.datum, r.antal_ok, r.antal_ej_ok, r.omtvaatt ?? 0, r.totalt,
         this.getQualityPct(r) ?? '', r.kommentar || '', r.user_name || '',
         r.inlagd == 1 ? 'Ja' : 'Nej'
       ]);
       const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
       ws['!cols'] = [
         { wch: 6 }, { wch: 12 }, { wch: 10 }, { wch: 12 },
-        { wch: 8 }, { wch: 11 }, { wch: 40 }, { wch: 16 }, { wch: 8 }
+        { wch: 10 }, { wch: 8 }, { wch: 11 }, { wch: 40 }, { wch: 16 }, { wch: 8 }
       ];
       ws['!freeze'] = { xSplit: 0, ySplit: 1 };
       const wb = XLSX.utils.book_new();
