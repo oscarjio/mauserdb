@@ -276,7 +276,6 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     driftCorrupt: boolean;
     products: string[];
     operators: string[];
-    avgEfficiency: number | null;
   }> {
     const reports = this.filteredReports;
     const dayMap: { [date: string]: any[] } = {};
@@ -309,11 +308,6 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         if (r.op3_name) opSet.add(r.op3_name);
       });
 
-      const effReports = dayReports.filter(r => this.getEfficiencyPct(r) != null);
-      const avgEfficiency = effReports.length > 0
-        ? Math.round(effReports.reduce((s, r) => s + (this.getEfficiencyPct(r) ?? 0), 0) / effReports.length)
-        : null;
-
       return {
         date,
         reports: dayReports,
@@ -321,9 +315,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         totalDrift,
         driftCorrupt,
         products: Array.from(productSet),
-        operators: Array.from(opSet),
-        // N142: en dag med korrupt total drifttid har meningslös TILLG (11h+ = 100%) → dölj.
-        avgEfficiency: driftCorrupt ? null : avgEfficiency
+        operators: Array.from(opSet)
       };
     });
 
@@ -554,17 +546,6 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   getQualityPct(r: any): number | null {
     if (!r.totalt) return null;
     return Math.round((r.ibc_ok / r.totalt) * 100);
-  }
-
-  getEfficiencyPct(r: any): number | null {
-    // N142: korrupt drifttid (>=600 min) → TILLG är meningslös, visa "-".
-    if (this._isDrifttidCorrupt(r)) return null;
-    // N128: 0-IBC-dag (t.ex. 3 min drifttid, ingen produktion) gav 3/3 = 100%. Utan
-    // faktisk produktion är TILLG meningslös → visa "-".
-    if (!(r.totalt > 0)) return null;
-    const total = (r.drifttid || 0) + (r.rasttime || 0);
-    if (!total) return null;
-    return Math.round((r.drifttid / total) * 100);
   }
 
   getIbcPerHour(r: any): number | null {
@@ -1088,7 +1069,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         r.ibc_ej_ok,
         r.totalt,
         this.getQualityPct(r) ?? '',
-        this.getEfficiencyPct(r) ?? '',
+        this.getEfficiency(r) ?? '',
         this.getIbcPerHour(r) ?? '',
         this.getDefectPct(r) ?? '',
         this.getAvgCycleTime(r) ?? '',
@@ -1520,7 +1501,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   private buildPDFDocDef(r: any): any {
     const qualPct   = this.getQualityPct(r);
-    const effPct    = this.getEfficiencyPct(r);
+    const effPct    = this.getEfficiency(r);
     const ibcH      = this.getIbcPerHour(r);
     const defPct    = this.getDefectPct(r);
     const avgCycle  = this.getAvgCycleTime(r);
