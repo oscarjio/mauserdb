@@ -328,7 +328,6 @@
                   <th scope="col" class="d-none d-md-table-cell">Produkter</th>
                   <th scope="col" class="d-none d-md-table-cell">Operatörer</th>
                   <th scope="col">IBC</th>
-                  <th scope="col">TILLG%</th>
                   <th scope="col" class="d-none d-lg-table-cell">Drifttid</th>
                   <th scope="col">Skift</th>
                 </tr>
@@ -359,20 +358,10 @@
                     <td>
                       <strong class="text-warning">{{ day.totalIbc }}</strong>
                     </td>
-                    <td>
-                      <span *ngIf="day.avgEfficiency != null"
-                        class="badge"
-                        [class.bg-success]="day.avgEfficiency >= 80"
-                        [class.bg-warning]="day.avgEfficiency >= 60 && day.avgEfficiency < 80"
-                        [class.bg-danger]="day.avgEfficiency < 60">
-                        {{ day.avgEfficiency }}%
-                      </span>
-                      <span *ngIf="day.avgEfficiency == null" class="text-muted">–</span>
-                    </td>
                     <td class="d-none d-lg-table-cell">
                       <!-- N142: korrupt total drifttid (>=600 min = >10h, omöjligt för ett skift) -->
                       <span *ngIf="day.driftCorrupt" class="text-danger"
-                            title="Orimlig total drifttid (>10h) för {{ day.date }} — korrupt PLC-värde, ej TILLG-grundande">
+                            title="Orimlig total drifttid (>10h) för {{ day.date }} — korrupt PLC-värde">
                         <i class="fas fa-exclamation-triangle me-1"></i>–
                       </span>
                       <span *ngIf="!day.driftCorrupt && day.totalDrift > 0" class="text-success">{{ formatDrifttid(day.totalDrift) }}</span>
@@ -395,7 +384,7 @@
 
                   <!-- ===== EXPANDERAD DAGSVY (skift-lista) ===== -->
                   <tr *ngIf="isDayExpanded(day.date)" class="day-expanded-row">
-                    <td [attr.colspan]="isAdmin ? 9 : 8" class="p-0">
+                    <td [attr.colspan]="isAdmin ? 8 : 7" class="p-0">
                       <div class="day-expanded-panel">
 
                         <!-- Skifttabell för denna dag -->
@@ -409,7 +398,6 @@
                                 <th scope="col" class="text-nowrap">Operatör</th>
                                 <th scope="col" class="text-nowrap">IBC</th>
                                 <th scope="col" class="text-nowrap">IBC/h</th>
-                                <th scope="col" class="text-nowrap">TILLG%</th>
                                 <th scope="col" class="text-nowrap">Drifttid</th>
                                 <th scope="col" class="text-nowrap">Inlagd</th>
                                 <th scope="col" class="text-nowrap"></th>
@@ -442,16 +430,6 @@
                                       {{ getIbcPerHour(report) }}
                                     </span>
                                     <span *ngIf="getIbcPerHour(report) == null" class="text-muted">–</span>
-                                  </td>
-                                  <td>
-                                    <span *ngIf="getEfficiencyPct(report) != null"
-                                      class="badge"
-                                      [class.bg-success]="(getEfficiencyPct(report) ?? -1) >= 80"
-                                      [class.bg-warning]="(getEfficiencyPct(report) ?? -1) >= 60 && (getEfficiencyPct(report) ?? -1) < 80"
-                                      [class.bg-danger]="(getEfficiencyPct(report) ?? -1) >= 0 && (getEfficiencyPct(report) ?? -1) < 60">
-                                      {{ getEfficiencyPct(report) }}%
-                                    </span>
-                                    <span *ngIf="getEfficiencyPct(report) == null" class="text-muted">–</span>
                                   </td>
                                   <td class="text-nowrap">
                                     <span *ngIf="report.drifttid" class="text-success small">{{ formatDrifttid(report.drifttid) }}</span>
@@ -500,7 +478,7 @@
 
                                 <!-- Expanderad detaljrad per skift -->
                                 <tr *ngIf="expanded[report.id]" class="expand-row">
-                                  <td [attr.colspan]="isAdmin ? 10 : 9" class="p-0">
+                                  <td [attr.colspan]="isAdmin ? 9 : 8" class="p-0">
                                     <div class="expand-panel p-0">
 
                                       <!-- HERO ROW -->
@@ -514,13 +492,13 @@
                                           </div>
 
                                           <!-- Effektivitet -->
-                                          <div class="hero-divider d-none d-sm-block" *ngIf="getEfficiencyPct(report) != null"></div>
-                                          <div class="hero-stat" *ngIf="getEfficiencyPct(report) != null">
+                                          <div class="hero-divider d-none d-sm-block" *ngIf="getEfficiency(report) != null"></div>
+                                          <div class="hero-stat" *ngIf="getEfficiency(report) != null">
                                             <span class="hero-num"
-                                              [class.text-success]="(getEfficiencyPct(report) ?? 0) >= 80"
-                                              [class.text-warning]="(getEfficiencyPct(report) ?? 101) >= 60 && (getEfficiencyPct(report) ?? 101) < 80"
-                                              [class.text-danger]="(getEfficiencyPct(report) ?? 101) < 60">
-                                              {{ getEfficiencyPct(report) }}%
+                                              [class.text-success]="(getEfficiency(report) ?? 0) >= 80"
+                                              [class.text-warning]="(getEfficiency(report) ?? 101) >= 60 && (getEfficiency(report) ?? 101) < 80"
+                                              [class.text-danger]="(getEfficiency(report) ?? 101) < 60">
+                                              {{ getEfficiency(report) }}%
                                             </span>
                                             <span class="hero-lbl">Effektivitet</span>
                                           </div>
@@ -631,11 +609,11 @@
                                               <div class="kpi-card">
                                                 <div class="kpi-label">Effektivitet</div>
                                                 <div class="kpi-value"
-                                                  [class.text-success]="(getEfficiencyPct(report) ?? 0) >= 80"
-                                                  [class.text-warning]="(getEfficiencyPct(report) ?? 101) >= 60 && (getEfficiencyPct(report) ?? 101) < 80"
-                                                  [class.text-danger]="(getEfficiencyPct(report) ?? 101) < 60 && getEfficiencyPct(report) != null"
-                                                  [class.text-muted]="getEfficiencyPct(report) == null">
-                                                  {{ getEfficiencyPct(report) != null ? (getEfficiencyPct(report) + '%') : '–' }}
+                                                  [class.text-success]="(getEfficiency(report) ?? 0) >= 80"
+                                                  [class.text-warning]="(getEfficiency(report) ?? 101) >= 60 && (getEfficiency(report) ?? 101) < 80"
+                                                  [class.text-danger]="(getEfficiency(report) ?? 101) < 60 && getEfficiency(report) != null"
+                                                  [class.text-muted]="getEfficiency(report) == null">
+                                                  {{ getEfficiency(report) != null ? (getEfficiency(report) + '%') : '–' }}
                                                 </div>
                                               </div>
                                             </div>
@@ -1001,7 +979,7 @@
 
                                 <!-- ======== PRODUKTIONSTRENDGRAF ======== -->
                                 <tr *ngIf="selectedTrendReportId === report.id" class="expand-row">
-                                  <td [attr.colspan]="isAdmin ? 10 : 9" class="p-0">
+                                  <td [attr.colspan]="isAdmin ? 9 : 8" class="p-0">
                                     <div class="trend-panel p-3">
                                       <!-- Header med navigation -->
                                       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -1112,7 +1090,7 @@
 
                                 <!-- ======== SKIFTSAMMANFATTNING (PRINT-VY) ======== -->
                                 <tr *ngIf="shiftSummaryReportId === report.id" class="expand-row">
-                                  <td [attr.colspan]="isAdmin ? 10 : 9" class="p-0">
+                                  <td [attr.colspan]="isAdmin ? 9 : 8" class="p-0">
                       <div class="shift-summary-panel p-3">
 
                         <!-- Header med stäng/skriv ut -->
@@ -1379,7 +1357,7 @@
                 </ng-container>
 
                 <tr *ngIf="filteredReports.length === 0">
-                  <td [attr.colspan]="isAdmin ? 9 : 8" class="text-center text-muted">
+                  <td [attr.colspan]="isAdmin ? 8 : 7" class="text-center text-muted">
                     <i class="fas fa-info-circle me-2"></i>
                     {{ reports.length === 0 ? 'Inga skiftrapporter hittades.' : 'Inga skift matchar det valda filtret.' }}
                   </td>
