@@ -249,11 +249,15 @@
   <!-- Filter bar -->
   <div class="d-flex gap-2 align-items-end mb-3 flex-wrap filter-bar">
     <!-- Snabbval datumspann -->
-    <div class="d-flex gap-1 align-self-end flex-wrap">
-      <button class="btn btn-sm btn-outline-secondary" (click)="setDatePreset('denna-vecka')">Denna veckan</button>
-      <button class="btn btn-sm btn-outline-secondary" (click)="setDatePreset('forra-vecka')">Förra veckan</button>
-      <button class="btn btn-sm btn-outline-secondary" (click)="setDatePreset('denna-manad')">Denna månaden</button>
-      <button class="btn btn-sm btn-outline-secondary" (click)="setDatePreset('forra-manad')">Förra månaden</button>
+    <div>
+      <label class="form-label small mb-1">Snabbval</label>
+      <select class="form-control form-control-sm" (change)="setDatePreset($any($event.target).value); $any($event.target).value = ''" style="max-width:160px; width:100%;">
+        <option value="">— Välj period —</option>
+        <option value="denna-vecka">Denna veckan</option>
+        <option value="forra-vecka">Förra veckan</option>
+        <option value="denna-manad">Denna månaden</option>
+        <option value="forra-manad">Förra månaden</option>
+      </select>
     </div>
     <div>
       <label class="form-label small mb-1">Från datum</label>
@@ -267,13 +271,6 @@
       <label class="form-label small mb-1">Sök</label>
       <input type="text" class="form-control form-control-sm" [(ngModel)]="searchText"
         (ngModelChange)="onSearchInput()" placeholder="Produkt, operatör..." style="max-width:180px; width:100%;" />
-    </div>
-    <div *ngIf="operators.length > 0">
-      <label class="form-label small mb-1">Filtrera på operatör</label>
-      <select aria-label="Välj operatör" class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="max-width:180px; width:100%;">
-        <option [ngValue]="null">— Alla operatörer —</option>
-        <option *ngFor="let op of operators" [ngValue]="op.number">{{ op.name }}</option>
-      </select>
     </div>
     <button class="btn btn-sm btn-outline-secondary"
       (click)="clearFilter(); searchText = ''; selectedOperatorId = null; onOperatorFilterChange()"
