@@ -499,9 +499,23 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   get summaryAvgEfficiency(): number | null {
-    const reports = this.filteredReports.filter(r => this.getEfficiency(r) != null);
-    if (!reports.length) return null;
-    return Math.round(reports.reduce((s, r) => s + (this.getEfficiency(r) ?? 0), 0) / reports.length);
+    // Räkna kvoten av summorna (inte medelvärde av kvoter) för att undvika snedvridning:
+    // sum(ibc_ok × targetCycleMin) / sum(drifttid) × 100 = idealTid / faktiskTid × 100
+    let totalIdealMin = 0;
+    let totalDriftMin = 0;
+    for (const r of this.filteredReports) {
+      if (this._isDrifttidCorrupt(r)) continue;
+      const drift = r.drifttid || 0;
+      const ibc = r.ibc_ok || 0;
+      if (drift <= 0 || ibc <= 0) continue;
+      const product = this.products?.find((p: any) => p.id === r.product_id);
+      const targetCycleMin = product?.cycle_time_minutes || 3;
+      totalIdealMin += ibc * targetCycleMin;
+      totalDriftMin += drift;
+    }
+    if (totalDriftMin <= 0 || totalIdealMin <= 0) return null;
+    const raw = Math.round(totalIdealMin / totalDriftMin * 100);
+    return Math.min(100, raw);
   }
 
   get summaryTotalRast(): number {

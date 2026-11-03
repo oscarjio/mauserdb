@@ -409,6 +409,7 @@
                           <th>Produkt</th>
                           <th>Operatörer</th>
                           <th title="Godkända IBC">IBC</th>
+                          <th class="d-none d-sm-table-cell text-danger" title="IBC ej godkända">Ej OK</th>
                           <th class="d-none d-sm-table-cell text-warning" title="Omtvättade IBC">Omtv.</th>
                           <th class="d-none d-md-table-cell" title="Minuter per IBC">min/IBC</th>
                           <th title="Effektivitet mot mål: (mål - faktisk)/mål. + = snabbare än mål, - = långsammare.">Eff%</th>
@@ -485,6 +486,9 @@
                                 [class.text-danger]="isAnomalousReport(report)">
                               <span *ngIf="report.ibcEstimated" title="Preliminärt antal — ibc_ok saknas i PLC-data, uppskattat från cykelräkning">~</span>{{ safeDisplay(report.totalt) }}
                               <span *ngIf="isAnomalousReport(report)" class="ms-1" style="cursor:help;" [title]="anomalyTooltip(report)">⚠</span>
+                            </td>
+                            <td class="d-none d-sm-table-cell text-danger small" data-label="Ej OK">
+                              {{ (report.antal_ej_ok || 0) > 0 ? report.antal_ej_ok : '–' }}
                             </td>
                             <td class="d-none d-sm-table-cell text-warning small" data-label="Omtvätt">
                               {{ (report.omtvaatt || 0) > 0 ? report.omtvaatt : '–' }}
