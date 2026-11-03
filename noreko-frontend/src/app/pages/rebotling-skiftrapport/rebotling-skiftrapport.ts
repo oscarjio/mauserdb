@@ -414,6 +414,37 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.selectedOperatorId = null;
   }
 
+  setDatePreset(preset: 'denna-vecka' | 'forra-vecka' | 'denna-manad' | 'forra-manad'): void {
+    const today = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (preset === 'denna-vecka') {
+      const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
+      const mon = new Date(today); mon.setDate(today.getDate() - dow);
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      this.filterFrom = fmt(mon);
+      this.filterTo   = fmt(sun);
+    } else if (preset === 'forra-vecka') {
+      const dow = today.getDay() === 0 ? 6 : today.getDay() - 1;
+      const thisMon = new Date(today); thisMon.setDate(today.getDate() - dow);
+      const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate() - 7);
+      const lastSun = new Date(lastMon); lastSun.setDate(lastMon.getDate() + 6);
+      this.filterFrom = fmt(lastMon);
+      this.filterTo   = fmt(lastSun);
+    } else if (preset === 'denna-manad') {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const last  = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      this.filterFrom = fmt(first);
+      this.filterTo   = fmt(last);
+    } else if (preset === 'forra-manad') {
+      const first = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const last  = new Date(today.getFullYear(), today.getMonth(), 0);
+      this.filterFrom = fmt(first);
+      this.filterTo   = fmt(last);
+    }
+  }
+
   // ========== Summary KPIs (filtered set) ==========
   // N141: en rad måste bidra till BÅDE täljaren (IBC) och nämnaren (drifttid) i
   // SNITT IBC/H. En driftlös rad (t.ex. misdaterad 2025-rad med 858 IBC, drifttid "-")
