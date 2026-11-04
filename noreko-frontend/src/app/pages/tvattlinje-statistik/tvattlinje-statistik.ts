@@ -1236,16 +1236,19 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       const cycleMs = this.parseDatum(cycles[i].datum).getTime();
       const windowStart = cycleMs - WINDOW_MS;
 
-      // Räkna giltiga cykler i fönstret
+      // Räkna giltiga (ej rast) cykler i fönstret
       let windowCount = 0;
       for (let w = i; w >= 0; w--) {
         const wMs = this.parseDatum(cycles[w].datum).getTime();
         if (wMs < windowStart) break;
         const wct = parseFloat(cycles[w].cycle_time);
+        // Hoppa över rast-cykler i räkningsfönstret (de ska inte påverka EFF-linjen)
         const inRastW = pausePeriods.some(p => wMs >= p.start && wMs <= p.end);
         if (!isNaN(wct) && wct > 0 && wct <= 30 && !inRastW) windowCount++;
       }
 
+      // Returnera null tills vi har minst 2 giltiga cykler i fönstret — undviker
+      // extrem negativ effektivitet (-800%) när ett ensamt rast-gap är första "cykeln".
       if (windowCount < 2) {
         result.push(null);
         continue;
@@ -1271,19 +1274,16 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         }
       }
 
-      // Kold-start-korrigering: om fönstret sträcker sig innan skiftets första cykel
-      // används faktisk förfluten tid istället för 30 min som nämnare, så att
-      // effektiviteten inte artificellt sjunker i början av skiftet.
       const elapsedMin = (cycleMs - firstCycleMs) / 60000;
       const effectiveWindowMin = Math.min(WINDOW_MINUTES, Math.max(elapsedMin, 1));
 
       const netWindowMin = Math.max(1, effectiveWindowMin - pauseMinInWindow - offMinInWindow);
       // SIGNERAD avvikelse mot mål (samma skala som KPI/kort), ingen cap.
       // Faktisk cykeltid i fönstret = netto-min / antal IBC (min/IBC). + = snabbare, - = långsammare.
-      const actualCycle = windowCount > 0 ? netWindowMin / windowCount : 0;
-      const pp = (windowCount > 0 && targetMin > 0 && actualCycle > 0)
+      const actualCycle = netWindowMin / windowCount;
+      const pp = (targetMin > 0 && actualCycle > 0)
         ? Math.round(((targetMin - actualCycle) / targetMin) * 100)
-        : 0;
+        : null;
       result.push(pp);
     }
     return result;
@@ -1743,13 +1743,24 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
     });
 
+    // Bygg rast-perioder för att kunna sätta cykeltidspunkter till null under rast
+    // (undviker ~18-20 min spik i cykeltidslinjen när maskinen stod i rast).
+    // OBS: "datum" = när cykeln SLUTADE. En cykel som startade under rasten men slutade
+    // strax efter (t.ex. 27 sek efter rastslut) ska också nullas — annars syns spiken kvar.
     const rastPeriodsForCycleLine = this.buildPausePeriods(rast_events);
-    const inRastMs = (ms: number): boolean =>
-      rastPeriodsForCycleLine.some(p => ms >= p.start && ms <= p.end);
+    const cycleOverlapsRast = (endMs: number, cycleMin: number): boolean => {
+      const startMs = endMs - cycleMin * 60000;
+      return rastPeriodsForCycleLine.some(p =>
+        // cykeln slutar i rasten, ELLER cykeln startade i rasten (och slutade strax efter)
+        (endMs >= p.start && endMs <= p.end) || (startMs >= p.start && startMs <= p.end)
+      );
+    };
+
     const cycleTimeData: (number | null)[] = displayCycles.map((c: any) => {
       const ms = this.parseDatum(c.datum).getTime();
-      if (inRastMs(ms)) return null;
-      return parseFloat(c.cycle_time);
+      const ct = parseFloat(c.cycle_time);
+      if (cycleOverlapsRast(ms, ct)) return null; // bryt linjen om cykeln spänner över rastperiod
+      return ct;
     });
     const targetLine: number[] = displayCycles.map(() => target);
     const effData = this.calcRollingEfficiency(displayCycles, rast_events, target, onoff_events);
