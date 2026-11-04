@@ -1223,13 +1223,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   }
 
   /** Beräkna rullande 30-min effektivitet per cykel */
-  private calcRollingEfficiency(cycles: any[], rast_events: any[], targetMin: number, onoff_events?: any[]): number[] {
+  private calcRollingEfficiency(cycles: any[], rast_events: any[], targetMin: number, onoff_events?: any[]): (number | null)[] {
     if (cycles.length === 0) return [];
     const WINDOW_MS = 30 * 60 * 1000;
     const WINDOW_MINUTES = 30;
     const pausePeriods = this.buildPausePeriods(rast_events || []);
     const offPeriods = onoff_events ? this.buildOffPeriods(onoff_events) : [];
-    const result: number[] = [];
+    const result: (number | null)[] = [];
     const firstCycleMs = this.parseDatum(cycles[0].datum).getTime();
 
     for (let i = 0; i < cycles.length; i++) {
@@ -1242,7 +1242,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
         const wMs = this.parseDatum(cycles[w].datum).getTime();
         if (wMs < windowStart) break;
         const wct = parseFloat(cycles[w].cycle_time);
-        if (!isNaN(wct) && wct > 0 && wct <= 30) windowCount++;
+        const inRastW = pausePeriods.some(p => wMs >= p.start && wMs <= p.end);
+        if (!isNaN(wct) && wct > 0 && wct <= 30 && !inRastW) windowCount++;
+      }
+
+      if (windowCount < 2) {
+        result.push(null);
+        continue;
       }
 
       // Beräkna pausminuter i fönstret (rast)
@@ -1269,7 +1275,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       // används faktisk förfluten tid istället för 30 min som nämnare, så att
       // effektiviteten inte artificellt sjunker i början av skiftet.
       const elapsedMin = (cycleMs - firstCycleMs) / 60000;
-      const effectiveWindowMin = Math.min(WINDOW_MINUTES, elapsedMin > 0 ? elapsedMin : WINDOW_MINUTES);
+      const effectiveWindowMin = Math.min(WINDOW_MINUTES, Math.max(elapsedMin, 1));
 
       const netWindowMin = Math.max(1, effectiveWindowMin - pauseMinInWindow - offMinInWindow);
       // SIGNERAD avvikelse mot mål (samma skala som KPI/kort), ingen cap.
@@ -1737,7 +1743,14 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
     });
 
-    const cycleTimeData: number[] = displayCycles.map((c: any) => parseFloat(c.cycle_time));
+    const rastPeriodsForCycleLine = this.buildPausePeriods(rast_events);
+    const inRastMs = (ms: number): boolean =>
+      rastPeriodsForCycleLine.some(p => ms >= p.start && ms <= p.end);
+    const cycleTimeData: (number | null)[] = displayCycles.map((c: any) => {
+      const ms = this.parseDatum(c.datum).getTime();
+      if (inRastMs(ms)) return null;
+      return parseFloat(c.cycle_time);
+    });
     const targetLine: number[] = displayCycles.map(() => target);
     const effData = this.calcRollingEfficiency(displayCycles, rast_events, target, onoff_events);
 
