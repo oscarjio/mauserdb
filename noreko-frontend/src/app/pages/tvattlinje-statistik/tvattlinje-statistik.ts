@@ -1830,14 +1830,22 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
     // Bygg rast-perioder för att kunna sätta cykeltidspunkter till null under rast
     // (undviker ~18-20 min spik i cykeltidslinjen när maskinen stod i rast).
+    // OBS: "datum" = när cykeln SLUTADE. En cykel som startade under rasten men slutade
+    // strax efter (t.ex. 27 sek efter rastslut) ska också nullas — annars syns spiken kvar.
     const rastPeriodsForCycleLine = this.buildPausePeriods(rast_events);
-    const inRastMs = (ms: number): boolean =>
-      rastPeriodsForCycleLine.some(p => ms >= p.start && ms <= p.end);
+    const cycleOverlapsRast = (endMs: number, cycleMin: number): boolean => {
+      const startMs = endMs - cycleMin * 60000;
+      return rastPeriodsForCycleLine.some(p =>
+        // cykeln slutar i rasten, ELLER cykeln startade i rasten (och slutade strax efter)
+        (endMs >= p.start && endMs <= p.end) || (startMs >= p.start && startMs <= p.end)
+      );
+    };
 
     const cycleTimeData: (number | null)[] = displayCycles.map((c: any) => {
       const ms = this.parseDatum(c.datum).getTime();
-      if (inRastMs(ms)) return null; // bryt linjen under rast — visa ej som cykeltidspunkt
-      return parseFloat(c.cycle_time);
+      const ct = parseFloat(c.cycle_time);
+      if (cycleOverlapsRast(ms, ct)) return null; // bryt linjen om cykeln spänner över rastperiod
+      return ct;
     });
     const targetLine: number[] = displayCycles.map(() => target);
     const effData = this.calcRollingEfficiency(displayCycles, rast_events, target, onoff_events);
