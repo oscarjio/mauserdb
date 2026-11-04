@@ -1836,8 +1836,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const cycleOverlapsRast = (endMs: number, cycleMin: number): boolean => {
       const startMs = endMs - cycleMin * 60000;
       return rastPeriodsForCycleLine.some(p =>
-        // cykeln slutar i rasten, ELLER cykeln startade i rasten (och slutade strax efter)
-        (endMs >= p.start && endMs <= p.end) || (startMs >= p.start && startMs <= p.end)
+        // cykeln slutar i rasten, startade i rasten, ELLER spänner över hela rastperioden
+        (endMs >= p.start && endMs <= p.end) ||
+        (startMs >= p.start && startMs <= p.end) ||
+        (startMs < p.start && endMs > p.end)
       );
     };
 
