@@ -74,6 +74,8 @@ class RebotlingController {
             // --- Analytics GET endpoints ---
             } elseif ($action === 'cycle-detail') {
                 $this->getCycleDetail();
+            } elseif ($action === 'oversikt-idag') {
+                $this->getOversiktIdag();
             } elseif ($action === 'report') {
                 $this->analyticsController->getProductionReport();
             } elseif ($action === 'week-comparison') {
@@ -608,6 +610,82 @@ class RebotlingController {
         }
 
         echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * GET ?action=rebotling&run=oversikt-idag — dagens nyckeltal för startsidans översikt.
+     * Endast läsning. Rebotlings befintliga definitioner (getStatistics N133 + skiftrapporten):
+     *  - IBC        = godkända, SUM(MAX(ibc_ok)) per skiftraknare (domänkorrekt, N133)
+     *  - drifttid   = PLC-nettotid, SUM(MAX(runtime_plc)) per skiftraknare, cappad 600 min/dag
+     *  - effektivitet = faktisk IBC/h ÷ mål-IBC/h = IBC × måltakt / drifttid, cappad 100 %
+     *                   (rebotlings definition — en kvot, inte tvättlinjens signerade avvikelse)
+     *  - måltakt    = snitt av dagens cyklers produkt-cykeltid (som getStatistics)
+     *  - driftstopp = rebotling_driftstopp-händelser start→slut (som getStatistics)
+     */
+    private function getOversiktIdag(): void {
+        // Valfri ?datum=YYYY-MM-DD (för kontroll mot kända dagar), annars idag.
+        $dag = (isset($_GET['datum']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['datum'])) ? $_GET['datum'] : null;
+        try {
+            if ($dag === null) $dag = (string)$this->pdo->query('SELECT CURDATE()')->fetchColumn();
+            $q = $this->pdo->quote($dag);
+            $agg = $this->pdo->query("
+                SELECT DATE({$q}) AS dag,
+                    (SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= DATE({$q}) AND datum < DATE({$q}) + INTERVAL 1 DAY) AS rader,
+                    COALESCE(SUM(shift_ok), 0) AS ibc,
+                    COALESCE(SUM(shift_rt), 0) AS drifttid
+                FROM (
+                    SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ok, MAX(COALESCE(runtime_plc, 0)) AS shift_rt
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE({$q}) AND datum < DATE({$q}) + INTERVAL 1 DAY AND ibc_ok IS NOT NULL
+                    GROUP BY skiftraknare
+                ) s
+            ")->fetch(PDO::FETCH_ASSOC);
+            $rader    = (int)($agg['rader'] ?? 0);
+            $ibc      = (int)($agg['ibc'] ?? 0);
+            $drifttid = min(600.0, (float)($agg['drifttid'] ?? 0));
+
+            $mt = $this->pdo->query("
+                SELECT AVG(p.cycle_time_minutes) FROM rebotling_ibc i
+                JOIN rebotling_products p ON p.id = i.produkt
+                WHERE i.datum >= DATE({$q}) AND i.datum < DATE({$q}) + INTERVAL 1 DAY AND p.cycle_time_minutes > 0
+            ")->fetchColumn();
+            $maltakt = ($mt !== false && $mt !== null && (float)$mt > 0) ? (float)$mt : 3.0;
+
+            $driftstopp = 0.0;
+            $pagar = false;
+            $start = null;
+            foreach ($this->pdo->query("SELECT datum, driftstopp_status FROM rebotling_driftstopp
+                    WHERE datum >= DATE({$q}) AND datum < DATE({$q}) + INTERVAL 1 DAY ORDER BY datum ASC")
+                    ->fetchAll(PDO::FETCH_ASSOC) as $ev) {
+                if ((int)$ev['driftstopp_status'] === 1) {
+                    $start = strtotime($ev['datum']);
+                } elseif ((int)$ev['driftstopp_status'] === 0 && $start !== null) {
+                    $driftstopp += max(0, strtotime($ev['datum']) - $start) / 60;
+                    $start = null;
+                }
+            }
+            $pagar = $start !== null;
+
+            $harData = $rader > 0;
+            $harDrift = $harData && $drifttid > 0;
+            $eff = ($harDrift && $ibc > 0) ? min(1.0, $ibc * $maltakt / $drifttid) : null;
+
+            echo json_encode(['success' => true, 'data' => [
+                'datum'         => (string)$agg['dag'],
+                'harData'       => $harData,
+                'ibc'           => $harData ? $ibc : null,
+                'ibcPerTimme'   => ($harDrift && $ibc > 0) ? round($ibc / ($drifttid / 60), 1) : null,
+                'effektivitet'  => $eff !== null ? round($eff, 3) : null,
+                'effektivitetTyp' => 'kvot',
+                'drifttidMin'   => $harData ? (int)round($drifttid) : null,
+                'driftstoppMin' => $harData ? (int)round($driftstopp) : null,
+                'driftstoppPagar' => $pagar,
+                'maltaktMin'    => round($maltakt, 2),
+            ]], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getOversiktIdag: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta översikten'], JSON_UNESCAPED_UNICODE);
+        }
     }
 
     private function getLiveStats() {

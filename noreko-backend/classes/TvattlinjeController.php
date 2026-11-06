@@ -58,6 +58,8 @@ class TvattlinjeController {
                 $this->getOperatorScores();
             } elseif ($action === 'ibc-per-dag') {
                 $this->getIbcPerDag();
+            } elseif ($action === 'oversikt-idag') {
+                $this->getOversiktIdag();
             } elseif ($action === '') {
                 // Live-vyn anropar ?action=tvattlinje UTAN run-parameter → tomt run = live-stats.
                 $this->getLiveStats();
@@ -800,6 +802,92 @@ class TvattlinjeController {
             }
         }
         return ['running' => $running, 'last_update' => $lastUpdate];
+    }
+
+    /**
+     * GET ?action=tvattlinje&run=oversikt-idag — dagens nyckeltal för startsidans översikt.
+     * Endast läsning. Alla tal enligt räknekärnan (TvattlinjeMetrics, CLAUDE.md):
+     *  - IBC        = alla tvättade (ok + ej ok + omtvätt), summerat ur PLC-räknarna
+     *  - drifttid   = D4007 (runtime_plc), redan netto, cappad 600 min, inga avdrag
+     *  - driftstopp = D4011 (driftstopptime), egen räknare
+     *  - måltakt    = produkternas cycle_time_minutes, viktad på dagens PLC-cykler
+     *  - effektivitet = (måltakt − drifttid/IBC) / måltakt, signerad, ingen cap
+     * Räknarna är kumulativa och kan nollställas vid skiftbyte: varje rad bidrar med sin
+     * ökning mot föregående rad, eller hela sitt värde efter en nollställning. Föregående
+     * rad hämtas före dagens start så en icke nollställd räknare bara ger dagens ökning.
+     * Verifierat mot skiftrapporterna 2026-10-12–11-06: IBC och driftstopp lika per dag.
+     */
+    private function getOversiktIdag(): void {
+        // Valfri ?datum=YYYY-MM-DD (för kontroll mot kända dagar), annars idag.
+        $dag = (isset($_GET['datum']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['datum'])) ? $_GET['datum'] : null;
+        try {
+            if ($dag === null) $dag = (string)$this->pdo->query('SELECT CURDATE()')->fetchColumn();
+            $q = $this->pdo->quote($dag);
+            $agg = $this->pdo->query("
+                SELECT DATE({$q}) AS dag, COUNT(*) AS rader,
+                    COALESCE(SUM(CASE WHEN p_tot IS NULL OR tot < p_tot THEN tot ELSE tot - p_tot END), 0) AS ibc,
+                    COALESCE(SUM(CASE WHEN p_rt  IS NULL OR rt  < p_rt  THEN rt  ELSE rt  - p_rt  END), 0) AS drifttid,
+                    COALESCE(SUM(CASE WHEN p_ds  IS NULL OR ds  < p_ds  THEN ds  ELSE ds  - p_ds  END), 0) AS driftstopp
+                FROM (
+                    SELECT datum,
+                        COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0) + COALESCE(omtvaatt, 0) AS tot,
+                        LAG(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0) + COALESCE(omtvaatt, 0)) OVER w AS p_tot,
+                        COALESCE(runtime_plc, 0) AS rt,      LAG(COALESCE(runtime_plc, 0))    OVER w AS p_rt,
+                        COALESCE(driftstopptime, 0) AS ds,   LAG(COALESCE(driftstopptime, 0)) OVER w AS p_ds
+                    FROM tvattlinje_ibc
+                    WHERE datum >= DATE({$q}) - INTERVAL 7 DAY AND datum < DATE({$q}) + INTERVAL 1 DAY
+                    WINDOW w AS (ORDER BY datum, id)
+                ) x
+                WHERE datum >= DATE({$q})
+            ")->fetch(PDO::FETCH_ASSOC);
+
+            $rader      = (int)($agg['rader'] ?? 0);
+            $ibc        = (int)($agg['ibc'] ?? 0);
+            $drifttid   = TvattlinjeMetrics::capDrifttid((float)($agg['drifttid'] ?? 0));
+            $driftstopp = (float)($agg['driftstopp'] ?? 0);
+
+            // Måltakt: IBC-viktad på dagens PLC-cykler per produkt (IBC = samma räknarökning som
+            // ovan, så cykler utan IBC-resultat inte väger in); reserv = skiftrapporternas
+            // viktning, som i sin tur faller tillbaka på 3,0 min bara utan produktkoppling.
+            $cycleById = TvattlinjeMetrics::cycleTimeById($this->pdo);
+            $wSum = 0.0; $n = 0;
+            foreach ($this->pdo->query("
+                    SELECT produkt, SUM(CASE WHEN p_tot IS NULL OR tot < p_tot THEN tot ELSE tot - p_tot END) AS n
+                    FROM (
+                        SELECT datum, produkt,
+                            COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0) + COALESCE(omtvaatt, 0) AS tot,
+                            LAG(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0) + COALESCE(omtvaatt, 0)) OVER (ORDER BY datum, id) AS p_tot
+                        FROM tvattlinje_ibc
+                        WHERE datum >= DATE({$q}) - INTERVAL 7 DAY AND datum < DATE({$q}) + INTERVAL 1 DAY
+                    ) x
+                    WHERE datum >= DATE({$q}) AND produkt > 0
+                    GROUP BY produkt")->fetchAll(PDO::FETCH_ASSOC) as $p) {
+                $ct = $cycleById[(int)$p['produkt']] ?? null;
+                if ($ct === null || $ct <= 0) continue;
+                $wSum += $ct * (int)$p['n']; $n += (int)$p['n'];
+            }
+            $dag = (string)$agg['dag'];
+            $maltakt = $n > 0 ? $wSum / $n : TvattlinjeMetrics::weightedTargetCycleMin($this->pdo, $dag, $dag);
+
+            $harData = $rader > 0;
+            $harDrift = $harData && $drifttid > 0;
+            $eff = ($harDrift && $ibc > 0) ? TvattlinjeMetrics::efficiency($maltakt, $ibc, $drifttid) : null;
+
+            echo json_encode(['success' => true, 'data' => [
+                'datum'         => $dag,
+                'harData'       => $harData,
+                'ibc'           => $harData ? $ibc : null,
+                'ibcPerTimme'   => ($harDrift && $ibc > 0) ? round($ibc / ($drifttid / 60), 1) : null,
+                'effektivitet'  => $eff !== null ? round($eff, 3) : null,
+                'effektivitetTyp' => 'signerad',
+                'drifttidMin'   => $harData ? (int)round($drifttid) : null,
+                'driftstoppMin' => $harData ? (int)round($driftstopp) : null,
+                'maltaktMin'    => round($maltakt, 2),
+            ]], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            error_log('TvattlinjeController::getOversiktIdag: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta översikten'], JSON_UNESCAPED_UNICODE);
+        }
     }
 
     private function getLiveStats() {
