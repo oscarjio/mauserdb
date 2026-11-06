@@ -451,8 +451,9 @@ export class News implements OnInit, OnDestroy {
   /** Minuter som "3 h 43 min" / "45 min", eller "–". */
   fmtMinuter(v: number | null | undefined): string {
     if (v === null || v === undefined) return '–';
+    // Hårda mellanslag inom varje enhet så en smal ruta bara bryter mellan "h" och "min".
     const h = Math.floor(v / 60), m = Math.round(v % 60);
-    return h > 0 ? `${h} h ${m} min` : `${m} min`;
+    return h > 0 ? `${h} h ${m} min` : `${m} min`;
   }
 
   /**
@@ -469,7 +470,7 @@ export class News implements OnInit, OnDestroy {
   }
 
   effKlass(d: LinjeOversikt | null): string {
-    if (!d || d.effektivitet === null || d.effektivitet === undefined) return 'text-muted';
+    if (!d || d.effektivitet === null || d.effektivitet === undefined) return '';
     if (d.effektivitetTyp === 'kvot') {
       return d.effektivitet >= 0.9 ? 'text-success' : d.effektivitet >= 0.7 ? 'text-warning' : 'text-danger';
     }

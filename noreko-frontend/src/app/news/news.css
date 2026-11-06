@@ -182,14 +182,20 @@
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.82rem;
   font-weight: 600;
+  min-height: 2.5em; /* "Antal per timme" kan bryta — håll värdena på samma höjd */
+  line-height: 1.25;
+}
+
+.kpi-main .kpi-label {
+  min-height: 0;
 }
 
 .kpi-value {
   color: #fff;
   font-size: 1.55rem;
   font-weight: 700;
-  line-height: 1.25;
-  white-space: nowrap;
+  line-height: 1.2;
+  overflow-wrap: normal;
   font-variant-numeric: tabular-nums;
 }
 
