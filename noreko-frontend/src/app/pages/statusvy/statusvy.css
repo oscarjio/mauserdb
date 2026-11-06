@@ -1,283 +1,205 @@
-/* Statusvy — optimerad för TV 1920×1080 men responsiv. Mörk bakgrund, hög kontrast, stora tal. */
+/*
+ * Statusvy — lugn produktionstavla för TV.
+ * Allt skalas mot en 16:9-enhet (--u = 1/1080 av höjden eller motsvarande av bredden,
+ * det som begränsar) så 1920×1080 och 1280×720 får samma komposition utan scroll.
+ * Riktvärden vid 1080p: huvudtal 120px, linjenamn 40px, sekundärvärde 48px, etiketter 32px,
+ * ytterkant 48px, mellanrum 32px. En fontfamilj, tabulära siffror, inga animationer.
+ */
 :host {
   display: block;
-  background: #11151c;
+  --u: min(calc(100vh / 1080), calc(100vw / 1920));
+  --bg: #101820;
+  --panel: #192630;
+  --text: #f4f7fa;
+  --dim: #c0cbd4;
+  --cyan: #5fb4c9;
+  --cyan-stark: #8fd3e3;
+  --gron: #6ad08a;
+  --barnsten: #e8b04b;
+  --rod: #ef6b6b;
+  background: var(--bg);
 }
 
-.statusvy {
-  --sv-bg: #11151c;
-  --sv-panel: #1c2430;
-  --sv-ruta: #243042;
-  --sv-text: #f1f5f9;
-  --sv-dim: #a8b3c4;
-  --sv-linje: rgba(255, 255, 255, 0.1);
-  --sv-bra: #4ade80;
-  --sv-neutral: #facc15;
-  --sv-lag: #f87171;
-  color: var(--sv-text);
-  background: var(--sv-bg);
-  padding: clamp(0.75rem, 1.2vw, 1.5rem);
-  display: grid;
-  grid-template-rows: auto auto 1fr auto;
-  gap: clamp(0.75rem, 1vw, 1.25rem);
-  min-height: calc(100vh - 80px);
-  font-size: clamp(14px, 0.85vw, 20px);
-}
-
-.statusvy.helskarm {
-  min-height: 100vh;
+.tavla {
+  box-sizing: border-box;
   height: 100vh;
   overflow: hidden;
-}
-
-/* ---- rubrikrad ---- */
-.sv-header {
+  padding: calc(48 * var(--u));
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 1rem;
-}
-.sv-titel h1 {
-  font-size: clamp(1.4rem, 1.8vw, 2.4rem);
-  font-weight: 800;
-  margin: 0;
-}
-.sv-datum { color: var(--sv-dim); font-size: 1.05em; }
-.sv-klocka {
-  font-size: clamp(2rem, 3vw, 4rem);
-  font-weight: 800;
+  grid-template-rows: 10fr 55fr 30fr 5fr;
+  gap: calc(32 * var(--u));
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, var(--bs-body-font-family, system-ui), -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-variant-numeric: tabular-nums;
-}
-.sv-kontroller {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-.sv-anslutning {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--sv-dim);
-  font-size: 0.95em;
-}
-.sv-anslutning .prick {
-  width: 0.7em; height: 0.7em; border-radius: 50%;
-  background: var(--sv-dim);
-}
-.sv-anslutning.ok .prick { background: var(--sv-bra); }
-.sv-anslutning.inaktuell .prick { background: var(--sv-neutral); }
-.sv-anslutning.inaktuell { color: var(--sv-neutral); }
-.sv-anslutning.fel .prick { background: var(--sv-lag); }
-.sv-anslutning.fel { color: var(--sv-lag); }
-
-.sv-knapp {
-  background: transparent;
-  color: var(--sv-text);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 0.6rem;
-  padding: 0.35em 0.9em;
-  font-size: 0.95em;
-  cursor: pointer;
-}
-.sv-knapp:hover, .sv-knapp:focus-visible { border-color: #90cdf4; outline: none; }
-
-/* ---- linjer ---- */
-.sv-linjer {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(0.75rem, 1vw, 1.25rem);
-}
-.sv-linje {
-  background: var(--sv-panel);
-  border-radius: 1.1rem;
-  padding: clamp(0.8rem, 1vw, 1.4rem);
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.sv-linje-huvud {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  margin-bottom: 0.8rem;
-}
-.sv-linje-huvud h2 {
-  font-size: clamp(1.3rem, 1.6vw, 2.2rem);
-  font-weight: 800;
-  margin: 0;
-}
-.sv-status {
-  border-radius: 999px;
-  padding: 0.2em 0.8em;
-  font-weight: 700;
-  font-size: 0.9em;
-}
-.sv-status.igang { background: rgba(74, 222, 128, 0.18); color: var(--sv-bra); }
-.sv-status.stoppad { background: rgba(248, 113, 113, 0.18); color: var(--sv-lag); }
-.sv-status.okand { background: rgba(255, 255, 255, 0.08); color: var(--sv-dim); }
-
-.sv-idag {
-  display: grid;
-  grid-template-columns: 1.6fr repeat(4, minmax(0, 1fr));
-  gap: 0.6rem;
-}
-.sv-ruta {
-  background: var(--sv-ruta);
-  border-radius: 0.8rem;
-  padding: 0.6em 0.8em;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.sv-etikett {
-  color: var(--sv-dim);
-  font-weight: 700;
-  font-size: 0.9em;
-  min-height: 1.3em;
-}
-.sv-varde {
-  font-size: clamp(1.4rem, 1.9vw, 2.6rem);
-  font-weight: 800;
   line-height: 1.15;
-  font-variant-numeric: tabular-nums;
 }
-.sv-huvudtal .sv-varde { font-size: clamp(2.4rem, 3.8vw, 5rem); }
-.sv-hjalp {
-  color: var(--sv-dim);
-  font-size: 0.78em;
-  line-height: 1.25;
-  margin-top: 0.2em;
-}
-.sv-pagar {
-  display: inline-block;
-  margin-left: 0.4em;
-  padding: 0 0.45em;
-  border-radius: 0.4em;
-  background: rgba(144, 205, 244, 0.18);
-  color: #90cdf4;
-  font-size: 0.75em;
-  font-weight: 700;
-  vertical-align: middle;
-}
-.bra { color: var(--sv-bra) !important; }
-.neutral { color: var(--sv-neutral) !important; }
-.lag { color: var(--sv-lag) !important; }
+.tavla *, .tavla *::before, .tavla *::after { animation: none !important; transition: none !important; }
+.tavla h1, .tavla h2, .tavla h3, .tavla p { margin: 0; }
 
-.sv-not { color: var(--sv-dim); margin: 0.5rem 0 0; }
-.sv-not-stor { font-size: 1.2em; }
-
-.sv-tabell-wrap {
-  margin-top: 0.8rem;
-  overflow-x: auto;
-}
-.sv-tabell {
-  width: 100%;
-  border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
-}
-.sv-tabell th, .sv-tabell td {
-  padding: 0.35em 0.5em;
-  border-bottom: 1px solid var(--sv-linje);
-  text-align: right;
-  white-space: nowrap;
-}
-.sv-tabell thead th {
-  color: var(--sv-dim);
-  font-size: 0.85em;
-  font-weight: 700;
-}
-.sv-tabell th[scope="row"], .sv-tabell thead th:first-child {
-  text-align: left;
-  font-weight: 700;
-}
-.sv-tabell tbody td { font-size: 1.15em; font-weight: 700; }
-.sv-tabell tr.sv-jamfor td {
-  text-align: left;
-  color: var(--sv-dim);
-  font-size: 0.82em;
-  font-weight: 400;
-  padding-top: 0;
-  border-bottom: 1px solid var(--sv-linje);
-}
-.sv-tabell tr.pagar th[scope="row"], .sv-tabell tr.pagar td { border-bottom: none; }
-
-.sv-tackning {
-  color: var(--sv-dim);
-  font-size: 0.78em;
-  margin: 0.5rem 0 0;
-}
-
-/* ---- roterande fält ---- */
-.sv-rotation {
-  background: var(--sv-panel);
-  border-radius: 1.1rem;
-  padding: clamp(0.8rem, 1vw, 1.4rem);
-  display: flex;
-  flex-direction: column;
-  min-height: 300px;
-}
-.sv-rot-huvud {
+/* ---- 10 % rubrik ---- */
+.rubrik {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.6rem;
-}
-.sv-flikar { display: flex; gap: 0.4rem; }
-.sv-flik {
-  background: transparent;
-  color: var(--sv-dim);
-  border: 1px solid transparent;
-  border-radius: 0.6rem;
-  padding: 0.3em 0.9em;
-  font-weight: 700;
-  font-size: 1em;
-  cursor: pointer;
-}
-.sv-flik.aktiv { background: var(--sv-ruta); color: var(--sv-text); border-color: rgba(255, 255, 255, 0.2); }
-.sv-rot-info { color: var(--sv-dim); flex: 1; font-size: 0.9em; }
-
-.sv-rot-innehall {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(0.75rem, 1vw, 1.25rem);
+  justify-content: space-between;
+  gap: calc(32 * var(--u));
   min-height: 0;
 }
-.sv-rot-linje { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.sv-rot-linje h3 { font-size: 1.15em; font-weight: 800; margin: 0 0 0.4rem; }
-.sv-diagram { position: relative; flex: 1; min-height: 240px; }
+.rubrik h1 { font-size: calc(48 * var(--u)); font-weight: 700; }
+.rubrik-hoger { display: flex; flex-direction: column; align-items: flex-end; gap: calc(4 * var(--u)); }
+.rubrik-datum { font-size: calc(32 * var(--u)); font-weight: 600; }
+.rubrik-tid { font-size: calc(26 * var(--u)); color: var(--dim); }
 
-.sv-bra {
+/* ---- 55 % paneler ---- */
+.paneler {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(32 * var(--u));
+  min-height: 0;
 }
-.sv-bra h4 { color: var(--sv-dim); font-size: 0.95em; font-weight: 700; margin: 0 0 0.4rem; }
-.sv-bra ol { margin: 0; padding-left: 1.4em; }
-.sv-bra li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.25em 0; border-bottom: 1px solid var(--sv-linje); font-size: 1.1em; }
-.sv-bra li::marker { color: var(--sv-dim); }
-.sv-bra-dag { color: var(--sv-dim); }
-.sv-bra-tal { font-weight: 800; font-variant-numeric: tabular-nums; }
+.panel {
+  background: var(--panel);
+  border-radius: calc(20 * var(--u));
+  padding: calc(36 * var(--u)) calc(44 * var(--u));
+  display: grid;
+  grid-template-rows: auto auto 1fr auto auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.panel-namn {
+  font-size: calc(40 * var(--u));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.panel-datatid { font-size: calc(24 * var(--u)); color: var(--dim); margin-top: calc(6 * var(--u)) !important; }
+.panel-datatid.problem { color: var(--barnsten); }
+.etikett { display: block; font-size: calc(32 * var(--u)); color: var(--dim); }
+.panel-huvud { align-self: center; }
+.huvudtal {
+  display: block;
+  font-size: calc(124 * var(--u));
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.panel-sekundar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(24 * var(--u));
+  border-top: 1px solid rgba(244, 247, 250, 0.12);
+  padding-top: calc(16 * var(--u));
+}
+.sekundartal { font-size: calc(48 * var(--u)); font-weight: 700; white-space: nowrap; }
+.panel-jamfor {
+  font-size: calc(28 * var(--u));
+  color: var(--dim);
+  margin-top: calc(12 * var(--u)) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.battre { color: var(--gron) !important; }
+.pil { font-weight: 700; margin-right: calc(6 * var(--u)); }
 
-.sv-fot {
-  color: var(--sv-dim);
-  font-size: 0.78em;
-  line-height: 1.4;
+/* ---- 30 % historik ---- */
+.historik {
+  background: var(--panel);
+  border-radius: calc(20 * var(--u));
+  padding: calc(20 * var(--u)) calc(44 * var(--u));
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: calc(12 * var(--u));
+  min-height: 0;
+  overflow: hidden;
+}
+.historik-rubrik { display: flex; align-items: baseline; gap: calc(24 * var(--u)); }
+.historik-rubrik h3 { font-size: calc(32 * var(--u)); font-weight: 700; }
+.historik-intervall { font-size: calc(26 * var(--u)); color: var(--dim); }
+.pagar { color: var(--cyan-stark); }
+.historik-linjer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(64 * var(--u));
+  min-height: 0;
+}
+.hl { display: grid; grid-template-columns: 7fr 3fr; gap: calc(28 * var(--u)); min-height: 0; min-width: 0; }
+.hl-text { display: flex; flex-direction: column; gap: calc(6 * var(--u)); min-width: 0; overflow: hidden; }
+.hl-text.utan-graf { grid-column: 1 / -1; }
+/* Raderna krymper aldrig (krympta rader klipper sin egen text osynligt). */
+.hl-text > * { flex-shrink: 0; }
+.hl-namn { font-size: calc(26 * var(--u)); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dim); }
+.hl-varde { font-size: calc(52 * var(--u)); font-weight: 700; line-height: 1.15; white-space: nowrap; }
+.hl-fakta, .hl-rad2, .hl-tom {
+  font-size: calc(22 * var(--u));
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hl-tom { font-size: calc(28 * var(--u)); margin-top: calc(12 * var(--u)); }
+/* Jämförelsen får bryta till en andra rad hellre än att avkortas. */
+.hl-rad2 { white-space: normal; line-height: 1.2; }
+.hl-not { color: var(--barnsten); }
+.hl-graf { display: grid; grid-template-rows: 1fr auto; min-height: 0; }
+.hl-graf svg { width: 100%; height: 100%; min-height: 0; overflow: visible; }
+.hl-graf rect { fill: var(--cyan); opacity: 0.75; }
+.hl-graf rect.markerad { fill: var(--cyan-stark); opacity: 1; }
+.hl-graf .baslinje { stroke: rgba(244, 247, 250, 0.25); stroke-width: 0.3; vector-effect: non-scaling-stroke; }
+.hl-graf-axel { display: flex; justify-content: space-between; font-size: calc(20 * var(--u)); color: var(--dim); }
+
+/* ---- 5 % fot ---- */
+.fot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(24 * var(--u));
+  font-size: calc(20 * var(--u));
+  color: var(--dim);
+  min-height: 0;
+}
+.fot-scener, .fot-hoger { display: flex; align-items: center; gap: calc(12 * var(--u)); flex-wrap: nowrap; }
+.fot button, .fot-lank {
+  background: transparent;
+  color: var(--dim);
+  border: 1px solid rgba(192, 203, 212, 0.3);
+  border-radius: calc(10 * var(--u));
+  padding: calc(4 * var(--u)) calc(14 * var(--u));
+  font: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.fot button.aktiv { color: var(--text); border-color: var(--cyan); }
+.fot button:focus-visible, .fot-lank:focus-visible { outline: 2px solid var(--cyan-stark); outline-offset: 2px; }
+.anslutning.inaktuell { color: var(--barnsten); }
+.anslutning.fel { color: var(--rod); }
+
+/* ---- 720p: förenkla historiken i stället för att krympa allt ---- */
+@media (max-height: 800px) and (min-width: 901px) {
+  /* Större text i historiken och ingen graf: läsbarheten går före detaljerna. */
+  .historik { --u: calc(min(calc(100vh / 1080), calc(100vw / 1920)) * 1.1); }
+  .hl-graf { display: none; }
+  .hl-text { grid-column: 1 / -1; }
+  /* Tre rader får plats: jämförelsen döljs; en datanot visas i faktaradens ställe. */
+  .hl-rad2:not(.hl-not) { display: none; }
+  .hl-text:has(.hl-not) .hl-fakta { display: none; }
+  .fot-lank { display: none; }
 }
 
-/* ---- mindre skärmar ---- */
-@media (max-width: 1280px) {
-  .sv-linjer, .sv-rot-innehall { grid-template-columns: minmax(0, 1fr); }
-  .statusvy.helskarm { height: auto; overflow: auto; }
-}
-@media (max-width: 768px) {
-  .statusvy { font-size: 15px; }
-  .sv-header { grid-template-columns: 1fr auto; }
-  .sv-kontroller { grid-column: 1 / -1; justify-content: flex-start; }
-  .sv-idag { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .sv-huvudtal { grid-column: 1 / -1; }
-  .sv-bra { grid-template-columns: minmax(0, 1fr); }
+/* ---- mobil / smal skärm: staplat, sidan får rulla ---- */
+@media (max-width: 900px) {
+  :host { --u: 0.75px; }
+  .tavla { height: auto; min-height: 100vh; overflow: visible; display: flex; flex-direction: column; padding: 16px; gap: 16px; }
+  .rubrik { flex-direction: column; align-items: flex-start; }
+  .rubrik-hoger { align-items: flex-start; }
+  .paneler, .historik-linjer { grid-template-columns: 1fr; gap: 16px; }
+  .panel { gap: 6px; }
+  .huvudtal { font-size: 88px; }
+  .hl { grid-template-columns: 1fr; }
+  .hl-graf { height: 110px; }
+  .panel-jamfor, .hl-fakta, .hl-rad2, .hl-tom { white-space: normal; }
+  .fot { flex-direction: column; align-items: flex-start; }
+  .fot-scener, .fot-hoger { flex-wrap: wrap; }
 }

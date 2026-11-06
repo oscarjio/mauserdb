@@ -778,9 +778,13 @@ class RebotlingController {
                 ];
             }
 
+            // Tidpunkt för senaste PLC-registrering — visar när datan faktiskt gäller (ingen live-status).
+            $senaste = $this->pdo->query("SELECT MAX(datum) FROM rebotling_ibc WHERE datum < DATE({$qIdag}) + INTERVAL 1 DAY")->fetchColumn() ?: null;
+
             echo json_encode(['success' => true, 'data' => [
                 'linje'           => 'rebotling',
                 'idag'            => $idag,
+                'senasteData'     => $senaste,
                 'fran'            => $fran,
                 'dataFran'        => $dataFran,
                 'effektivitetTyp' => 'kvot',

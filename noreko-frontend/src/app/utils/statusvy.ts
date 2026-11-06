@@ -147,6 +147,17 @@ export function manadsserie(dagar: StatusDag[], idag: string, typ: EffektivitetT
   return ut;
 }
 
+/**
+ * IBC per kalenderdag inom [fran, till] till enkla stapelgrafer. Dagar utan data blir null
+ * (lucka i grafen), aldrig 0.
+ */
+export function dagserie(dagar: StatusDag[], fran: string, till: string): { dag: string; ibc: number | null }[] {
+  const per = new Map(dagar.map(d => [d.dag, d.ibc]));
+  const ut: { dag: string; ibc: number | null }[] = [];
+  for (let dag = fran; dag <= till; dag = addDays(dag, 1)) ut.push({ dag, ibc: per.get(dag) ?? null });
+  return ut;
+}
+
 export interface BraDag { dag: string; ibc: number; drifttidMin: number; taktPerTimme: number; }
 
 /**

@@ -996,9 +996,13 @@ class TvattlinjeController {
                 ];
             }
 
+            // Tidpunkt för senaste PLC-registrering — visar när datan faktiskt gäller (ingen live-status).
+            $senaste = $this->pdo->query("SELECT MAX(datum) FROM tvattlinje_ibc WHERE datum < DATE({$qIdag}) + INTERVAL 1 DAY")->fetchColumn() ?: null;
+
             echo json_encode(['success' => true, 'data' => [
                 'linje'           => 'tvattlinje',
                 'idag'            => $idag,
+                'senasteData'     => $senaste,
                 'fran'            => $fran,
                 'dataFran'        => $dataFran,
                 'effektivitetTyp' => 'signerad',

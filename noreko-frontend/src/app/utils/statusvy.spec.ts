@@ -1,5 +1,5 @@
 import type { StatusDag } from './statusvy';
-import { perioder, summera, veckoserie, manadsserie, braDagar, isoWeek, rullande12Fran, mondayOf } from './statusvy';
+import { perioder, summera, veckoserie, manadsserie, braDagar, isoWeek, rullande12Fran, mondayOf, dagserie } from './statusvy';
 
 const d = (dag: string, ibc: number | null, drift: number | null, ideal: number | null = null, stopp: number | null = 0, kapad = false): StatusDag =>
   ({ dag, ibc, drifttidMin: drift, drifttidKapad: kapad, driftstoppMin: stopp, idealMin: ideal });
@@ -78,6 +78,12 @@ describe('Statusvy: serier och bra dagar', () => {
     const m = manadsserie([], '2026-11-06', 'kvot');
     expect([v.length, v[11].fran, v[11].till, v[11].pagar, v[0].fran]).toEqual([12, '2026-11-02', '2026-11-06', true, '2026-08-17']);
     expect([m.length, m[11].fran, m[11].till, m[0].fran, m[0].till]).toEqual([12, '2026-11-01', '2026-11-06', '2025-12-01', '2025-12-31']);
+  });
+
+  it('dagserie: en post per kalenderdag, dagar utan data = null (lucka), inte 0', () => {
+    const s = dagserie([d('2026-11-02', 100, 400), d('2026-11-04', null, null), d('2026-11-05', 0, 30)], '2026-11-02', '2026-11-06');
+    expect(s.map(x => x.ibc)).toEqual([100, null, null, 0, null]);
+    expect([s[0].dag, s[4].dag]).toEqual(['2026-11-02', '2026-11-06']);
   });
 
   it('bra dagar kräver full drifttid, utesluter kapad drifttid, idag och dagar äldre än 12 mån', () => {
