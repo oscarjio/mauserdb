@@ -8,6 +8,34 @@ import { TvattlinjeService } from '../../services/tvattlinje.service';
 import { AuthService } from '../../services/auth.service';
 import { localToday, localDateStr } from '../../utils/date-utils';
 import * as TM from '../../utils/tvattlinje-metrics';
+import { ExcelColumn, XL_FMT, buildExportSheet, buildLopnummerRangeFlagged, lopnummerSheetColumns } from '../../utils/skiftrapport-excel';
+
+/** Tvättlinjens Excel-kolumner (bladet "Skiftrapporter") — rebotling speglar denna layout. */
+const TVATT_EXCEL_COLUMNS: ExcelColumn[] = [
+  { header: 'Datum', wch: 12 },
+  { header: 'Produkt', wch: 16 },
+  { header: 'Op1 Påsatt', wch: 18 },
+  { header: 'Op2 Spolplattform', wch: 18 },
+  { header: 'Op3 Kontrollstation', wch: 18 },
+  { header: 'IBC godkända', wch: 12, fmt: XL_FMT.int },
+  { header: 'IBC ej godkända', wch: 14, fmt: XL_FMT.int },
+  { header: 'Omtvätt', wch: 9, fmt: XL_FMT.int },
+  { header: 'Totalt', wch: 8, fmt: XL_FMT.int },
+  { header: 'Antal per timme', wch: 13, fmt: XL_FMT.dec1 },
+  { header: 'Snitt cykeltid min/IBC', wch: 16, fmt: XL_FMT.dec2 },
+  { header: 'Måltakt min/IBC', wch: 13, fmt: XL_FMT.dec2 },
+  { header: 'Drifttid aktiv (min)', wch: 16, fmt: XL_FMT.int },
+  { header: 'Rast (min)', wch: 10, fmt: XL_FMT.int },
+  { header: 'Driftstopp (min)', wch: 13, fmt: XL_FMT.int },
+  { header: 'Effektivitet', wch: 12, fmt: XL_FMT.pctSigned },
+  { header: 'Löpnummer', wch: 20 },
+  { header: 'Kvalitet', wch: 10, fmt: XL_FMT.pct },
+  { header: 'OEE', wch: 8, fmt: XL_FMT.pct },
+  { header: 'Inskickad', wch: 14 },
+  { header: 'Kommentar', wch: 40 },
+  { header: 'Flerprodukt-dag', wch: 13 },
+  { header: 'Flagga', wch: 55 },
+];
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -1638,26 +1666,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
    * och läggs på som en ⚠-suffix så en lucka/dubblett aldrig kan missas i genomläsning.
    */
   private _buildLopnummerRangeFlagged(nums: number[]): string {
-    if (!nums.length) return '–';
-    const counts = new Map<number, number>();
-    for (const n of nums) counts.set(n, (counts.get(n) || 0) + 1);
-    const duplicates = [...counts.values()].filter(c => c > 1).length;
-    const distinct = [...counts.keys()].sort((a, b) => a - b);
-    const ranges: string[] = [];
-    let start = distinct[0], prev = distinct[0];
-    for (let i = 1; i < distinct.length; i++) {
-      if (distinct[i] === prev + 1) { prev = distinct[i]; continue; }
-      ranges.push(start === prev ? String(start) : `${start}–${prev}`);
-      start = prev = distinct[i];
-    }
-    ranges.push(start === prev ? String(start) : `${start}–${prev}`);
-    const gaps = ranges.length - 1;
-    let out = ranges.join(', ');
-    const flags: string[] = [];
-    if (gaps > 0) flags.push(`${gaps} lucka${gaps > 1 ? 'or' : ''}`);
-    if (duplicates > 0) flags.push(`${duplicates} dubblett${duplicates > 1 ? 'er' : ''}`);
-    if (flags.length) out += ` ⚠ ${flags.join(', ')}`;
-    return out;
+    return buildLopnummerRangeFlagged(nums);
   }
 
   /**
@@ -1727,15 +1736,6 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       cyclesBySkift.get(sk)!.push(c);
     }
 
-    const headers = [
-      'Datum', 'Produkt', 'Op1 Påsatt', 'Op2 Spolplattform', 'Op3 Kontrollstation',
-      'IBC godkända', 'IBC ej godkända', 'Omtvätt', 'Totalt',
-      'Antal per timme', 'Snitt cykeltid min/IBC', 'Måltakt min/IBC',
-      'Drifttid aktiv (min)', 'Rast (min)', 'Driftstopp (min)',
-      'Effektivitet', 'Löpnummer',
-      'Kvalitet', 'OEE',
-      'Inskickad', 'Kommentar', 'Flerprodukt-dag', 'Flagga'
-    ];
     const dataRows: any[][] = [];
 
     for (const r of reports) {
@@ -1844,41 +1844,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       }
     }
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
-    const numFmt1dp = '0.0';
-    const numFmtInt = '0';
-    const pctFmt = '0.0%';
-    const pctFmtSigned = '+0.0%;-0.0%';
-    // Kolumnindex (0-baserat) för varje numerisk kolumn -> tillämpat talformat.
-    const colFormats: { [col: number]: string } = {
-      5: numFmtInt, 6: numFmtInt, 7: numFmtInt, 8: numFmtInt, // IBC ok/ejok/omtv/totalt
-      9: numFmt1dp,                 // Antal per timme
-      10: '0.00', 11: '0.00',       // Snitt cykeltid, Måltakt (2 decimaler — min/IBC kräver precision)
-      12: numFmtInt, 13: numFmtInt, 14: numFmtInt, // Drifttid/Rast/Driftstopp (min, heltal)
-      15: pctFmtSigned,             // Effektivitet (signerad)
-      17: pctFmt, 18: pctFmt,       // Kvalitet/OEE
-    };
-    const range = XLSX.utils.decode_range(ws['!ref']!);
-    for (let R = 1; R <= range.e.r; R++) {
-      for (const colStr of Object.keys(colFormats)) {
-        const C = Number(colStr);
-        const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-        const cell = ws[cellRef];
-        if (cell && typeof cell.v === 'number') cell.z = colFormats[C];
-      }
-    }
-
-    ws['!cols'] = [
-      { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
-      { wch: 12 }, { wch: 14 }, { wch: 9 }, { wch: 8 },
-      { wch: 13 }, { wch: 16 }, { wch: 13 },
-      { wch: 16 }, { wch: 10 }, { wch: 13 },
-      { wch: 12 }, { wch: 20 },
-      { wch: 10 }, { wch: 8 },
-      { wch: 14 }, { wch: 40 }, { wch: 13 }, { wch: 55 }
-    ];
-    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-    ws['!autofilter'] = { ref: ws['!ref']! };
+    // Layout (rubriker, bredder, talformat, fryst rubrik, autofilter) från den gemensamma
+    // utils/skiftrapport-excel.ts — samma som rebotlings export.
+    const ws = buildExportSheet(XLSX, TVATT_EXCEL_COLUMNS, dataRows);
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Skiftrapporter');
@@ -1887,7 +1855,6 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     // spårbarhet — datum, tid, löpnummer, produkt, resultat, operatörer. Datum ingår
     // alltid i raden så datum+löpnummer blir unikt även när löpnumret börjar om per
     // skift (bekräftat: det gör det, se rapporten till Oscar).
-    const lopHeaders = ['Datum', 'Tid', 'Löpnummer', 'Produkt', 'Resultat', 'Op1 Påsatt', 'Op2 Spolplattform', 'Op3 Kontrollstation'];
     const lopRows: any[][] = [];
     const sortedCycles = [...cycleRows].sort((a, b) => String(a.datum).localeCompare(String(b.datum)));
     for (const c of sortedCycles) {
@@ -1906,21 +1873,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
         this.getOpName(c.op3) || '–'
       ]);
     }
-    const wsLop = XLSX.utils.aoa_to_sheet([lopHeaders, ...lopRows]);
-    if (lopRows.length > 0) {
-      const lopRange = XLSX.utils.decode_range(wsLop['!ref']!);
-      for (let R = 1; R <= lopRange.e.r; R++) {
-        const cellRef = XLSX.utils.encode_cell({ r: R, c: 2 });
-        const cell = wsLop[cellRef];
-        if (cell && typeof cell.v === 'number') cell.z = '0';
-      }
-    }
-    wsLop['!cols'] = [
-      { wch: 12 }, { wch: 10 }, { wch: 11 }, { wch: 16 }, { wch: 13 },
-      { wch: 18 }, { wch: 18 }, { wch: 18 }
-    ];
-    wsLop['!freeze'] = { xSplit: 0, ySplit: 1 };
-    wsLop['!autofilter'] = { ref: wsLop['!ref']! };
+    const wsLop = buildExportSheet(XLSX, lopnummerSheetColumns(['Op1 Påsatt', 'Op2 Spolplattform', 'Op3 Kontrollstation']), lopRows);
     XLSX.utils.book_append_sheet(wb, wsLop, 'Löpnummer');
 
     XLSX.writeFile(wb, `tvattlinje-skiftrapport-${localToday()}.xlsx`);
