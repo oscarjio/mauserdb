@@ -4,13 +4,30 @@ import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { of, Subject } from 'rxjs';
 import { catchError, timeout, takeUntil } from 'rxjs/operators';
-import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../services/rebotling.service';
+import { RebotlingService, LineStatusResponse } from '../services/rebotling.service';
 import { TvattlinjeService, TvattlinjeLiveStatsResponse } from '../services/tvattlinje.service';
 import { LineSkiftrapportService } from '../services/line-skiftrapport.service';
 import { AuthService, AuthUser } from '../services/auth.service';
 import { FavoriterService, Favorit } from '../services/favoriter.service';
 import { localToday } from '../utils/date-utils';
 import { environment } from '../../environments/environment';
+
+/** Svar från ?action=<linje>&run=oversikt-idag. null = data saknas (aldrig en falsk nolla). */
+interface LinjeOversikt {
+  datum: string;
+  harData: boolean;
+  ibc: number | null;
+  ibcPerTimme: number | null;
+  /** Andel. Tvättlinje: signerad avvikelse mot måltakt. Rebotling: kvot av måltakt, max 1. */
+  effektivitet: number | null;
+  effektivitetTyp: 'signerad' | 'kvot';
+  drifttidMin: number | null;
+  driftstoppMin: number | null;
+  driftstoppPagar?: boolean;
+  maltaktMin: number;
+}
+type OversiktLinje = 'rebotling' | 'tvattlinje';
+interface OversiktState { laddar: boolean; fel: boolean; data: LinjeOversikt | null; }
 
 interface LineSkiftrapportReport {
   id: number;
@@ -57,15 +74,14 @@ export class News implements OnInit, OnDestroy {
   loggedIn = false;
   isAdmin = false;
 
-  // Rebotling data
+  // Rebotling / Tvättlinje: körstatus (5 s) + dagens översikt (30 s, run=oversikt-idag)
   rebotlingStatus: boolean = false;
-  rebotlingToday: number = 0;
-
-  // Tvättlinje data
   tvattlinjeStatus: boolean = false;
-  tvattlinjeToday: number = 0;
-  tvattlinjeTarget: number = 0;
-  tvattlinjePercentage: number = 0;
+  oversikt: Record<OversiktLinje, OversiktState> = {
+    rebotling:  { laddar: true, fel: false, data: null },
+    tvattlinje: { laddar: true, fel: false, data: null },
+  };
+  private dataTick = 0;
 
   // Saglinje data
   saglinjeStatus: boolean = false;
@@ -173,17 +189,14 @@ export class News implements OnInit, OnDestroy {
     let pending = 0;
     const done = () => { pending--; if (pending <= 0) this.isFetchingData = false; };
 
-    // Rebotling
-    pending += 2;
-    this.rebotlingService.getLiveStats().pipe(
-      timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
-    ).subscribe((res: RebotlingLiveStatsResponse | null) => {
-      if (res && res.success && res.data) {
-        this.rebotlingToday = res.data.ibcToday || 0;
-      }
-      done();
-    });
+    // Dagens översikt för Rebotling + Tvättlinje: var 30:e sekund (var 6:e 5 s-tick).
+    if (this.dataTick++ % 6 === 0) {
+      this.loadOversikt('rebotling');
+      this.loadOversikt('tvattlinje');
+    }
 
+    // Rebotling — körstatus
+    pending += 1;
     this.rebotlingService.getRunningStatus().pipe(
       timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: LineStatusResponse | null) => {
@@ -200,9 +213,6 @@ export class News implements OnInit, OnDestroy {
       timeout(4000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: TvattlinjeLiveStatsResponse | null) => {
       if (res && res.success && res.data) {
-        this.tvattlinjeToday = res.data.ibcToday;
-        this.tvattlinjeTarget = res.data.ibcTarget;
-        this.tvattlinjePercentage = res.data.productionPercentage || 0;
         if (res.data.running != null) this.tvattlinjeStatus = ((res.data.running as any) == 1 || res.data.running === true);
       }
       done();
@@ -407,6 +417,68 @@ export class News implements OnInit, OnDestroy {
       urgent:        'badge-cat-urgent',
     };
     return 'badge-category ' + (classes[cat] ?? 'badge-cat-info');
+  }
+
+  // ========== Dagens översikt (Rebotling + Tvättlinje) ==========
+  // Varje linje räknar med sina egna, befintliga definitioner i backend (run=oversikt-idag).
+  // Saknas data visas "–", aldrig en falsk nolla.
+
+  private loadOversikt(linje: OversiktLinje): void {
+    this.http.get<{ success: boolean; data?: LinjeOversikt }>(
+      `${this.apiBase}?action=${linje}&run=oversikt-idag`, { withCredentials: true }
+    ).pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        const ok = !!(res && res.success && res.data);
+        this.oversikt[linje] = {
+          laddar: false,
+          // Behåll senast kända siffror vid ett tillfälligt fel, men markera felet.
+          fel: !ok,
+          data: ok ? res!.data! : this.oversikt[linje].data,
+        };
+      });
+  }
+
+  /** Heltal eller "–". */
+  fmtAntal(v: number | null | undefined): string {
+    return v === null || v === undefined ? '–' : String(v);
+  }
+
+  /** IBC per timme med en decimal (svensk decimalkomma) eller "–". */
+  fmtPerTimme(v: number | null | undefined): string {
+    return v === null || v === undefined ? '–' : v.toFixed(1).replace('.', ',');
+  }
+
+  /** Minuter som "3 h 43 min" / "45 min", eller "–". */
+  fmtMinuter(v: number | null | undefined): string {
+    if (v === null || v === undefined) return '–';
+    const h = Math.floor(v / 60), m = Math.round(v % 60);
+    return h > 0 ? `${h} h ${m} min` : `${m} min`;
+  }
+
+  /**
+   * Effektivitet enligt linjens egen definition:
+   *  - tvättlinje (signerad): avvikelse mot måltakt, "+12 %" / "−5 %"
+   *  - rebotling (kvot): takt i procent av måltakt, max 100 %, "94 %"
+   */
+  fmtEffektivitet(d: LinjeOversikt | null): string {
+    if (!d || d.effektivitet === null || d.effektivitet === undefined) return '–';
+    const pct = Math.round(d.effektivitet * 100);
+    if (d.effektivitetTyp === 'kvot') return `${pct} %`;
+    if (pct === 0) return '±0 %';
+    return pct > 0 ? `+${pct} %` : `−${Math.abs(pct)} %`;
+  }
+
+  effKlass(d: LinjeOversikt | null): string {
+    if (!d || d.effektivitet === null || d.effektivitet === undefined) return 'text-muted';
+    if (d.effektivitetTyp === 'kvot') {
+      return d.effektivitet >= 0.9 ? 'text-success' : d.effektivitet >= 0.7 ? 'text-warning' : 'text-danger';
+    }
+    return d.effektivitet >= 0 ? 'text-success' : d.effektivitet >= -0.1 ? 'text-warning' : 'text-danger';
+  }
+
+  /** Måltakt med två decimaler (svensk decimalkomma) för förklaringstexten. */
+  fmtMaltakt(d: LinjeOversikt | null): string {
+    return d?.maltaktMin ? d.maltaktMin.toFixed(2).replace('.', ',') : '–';
   }
 
   getPercentageClass(pct: number): string {

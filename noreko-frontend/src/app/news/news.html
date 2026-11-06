@@ -3,64 +3,72 @@
     <h1 class="dashboard-title">Produktions-översikt</h1>
 
     <div class="row g-4 dashboard-grid">
-      <!-- Rebotling Card -->
-      <div class="col-lg-6 col-xl-3">
+      <!-- Rebotling + Tvättlinje: dagens översikt (samma layout, linjens egna definitioner) -->
+      <div class="col-12 col-xl-6">
         <a routerLink="/rebotling/live" class="card-link">
-          <div class="dashboard-card" [class.running]="rebotlingStatus">
+          <div class="dashboard-card oversikt-card" [class.running]="rebotlingStatus">
             <div class="status-indicator" [class.active]="rebotlingStatus"></div>
-            <h3 class="line-name">Rebotling</h3>
-            <div class="line-stats">
-              <div class="stat-item">
-                <span class="stat-label">IBC idag</span>
-                <span class="stat-value">{{ rebotlingToday }}</span>
-              </div>
-            </div>
-            <div class="status-badge-container">
+            <div class="line-header">
+              <h3 class="line-name">Rebotling</h3>
               <span class="badge" [class]="rebotlingStatus ? 'bg-success' : 'bg-danger'">
                 {{ rebotlingStatus ? 'Igång' : 'Stoppad' }}
               </span>
             </div>
+            <ng-container *ngTemplateOutlet="oversiktTpl; context: { $implicit: oversikt.rebotling, linje: 'rebotling' }"></ng-container>
           </div>
         </a>
       </div>
 
-      <!-- Tvättlinje Card -->
-      <div class="col-lg-6 col-xl-3">
+      <div class="col-12 col-xl-6">
         <a routerLink="/tvattlinje/live" class="card-link">
-          <div class="dashboard-card" [class.running]="tvattlinjeStatus">
+          <div class="dashboard-card oversikt-card" [class.running]="tvattlinjeStatus">
             <div class="status-indicator" [class.active]="tvattlinjeStatus"></div>
-            <h3 class="line-name">Tvättlinje</h3>
-            <div class="line-stats">
-              <div class="stat-item">
-                <span class="stat-label">IBC idag</span>
-                <span class="stat-value" title="IBC idag (PLC-räknare)">{{ tvattlinjeToday }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Mål</span>
-                <span class="stat-value">{{ tvattlinjeTarget }}</span>
-              </div>
-            </div>
-            <div class="progress-section" *ngIf="tvattlinjeTarget > 0">
-              <div class="d-flex justify-content-between mb-1">
-                <small class="text-muted">Måluppfyllnad</small>
-                <small [ngClass]="getPercentageClass(tvattlinjePercentage)">{{ tvattlinjePercentage }}%</small>
-              </div>
-              <div class="progress" style="height: 8px;">
-                <div class="progress-bar" [ngClass]="getProgressClass(tvattlinjePercentage)"
-                     [style.width.%]="tvattlinjePercentage > 100 ? 100 : tvattlinjePercentage"></div>
-              </div>
-            </div>
-            <div class="status-badge-container">
+            <div class="line-header">
+              <h3 class="line-name">Tvättlinje</h3>
               <span class="badge" [class]="tvattlinjeStatus ? 'bg-success' : 'bg-danger'">
                 {{ tvattlinjeStatus ? 'Igång' : 'Stoppad' }}
               </span>
             </div>
+            <ng-container *ngTemplateOutlet="oversiktTpl; context: { $implicit: oversikt.tvattlinje, linje: 'tvattlinje' }"></ng-container>
           </div>
         </a>
       </div>
 
+      <ng-template #oversiktTpl let-o let-linje="linje">
+        <div class="kpi-grid">
+          <div class="kpi kpi-main">
+            <span class="kpi-label">IBC idag</span>
+            <span class="kpi-value">{{ o.laddar && !o.data ? '…' : fmtAntal(o.data?.ibc) }}</span>
+            <span class="kpi-help">{{ linje === 'tvattlinje' ? 'Alla tvättade: godkända + ej godkända + omtvätt' : 'Godkända IBC' }}</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Antal per timme</span>
+            <span class="kpi-value">{{ o.laddar && !o.data ? '…' : fmtPerTimme(o.data?.ibcPerTimme) }}</span>
+            <span class="kpi-help">{{ linje === 'tvattlinje' ? 'IBC per drifttimme' : 'Godkända IBC per drifttimme' }}</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Effektivitet</span>
+            <span class="kpi-value" [ngClass]="effKlass(o.data)">{{ o.laddar && !o.data ? '…' : fmtEffektivitet(o.data) }}</span>
+            <span class="kpi-help" *ngIf="linje === 'tvattlinje'">Takt mot måltakt<ng-container *ngIf="o.data?.effektivitet != null"> {{ fmtMaltakt(o.data) }} min/IBC</ng-container>; + = snabbare</span>
+            <span class="kpi-help" *ngIf="linje === 'rebotling'">Takt i % av måltakt<ng-container *ngIf="o.data?.effektivitet != null"> {{ fmtMaltakt(o.data) }} min/IBC</ng-container>, max 100 %</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Drifttid</span>
+            <span class="kpi-value">{{ o.laddar && !o.data ? '…' : fmtMinuter(o.data?.drifttidMin) }}</span>
+            <span class="kpi-help">{{ linje === 'tvattlinje' ? 'Igång enligt PLC, exkl. rast och driftstopp' : 'Igång enligt PLC-räknaren' }}</span>
+          </div>
+          <div class="kpi">
+            <span class="kpi-label">Driftstopp</span>
+            <span class="kpi-value">{{ o.laddar && !o.data ? '…' : fmtMinuter(o.data?.driftstoppMin) }}</span>
+            <span class="kpi-help">Registrerade stopp vid fel<ng-container *ngIf="o.data?.driftstoppPagar"> · pågår nu</ng-container></span>
+          </div>
+        </div>
+        <p class="oversikt-note" *ngIf="o.fel">Kunde inte hämta dagens siffror<ng-container *ngIf="o.data"> — visar senast hämtade</ng-container>.</p>
+        <p class="oversikt-note" *ngIf="!o.fel && o.data && !o.data.harData">Ingen produktion registrerad idag.</p>
+      </ng-template>
+
       <!-- Saglinje Card -->
-      <div class="col-lg-6 col-xl-3">
+      <div class="col-md-6">
         <a routerLink="/saglinje/live" class="card-link">
           <div class="dashboard-card" [class.running]="saglinjeStatus">
             <div class="status-indicator" [class.active]="saglinjeStatus"></div>
@@ -95,7 +103,7 @@
       </div>
 
       <!-- Klassificeringslinje Card -->
-      <div class="col-lg-6 col-xl-3">
+      <div class="col-md-6">
         <a routerLink="/klassificeringslinje/live" class="card-link">
           <div class="dashboard-card" [class.running]="klassificeringslinjeStatus">
             <div class="status-indicator" [class.active]="klassificeringslinjeStatus"></div>
