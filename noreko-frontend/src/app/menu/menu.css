@@ -123,6 +123,18 @@
   border: 2px solid #00ff6a;
   box-shadow: 0 0 0 2px #00ff6a33;
 }
+/* Knappen Statusvy använder platsväljarens pillerstil. */
+.statusvy-knapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.statusvy-knapp:hover, .statusvy-knapp.active {
+  border-color: #00ff6a;
+  color: #00ff6a;
+}
 
 .dropdown-item {
   cursor: pointer;

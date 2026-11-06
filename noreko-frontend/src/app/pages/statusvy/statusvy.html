@@ -1,0 +1,173 @@
+<div class="statusvy" [class.helskarm]="helskarm">
+  <!-- Rubrikrad: titel, datum, klocka, anslutning, kontroller -->
+  <header class="sv-header">
+    <div class="sv-titel">
+      <h1>Produktionen just nu</h1>
+      <span class="sv-datum">{{ datumRubrik }}</span>
+    </div>
+    <div class="sv-klocka">{{ nu | date:'HH:mm' }}</div>
+    <div class="sv-kontroller">
+      <span class="sv-anslutning" [ngClass]="anslutning" role="status">
+        <span class="prick"></span>
+        <ng-container [ngSwitch]="anslutning">
+          <span *ngSwitchCase="'fel'">Ingen anslutning</span>
+          <span *ngSwitchCase="'inaktuell'">{{ uppdateradText }} · kan vara inaktuell</span>
+          <span *ngSwitchDefault>{{ uppdateradText }}</span>
+        </ng-container>
+      </span>
+      <button type="button" class="sv-knapp" (click)="vaxlaHelskarm()">
+        <i class="fas" [ngClass]="helskarm ? 'fa-compress' : 'fa-expand'"></i>
+        {{ helskarm ? 'Lämna helskärm' : 'Helskärm' }}
+      </button>
+    </div>
+  </header>
+
+  <!-- Linjer: dagens läge + perioder (fast) -->
+  <section class="sv-linjer">
+    <article class="sv-linje" *ngFor="let l of linjer; trackBy: trackLinje">
+      <ng-container *ngIf="vy[l.linje] as v; else ingenData">
+        <div class="sv-linje-huvud">
+          <h2>{{ v.namn }}</h2>
+          <span class="sv-status" [ngClass]="status[l.linje] === true ? 'igang' : status[l.linje] === false ? 'stoppad' : 'okand'">
+            {{ status[l.linje] === true ? 'Igång' : status[l.linje] === false ? 'Stoppad' : 'Status okänd' }}
+          </span>
+        </div>
+
+        <!-- Idag -->
+        <div class="sv-idag">
+          <div class="sv-ruta sv-huvudtal">
+            <span class="sv-etikett">IBC idag <span class="sv-pagar">pågår</span></span>
+            <span class="sv-varde">{{ fmtAntal(v.idag.ibc) }}</span>
+            <span class="sv-hjalp">{{ v.typ === 'signerad' ? 'Alla tvättade: godkända + ej godkända + omtvätt' : 'Godkända IBC' }}</span>
+          </div>
+          <div class="sv-ruta">
+            <span class="sv-etikett">Antal per timme</span>
+            <span class="sv-varde">{{ fmtTakt(v.idag.taktPerTimme) }}</span>
+            <span class="sv-hjalp">{{ v.typ === 'signerad' ? 'IBC' : 'Godkända IBC' }} per drifttimme</span>
+          </div>
+          <div class="sv-ruta">
+            <span class="sv-etikett">Effektivitet</span>
+            <span class="sv-varde" [ngClass]="effKlass(v.idag.effektivitet, v.typ)">{{ fmtEff(v.idag.effektivitet, v.typ) }}</span>
+            <span class="sv-hjalp">{{ v.typ === 'signerad' ? 'Takt mot måltakt, + = snabbare' : 'Takt i % av måltakt, max 100 %' }}</span>
+          </div>
+          <div class="sv-ruta">
+            <span class="sv-etikett">Drifttid</span>
+            <span class="sv-varde">{{ fmtTid(v.idag.drifttidMin) }}</span>
+            <span class="sv-hjalp">Linjen igång enligt PLC</span>
+          </div>
+          <div class="sv-ruta">
+            <span class="sv-etikett">Driftstopp</span>
+            <span class="sv-varde">{{ fmtTid(v.idag.driftstoppMin) }}</span>
+            <span class="sv-hjalp">Registrerade stopp vid fel</span>
+          </div>
+        </div>
+        <p class="sv-not" *ngIf="v.idag.dagarMedData === 0">Ingen produktion registrerad idag.</p>
+
+        <!-- Perioder -->
+        <div class="sv-tabell-wrap">
+          <table class="sv-tabell">
+            <thead>
+              <tr>
+                <th scope="col">Period</th>
+                <th scope="col">IBC</th>
+                <th scope="col">Per timme</th>
+                <th scope="col">Effektivitet</th>
+                <th scope="col">Drifttid</th>
+                <th scope="col">Driftstopp</th>
+                <th scope="col" title="Dagar med produktion enligt definitionen">Dagar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let r of v.rader">
+                <tr [class.pagar]="r.period.pagar">
+                  <th scope="row">
+                    {{ r.period.label }}
+                    <span class="sv-pagar" *ngIf="r.period.pagar">pågår</span>
+                  </th>
+                  <td>{{ fmtAntal(r.summa.ibc) }}</td>
+                  <td>{{ fmtTakt(r.summa.taktPerTimme) }}</td>
+                  <td [ngClass]="effKlass(r.summa.effektivitet, v.typ)">{{ fmtEff(r.summa.effektivitet, v.typ) }}</td>
+                  <td>{{ fmtTid(r.summa.drifttidMin) }}</td>
+                  <td>{{ fmtTid(r.summa.driftstoppMin) }}</td>
+                  <td>{{ r.summa.dagarMedData || '–' }}</td>
+                </tr>
+                <tr class="sv-jamfor" *ngIf="jamforText(r) as t">
+                  <td colspan="7">{{ t }}</td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+        </div>
+        <p class="sv-tackning" *ngIf="v.dataFran">
+          Data enligt definitionen från {{ fmtDatum(v.dataFran) }}. Takt och effektivitet räknas på dagar med både IBC och drifttid.
+        </p>
+      </ng-container>
+      <ng-template #ingenData>
+        <div class="sv-linje-huvud"><h2>{{ l.namn }}</h2></div>
+        <p class="sv-not sv-not-stor">{{ laddar ? 'Hämtar data…' : 'Kunde inte hämta data för ' + l.namn + '.' }}</p>
+      </ng-template>
+    </article>
+  </section>
+
+  <!-- Roterande trend-/historikfält -->
+  <section class="sv-rotation" #rot>
+    <div class="sv-rot-huvud">
+      <div class="sv-flikar" role="tablist" aria-label="Historik">
+        <button type="button" role="tab" *ngFor="let f of vyer" class="sv-flik"
+                [class.aktiv]="aktivVy === f.key" [attr.aria-selected]="aktivVy === f.key" (click)="byttVy(f.key)">
+          {{ f.label }}
+        </button>
+      </div>
+      <span class="sv-rot-info" [ngSwitch]="aktivVy">
+        <span *ngSwitchCase="'veckor'">Senaste 12 veckorna · staplar = IBC, linje = antal per drifttimme</span>
+        <span *ngSwitchCase="'manader'">Senaste 12 månaderna · staplar = IBC, linje = antal per drifttimme</span>
+        <span *ngSwitchCase="'bradagar'">Bra dagar senaste 12 månaderna · avslutade dagar med minst 4 h drifttid</span>
+      </span>
+      <button type="button" class="sv-knapp" (click)="vaxlaPaus()">
+        <i class="fas" [ngClass]="pausad ? 'fa-play' : 'fa-pause'"></i>
+        {{ pausad ? 'Starta växling' : 'Pausa växling' }}
+      </button>
+    </div>
+
+    <div class="sv-rot-innehall">
+      <div class="sv-rot-linje" *ngFor="let l of linjer; trackBy: trackLinje">
+        <h3>{{ l.namn }}</h3>
+        <ng-container *ngIf="aktivVy !== 'bradagar'">
+          <div class="sv-diagram"><canvas [attr.data-linje]="l.linje" [attr.aria-label]="'Trend ' + l.namn"></canvas></div>
+        </ng-container>
+        <ng-container *ngIf="aktivVy === 'bradagar'">
+          <ng-container *ngIf="vy[l.linje] as v">
+            <div class="sv-bra" *ngIf="v.bra.antalKandidater > 0; else faBra">
+              <div>
+                <h4>Flest IBC på en dag</h4>
+                <ol>
+                  <li *ngFor="let b of v.bra.flestIbc">
+                    <span class="sv-bra-dag">{{ fmtDag(b.dag) }}</span>
+                    <span class="sv-bra-tal">{{ fmtAntal(b.ibc) }} IBC</span>
+                  </li>
+                </ol>
+              </div>
+              <div>
+                <h4>Högst takt (per drifttimme)</h4>
+                <ol>
+                  <li *ngFor="let b of v.bra.hogstTakt">
+                    <span class="sv-bra-dag">{{ fmtDag(b.dag) }}</span>
+                    <span class="sv-bra-tal">{{ fmtTakt(b.taktPerTimme) }} / h</span>
+                  </li>
+                </ol>
+              </div>
+            </div>
+            <ng-template #faBra><p class="sv-not">Inga avslutade dagar med full datatäckning ännu.</p></ng-template>
+          </ng-container>
+        </ng-container>
+      </div>
+    </div>
+  </section>
+
+  <footer class="sv-fot">
+    Linjerna mäts med sina egna definitioner och jämförs inte med varandra.
+    Tvättlinje: effektivitet = takt mot måltakt (+ = snabbare). Rebotling: effektivitet = takt i % av måltakt (max 100 %).
+    Effektivitet är inte OEE. Veckor enligt ISO (måndag–söndag). Rullande 12 månader: {{ rullandeText() }}.
+    Saknad data visas som "–".
+  </footer>
+</div>

@@ -41,6 +41,7 @@ export const routes: Routes = [
       // Rapporter
       { path: 'rapporter/manad', canActivate: [authGuard], loadComponent: () => import('./pages/monthly-report/monthly-report').then(m => m.MonthlyReportPage) },
       { path: 'rapporter/vecka', canActivate: [authGuard], loadComponent: () => import('./pages/weekly-report/weekly-report').then(m => m.WeeklyReportPage) },
+      { path: 'statusvy', canActivate: [authGuard], loadComponent: () => import('./pages/statusvy/statusvy').then(m => m.StatusvyPage) },
 
       // Authenticated routes
       { path: 'rebotling/min-dag', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/min-dag/min-dag').then(m => m.MinDagPage) },

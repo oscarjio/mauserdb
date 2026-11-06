@@ -301,11 +301,15 @@
         </ul>
       </li>
 
-      <li class="nav-item dropdown menu-selector-item">
+      <!-- Platsväljaren Älvängen/Moss är dold tills vidare (visaPlatsvaljare) — koden finns kvar. -->
+      <li class="nav-item dropdown menu-selector-item" *ngIf="visaPlatsvaljare">
         <select aria-label="Välj meny" [(ngModel)]="selectedMenu" (change)="onMenuChange()" class="menu-selector">
           <option value="Älvängen">Älvängen</option>
           <option value="Moss">Moss</option>
         </select>
+      </li>
+      <li class="nav-item menu-selector-item">
+        <a class="menu-selector statusvy-knapp" routerLink="/statusvy" routerLinkActive="active">Statusvy</a>
       </li>
     </ul>
     </div>

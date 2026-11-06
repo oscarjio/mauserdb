@@ -36,6 +36,8 @@ export class Menu implements OnInit, OnDestroy {
   user: AuthUser | null = null;
   showMenu = false;
   selectedMenu: string = 'Älvängen';
+  /** Platsväljaren Älvängen/Moss är dold tills vidare; knappen Statusvy visas i dess ställe. */
+  readonly visaPlatsvaljare = false;
   vpnConnectedCount: number = 0;
   rebotlingRunning = false;
   tvattlinjeRunning = false;
