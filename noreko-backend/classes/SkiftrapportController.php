@@ -223,7 +223,7 @@ class SkiftrapportController {
         try {
             $stmt = $this->pdo->query("SELECT s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt, s.inlagd,
                 s.product_id, s.user_id, s.skiftraknare, s.created_at, s.updated_at,
-                s.op1, s.op2, s.op3, s.drifttid, s.rasttime, s.lopnummer,
+                s.op1, s.op2, s.op3, s.drifttid, s.rasttime, s.driftstopptime, s.lopnummer,
                 u.username as user_name,
                 p.name as product_name,
                 o1.name as op1_name,

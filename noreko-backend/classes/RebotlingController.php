@@ -72,6 +72,8 @@ class RebotlingController {
                 $this->adminController->getServiceStatus();
 
             // --- Analytics GET endpoints ---
+            } elseif ($action === 'cycle-detail') {
+                $this->getCycleDetail();
             } elseif ($action === 'report') {
                 $this->analyticsController->getProductionReport();
             } elseif ($action === 'week-comparison') {
@@ -546,6 +548,66 @@ class RebotlingController {
 
         file_put_contents($cacheFile, json_encode($result), LOCK_EX);
         return $result;
+    }
+
+    /**
+     * GET ?action=rebotling&run=cycle-detail&start=YYYY-MM-DD&end=YYYY-MM-DD
+     *
+     * En rad per IBC-cykel för Excel-exportens Löpnummer-blad — spegel av
+     * TvattlinjeController::getCycleDetail. Endast läsning.
+     *
+     * rebotling_ibc.ibc_ok/ibc_ej_ok/bur_ej_ok är kumulativa räknare per skiftraknare;
+     * radens resultat avgörs av vilken räknare som ökade mot föregående rad (LAG).
+     * Löpnummer ökar bara på godkända rader (verifierat 2026-10-29: 152/166 godkända
+     * +1, bur-rader har platshållaren 999) — övriga rader får lopnummer = null.
+     */
+    private function getCycleDetail(): void {
+        $start = $_GET['start'] ?? date('Y-m-d');
+        $end   = $_GET['end']   ?? date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
+
+        $rows = [];
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    datum, skiftraknare, produkt, op1, op2, op3,
+                    ibc_ok, ibc_ej_ok, bur_ej_ok, lopnummer,
+                    ibc_ok    - LAG(ibc_ok)    OVER (PARTITION BY COALESCE(skiftraknare, 0) ORDER BY datum, id) AS d_ok,
+                    ibc_ej_ok - LAG(ibc_ej_ok) OVER (PARTITION BY COALESCE(skiftraknare, 0) ORDER BY datum, id) AS d_ejok,
+                    bur_ej_ok - LAG(bur_ej_ok) OVER (PARTITION BY COALESCE(skiftraknare, 0) ORDER BY datum, id) AS d_bur
+                FROM rebotling_ibc
+                WHERE datum >= :start AND datum < DATE_ADD(:end, INTERVAL 1 DAY)
+                ORDER BY datum ASC, id ASC
+            ");
+            $stmt->execute(['start' => $start, 'end' => $end]);
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $dOk   = $r['d_ok']   !== null ? (int)$r['d_ok']   : (int)($r['ibc_ok'] ?? 0);
+                $dEjOk = $r['d_ejok'] !== null ? (int)$r['d_ejok'] : (int)($r['ibc_ej_ok'] ?? 0);
+                $dBur  = $r['d_bur']  !== null ? (int)$r['d_bur']  : (int)($r['bur_ej_ok'] ?? 0);
+                if ($dOk > 0)        { $resultat = 'godkänd'; }
+                elseif ($dEjOk > 0)  { $resultat = 'ej godkänd'; }
+                elseif ($dBur > 0)   { $resultat = 'bur ej godkänd'; }
+                else                 { $resultat = 'okänd'; }
+                $lop = $r['lopnummer'] !== null ? (int)$r['lopnummer'] : null;
+                $rows[] = [
+                    'datum'        => $r['datum'],
+                    'skiftraknare' => $r['skiftraknare'] !== null ? (int)$r['skiftraknare'] : null,
+                    'produkt'      => $r['produkt'] !== null ? (int)$r['produkt'] : null,
+                    'op1'          => $r['op1'],
+                    'op2'          => $r['op2'],
+                    'op3'          => $r['op3'],
+                    'resultat'     => $resultat,
+                    'lopnummer'    => ($resultat === 'godkänd' && $lop !== null && $lop > 0 && $lop < 998) ? $lop : null,
+                ];
+            }
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getCycleDetail: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta cykeldata'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
+        echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
     }
 
     private function getLiveStats() {
