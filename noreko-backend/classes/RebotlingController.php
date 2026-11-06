@@ -76,6 +76,8 @@ class RebotlingController {
                 $this->getCycleDetail();
             } elseif ($action === 'oversikt-idag') {
                 $this->getOversiktIdag();
+            } elseif ($action === 'statusvy-dagar') {
+                $this->getStatusvyDagar();
             } elseif ($action === 'report') {
                 $this->analyticsController->getProductionReport();
             } elseif ($action === 'week-comparison') {
@@ -693,6 +695,100 @@ class RebotlingController {
         } catch (\Throwable $e) {
             error_log('RebotlingController::getOversiktIdag: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta översikten'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=statusvy-dagar — dagssummor för Statusvyn (kräver inloggning).
+     * Endast läsning och endast aggregat: inga operatörer, inga cykelrader. Samma
+     * definitioner som getOversiktIdag / getStatistics (N133), per dag de senaste 400 dagarna:
+     *  - ibc         = godkända, SUM(MAX(ibc_ok)) per skiftraknare; null utan resultaträknare
+     *  - drifttidMin = PLC-nettotid SUM(MAX(runtime_plc)) per skift, cappad 600; null utan räknare
+     *  - driftstoppMin = rebotling_driftstopp start→slut; null före första registreringen
+     *  - idealMin    = ibc × dagens måltakt (snitt av cyklernas produkt-cykeltid)
+     * Effektivitet för en period = min(1, ΣidealMin / Σdrifttid) (rebotlings kvot, viktad).
+     */
+    private function getStatusvyDagar(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        try {
+            $idag = (string)$this->pdo->query('SELECT CURDATE()')->fetchColumn();
+            $fran = date('Y-m-d', strtotime($idag . ' -400 days'));
+            $qFran = $this->pdo->quote($fran);
+            $qIdag = $this->pdo->quote($idag);
+            $range = "datum >= DATE({$qFran}) AND datum < DATE({$qIdag}) + INTERVAL 1 DAY";
+
+            $dagar = [];
+            foreach ($this->pdo->query("
+                SELECT dag, SUM(shift_ok) AS ibc, SUM(shift_rt) AS rt, SUM(rt_rader) AS rt_rader
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(runtime_plc, 0)) AS shift_rt, SUM(runtime_plc IS NOT NULL) AS rt_rader
+                    FROM rebotling_ibc
+                    WHERE {$range} AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) s GROUP BY dag
+            ")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $dagar[$r['dag']] = ['ibc' => (int)$r['ibc'], 'rt' => (float)$r['rt'], 'rtr' => (int)$r['rt_rader']];
+            }
+
+            $maltakt = [];
+            foreach ($this->pdo->query("
+                SELECT DATE(i.datum) AS dag, AVG(p.cycle_time_minutes) AS mt
+                FROM rebotling_ibc i JOIN rebotling_products p ON p.id = i.produkt
+                WHERE i.{$range} AND p.cycle_time_minutes > 0
+                GROUP BY DATE(i.datum)
+            ")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $maltakt[$r['dag']] = (float)$r['mt'];
+            }
+
+            // Driftstopp per dag (start→slut, attribueras till startdagen, som getStatistics).
+            $forstaDriftstopp = $this->pdo->query("SELECT DATE(MIN(datum)) FROM rebotling_driftstopp")->fetchColumn() ?: null;
+            $driftstopp = [];
+            $start = null;
+            foreach ($this->pdo->query("SELECT datum, driftstopp_status FROM rebotling_driftstopp
+                    WHERE {$range} ORDER BY datum ASC")->fetchAll(PDO::FETCH_ASSOC) as $ev) {
+                if ((int)$ev['driftstopp_status'] === 1) {
+                    $start = $ev['datum'];
+                } elseif ((int)$ev['driftstopp_status'] === 0 && $start !== null) {
+                    $d = substr($start, 0, 10);
+                    $driftstopp[$d] = ($driftstopp[$d] ?? 0) + max(0, strtotime($ev['datum']) - strtotime($start)) / 60;
+                    $start = null;
+                }
+            }
+
+            ksort($dagar);
+            $ut = [];
+            $dataFran = null;
+            foreach ($dagar as $d => $a) {
+                if ($dataFran === null) $dataFran = $d;
+                $harDrift = $a['rtr'] > 0 && $a['rt'] > 0;
+                $drift = $harDrift ? min(600.0, $a['rt']) : null;
+                $ut[] = [
+                    'dag'           => $d,
+                    'ibc'           => $a['ibc'],
+                    'drifttidMin'   => $drift !== null ? round($drift, 1) : null,
+                    'drifttidKapad' => $harDrift && $a['rt'] > 600,
+                    'driftstoppMin' => ($forstaDriftstopp !== null && $d >= $forstaDriftstopp) ? round($driftstopp[$d] ?? 0, 1) : null,
+                    'idealMin'      => $drift !== null ? round($a['ibc'] * ($maltakt[$d] ?? 3.0), 2) : null,
+                ];
+            }
+
+            echo json_encode(['success' => true, 'data' => [
+                'linje'           => 'rebotling',
+                'idag'            => $idag,
+                'fran'            => $fran,
+                'dataFran'        => $dataFran,
+                'effektivitetTyp' => 'kvot',
+                'dagar'           => $ut,
+            ]], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            error_log('RebotlingController::getStatusvyDagar: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statusdata'], JSON_UNESCAPED_UNICODE);
         }
     }
 

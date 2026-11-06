@@ -60,6 +60,8 @@ class TvattlinjeController {
                 $this->getIbcPerDag();
             } elseif ($action === 'oversikt-idag') {
                 $this->getOversiktIdag();
+            } elseif ($action === 'statusvy-dagar') {
+                $this->getStatusvyDagar();
             } elseif ($action === '') {
                 // Live-vyn anropar ?action=tvattlinje UTAN run-parameter → tomt run = live-stats.
                 $this->getLiveStats();
@@ -887,6 +889,124 @@ class TvattlinjeController {
         } catch (\Throwable $e) {
             error_log('TvattlinjeController::getOversiktIdag: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta översikten'], JSON_UNESCAPED_UNICODE);
+        }
+    }
+
+    /**
+     * GET ?action=tvattlinje&run=statusvy-dagar — dagssummor för Statusvyn (kräver inloggning).
+     * Endast läsning och endast aggregat: inga operatörer, inga cykelrader.
+     * Samma definitioner som getOversiktIdag (räknekärnan), per kalenderdag de senaste
+     * 400 dagarna — inget LIMIT, så inga perioder kapas.
+     *  - ibc         = ok + ej ok + omtvätt (räknarökning); null om dagen saknar resultaträknare
+     *  - drifttidMin = D4007, cappad 600 (drifttidKapad = true om rå > 600); null utan D4007
+     *  - driftstoppMin = D4011; null utan registrering
+     *  - idealMin    = ibc × IBC-viktad måltakt (för korrekt viktad effektivitet); null utan drifttid
+     * Effektivitet för en period = 1 − Σdrifttid / ΣidealMin (räknekärnans formel, viktad).
+     */
+    private function getStatusvyDagar(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        try {
+            $idag = (string)$this->pdo->query('SELECT CURDATE()')->fetchColumn();
+            $fran = date('Y-m-d', strtotime($idag . ' -400 days'));
+            $qFran = $this->pdo->quote($fran);
+            $qIdag = $this->pdo->quote($idag);
+
+            $rows = $this->pdo->query("
+                SELECT dag, produkt,
+                    SUM(d_tot) AS ibc, SUM(d_rt) AS rt, SUM(d_ds) AS ds,
+                    COUNT(*) AS rader, SUM(har_ok) AS ok_rader, SUM(har_rt) AS rt_rader, SUM(har_ds) AS ds_rader
+                FROM (
+                    SELECT DATE(datum) AS dag, datum, produkt,
+                        CASE WHEN p_tot IS NULL OR tot < p_tot THEN tot ELSE tot - p_tot END AS d_tot,
+                        CASE WHEN p_rt  IS NULL OR rt  < p_rt  THEN rt  ELSE rt  - p_rt  END AS d_rt,
+                        CASE WHEN p_ds  IS NULL OR ds  < p_ds  THEN ds  ELSE ds  - p_ds  END AS d_ds,
+                        har_ok, har_rt, har_ds
+                    FROM (
+                        SELECT datum, produkt,
+                            ibc_ok IS NOT NULL AS har_ok, runtime_plc IS NOT NULL AS har_rt, driftstopptime IS NOT NULL AS har_ds,
+                            COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0) + COALESCE(omtvaatt, 0) AS tot,
+                            LAG(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0) + COALESCE(omtvaatt, 0)) OVER w AS p_tot,
+                            COALESCE(runtime_plc, 0) AS rt,      LAG(COALESCE(runtime_plc, 0))    OVER w AS p_rt,
+                            COALESCE(driftstopptime, 0) AS ds,   LAG(COALESCE(driftstopptime, 0)) OVER w AS p_ds
+                        FROM tvattlinje_ibc
+                        WHERE datum >= DATE({$qFran}) - INTERVAL 7 DAY AND datum < DATE({$qIdag}) + INTERVAL 1 DAY
+                        WINDOW w AS (ORDER BY datum, id)
+                    ) x
+                    WHERE datum >= DATE({$qFran})
+                ) y
+                GROUP BY dag, produkt
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            // Reserv för måltakt: skiftrapporternas IBC-viktning per dag (senaste rapport per skift).
+            $rapportVikt = [];
+            foreach ($this->pdo->query("
+                SELECT DATE(sr.datum) AS dag, sr.product_id, SUM(sr.totalt) AS ibc
+                FROM tvattlinje_skiftrapport sr
+                INNER JOIN (SELECT MAX(id) AS max_id FROM tvattlinje_skiftrapport
+                            WHERE datum >= DATE({$qFran}) GROUP BY DATE(datum), COALESCE(skiftraknare, 0)) latest
+                        ON sr.id = latest.max_id
+                GROUP BY DATE(sr.datum), sr.product_id
+            ")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $rapportVikt[$r['dag']][(int)$r['product_id']] = (int)$r['ibc'];
+            }
+
+            $cycleById = TvattlinjeMetrics::cycleTimeById($this->pdo);
+            $dagar = [];
+            foreach ($rows as $r) {
+                $d = $r['dag'];
+                $dagar[$d] ??= ['ibc' => 0, 'rt' => 0.0, 'ds' => 0.0, 'ok' => 0, 'rtr' => 0, 'dsr' => 0, 'wSum' => 0.0, 'wN' => 0];
+                $a = &$dagar[$d];
+                $a['ibc'] += (int)$r['ibc']; $a['rt'] += (float)$r['rt']; $a['ds'] += (float)$r['ds'];
+                $a['ok'] += (int)$r['ok_rader']; $a['rtr'] += (int)$r['rt_rader']; $a['dsr'] += (int)$r['ds_rader'];
+                $ct = $cycleById[(int)$r['produkt']] ?? null;
+                if ($ct !== null && $ct > 0 && (int)$r['ibc'] > 0) { $a['wSum'] += $ct * (int)$r['ibc']; $a['wN'] += (int)$r['ibc']; }
+                unset($a);
+            }
+            ksort($dagar);
+
+            $ut = [];
+            $dataFran = null;
+            foreach ($dagar as $d => $a) {
+                $harIbc = $a['ok'] > 0;
+                $harDrift = $a['rtr'] > 0 && $a['rt'] > 0;
+                if ($harIbc && $dataFran === null) $dataFran = $d;
+                if ($a['wN'] > 0) {
+                    $maltakt = $a['wSum'] / $a['wN'];
+                } else {
+                    $w = 0.0; $n = 0;
+                    foreach ($rapportVikt[$d] ?? [] as $pid => $ibc) {
+                        $ct = $cycleById[$pid] ?? TvattlinjeMetrics::FALLBACK_CYCLE_MIN;
+                        $w += $ct * $ibc; $n += $ibc;
+                    }
+                    $maltakt = $n > 0 ? $w / $n : TvattlinjeMetrics::FALLBACK_CYCLE_MIN;
+                }
+                $drift = $harDrift ? TvattlinjeMetrics::capDrifttid($a['rt']) : null;
+                $ut[] = [
+                    'dag'           => $d,
+                    'ibc'           => $harIbc ? $a['ibc'] : null,
+                    'drifttidMin'   => $drift !== null ? round($drift, 1) : null,
+                    'drifttidKapad' => $harDrift && $a['rt'] > TvattlinjeMetrics::RUNTIME_CAP_MIN,
+                    'driftstoppMin' => $a['dsr'] > 0 ? round($a['ds'], 1) : null,
+                    'idealMin'      => ($harIbc && $drift !== null) ? round($a['ibc'] * $maltakt, 2) : null,
+                ];
+            }
+
+            echo json_encode(['success' => true, 'data' => [
+                'linje'           => 'tvattlinje',
+                'idag'            => $idag,
+                'fran'            => $fran,
+                'dataFran'        => $dataFran,
+                'effektivitetTyp' => 'signerad',
+                'dagar'           => $ut,
+            ]], JSON_UNESCAPED_UNICODE);
+        } catch (\Throwable $e) {
+            error_log('TvattlinjeController::getStatusvyDagar: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statusdata'], JSON_UNESCAPED_UNICODE);
         }
     }
 
