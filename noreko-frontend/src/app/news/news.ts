@@ -82,6 +82,8 @@ export class News implements OnInit, OnDestroy {
     tvattlinje: { laddar: true, fel: false, data: null },
   };
   private dataTick = 0;
+  /** Såglinje/Klassificeringslinje är inte införda ännu — dölj deras kort (data/stöd kvar). */
+  readonly visaEjInfordaLinjer = false;
 
   // Saglinje data
   saglinjeStatus: boolean = false;
@@ -217,6 +219,13 @@ export class News implements OnInit, OnDestroy {
       }
       done();
     });
+
+    // Såglinje + Klassificeringslinje: ej införda i systemet ännu (Oscar 2026-11-06) —
+    // korten döljs och data hämtas inte. Koden finns kvar; sätt flaggan till true för att visa.
+    if (!this.visaEjInfordaLinjer) {
+      if (pending <= 0) this.isFetchingData = false;
+      return;
+    }
 
     // Saglinje
     pending++;

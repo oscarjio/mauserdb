@@ -210,10 +210,12 @@
   margin-top: 0.25rem;
 }
 
+/* Noteringen ligger längst ned så rutnätet hamnar på samma plats i båda korten. */
 .oversikt-note {
   color: rgba(255, 255, 255, 0.65);
   font-size: 0.82rem;
-  margin: 0.75rem 0 0;
+  margin: auto 0 0;
+  padding-top: 0.75rem;
 }
 
 @media (min-width: 576px) {

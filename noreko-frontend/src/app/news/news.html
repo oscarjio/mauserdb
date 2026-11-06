@@ -5,8 +5,8 @@
     <div class="row g-4 dashboard-grid">
       <!-- Rebotling + Tvättlinje: dagens översikt (samma layout, linjens egna definitioner) -->
       <div class="col-12 col-xl-6">
-        <a routerLink="/rebotling/live" class="card-link">
-          <div class="dashboard-card oversikt-card" [class.running]="rebotlingStatus">
+        <a routerLink="/rebotling/live" class="card-link h-100">
+          <div class="dashboard-card oversikt-card h-100" [class.running]="rebotlingStatus">
             <div class="status-indicator" [class.active]="rebotlingStatus"></div>
             <div class="line-header">
               <h3 class="line-name">Rebotling</h3>
@@ -20,8 +20,8 @@
       </div>
 
       <div class="col-12 col-xl-6">
-        <a routerLink="/tvattlinje/live" class="card-link">
-          <div class="dashboard-card oversikt-card" [class.running]="tvattlinjeStatus">
+        <a routerLink="/tvattlinje/live" class="card-link h-100">
+          <div class="dashboard-card oversikt-card h-100" [class.running]="tvattlinjeStatus">
             <div class="status-indicator" [class.active]="tvattlinjeStatus"></div>
             <div class="line-header">
               <h3 class="line-name">Tvättlinje</h3>
@@ -67,8 +67,8 @@
         <p class="oversikt-note" *ngIf="!o.fel && o.data && !o.data.harData">Ingen produktion registrerad idag.</p>
       </ng-template>
 
-      <!-- Saglinje Card -->
-      <div class="col-md-6">
+      <!-- Saglinje Card — dold tills linjen är införd (visaEjInfordaLinjer) -->
+      <div class="col-md-6" *ngIf="visaEjInfordaLinjer">
         <a routerLink="/saglinje/live" class="card-link">
           <div class="dashboard-card" [class.running]="saglinjeStatus">
             <div class="status-indicator" [class.active]="saglinjeStatus"></div>
@@ -102,8 +102,8 @@
         </a>
       </div>
 
-      <!-- Klassificeringslinje Card -->
-      <div class="col-md-6">
+      <!-- Klassificeringslinje Card — dold tills linjen är införd (visaEjInfordaLinjer) -->
+      <div class="col-md-6" *ngIf="visaEjInfordaLinjer">
         <a routerLink="/klassificeringslinje/live" class="card-link">
           <div class="dashboard-card" [class.running]="klassificeringslinjeStatus">
             <div class="status-indicator" [class.active]="klassificeringslinjeStatus"></div>
