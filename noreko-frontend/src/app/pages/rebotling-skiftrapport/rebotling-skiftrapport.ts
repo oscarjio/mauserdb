@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription, of } from 'rxjs';
+import { Subject, Subscription, of, firstValueFrom } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Chart, registerables } from 'chart.js';
@@ -9,8 +9,43 @@ import { SkiftrapportService } from '../../services/skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
 import { localToday, localDateStr } from '../../utils/date-utils';
 import { environment } from '../../../environments/environment';
+import { ExcelColumn, XL_FMT, buildExportSheet, buildLopnummerRangeFlagged, lopnummerSheetColumns } from '../../utils/skiftrapport-excel';
 
 Chart.register(...registerables);
+
+/**
+ * Rebotlings Excel-kolumner — samma ordning, rubriker, bredder och format som tvättlinjens
+ * (TVATT_EXCEL_COLUMNS i shared-skiftrapport.ts). Verkliga skillnader mellan linjerna:
+ *  - operatörsroller (Tvättplats/Kontrollstation/Truckförare),
+ *  - "Bur ej OK" i st f "Omtvätt" (rebotling har bur-kassation, ingen omtvätt),
+ *  - Effektivitet är rebotlings kvot faktisk/mål-takt, cappad 100 % (ej signerad),
+ *  - ingen Kommentar/Flerprodukt-dag (rebotling saknar kommentarer och produktuppdelning),
+ *  - Bonus-estimat (rebotlingspecifikt) sist.
+ */
+const REBOTLING_EXCEL_COLUMNS: ExcelColumn[] = [
+  { header: 'Datum', wch: 12 },
+  { header: 'Produkt', wch: 16 },
+  { header: 'Op1 Tvättplats', wch: 18 },
+  { header: 'Op2 Kontrollstation', wch: 18 },
+  { header: 'Op3 Truckförare', wch: 18 },
+  { header: 'IBC godkända', wch: 12, fmt: XL_FMT.int },
+  { header: 'IBC ej godkända', wch: 14, fmt: XL_FMT.int },
+  { header: 'Bur ej OK', wch: 9, fmt: XL_FMT.int },
+  { header: 'Totalt', wch: 8, fmt: XL_FMT.int },
+  { header: 'Antal per timme', wch: 13, fmt: XL_FMT.dec1 },
+  { header: 'Snitt cykeltid min/IBC', wch: 16, fmt: XL_FMT.dec2 },
+  { header: 'Måltakt min/IBC', wch: 13, fmt: XL_FMT.dec2 },
+  { header: 'Drifttid aktiv (min)', wch: 16, fmt: XL_FMT.int },
+  { header: 'Rast (min)', wch: 10, fmt: XL_FMT.int },
+  { header: 'Driftstopp (min)', wch: 13, fmt: XL_FMT.int },
+  { header: 'Effektivitet', wch: 12, fmt: XL_FMT.pct },
+  { header: 'Löpnummer', wch: 20 },
+  { header: 'Kvalitet', wch: 10, fmt: XL_FMT.pct },
+  { header: 'OEE', wch: 8, fmt: XL_FMT.pct },
+  { header: 'Inskickad', wch: 14 },
+  { header: 'Flagga', wch: 55 },
+  { header: 'Bonus-estimat (kr)', wch: 16, fmt: XL_FMT.int },
+];
 
 type SortField = 'datum' | 'product_name' | 'user_name' | 'ibc_ok' | 'bur_ej_ok' | 'ibc_ej_ok' | 'totalt' | 'kvalitet' | 'ibc_per_h' | 'effektivitet';
 type SortDir   = 'asc' | 'desc';
@@ -464,21 +499,28 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     // N129: exkludera korrupta drifttider (>=600 min) ur OEE-snittet
     const reports = this.filteredReports.filter(r => (r.drifttid || 0) + (r.rasttime || 0) > 0 && r.totalt > 0 && !this._isDrifttidCorrupt(r));
     if (!reports.length) return null;
-    // OEE = Availability × Performance × Quality (alla tre faktorer krävs).
-    // Utan Performance-faktorn kan OEE överstiga EFFEKTIVITET (omöjligt per definition).
-    const oeeSum = reports.reduce((s, r) => {
-      const q      = r.totalt > 0 ? (r.ibc_ok / r.totalt) : 0;
-      const planned = (r.drifttid || 0) + (r.rasttime || 0);
-      const avail   = planned > 0 ? Math.min((r.drifttid || 0) / planned, 1) : 0;
-      // Performance = faktisk IBC/h / mål IBC/h (cappas vid 1.0)
-      const product      = this.products?.find((p: any) => p.id === r.product_id);
-      const targetCycleMin = product?.cycle_time_minutes || 3;
-      const targetIbcH   = 60 / targetCycleMin;
-      const ibcH         = r.drifttid > 0 ? (r.ibc_ok / (r.drifttid / 60)) : 0;
-      const perf         = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
-      return s + avail * perf * q * 100;
-    }, 0);
+    const oeeSum = reports.reduce((s, r) => s + (this.getOeeRatio(r) ?? 0) * 100, 0);
     return Math.round(oeeSum / reports.length);
+  }
+
+  /**
+   * OEE för en rapport som andel (0–1), samma formel som summaryAvgOee alltid använt.
+   * OEE = Availability × Performance × Quality (alla tre faktorer krävs).
+   * Utan Performance-faktorn kan OEE överstiga EFFEKTIVITET (omöjligt per definition).
+   * null när rapporten inte ingår i OEE (ingen tid, ingen IBC eller korrupt drifttid).
+   */
+  getOeeRatio(r: any): number | null {
+    if (!((r.drifttid || 0) + (r.rasttime || 0) > 0 && r.totalt > 0 && !this._isDrifttidCorrupt(r))) return null;
+    const q      = r.totalt > 0 ? (r.ibc_ok / r.totalt) : 0;
+    const planned = (r.drifttid || 0) + (r.rasttime || 0);
+    const avail   = planned > 0 ? Math.min((r.drifttid || 0) / planned, 1) : 0;
+    // Performance = faktisk IBC/h / mål IBC/h (cappas vid 1.0)
+    const product      = this.products?.find((p: any) => p.id === r.product_id);
+    const targetCycleMin = product?.cycle_time_minutes || 3;
+    const targetIbcH   = 60 / targetCycleMin;
+    const ibcH         = r.drifttid > 0 ? (r.ibc_ok / (r.drifttid / 60)) : 0;
+    const perf         = targetIbcH > 0 ? Math.min(ibcH / targetIbcH, 1) : 0;
+    return avail * perf * q;
   }
 
   get summaryAvgIbcH(): number | null {
@@ -1033,115 +1075,92 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     URL.revokeObjectURL(url);
   }
 
-  exportExcel() {
+  // REBOTLING EXCEL-EXPORT — samma design som tvättlinjens exportExcelTvattlinje()
+  // (Oscar: "samma design, struktur, kolumnordning, rubriker, kolumnbredder, formatering
+  // och summeringsupplägg"). Två blad: "Skiftrapporter" (en rad per rapport = dag + produkt)
+  // och "Löpnummer" (en rad per IBC-cykel). Layouten kommer från utils/skiftrapport-excel.ts;
+  // alla värden från rebotlings egna, oförändrade beräkningar på sidan.
+  async exportExcel() {
     if (this.filteredReports.length === 0) return;
-    import('xlsx').then(XLSX => {
-      // ---- Sammanfattningsblad ----
-      const summaryHeaders = [['Sammanfattning', 'Värde']];
-      const summaryRows = [
-        ['Total IBC',        this.summaryTotalIbc],
-        ['Kvalitet %',       this.summaryAvgQuality ?? ''],
-        ['OEE %',            this.summaryAvgOee ?? ''],
-        ['Drifttid (min)',   this.summaryTotalDrift],
-        ['Rasttid (min)',    this.summaryTotalRast],
+    const XLSX = await import('xlsx');
+    const reports = [...this.filteredReports]
+      .sort((a: any, b: any) => String(a.datum).localeCompare(String(b.datum)));
+
+    // Löpnummer-spårbarhet: ALL cykeldata för perioden i ett anrop (som tvättlinjen).
+    const days = reports.map((r: any) => String(r.datum || '').substring(0, 10)).filter(d => d).sort();
+    let cycleRows: any[] = [];
+    if (days.length) {
+      const res = await firstValueFrom(this.http.get<any>(
+        `${environment.apiUrl}?action=rebotling&run=cycle-detail&start=${days[0]}&end=${days[days.length - 1]}`,
+        { withCredentials: true }
+      ).pipe(timeout(30000), catchError(() => of(null)))).catch(() => null);
+      cycleRows = res?.success ? (res.data || []) : [];
+    }
+    const cyclesBySkift = new Map<number, any[]>();
+    for (const c of cycleRows) {
+      if (c.skiftraknare === null || c.skiftraknare === undefined) continue;
+      if (!cyclesBySkift.has(c.skiftraknare)) cyclesBySkift.set(c.skiftraknare, []);
+      cyclesBySkift.get(c.skiftraknare)!.push(c);
+    }
+
+    const round = (v: number | null, dec: number) => v === null ? null : Math.round(v * 10 ** dec) / 10 ** dec;
+    const dataRows = reports.map((r: any) => {
+      const product = this.products?.find((p: any) => p.id === r.product_id);
+      const eff = this.getEfficiency(r);
+      const oee = this.getOeeRatio(r);
+      const skiftCycles = r.skiftraknare != null ? (cyclesBySkift.get(r.skiftraknare) || []) : [];
+      const lopNums = skiftCycles.filter(c => c.lopnummer !== null && c.lopnummer !== undefined).map(c => Number(c.lopnummer));
+      // Saknas cykeldata: rapportens eget löpnummer (999+ är PLC:ns platshållare, ej ett nummer).
+      const lopnummer = lopNums.length
+        ? buildLopnummerRangeFlagged(lopNums)
+        : (r.totalt > 0 && r.lopnummer > 0 && r.lopnummer < 998 ? String(r.lopnummer) : '–');
+      return [
+        String(r.datum || '').substring(0, 10),
+        r.product_name || product?.name || '–',
+        this.getOpLabel(r, 'op1'), this.getOpLabel(r, 'op2'), this.getOpLabel(r, 'op3'),
+        r.ibc_ok || 0, r.ibc_ej_ok || 0, r.bur_ej_ok || 0, r.totalt || 0,
+        this.getIbcPerHour(r),
+        this.getAvgCycleTime(r),
+        round(product?.cycle_time_minutes || 3, 2),
+        Math.round(r.drifttid || 0), Math.round(r.rasttime || 0), Math.round(r.driftstopptime || 0),
+        eff !== null ? eff / 100 : null,
+        lopnummer,
+        (() => { const q = this.getQualityPct(r); return q !== null ? q / 100 : null; })(),
+        round(oee, 3),
+        r.inlagd == 1 ? 'Inlagd' : 'Ja',
+        this._isDrifttidCorrupt(r)
+          ? 'Orimlig drifttid (>=10 h) — korrupt PLC-värde, ej med i IBC/h, cykeltid, effektivitet eller OEE'
+          : '',
+        this.getBonusEstimate(r),
       ];
-      const wsSummary = XLSX.utils.aoa_to_sheet([...summaryHeaders, ...summaryRows]);
-      wsSummary['!cols'] = [{ wch: 20 }, { wch: 14 }];
-      // Frys header-rad i sammanfattning
-      wsSummary['!freeze'] = { xSplit: 0, ySplit: 1 };
-
-      // ---- Skiftrapporter-blad ----
-      const dataHeaders = [
-        'ID', 'Datum', 'Produkt', 'Användare',
-        'IBC OK', 'Bur ej OK', 'IBC ej OK', 'Totalt',
-        'Kvalitet %', 'Effektivitet %', 'IBC/timme', 'Kassation %',
-        'Snitt cykeltid', 'Bonus-estimat',
-        'Op1', 'Op2', 'Op3',
-        'Drifttid (min)', 'Rasttid (min)', 'Löpnummer', 'Skifträknare', 'Inlagd'
-      ];
-      const dataRows = this.filteredReports.map(r => [
-        r.id,
-        r.datum,
-        r.product_name || '-',
-        r.user_name || '-',
-        r.ibc_ok,
-        r.bur_ej_ok,
-        r.ibc_ej_ok,
-        r.totalt,
-        this.getQualityPct(r) ?? '',
-        this.getEfficiency(r) ?? '',
-        this.getIbcPerHour(r) ?? '',
-        this.getDefectPct(r) ?? '',
-        this.getAvgCycleTime(r) ?? '',
-        this.getBonusEstimate(r) ?? '',
-        this.getOpLabel(r, 'op1'),
-        this.getOpLabel(r, 'op2'),
-        this.getOpLabel(r, 'op3'),
-        r.drifttid ?? '',
-        r.rasttime ?? '',
-        r.lopnummer ?? '',
-        r.skiftraknare ?? '',
-        r.inlagd == 1 ? 'Ja' : 'Nej'
-      ]);
-      const wsData = XLSX.utils.aoa_to_sheet([dataHeaders, ...dataRows]);
-
-      // N-bug (Oscar 2026-10-23, Excel ska matcha tvättlinjens design): samma
-      // mönster som tvättlinjens exportExcelTvattlinje() — numeriska talformat per
-      // kolumn (rebotling saknade detta helt, allt stod som rått text/tal) + autofilter.
-      const pctFmt1dp = '0';
-      const minFmt = '0';
-      const dataColFormats: { [col: number]: string } = {
-        4: '0', 5: '0', 6: '0', 7: '0',           // IBC OK/Bur ej OK/IBC ej OK/Totalt
-        8: pctFmt1dp, 9: pctFmt1dp, 11: pctFmt1dp, // Kvalitet/Effektivitet/Kassation %
-        10: '0.0', 12: '0.0',                     // IBC/timme, Snitt cykeltid
-        13: '0',                                  // Bonus-estimat
-        17: minFmt, 18: minFmt,                   // Drifttid/Rasttid (min)
-      };
-      const dataRange = XLSX.utils.decode_range(wsData['!ref']!);
-      for (let R = 1; R <= dataRange.e.r; R++) {
-        for (const colStr of Object.keys(dataColFormats)) {
-          const C = Number(colStr);
-          const cellRef = XLSX.utils.encode_cell({ r: R, c: C });
-          const cell = wsData[cellRef];
-          if (cell && typeof cell.v === 'number') cell.z = dataColFormats[C];
-        }
-      }
-      wsData['!autofilter'] = { ref: wsData['!ref']! };
-
-      // Kolumnbredder
-      wsData['!cols'] = [
-        { wch: 6  },  // ID
-        { wch: 12 },  // Datum
-        { wch: 18 },  // Produkt
-        { wch: 16 },  // Användare
-        { wch: 8  },  // IBC OK
-        { wch: 10 },  // Bur ej OK
-        { wch: 10 },  // IBC ej OK
-        { wch: 8  },  // Totalt
-        { wch: 11 },  // Kvalitet %
-        { wch: 14 },  // Effektivitet %
-        { wch: 11 },  // IBC/timme
-        { wch: 12 },  // Kassation %
-        { wch: 14 },  // Snitt cykeltid
-        { wch: 13 },  // Bonus-estimat
-        { wch: 14 },  // Op1
-        { wch: 14 },  // Op2
-        { wch: 14 },  // Op3
-        { wch: 14 },  // Drifttid
-        { wch: 13 },  // Rasttid
-        { wch: 12 },  // Löpnummer
-        { wch: 13 },  // Skifträknare
-        { wch: 8  },  // Inlagd
-      ];
-
-      // Frys header-rad (rad 1)
-      wsData['!freeze'] = { xSplit: 0, ySplit: 1 };
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, wsSummary, 'Sammanfattning');
-      XLSX.utils.book_append_sheet(wb, wsData,    'Skiftrapporter');
-      XLSX.writeFile(wb, `skiftrapporter-rebotling-${localToday()}.xlsx`);
     });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, buildExportSheet(XLSX, REBOTLING_EXCEL_COLUMNS, dataRows), 'Skiftrapporter');
+
+    // Bladet "Löpnummer": en rad per IBC-cykel — datum, tid, löpnummer, produkt, resultat, operatörer.
+    const opName = (n: any): string => {
+      if (!n) return '–';
+      return this.operators.find((o: any) => Number(o.number) === Number(n))?.name ?? `Okänd(#${n})`;
+    };
+    const lopRows = [...cycleRows]
+      .sort((a, b) => String(a.datum).localeCompare(String(b.datum)))
+      .map(c => {
+        const datumStr = String(c.datum || '');
+        return [
+          datumStr.substring(0, 10),
+          datumStr.substring(11, 19) || '–',
+          c.lopnummer !== null && c.lopnummer !== undefined ? Number(c.lopnummer) : null,
+          c.produkt == null ? '–' : (this.products?.find((p: any) => p.id === c.produkt)?.name || `#${c.produkt}`),
+          c.resultat || '–',
+          opName(c.op1), opName(c.op2), opName(c.op3),
+        ];
+      });
+    XLSX.utils.book_append_sheet(wb,
+      buildExportSheet(XLSX, lopnummerSheetColumns(['Op1 Tvättplats', 'Op2 Kontrollstation', 'Op3 Truckförare']), lopRows),
+      'Löpnummer');
+
+    XLSX.writeFile(wb, `rebotling-skiftrapport-${localToday()}.xlsx`);
   }
 
   exportPDF(report: any) {
