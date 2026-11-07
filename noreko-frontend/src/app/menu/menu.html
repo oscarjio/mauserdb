@@ -66,7 +66,8 @@
           <li *ngIf="user?.role === 'admin' || user?.role === 'developer'"><a class="dropdown-item text-warning" routerLink="/tvattlinje/operator-prestation"><i class="fas fa-chart-line me-2"></i>Operatörer</a></li>
         </ul>
       </li>
-      <li class="nav-item dropdown">
+      <!-- Såglinje: dold tills linjen är införd (visaEjInfordaLinjer) — routes och kod finns kvar. -->
+      <li class="nav-item dropdown" *ngIf="visaEjInfordaLinjer">
         <a class="nav-link dropdown-toggle" href="#" id="saglinjeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Såg
         </a>
@@ -78,7 +79,8 @@
           <li *ngIf="ff.canAccess('saglinje/admin')"><a class="dropdown-item text-warning" routerLink="/saglinje/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
         </ul>
       </li>
-      <li class="nav-item dropdown">
+      <!-- Klassificeringslinje: dold tills linjen är införd (visaEjInfordaLinjer) — routes och kod finns kvar. -->
+      <li class="nav-item dropdown" *ngIf="visaEjInfordaLinjer">
         <a class="nav-link dropdown-toggle" href="#" id="klassificeringslinjeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Klassificering
         </a>
