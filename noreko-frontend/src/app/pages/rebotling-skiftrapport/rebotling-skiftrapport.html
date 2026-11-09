@@ -146,11 +146,8 @@
           <div class="summary-card">
             <div class="summary-label">Effektivitet</div>
             <div class="summary-value"
-              [class.text-success]="(summaryAvgEfficiency ?? 0) >= 90"
-              [class.text-warning]="(summaryAvgEfficiency ?? 101) >= 70 && (summaryAvgEfficiency ?? 101) < 90"
-              [class.text-danger]="(summaryAvgEfficiency ?? 101) < 70 && summaryAvgEfficiency != null"
-              [class.text-muted]="summaryAvgEfficiency == null">
-              {{ summaryAvgEfficiency != null ? (summaryAvgEfficiency + '%') : '–' }}
+              [ngClass]="effKlass(summaryAvgEfficiency)">
+              {{ fmtEff(summaryAvgEfficiency) }}
             </div>
           </div>
         </div>
@@ -495,10 +492,8 @@
                                           <div class="hero-divider d-none d-sm-block" *ngIf="getEfficiency(report) != null"></div>
                                           <div class="hero-stat" *ngIf="getEfficiency(report) != null">
                                             <span class="hero-num"
-                                              [class.text-success]="(getEfficiency(report) ?? 0) >= 80"
-                                              [class.text-warning]="(getEfficiency(report) ?? 101) >= 60 && (getEfficiency(report) ?? 101) < 80"
-                                              [class.text-danger]="(getEfficiency(report) ?? 101) < 60">
-                                              {{ getEfficiency(report) }}%
+                                              [ngClass]="effKlass(getEfficiency(report))">
+                                              {{ fmtEff(getEfficiency(report)) }}
                                             </span>
                                             <span class="hero-lbl">Effektivitet</span>
                                           </div>
@@ -609,11 +604,8 @@
                                               <div class="kpi-card">
                                                 <div class="kpi-label">Effektivitet</div>
                                                 <div class="kpi-value"
-                                                  [class.text-success]="(getEfficiency(report) ?? 0) >= 80"
-                                                  [class.text-warning]="(getEfficiency(report) ?? 101) >= 60 && (getEfficiency(report) ?? 101) < 80"
-                                                  [class.text-danger]="(getEfficiency(report) ?? 101) < 60 && getEfficiency(report) != null"
-                                                  [class.text-muted]="getEfficiency(report) == null">
-                                                  {{ getEfficiency(report) != null ? (getEfficiency(report) + '%') : '–' }}
+                                                  [ngClass]="effKlass(getEfficiency(report))">
+                                                  {{ fmtEff(getEfficiency(report)) }}
                                                 </div>
                                               </div>
                                             </div>

@@ -18,7 +18,7 @@ Chart.register(...registerables);
  * (TVATT_EXCEL_COLUMNS i shared-skiftrapport.ts). Verkliga skillnader mellan linjerna:
  *  - operatörsroller (Tvättplats/Kontrollstation/Truckförare),
  *  - "Bur ej OK" i st f "Omtvätt" (rebotling har bur-kassation, ingen omtvätt),
- *  - Effektivitet är rebotlings kvot faktisk/mål-takt, cappad 100 % (ej signerad),
+ *  - Effektivitet: samma signerade form som tvättlinjen (beslut Oscar 2026-11-09),
  *  - ingen Kommentar/Flerprodukt-dag (rebotling saknar kommentarer och produktuppdelning),
  *  - Bonus-estimat (rebotlingspecifikt) sist.
  */
@@ -38,7 +38,7 @@ const REBOTLING_EXCEL_COLUMNS: ExcelColumn[] = [
   { header: 'Drifttid aktiv (min)', wch: 16, fmt: XL_FMT.int },
   { header: 'Rast (min)', wch: 10, fmt: XL_FMT.int },
   { header: 'Driftstopp (min)', wch: 13, fmt: XL_FMT.int },
-  { header: 'Effektivitet', wch: 12, fmt: XL_FMT.pct },
+  { header: 'Effektivitet', wch: 12, fmt: XL_FMT.pctSigned },
   { header: 'Löpnummer', wch: 20 },
   { header: 'Kvalitet', wch: 10, fmt: XL_FMT.pct },
   { header: 'OEE', wch: 8, fmt: XL_FMT.pct },
@@ -291,7 +291,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         case 'totalt':       aVal = a.totalt ?? 0;      bVal = b.totalt ?? 0; break;
         case 'kvalitet':     aVal = this.getQualityPct(a) ?? -1; bVal = this.getQualityPct(b) ?? -1; break;
         case 'ibc_per_h':    aVal = this.getIbcPerHour(a) ?? -1; bVal = this.getIbcPerHour(b) ?? -1; break;
-        case 'effektivitet': aVal = this.getEfficiency(a) ?? -1; bVal = this.getEfficiency(b) ?? -1; break;
+        case 'effektivitet': aVal = this.getEfficiency(a) ?? Number.NEGATIVE_INFINITY; bVal = this.getEfficiency(b) ?? Number.NEGATIVE_INFINITY; break;
         default:             aVal = a.datum ?? ''; bVal = b.datum ?? '';
       }
       if (aVal < bVal) return this.sortDir === 'asc' ? -1 : 1;
@@ -533,8 +533,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   get summaryAvgEfficiency(): number | null {
-    // Räkna kvoten av summorna (inte medelvärde av kvoter) för att undvika snedvridning:
-    // sum(ibc_ok × targetCycleMin) / sum(drifttid) × 100 = idealTid / faktiskTid × 100
+    // Kvoten av summorna (inte medelvärde av kvoter): 1 − sum(drifttid) / sum(ibc_ok × targetCycleMin).
     let totalIdealMin = 0;
     let totalDriftMin = 0;
     for (const r of this.filteredReports) {
@@ -548,8 +547,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       totalDriftMin += drift;
     }
     if (totalDriftMin <= 0 || totalIdealMin <= 0) return null;
-    const raw = Math.round(totalIdealMin / totalDriftMin * 100);
-    return Math.min(100, raw);
+    // Signerad, ingen cap (beslut Oscar 2026-11-09): 1 − Σdrifttid / Σideal.
+    return Math.round((1 - totalDriftMin / totalIdealMin) * 100);
   }
 
   get summaryTotalRast(): number {
@@ -597,15 +596,29 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     return Math.round((r.ibc_ok / (r.drifttid / 60)) * 10) / 10;
   }
 
-  /** Effektivitet = actual IBC/h vs target IBC/h (baserat på produktens cykeltid) */
+  /**
+   * Effektivitet i procent, samma form som tvättlinjen och rebotlings startsida/statistik
+   * (beslut Oscar 2026-11-09): 1 − drifttid / (godkända IBC × måltakt), signerad, ingen cap.
+   * + = snabbare än måltakt. Räknas direkt (inte via avrundad IBC/h).
+   */
   getEfficiency(r: any): number | null {
-    const ibcH = this.getIbcPerHour(r);
-    if (ibcH == null) return null;
-    // Hitta produktens cykeltid, default 3 min
+    if (!r.drifttid || !r.ibc_ok || this._isDrifttidCorrupt(r)) return null;
     const product = this.products?.find((p: any) => p.id === r.product_id);
     const targetCycleMin = product?.cycle_time_minutes || 3;
-    const targetIbcH = 60 / targetCycleMin;
-    return Math.min(Math.round((ibcH / targetIbcH) * 100), 100);
+    return Math.round((1 - r.drifttid / (r.ibc_ok * targetCycleMin)) * 100);
+  }
+
+  /** "+3 %", "−6 %", "±0 %" eller "–" (saknas). */
+  fmtEff(v: number | null | undefined): string {
+    if (v === null || v === undefined) return '–';
+    if (v === 0) return '±0 %';
+    return v > 0 ? `+${v} %` : `\u2212${Math.abs(v)} %`;
+  }
+
+  /** Signerad effektivitet: ≥ 0 % grön, ned till −10 % gul, annars röd (som startsidan). */
+  effKlass(v: number | null | undefined): string {
+    if (v === null || v === undefined) return 'text-muted';
+    return v >= 0 ? 'text-success' : v >= -10 ? 'text-warning' : 'text-danger';
   }
 
   getDefectPct(r: any): number | null {
@@ -1621,7 +1634,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
               ],
               [
                 { text: qualPct  != null ? qualPct  + '%'    : '–', alignment: 'center', color: qualPct != null && qualPct >= 90 ? 'green' : 'black' },
-                { text: effPct   != null ? effPct   + '%'    : '–', alignment: 'center' },
+                { text: this.fmtEff(effPct), alignment: 'center' },
                 { text: ibcH     != null ? ibcH     + ' st/h': '–', alignment: 'center' },
                 { text: defPct   != null ? defPct   + '%'    : '–', alignment: 'center', color: defPct != null && defPct > 10 ? 'red' : 'black' },
                 { text: avgCycle != null ? avgCycle + ' min' : '–', alignment: 'center' }
