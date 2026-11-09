@@ -49,8 +49,7 @@
           <div class="kpi">
             <span class="kpi-label">Effektivitet</span>
             <span class="kpi-value" [ngClass]="effKlass(o.data)">{{ o.laddar && !o.data ? '…' : fmtEffektivitet(o.data) }}</span>
-            <span class="kpi-help" *ngIf="linje === 'tvattlinje'">Takt mot måltakt<ng-container *ngIf="o.data?.effektivitet != null"> {{ fmtMaltakt(o.data) }} min/IBC</ng-container>; + = snabbare</span>
-            <span class="kpi-help" *ngIf="linje === 'rebotling'">Takt i % av måltakt<ng-container *ngIf="o.data?.effektivitet != null"> {{ fmtMaltakt(o.data) }} min/IBC</ng-container>, max 100 %</span>
+            <span class="kpi-help">Takt mot måltakt<ng-container *ngIf="o.data?.effektivitet != null"> {{ fmtMaltakt(o.data) }} min/IBC</ng-container>; + = snabbare</span>
           </div>
           <div class="kpi">
             <span class="kpi-label">Drifttid</span>

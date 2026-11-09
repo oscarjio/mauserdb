@@ -627,8 +627,10 @@ class RebotlingController {
      * Endast läsning. Rebotlings befintliga definitioner (getStatistics N133 + skiftrapporten):
      *  - IBC        = godkända, SUM(MAX(ibc_ok)) per skiftraknare (domänkorrekt, N133)
      *  - drifttid   = PLC-nettotid, SUM(MAX(runtime_plc)) per skiftraknare, cappad 600 min/dag
-     *  - effektivitet = faktisk IBC/h ÷ mål-IBC/h = IBC × måltakt / drifttid, cappad 100 %
-     *                   (rebotlings definition — en kvot, inte tvättlinjens signerade avvikelse)
+     *  - effektivitet = 1 − drifttid / (IBC × måltakt), signerad, ingen cap — samma form som
+     *                   tvättlinjens (+ = snabbare än måltakt). Beslut Oscar 2026-11-09 för startsidan;
+     *                   tidigare kvoten IBC × måltakt / drifttid cappad 100 %, som fortfarande gäller
+     *                   i rebotlings skiftrapport, statistik, Excel/PDF och Statusvyn.
      *  - måltakt    = snitt av dagens cyklers produkt-cykeltid (som getStatistics)
      *  - driftstopp = rebotling_driftstopp-händelser start→slut (som getStatistics)
      */
@@ -678,7 +680,7 @@ class RebotlingController {
 
             $harData = $rader > 0;
             $harDrift = $harData && $drifttid > 0;
-            $eff = ($harDrift && $ibc > 0) ? min(1.0, $ibc * $maltakt / $drifttid) : null;
+            $eff = ($harDrift && $ibc > 0) ? 1 - $drifttid / ($ibc * $maltakt) : null;
 
             echo json_encode(['success' => true, 'data' => [
                 'datum'         => (string)$agg['dag'],
@@ -686,7 +688,7 @@ class RebotlingController {
                 'ibc'           => $harData ? $ibc : null,
                 'ibcPerTimme'   => ($harDrift && $ibc > 0) ? round($ibc / ($drifttid / 60), 1) : null,
                 'effektivitet'  => $eff !== null ? round($eff, 3) : null,
-                'effektivitetTyp' => 'kvot',
+                'effektivitetTyp' => 'signerad',
                 'drifttidMin'   => $harData ? (int)round($drifttid) : null,
                 'driftstoppMin' => $harData ? (int)round($driftstopp) : null,
                 'driftstoppPagar' => $pagar,
