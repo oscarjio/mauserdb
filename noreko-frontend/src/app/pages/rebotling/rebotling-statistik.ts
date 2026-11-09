@@ -1645,7 +1645,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const datasets: any[] = [
         {
           label: 'Effektivitet %',
-          data: chartData.prodPct,
+          data: (chartData.prodPct as (number | null)[]).map(v => RebotlingStatistikPage.tillDiagram(v)),
           borderColor: '#00d4ff',
           backgroundColor: 'rgba(0, 212, 255, 0.1)',
           tension: 0.4,
@@ -1657,7 +1657,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         },
         {
           label: 'Snitt',
-          data: chartData.avgProdPct,
+          data: (chartData.avgProdPct as (number | null)[]).map(v => RebotlingStatistikPage.tillDiagram(v)),
           borderColor: '#ffc107',
           borderDash: [8, 4],
           tension: 0,
@@ -1700,8 +1700,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 },
                 label: (ctx: any) => {
                   const val = ctx.parsed.y;
-                  if (ctx.dataset.label === 'Effektivitet %') return `Effektivitet (rullande 30 min): ${this.fmtEff(val)}`;
-                  if (ctx.dataset.label === 'Snitt') return `Dagens effektivitet: ${this.fmtEff(val)}`;
+                  // Verkligt värde (diagrammet är kapat vid golvet).
+                  const golvTxt = (v: number | null) => v !== null && v < RebotlingStatistikPage.EFF_DIAGRAM_GOLV ? ` (under ${RebotlingStatistikPage.EFF_DIAGRAM_GOLV} %, visas vid golvet)` : '';
+                  if (ctx.dataset.label === 'Effektivitet %') { const v = chartData.prodPct[ctx.dataIndex]; return `Effektivitet (rullande 30 min): ${this.fmtEff(v)}${golvTxt(v)}`; }
+                  if (ctx.dataset.label === 'Snitt') { const v = chartData.avgProdPct[ctx.dataIndex]; return `Dagens effektivitet: ${this.fmtEff(v)}${golvTxt(v)}`; }
                   return `${ctx.dataset.label}: ${val != null ? val.toFixed(1) : '—'}`;
                 },
                 afterBody: (tooltipItems: any[]) => {
@@ -1719,6 +1721,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           },
           scales: {
             y: {
+              // Golv −50 % (se EFF_DIAGRAM_GOLV); taket följer datan.
+              min: (chartData.prodPct as (number | null)[]).some(v => v !== null && v < RebotlingStatistikPage.EFF_DIAGRAM_GOLV) ? RebotlingStatistikPage.EFF_DIAGRAM_GOLV : undefined,
               title: { display: true, text: 'Effektivitet mot måltakt', color: '#e0e0e0', font: { size: 13 } },
               ticks: { color: '#a0a0a0', callback: (v: string | number) => (Number(v) > 0 ? '+' : '') + v + '%' },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
@@ -1872,7 +1876,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       if (eff >= -10) return '#ffc107';
       return '#dc3545';
     });
-    const effVarden = effData.filter((v): v is number => v !== null);
+    const GOLV = RebotlingStatistikPage.EFF_DIAGRAM_GOLV;
+    const underGolv = effData.map(v => v !== null && v < GOLV);
+    const ritData = effData.map(v => RebotlingStatistikPage.tillDiagram(v));
+    const effVarden = ritData.filter((v): v is number => v !== null);
 
     this.productionChart = new Chart(ctx, {
       type: 'bar',
@@ -1880,8 +1887,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         labels: chartData.labels,
         datasets: [{
           label: 'Effektivitet %',
-          data: effData,
-          backgroundColor: barColors,
+          data: ritData,
+          // Avkapade staplar (under golvet) mörkare röda, verkliga värdet skrivs i stapeln.
+          backgroundColor: barColors.map((c, i) => underGolv[i] ? 'rgba(140, 30, 40, 0.85)' : c),
           borderColor: barBorderColors,
           borderWidth: 1,
           borderRadius: 4,
@@ -1921,7 +1929,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 const eff = effData[idx];
                 const count = countData[idx] || 0;
                 const effStatus = eff === null ? '' : eff > 0 ? ' (snabbare än måltakt)' : eff < 0 ? ' (långsammare än måltakt)' : ' (i måltakt)';
-                return [`Effektivitet: ${this.fmtEff(eff)}${effStatus}`, `Godkända IBC: ${count} st`];
+                const rader = [`Effektivitet: ${this.fmtEff(eff)}${effStatus}`, `Godkända IBC: ${count} st`];
+                if (underGolv[idx]) rader.push(`Under ${GOLV} %: stapeln är kapad. Linjen har troligen`, `stått på med mycket lite produktion.`);
+                return rader;
               }
             }
           }
@@ -1929,7 +1939,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         scales: {
           y: {
             // Signerad skala kring 0 % (måltakt): plats för både + och −.
-            suggestedMin: Math.min(-10, ...effVarden) - 5,
+            // Golv −50 %: extremvärden (påslagen linje utan produktion) kapas i diagrammet.
+            min: underGolv.some(Boolean) ? GOLV : undefined,
+            suggestedMin: Math.max(GOLV, Math.min(-10, ...effVarden) - 5),
             suggestedMax: Math.max(10, ...effVarden) + 8,
             title: { display: true, text: 'Effektivitet mot måltakt', color: '#e0e0e0', font: { size: 13 } },
             ticks: { color: '#a0a0a0', callback: (v: string | number) => (Number(v) > 0 ? '+' : '') + v + '%' },
@@ -1992,6 +2004,17 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
               c.fillStyle = '#e2e8f0';
               // BUG-012: "IBC:" prefix gör det tydligt att etiketten visar antal IBC, inte effektivitet%
               c.fillText(`IBC: ${count}`, bar.x, bar.y - 4);
+            }
+            // Avkapad stapel: skriv verkliga värdet nere i stapeln, med pil nedåt.
+            if (underGolv[i] && bar.base !== undefined) {
+              c.save();
+              c.fillStyle = '#fff';
+              c.font = 'bold 9px sans-serif';
+              c.textBaseline = 'bottom';
+              // Ovanför IBC-etiketten (som ligger vid stapelns ände) så de inte krockar.
+              c.fillText('\u25BC', bar.x, bar.y - 30);
+              c.fillText(this.fmtEff(effData[i]), bar.x, bar.y - 18);
+              c.restore();
             }
           });
           c.restore();
@@ -2955,6 +2978,18 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   /** Inom en dag (ingen PLC-drifttid per intervall): samma form på cykeltider, (mål − faktisk) / mål. */
+  /**
+   * Diagrammens golv för signerad effektivitet (Oscar 2026-11-09): ett skift där linjen
+   * stått på utan att produceras ger t.ex. −300 % och förstör skalan. Diagrammen ritar
+   * därför högst ned till −50 % och markerar avkapade värden; det verkliga talet syns i
+   * verktygstips, tabell och nyckeltal (beräkningen är oförändrad).
+   */
+  static readonly EFF_DIAGRAM_GOLV = -50;
+
+  private static tillDiagram(v: number | null): number | null {
+    return v === null || v === undefined ? null : Math.max(v, RebotlingStatistikPage.EFF_DIAGRAM_GOLV);
+  }
+
   private effFranCykeltid(malMin: number, faktiskMin: number): number | null {
     return malMin > 0 && faktiskMin > 0 ? Math.round(((malMin - faktiskMin) / malMin) * 1000) / 10 : null;
   }
