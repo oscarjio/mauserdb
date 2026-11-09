@@ -1723,6 +1723,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
             y: {
               // Golv −50 % (se EFF_DIAGRAM_GOLV); taket följer datan.
               min: (chartData.prodPct as (number | null)[]).some(v => v !== null && v < RebotlingStatistikPage.EFF_DIAGRAM_GOLV) ? RebotlingStatistikPage.EFF_DIAGRAM_GOLV : undefined,
+              // Signerad skala: visa alltid mållinjen ±0 % med luft (annars kollapsar axeln
+              // när alla punkter ligger vid golvet).
+              suggestedMin: -10,
+              suggestedMax: 10,
               title: { display: true, text: 'Effektivitet mot måltakt', color: '#e0e0e0', font: { size: 13 } },
               ticks: { color: '#a0a0a0', callback: (v: string | number) => (Number(v) > 0 ? '+' : '') + v + '%' },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
