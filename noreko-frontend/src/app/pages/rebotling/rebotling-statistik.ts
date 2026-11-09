@@ -1743,10 +1743,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
             const { top, bottom, left, right } = chartArea;
 
-            // 100% mål-linje
+            // Mållinje: måltakt = ±0 % (signerad skala)
             const yScale = scales['y'];
             if (yScale) {
-              const y100 = yScale.getPixelForValue(100);
+              const y100 = yScale.getPixelForValue(0);
               if (y100 >= top && y100 <= bottom) {
                 ctx.save();
                 ctx.beginPath();
@@ -1760,7 +1760,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 ctx.font = '10px sans-serif';
                 ctx.textAlign = 'right';
                 ctx.textBaseline = 'bottom';
-                ctx.fillText('Mål 100%', right - 4, y100 - 3);
+                ctx.fillText('Mål ±0 %', right - 4, y100 - 3);
                 ctx.restore();
               }
             }
@@ -1952,10 +1952,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           const { ctx: c, chartArea, scales } = chart;
           if (!chartArea) return;
 
-          // Draw 100% target line
+          // Mållinje vid ±0 % (måltakt, signerad skala)
           const yScale = scales['y'];
           if (yScale) {
-            const y100 = yScale.getPixelForValue(100);
+            const y100 = yScale.getPixelForValue(0);
             if (y100 >= chartArea.top && y100 <= chartArea.bottom) {
               c.save();
               c.beginPath();
@@ -1970,7 +1970,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
               c.font = '10px sans-serif';
               c.textAlign = 'right';
               c.textBaseline = 'bottom';
-              c.fillText('Mål 100%', chartArea.right - 4, y100 - 3);
+              c.fillText('Mål ±0 %', chartArea.right - 4, y100 - 3);
               c.restore();
             }
           }
