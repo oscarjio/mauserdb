@@ -623,16 +623,68 @@ class RebotlingController {
     }
 
     /**
+     * Rebotlings dagssummor — EN definition för startsida, Statusvy och statistik
+     * (beslut Oscar 2026-11-09: samma effektivitet överallt på samma dag). Endast läsning.
+     *  - ibc       = godkända, SUM(MAX(ibc_ok)) per skiftraknare och dag (N133); null utan resultaträknare
+     *  - drifttid  = PLC-nettotid SUM(MAX(runtime_plc)) per skiftraknare, cappad 600 min/dag; null utan räknare
+     *  - maltakt   = snitt av dagens cyklers produkt-cykeltid (fallback 3,0)
+     *  - ideal     = ibc × maltakt (måltid för dagens IBC); null utan ibc eller drifttid
+     * Effektivitet för en dag eller period: effektivitetSignerad(Σideal, Σdrifttid).
+     * @return array<string, array{rader:int, ibc:?int, rt:float, drifttid:?float, kapad:bool, maltakt:float, ideal:?float}>
+     */
+    private function rebotlingDagsummor(string $fran, string $till): array {
+        $range = 'datum >= DATE(' . $this->pdo->quote($fran) . ') AND datum < DATE(' . $this->pdo->quote($till) . ') + INTERVAL 1 DAY';
+        $ut = [];
+        foreach ($this->pdo->query("SELECT DATE(datum) AS dag, COUNT(*) AS n FROM rebotling_ibc WHERE {$range} GROUP BY DATE(datum)")
+                ->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $ut[$r['dag']] = ['rader' => (int)$r['n'], 'ibc' => null, 'rt' => 0.0, 'drifttid' => null, 'kapad' => false, 'maltakt' => 3.0, 'ideal' => null];
+        }
+        foreach ($this->pdo->query("
+            SELECT dag, SUM(shift_ok) AS ibc, SUM(shift_rt) AS rt, SUM(rt_rader) AS rt_rader
+            FROM (
+                SELECT DATE(datum) AS dag, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                       MAX(COALESCE(runtime_plc, 0)) AS shift_rt, SUM(runtime_plc IS NOT NULL) AS rt_rader
+                FROM rebotling_ibc
+                WHERE {$range} AND ibc_ok IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare
+            ) s GROUP BY dag
+        ")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $d = $r['dag'];
+            $rt = (float)$r['rt'];
+            $ut[$d]['ibc'] = (int)$r['ibc'];
+            $ut[$d]['rt'] = $rt;
+            $ut[$d]['drifttid'] = ((int)$r['rt_rader'] > 0 && $rt > 0) ? min(600.0, $rt) : null;
+            $ut[$d]['kapad'] = $rt > 600;
+        }
+        foreach ($this->pdo->query("
+            SELECT DATE(i.datum) AS dag, AVG(p.cycle_time_minutes) AS mt
+            FROM rebotling_ibc i JOIN rebotling_products p ON p.id = i.produkt
+            WHERE i.{$range} AND p.cycle_time_minutes > 0
+            GROUP BY DATE(i.datum)
+        ")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            if (isset($ut[$r['dag']])) $ut[$r['dag']]['maltakt'] = (float)$r['mt'];
+        }
+        foreach ($ut as &$d) {
+            if ($d['ibc'] !== null && $d['drifttid'] !== null) $d['ideal'] = $d['ibc'] * $d['maltakt'];
+        }
+        unset($d);
+        ksort($ut);
+        return $ut;
+    }
+
+    /**
+     * Rebotlings effektivitet — samma form som tvättlinjens räknekärna: 1 − drifttid / (IBC × måltakt),
+     * signerad (+ = snabbare än måltakt), ingen cap. För perioder: summor av ideal och drifttid.
+     */
+    private static function effektivitetSignerad(?float $ideal, ?float $drifttid): ?float {
+        return ($ideal !== null && $ideal > 0 && $drifttid !== null && $drifttid > 0) ? 1 - $drifttid / $ideal : null;
+    }
+
+    /**
      * GET ?action=rebotling&run=oversikt-idag — dagens nyckeltal för startsidans översikt.
-     * Endast läsning. Rebotlings befintliga definitioner (getStatistics N133 + skiftrapporten):
-     *  - IBC        = godkända, SUM(MAX(ibc_ok)) per skiftraknare (domänkorrekt, N133)
-     *  - drifttid   = PLC-nettotid, SUM(MAX(runtime_plc)) per skiftraknare, cappad 600 min/dag
-     *  - effektivitet = 1 − drifttid / (IBC × måltakt), signerad, ingen cap — samma form som
-     *                   tvättlinjens (+ = snabbare än måltakt). Beslut Oscar 2026-11-09 för startsidan;
-     *                   tidigare kvoten IBC × måltakt / drifttid cappad 100 %, som fortfarande gäller
-     *                   i rebotlings skiftrapport, statistik, Excel/PDF och Statusvyn.
-     *  - måltakt    = snitt av dagens cyklers produkt-cykeltid (som getStatistics)
-     *  - driftstopp = rebotling_driftstopp-händelser start→slut (som getStatistics)
+     * Endast läsning. Alla tal ur rebotlingDagsummor() (samma som Statusvy och statistik);
+     * effektivitet = effektivitetSignerad (signerad, ingen cap). Driftstopp ur
+     * rebotling_driftstopp-händelser start→slut (som getStatistics).
      */
     private function getOversiktIdag(): void {
         // Valfri ?datum=YYYY-MM-DD (för kontroll mot kända dagar), annars idag.
@@ -640,31 +692,13 @@ class RebotlingController {
         try {
             if ($dag === null) $dag = (string)$this->pdo->query('SELECT CURDATE()')->fetchColumn();
             $q = $this->pdo->quote($dag);
-            $agg = $this->pdo->query("
-                SELECT DATE({$q}) AS dag,
-                    (SELECT COUNT(*) FROM rebotling_ibc WHERE datum >= DATE({$q}) AND datum < DATE({$q}) + INTERVAL 1 DAY) AS rader,
-                    COALESCE(SUM(shift_ok), 0) AS ibc,
-                    COALESCE(SUM(shift_rt), 0) AS drifttid
-                FROM (
-                    SELECT skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ok, MAX(COALESCE(runtime_plc, 0)) AS shift_rt
-                    FROM rebotling_ibc
-                    WHERE datum >= DATE({$q}) AND datum < DATE({$q}) + INTERVAL 1 DAY AND ibc_ok IS NOT NULL
-                    GROUP BY skiftraknare
-                ) s
-            ")->fetch(PDO::FETCH_ASSOC);
-            $rader    = (int)($agg['rader'] ?? 0);
-            $ibc      = (int)($agg['ibc'] ?? 0);
-            $drifttid = min(600.0, (float)($agg['drifttid'] ?? 0));
-
-            $mt = $this->pdo->query("
-                SELECT AVG(p.cycle_time_minutes) FROM rebotling_ibc i
-                JOIN rebotling_products p ON p.id = i.produkt
-                WHERE i.datum >= DATE({$q}) AND i.datum < DATE({$q}) + INTERVAL 1 DAY AND p.cycle_time_minutes > 0
-            ")->fetchColumn();
-            $maltakt = ($mt !== false && $mt !== null && (float)$mt > 0) ? (float)$mt : 3.0;
+            $d = $this->rebotlingDagsummor($dag, $dag)[$dag] ?? null;
+            $rader    = $d['rader'] ?? 0;
+            $ibc      = $d['ibc'] ?? 0;
+            $drifttid = $d['drifttid'] ?? 0.0;
+            $maltakt  = $d['maltakt'] ?? 3.0;
 
             $driftstopp = 0.0;
-            $pagar = false;
             $start = null;
             foreach ($this->pdo->query("SELECT datum, driftstopp_status FROM rebotling_driftstopp
                     WHERE datum >= DATE({$q}) AND datum < DATE({$q}) + INTERVAL 1 DAY ORDER BY datum ASC")
@@ -680,10 +714,10 @@ class RebotlingController {
 
             $harData = $rader > 0;
             $harDrift = $harData && $drifttid > 0;
-            $eff = ($harDrift && $ibc > 0) ? 1 - $drifttid / ($ibc * $maltakt) : null;
+            $eff = ($harDrift && $ibc > 0) ? self::effektivitetSignerad($d['ideal'], $drifttid) : null;
 
             echo json_encode(['success' => true, 'data' => [
-                'datum'         => (string)$agg['dag'],
+                'datum'         => $dag,
                 'harData'       => $harData,
                 'ibc'           => $harData ? $ibc : null,
                 'ibcPerTimme'   => ($harDrift && $ibc > 0) ? round($ibc / ($drifttid / 60), 1) : null,
@@ -702,13 +736,9 @@ class RebotlingController {
 
     /**
      * GET ?action=rebotling&run=statusvy-dagar — dagssummor för Statusvyn (kräver inloggning).
-     * Endast läsning och endast aggregat: inga operatörer, inga cykelrader. Samma
-     * definitioner som getOversiktIdag / getStatistics (N133), per dag de senaste 400 dagarna:
-     *  - ibc         = godkända, SUM(MAX(ibc_ok)) per skiftraknare; null utan resultaträknare
-     *  - drifttidMin = PLC-nettotid SUM(MAX(runtime_plc)) per skift, cappad 600; null utan räknare
-     *  - driftstoppMin = rebotling_driftstopp start→slut; null före första registreringen
-     *  - idealMin    = ibc × dagens måltakt (snitt av cyklernas produkt-cykeltid)
-     * Effektivitet för en period = min(1, ΣidealMin / Σdrifttid) (rebotlings kvot, viktad).
+     * Endast läsning och endast aggregat: inga operatörer, inga cykelrader. Värdena kommer ur
+     * rebotlingDagsummor() (samma som startsida och statistik), de senaste 400 dagarna.
+     * Effektivitet för en period = 1 − ΣdrifttidMin / ΣidealMin (signerad, ingen cap).
      */
     private function getStatusvyDagar(): void {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
@@ -720,33 +750,8 @@ class RebotlingController {
         try {
             $idag = (string)$this->pdo->query('SELECT CURDATE()')->fetchColumn();
             $fran = date('Y-m-d', strtotime($idag . ' -400 days'));
-            $qFran = $this->pdo->quote($fran);
             $qIdag = $this->pdo->quote($idag);
-            $range = "datum >= DATE({$qFran}) AND datum < DATE({$qIdag}) + INTERVAL 1 DAY";
-
-            $dagar = [];
-            foreach ($this->pdo->query("
-                SELECT dag, SUM(shift_ok) AS ibc, SUM(shift_rt) AS rt, SUM(rt_rader) AS rt_rader
-                FROM (
-                    SELECT DATE(datum) AS dag, skiftraknare, MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
-                           MAX(COALESCE(runtime_plc, 0)) AS shift_rt, SUM(runtime_plc IS NOT NULL) AS rt_rader
-                    FROM rebotling_ibc
-                    WHERE {$range} AND ibc_ok IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare
-                ) s GROUP BY dag
-            ")->fetchAll(PDO::FETCH_ASSOC) as $r) {
-                $dagar[$r['dag']] = ['ibc' => (int)$r['ibc'], 'rt' => (float)$r['rt'], 'rtr' => (int)$r['rt_rader']];
-            }
-
-            $maltakt = [];
-            foreach ($this->pdo->query("
-                SELECT DATE(i.datum) AS dag, AVG(p.cycle_time_minutes) AS mt
-                FROM rebotling_ibc i JOIN rebotling_products p ON p.id = i.produkt
-                WHERE i.{$range} AND p.cycle_time_minutes > 0
-                GROUP BY DATE(i.datum)
-            ")->fetchAll(PDO::FETCH_ASSOC) as $r) {
-                $maltakt[$r['dag']] = (float)$r['mt'];
-            }
+            $range = 'datum >= DATE(' . $this->pdo->quote($fran) . ") AND datum < DATE({$qIdag}) + INTERVAL 1 DAY";
 
             // Driftstopp per dag (start→slut, attribueras till startdagen, som getStatistics).
             $forstaDriftstopp = $this->pdo->query("SELECT DATE(MIN(datum)) FROM rebotling_driftstopp")->fetchColumn() ?: null;
@@ -763,20 +768,18 @@ class RebotlingController {
                 }
             }
 
-            ksort($dagar);
             $ut = [];
             $dataFran = null;
-            foreach ($dagar as $d => $a) {
+            foreach ($this->rebotlingDagsummor($fran, $idag) as $d => $a) {
+                if ($a['ibc'] === null) continue; // dagar utan resultaträknare = saknad data
                 if ($dataFran === null) $dataFran = $d;
-                $harDrift = $a['rtr'] > 0 && $a['rt'] > 0;
-                $drift = $harDrift ? min(600.0, $a['rt']) : null;
                 $ut[] = [
                     'dag'           => $d,
                     'ibc'           => $a['ibc'],
-                    'drifttidMin'   => $drift !== null ? round($drift, 1) : null,
-                    'drifttidKapad' => $harDrift && $a['rt'] > 600,
+                    'drifttidMin'   => $a['drifttid'] !== null ? round($a['drifttid'], 1) : null,
+                    'drifttidKapad' => $a['drifttid'] !== null && $a['kapad'],
                     'driftstoppMin' => ($forstaDriftstopp !== null && $d >= $forstaDriftstopp) ? round($driftstopp[$d] ?? 0, 1) : null,
-                    'idealMin'      => $drift !== null ? round($a['ibc'] * ($maltakt[$d] ?? 3.0), 2) : null,
+                    'idealMin'      => $a['ideal'] !== null ? round($a['ideal'], 2) : null,
                 ];
             }
 
@@ -789,7 +792,7 @@ class RebotlingController {
                 'senasteData'     => $senaste,
                 'fran'            => $fran,
                 'dataFran'        => $dataFran,
-                'effektivitetTyp' => 'kvot',
+                'effektivitetTyp' => 'signerad',
                 'dagar'           => $ut,
             ]], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
@@ -1554,6 +1557,23 @@ class RebotlingController {
                 $by_month_arr[] = ['month' => $month_key, 'cycles' => $cnt];
             }
 
+            // Effektivitet per dag och för perioden ur rebotlingDagsummor() (samma som startsida/Statusvy).
+            $effPerDag = [];
+            $effIdeal = 0.0; $effDrift = 0.0;
+            foreach ($this->rebotlingDagsummor($start, $end) as $dag => $a) {
+                if ($a['ibc'] === null) continue;
+                $effPerDag[$dag] = [
+                    'ibc'          => $a['ibc'],
+                    'drifttid_min' => $a['drifttid'] !== null ? round($a['drifttid'], 1) : null,
+                    'ideal_min'    => $a['ideal'] !== null ? round($a['ideal'], 2) : null,
+                    'maltakt'      => round($a['maltakt'], 3),
+                ];
+                if ($a['ideal'] !== null && $a['ideal'] > 0 && $a['drifttid'] !== null && $a['drifttid'] > 0) {
+                    $effIdeal += $a['ideal']; $effDrift += $a['drifttid'];
+                }
+            }
+            $effPeriod = self::effektivitetSignerad($effIdeal > 0 ? $effIdeal : null, $effDrift > 0 ? $effDrift : null);
+
             echo json_encode([
                 'success' => true,
                 'data' => [
@@ -1574,8 +1594,15 @@ class RebotlingController {
                         'days_with_production' => $days_with_production,
                         'total_rast_minutes' => round($totalRastMinutes, 1),
                         'total_driftstopp_minutes' => round($totalDriftstoppMinutes, 1),
-                        'net_runtime_minutes' => round($netRuntimeMinutes, 1)
-                    ]
+                        'net_runtime_minutes' => round($netRuntimeMinutes, 1),
+                        // Effektivitet (beslut Oscar 2026-11-09): samma som startsida och Statusvy —
+                        // ur rebotlingDagsummor(), 1 − Σdrifttid / Σideal, signerad, ingen cap.
+                        'effektivitet' => $effPeriod !== null ? round($effPeriod, 4) : null,
+                        'effektivitet_ideal_min' => round($effIdeal, 2),
+                        'effektivitet_drifttid_min' => round($effDrift, 1),
+                    ],
+                    // Per dag (YYYY-MM-DD) med samma källa — frontend summerar dagar till celler/staplar/rader.
+                    'effektivitet_per_dag' => $effPerDag,
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
