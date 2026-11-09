@@ -122,7 +122,7 @@
       <div class="d-flex flex-wrap gap-3 mb-3 kpi-compact-bar">
         <span class="kpi-compact"><i class="fas fa-cubes me-1 text-muted"></i><strong>{{ totalCycles }}</strong> IBC</span>
         <span class="kpi-compact"><i class="fas fa-clock me-1 text-muted"></i><strong>{{ avgCycleTime }}</strong> min snitt</span>
-        <span class="kpi-compact"><i class="fas fa-percentage me-1 text-muted"></i><strong [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency }}%</strong> effektivitet</span>
+        <span class="kpi-compact"><i class="fas fa-percentage me-1 text-muted"></i><strong [ngClass]="getEfficiencyClass(avgEfficiency)">{{ fmtEff(avgEfficiency) }}</strong> effektivitet mot måltakt</span>
         <span class="kpi-compact"><i class="fas fa-tachometer-alt me-1 text-muted"></i><strong>{{ totalRuntimeHours }}</strong> h körtid</span>
       </div>
     </div>
@@ -309,10 +309,8 @@
                 <div class="kpi-card" style="background:#2d3748; border-radius:8px; padding:12px; text-align:center;">
                   <div class="small text-muted mb-1">Effektivitet</div>
                   <div class="fw-bold" style="font-size:1.4rem;"
-                       [class.text-success]="plcKpi.effektivitet >= 80"
-                       [class.text-warning]="plcKpi.effektivitet >= 60 && plcKpi.effektivitet < 80"
-                       [class.text-danger]="plcKpi.effektivitet < 60">
-                    {{ plcKpi.effektivitet }}%
+                       [ngClass]="getEfficiencyClass(plcKpi.effektivitet)">
+                    {{ fmtEff(plcKpi.effektivitet) }}
                   </div>
                 </div>
               </div>
@@ -499,7 +497,7 @@
                       <td><i class="fas fa-calendar-day me-2 text-muted"></i>{{ row.period }}</td>
                       <td class="text-end"><strong>{{ row.cycles }}</strong></td>
                       <td class="text-end">{{ row.avgCycleTime }} min</td>
-                      <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)"><strong>{{ row.efficiency }}%</strong></td>
+                      <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)"><strong>{{ fmtEff(row.efficiency) }}</strong></td>
                       <td class="text-end">{{ row.ibcPerHour }}</td>
                     </tr>
                   </tbody>
@@ -508,7 +506,7 @@
                       <td><strong>Totalt</strong></td>
                       <td class="text-end"><strong>{{ totalCycles }}</strong></td>
                       <td class="text-end"><strong>{{ avgCycleTime }} min</strong></td>
-                      <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)"><strong>{{ avgEfficiency }}%</strong></td>
+                      <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)"><strong>{{ fmtEff(avgEfficiency) }}</strong></td>
                       <td class="text-end"><strong>{{ totalIbcPerHour }}</strong></td>
                     </tr>
                   </tfoot>

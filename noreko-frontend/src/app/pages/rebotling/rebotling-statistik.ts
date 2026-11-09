@@ -83,13 +83,20 @@ Chart.register(annotationPlugin);
 
 type ViewMode = 'year' | 'month' | 'day' | 'heatmap';
 
+/** Dagnyckel 'YYYY-MM-DD' (som backendens effektivitet_per_dag). */
+class StatistikDag {
+  static nyckel(y: number, m0: number, d: number): string {
+    return `${y}-${String(m0 + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+}
+
 interface PeriodCell {
   label: string;
   value: number;
   date: Date;
   cyclesCount: number;
   avgCycleTime: number;
-  efficiency: number;
+  efficiency: number | null;
   isSelected: boolean;
   hasData: boolean;
 }
@@ -99,8 +106,8 @@ interface TableRow {
   date: Date;
   cycles: number;
   avgCycleTime: number;
-  efficiency: number;
-  avgProdPct: number;
+  efficiency: number | null;
+  avgProdPct: number | null;
   ibcPerHour: number;
   runtime: number;
   clickable: boolean;
@@ -143,9 +150,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   totalCycles: number = 0;
   avgCycleTime: number = 0;
-  avgEfficiency: number = 0;
-  avgEfficiencyWarning: boolean = false; // G: rått effektivitetsvärde > 100 (kapat till 100)
-  avgProdPct: number = 0;
+  /** Signerad effektivitet i procent (+ = snabbare än måltakt), null = saknas. Beslut Oscar 2026-11-09. */
+  avgEfficiency: number | null = null;
+  avgEfficiencyWarning: boolean = false;
+  avgProdPct: number | null = null;
+  /** Rebotlings dagssummor från backend (effektivitet_per_dag) — samma källa som startsida och Statusvy. */
+  private effPerDag: Record<string, { ibc: number; drifttid_min: number | null; ideal_min: number | null }> = {};
   totalRuntimeHours: number = 0;
   totalIbcPerHour: number = 0;
   targetCycleTime: number = 0;
@@ -182,7 +192,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   // ---- PLC Översikt (dag-vy) ----
   showPlcOverview = false;
   showRawCyclesCollapse = false;
-  plcKpi: { totalIbc: number; effektivitet: number; snittCykelMin: number; stoppidTotMin: number } = { totalIbc: 0, effektivitet: 0, snittCykelMin: 0, stoppidTotMin: 0 };
+  plcKpi: { totalIbc: number; effektivitet: number | null; snittCykelMin: number; stoppidTotMin: number } = { totalIbc: 0, effektivitet: null, snittCykelMin: 0, stoppidTotMin: 0 };
   plcTimvisData: { hour: number; count: number }[] = [];
   plcCycleHistogram: { label: string; count: number }[] = [];
   plcDetectedStopps: { startTime: string; durationMin: number }[] = [];
@@ -891,30 +901,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     // total_cycles behålls bara som rådiagnostik i backend-svaret.
     this.totalCycles = data.summary.total_ibc ?? data.summary.total_cycles;
     this.avgCycleTime = Math.round((data.summary.avg_cycle_time || 0) * 10) / 10;
-    // Effektivitet (alla vyer): total_ibc × target / netto_drifttid × 100
-    // BUG-012: För månad/år-vy beräknas netto-drifttid i frontend (samma metod som stapeldiagrammet)
-    // för att garantera att KPI-snittet matchar staplarnas genomsnitt.
-    // Dag-vy kan använda backend net_runtime_minutes (enkel dag, inga gränsproblem).
-    const targetCt = data.summary.target_cycle_time || 3;
-    // N133: effektiviteten ska utgå från domänkorrekt IBC, ej rå radräkning.
-    const totalCyc = (data.summary.total_ibc ?? data.summary.total_cycles) || 0;
-    let netRtMin: number;
-    if (this.viewMode !== 'day') {
-      // Beräkna netto-drifttid från events i frontend (samma som stapeldiagrammet)
-      netRtMin = this.computeTotalNetRuntimeMinutes(data);
-    } else {
-      netRtMin = data.summary.net_runtime_minutes
-        || (data.summary.total_runtime_hours * 60)
-        || 0;
-    }
-    // G: cappa till 100 (kan ej överprestera mål) + varningsflagga när rått värde > 100.
-    const properEffRaw = (netRtMin > 0 && totalCyc > 0)
-      ? Math.round(totalCyc * targetCt / netRtMin * 100)
-      : 0;
-    const properEff = Math.min(100, properEffRaw);
-    this.avgEfficiency = properEff;
-    this.avgProdPct = properEff;
-    this.avgEfficiencyWarning = properEffRaw > 100;
+    // Effektivitet (beslut Oscar 2026-11-09): samma som startsida och Statusvy —
+    // 1 − Σdrifttid / Σ(godkända IBC × måltakt) ur backendens dagssummor, signerad, ingen cap.
+    this.effPerDag = data.effektivitet_per_dag || {};
+    const effSummary = data.summary.effektivitet;
+    this.avgEfficiency = effSummary == null ? null : Math.round(effSummary * 1000) / 10;
+    this.avgProdPct = this.avgEfficiency;
+    this.avgEfficiencyWarning = false;
     // N133: visa PLC-nettotid (per-dag-kapad) i st f brutto onoff-väggklocka, så Översikt
     // matchar Realtids-OEE. Fallback till gamla fältet om aggregatet saknas.
     this.totalRuntimeHours = data.summary.plc_runtime_minutes != null
@@ -1109,14 +1102,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           : (this.targetCycleTime || 3);
         cell.avgCycleTime = Math.round(avgCycleTime * 10) / 10;
 
-        // Effektivitet: IBC × target / netto_drifttid × 100 (matchar BUG-007-fixet)
-        // Fallback till target/avg_cykeltid om inga onoff-events finns (dag-vy eller äldre data)
-        // Kräv minst 5 min netto-drifttid för att undvika explosiv eff% vid korta testdagar (BUG-013)
-        const netMin = netRuntimeByKey.get(key) || 0;
-        if (netMin >= 5) {
-          cell.efficiency = Math.min(100, Math.round(periodCycles.length * avgTarget / netMin * 100));
+        // Effektivitet: månad/år ur backendens dagssummor (samma som startsidan); inom en dag
+        // finns ingen PLC-drifttid per intervall, där används samma form på cykeltiderna.
+        if (this.viewMode === 'year' || this.viewMode === 'month') {
+          cell.efficiency = this.dagSumma(this.periodFilter(key)).eff;
         } else {
-          cell.efficiency = avgCycleTime > 0 ? Math.min(100, Math.round((avgTarget / avgCycleTime) * 100)) : 0;
+          cell.efficiency = this.effFranCykeltid(avgTarget, avgCycleTime);
         }
       }
     });
@@ -1420,31 +1411,25 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       }
     }
 
-    // Build efficiency and cycle count arrays for bar chart (month/year views)
-    // Formel: IBC × target_cykeltid / netto_drifttid × 100 (matchar dagvy-KPI)
-    const efficiencyArr: number[] = [];
+    // Staplar: effektivitet och antal godkända IBC per dag (månad) eller månad (år) ur backendens
+    // dagssummor — samma källa som startsidan och tabellen. Timvy (flera dagar valda): cykeltider.
+    const efficiencyArr: (number | null)[] = [];
     const cycleCountArr: number[] = [];
     slicedEntries.forEach(([key, value]) => {
-      const count = Math.max(0, value.cycles.length); // BUG-014: sanity guard (cycles.length alltid >= 0 men defensivt)
-      cycleCountArr.push(count);
-      if (count > 0) {
-        const avgTarget = value.cycles.reduce((s: number, c: any) => s + parseFloat(c.target_cycle_time || 3), 0) / count;
-        const netMin = netRuntimeByKey.get(key) || 0;
-        // Kräv minst 5 min netto-drifttid för att undvika explosiv eff% vid korta testdagar (BUG-013)
-        if (netMin >= 5) {
-          efficiencyArr.push(Math.min(100, Math.round(count * avgTarget / netMin * 100)));
-        } else {
-          // Fallback om inga onoff-events finns eller för kort drifttid: target / avg_cykeltid
-          const validTimes = value.cycles
-            .map((c: any) => parseFloat(c.cycle_time))
-            .filter((t: number) => !isNaN(t) && t > 0 && t <= 30);
-          efficiencyArr.push(validTimes.length > 0
-            ? Math.min(100, Math.round((avgTarget / (validTimes.reduce((s: number, t: number) => s + t, 0) / validTimes.length)) * 100))
-            : 0);
-        }
-      } else {
-        efficiencyArr.push(0);
+      if (monthViewHourly) {
+        const count = Math.max(0, value.cycles.length);
+        cycleCountArr.push(count);
+        const valid = value.cycles.map((c: any) => parseFloat(c.cycle_time)).filter((t: number) => !isNaN(t) && t > 0 && t <= 30);
+        const avgTarget = count > 0 ? value.cycles.reduce((s: number, c: any) => s + parseFloat(c.target_cycle_time || 3), 0) / count : 3;
+        efficiencyArr.push(valid.length ? this.effFranCykeltid(avgTarget, valid.reduce((s: number, t: number) => s + t, 0) / valid.length) : null);
+        return;
       }
+      const pred = this.viewMode === 'month'
+        ? ((dag: string) => dag === StatistikDag.nyckel(this.currentYear, this.currentMonth, Number(key)))
+        : ((dag: string) => dag.startsWith(`${this.currentYear}-${String(this.monthNames.findIndex(n => n.substring(0, 3) === key) + 1).padStart(2, '0')}-`));
+      const sum = this.dagSumma(pred);
+      cycleCountArr.push(sum.ibc);
+      efficiencyArr.push(sum.eff);
     });
 
     return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, rastPeriods, efficiencyArr, cycleCountArr };
@@ -1482,13 +1467,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     const labels: string[] = [];
     const cycleTime: number[] = [];
-    const prodPct: number[] = [];
+    const prodPct: (number | null)[] = [];
     const avgCycleTimeArr: number[] = [];
     const targetCycleTimeArr: number[] = [];
     const produktNamn: string[] = [];
 
     let totalCycleTime = 0;
-    let totalProdPct = 0;
+    // (dagens snitt kommer nu ur backendens dagssumma, se avgProdPctVal)
 
     // Rullande 30-min tidsfönster: för varje cykel samlas alla cykler inom föregående 30 min
     const WINDOW_MS = 30 * 60 * 1000;
@@ -1558,9 +1543,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       }
       const netWindowMin = Math.max(1, WINDOW_MINUTES - pauseMinInWindow);
 
-      const pp = windowCount > 0 ? Math.min(100, Math.round((windowCount * effTargetVal / netWindowMin) * 100)) : 0;
+      // Samma form som dagens effektivitet: 1 − nettotid / (antal × måltakt), signerad, ingen cap.
+      const pp = windowCount > 0 ? Math.round((1 - netWindowMin / (windowCount * effTargetVal)) * 100) : null;
       prodPct.push(pp);
-      totalProdPct += pp;
       targetCycleTimeArr.push(!isNaN(target) && target > 0 ? Math.round(target * 10) / 10 : 0);
 
       produktNamn.push(cycle.produkt_namn || '');
@@ -1580,9 +1565,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const rast: any[] = data.rast_events || [];
     const rastPeriods = this.buildRastPeriodsForCycles(displayCycles, rast);
 
-    const avgProdPctVal = displayCycles.length > 0
-      ? Math.round(totalProdPct / displayCycles.length)
-      : 0;
+    // Snittlinjen = dagens effektivitet ur backendens dagssumma (samma tal som KPI och startsida).
+    const avgProdPctVal = this.avgEfficiency;
     const avgProdPctArr = labels.map(() => avgProdPctVal);
 
     return {
@@ -1716,8 +1700,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 },
                 label: (ctx: any) => {
                   const val = ctx.parsed.y;
-                  if (ctx.dataset.label === 'Effektivitet %') return `Effektivitet: ${val != null ? val.toFixed(1) : '—'}%`;
-                  if (ctx.dataset.label === 'Snitt') return `Genomsnitt: ${val != null ? val.toFixed(1) : '—'}%`;
+                  if (ctx.dataset.label === 'Effektivitet %') return `Effektivitet (rullande 30 min): ${this.fmtEff(val)}`;
+                  if (ctx.dataset.label === 'Snitt') return `Dagens effektivitet: ${this.fmtEff(val)}`;
                   return `${ctx.dataset.label}: ${val != null ? val.toFixed(1) : '—'}`;
                 },
                 afterBody: (tooltipItems: any[]) => {
@@ -1735,9 +1719,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           },
           scales: {
             y: {
-              beginAtZero: true,
-              title: { display: true, text: 'Effektivitet %', color: '#e0e0e0', font: { size: 13 } },
-              ticks: { color: '#a0a0a0' },
+              title: { display: true, text: 'Effektivitet mot måltakt', color: '#e0e0e0', font: { size: 13 } },
+              ticks: { color: '#a0a0a0', callback: (v: string | number) => (Number(v) > 0 ? '+' : '') + v + '%' },
               grid: { color: 'rgba(255, 255, 255, 0.05)' }
             },
             x: {
@@ -1871,23 +1854,25 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
    * IBC count as data label on top, click navigates to day/month.
    */
   private createBarChart(ctx: CanvasRenderingContext2D, chartData: any) {
-    const effData: number[] = chartData.efficiencyArr || [];
+    const effData: (number | null)[] = chartData.efficiencyArr || [];
     const countData: number[] = chartData.cycleCountArr || [];
 
-    // Color each bar by efficiency value (0 = no data → grå, ej röd)
-    const barColors = effData.map((eff: number, i: number) => {
-      if (countData[i] === 0) return 'rgba(100, 100, 100, 0.35)';
-      if (eff >= 90) return 'rgba(39, 174, 96, 0.75)';
-      if (eff >= 70) return 'rgba(255, 193, 7, 0.75)';
+    // Färg efter signerad effektivitet (som startsidan): ≥ 0 % grön, ned till −10 % gul, annars röd.
+    // Saknad effektivitet (ingen produktion/drifttid) = grå, ej röd.
+    const barColors = effData.map((eff, i) => {
+      if (eff === null || countData[i] === 0) return 'rgba(100, 100, 100, 0.35)';
+      if (eff >= 0) return 'rgba(39, 174, 96, 0.75)';
+      if (eff >= -10) return 'rgba(255, 193, 7, 0.75)';
       return 'rgba(220, 53, 69, 0.65)';
     });
 
-    const barBorderColors = effData.map((eff: number, i: number) => {
-      if (countData[i] === 0) return 'rgba(100, 100, 100, 0.5)';
-      if (eff >= 90) return '#27ae60';
-      if (eff >= 70) return '#ffc107';
+    const barBorderColors = effData.map((eff, i) => {
+      if (eff === null || countData[i] === 0) return 'rgba(100, 100, 100, 0.5)';
+      if (eff >= 0) return '#27ae60';
+      if (eff >= -10) return '#ffc107';
       return '#dc3545';
     });
+    const effVarden = effData.filter((v): v is number => v !== null);
 
     this.productionChart = new Chart(ctx, {
       type: 'bar',
@@ -1933,21 +1918,21 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
               },
               label: (context: any) => {
                 const idx = context.dataIndex;
-                const eff = effData[idx] || 0;
+                const eff = effData[idx];
                 const count = countData[idx] || 0;
-                const effStatus = eff >= 100 ? ' (över mål)' : eff >= 90 ? ' (nära mål)' : ' (under mål)';
-                return [`Effektivitet: ${eff}%${effStatus}`, `Antal IBC: ${count} st`];
+                const effStatus = eff === null ? '' : eff > 0 ? ' (snabbare än måltakt)' : eff < 0 ? ' (långsammare än måltakt)' : ' (i måltakt)';
+                return [`Effektivitet: ${this.fmtEff(eff)}${effStatus}`, `Godkända IBC: ${count} st`];
               }
             }
           }
         },
         scales: {
           y: {
-            beginAtZero: true,
-            suggestedMin: 0,
-            suggestedMax: Math.max(Math.max(...effData.filter(v => v > 0), 0) + 18, 115),
-            title: { display: true, text: 'Effektivitet %', color: '#e0e0e0', font: { size: 13 } },
-            ticks: { color: '#a0a0a0', callback: (v: string | number) => v + '%' },
+            // Signerad skala kring 0 % (måltakt): plats för både + och −.
+            suggestedMin: Math.min(-10, ...effVarden) - 5,
+            suggestedMax: Math.max(10, ...effVarden) + 8,
+            title: { display: true, text: 'Effektivitet mot måltakt', color: '#e0e0e0', font: { size: 13 } },
+            ticks: { color: '#a0a0a0', callback: (v: string | number) => (Number(v) > 0 ? '+' : '') + v + '%' },
             grid: { color: 'rgba(255, 255, 255, 0.05)' }
           },
           x: {
@@ -2380,8 +2365,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         return sum;
       }, 0);
 
-    const eff = Math.min(100, this.avgEfficiency || 0);
-    this.plcKpi = { totalIbc, effektivitet: eff, snittCykelMin: snittCykel, stoppidTotMin: stoppMin };
+    this.plcKpi = { totalIbc, effektivitet: this.avgEfficiency, snittCykelMin: snittCykel, stoppidTotMin: stoppMin };
 
     // 2. Timvis produktion (groupera IBC OK per timme)
     const hourMap = new Map<number, number>();
@@ -2620,38 +2604,36 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         ? validCycleTimes.reduce((sum: number, t: number) => sum + t, 0) / validCycleTimes.length
         : 0;
 
-      // Effektivitet: IBC × target / netto_drifttid × 100 (matchar BUG-007-fixet)
-      // BUG-088: parseFloat för target_cycle_time — kan vara sträng från PDO
       const avgTarget = cycles.length > 0
         ? cycles.reduce((sum: number, c: any) => sum + parseFloat(c.target_cycle_time || 3), 0) / cycles.length
         : 3;
 
-      // Hämta netto drifttid för perioden (år/månad-vy). Dag-vy: fallback till avg_cykeltid × cykler.
-      // Kräv minst 5 min netto-drifttid för att undvika explosiv eff% vid korta testdagar (BUG-013)
-      const periodNetMin = tableNetRuntime.get(periodKey) || 0;
-      let avgEff: number;
+      // Månad/år: godkända IBC, PLC-drifttid och effektivitet ur backendens dagssummor (samma som
+      // startsidan och KPI-raden). Dagvy (10-min-rader): cykelrader och samma effektivitetsform på cykeltid.
+      let antal: number;
+      let avgEff: number | null;
       let runtimeMinutes: number;
-      if (periodNetMin >= 5) {
-        avgEff = Math.min(250, (cycles.length * avgTarget / periodNetMin) * 100);
-        runtimeMinutes = periodNetMin;
+      if (this.viewMode === 'year' || this.viewMode === 'month') {
+        const sum = this.dagSumma(this.periodFilter(periodKey));
+        antal = sum.ibc;
+        avgEff = sum.eff;
+        runtimeMinutes = sum.drifttid;
       } else {
-        // Fallback (dag-vy eller perioder utan onoff-data): target/avg_cykeltid × 100
-        avgEff = validCycleTimes.length > 0
-          ? Math.min(250, (avgTarget / (validCycleTimes.reduce((s: number, t: number) => s + t, 0) / validCycleTimes.length)) * 100)
-          : 0;
+        antal = cycles.length;
+        avgEff = this.effFranCykeltid(avgTarget, avgCycleTime);
         runtimeMinutes = cycles.length * avgCycleTime;
       }
 
       const runtimeHours = runtimeMinutes / 60;
-      const ibcPerHour = runtimeHours > 0 ? Math.round((cycles.length / runtimeHours) * 10) / 10 : 0;
+      const ibcPerHour = runtimeHours > 0 ? Math.round((antal / runtimeHours) * 10) / 10 : 0;
 
       this.tableData.push({
         period: period,
         date: date,
-        cycles: cycles.length,
+        cycles: antal,
         avgCycleTime: Math.round(avgCycleTime * 10) / 10,
-        efficiency: Math.round(avgEff),
-        avgProdPct: Math.round(avgEff),
+        efficiency: avgEff,
+        avgProdPct: avgEff,
         ibcPerHour: ibcPerHour,
         runtime: Math.round(runtimeMinutes * 10) / 10,
         clickable: this.viewMode !== 'day'
@@ -2660,9 +2642,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     this.tableData.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    // Compute total IBC/h
-    const totalRuntime = this.tableData.reduce((sum, r) => sum + r.runtime, 0);
-    const totalRuntimeH = totalRuntime / 60;
+    // Totalt IBC/h: godkända IBC / PLC-drifttid för hela perioden (samma källa som raderna).
+    const totalRuntimeH = (this.viewMode === 'day'
+      ? this.tableData.reduce((sum, r) => sum + r.runtime, 0)
+      : this.dagSumma(() => true).drifttid) / 60;
     this.totalIbcPerHour = totalRuntimeH > 0 ? Math.round((this.totalCycles / totalRuntimeH) * 10) / 10 : 0;
   }
 
@@ -2928,10 +2911,52 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.loadHeatmap();
   }
 
-  getEfficiencyClass(efficiency: number): string {
-    if (efficiency >= 90) return 'text-success';
-    if (efficiency >= 70) return 'text-warning';
+  /** Signerad effektivitet: ≥ 0 % grön, ned till −10 % gul, annars röd (som startsidan). */
+  getEfficiencyClass(efficiency: number | null): string {
+    if (efficiency === null || efficiency === undefined) return 'text-muted';
+    if (efficiency >= 0) return 'text-success';
+    if (efficiency >= -10) return 'text-warning';
     return 'text-danger';
+  }
+
+  /** "+3 %", "−6 %", "±0 %" eller "—" (saknas). */
+  fmtEff(v: number | null | undefined): string {
+    if (v === null || v === undefined || !isFinite(v)) return '—';
+    const pct = Math.round(v);
+    if (pct === 0) return '±0 %';
+    return pct > 0 ? `+${pct} %` : `\u2212${Math.abs(pct)} %`;
+  }
+
+  /**
+   * Summerar backendens dagssummor för dagar som matchar filtret: godkända IBC, PLC-drifttid
+   * och effektivitet = 1 − Σdrifttid / Σideal (procent, en decimal; null utan underlag).
+   * Summor före division — aldrig medelvärde av dagsprocenter.
+   */
+  private dagSumma(pred: (dag: string) => boolean): { ibc: number; drifttid: number; eff: number | null } {
+    let ibc = 0, drifttid = 0, ideal = 0, effDrift = 0;
+    for (const [dag, x] of Object.entries(this.effPerDag)) {
+      if (!pred(dag)) continue;
+      ibc += x.ibc || 0;
+      drifttid += x.drifttid_min || 0;
+      if (x.ideal_min && x.ideal_min > 0 && x.drifttid_min && x.drifttid_min > 0) { ideal += x.ideal_min; effDrift += x.drifttid_min; }
+    }
+    return { ibc, drifttid, eff: ideal > 0 && effDrift > 0 ? Math.round((1 - effDrift / ideal) * 1000) / 10 : null };
+  }
+
+  /** Filter för en periodnyckel: år-vy 'YYYY-M0' (månad), månad-vy 'YYYY-M0-D' (dag). */
+  private periodFilter(key: string): (dag: string) => boolean {
+    const [y, m0, d] = key.split('-').map(Number);
+    if (this.viewMode === 'year') {
+      const prefix = `${y}-${String(m0 + 1).padStart(2, '0')}-`;
+      return (dag: string) => dag.startsWith(prefix);
+    }
+    const nyckel = StatistikDag.nyckel(y, m0, d);
+    return (dag: string) => dag === nyckel;
+  }
+
+  /** Inom en dag (ingen PLC-drifttid per intervall): samma form på cykeltider, (mål − faktisk) / mål. */
+  private effFranCykeltid(malMin: number, faktiskMin: number): number | null {
+    return malMin > 0 && faktiskMin > 0 ? Math.round(((malMin - faktiskMin) / malMin) * 1000) / 10 : null;
   }
 
   exportProductionChart(): void {
@@ -2949,12 +2974,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   exportCSV() {
     if (this.tableData.length === 0) return;
 
-    const header = ['Period', 'IBC OK', 'Cykeltid (min)', 'Effektivitet (%)', 'IBC/h'];
+    const header = ['Period', 'IBC OK', 'Cykeltid (min)', 'Effektivitet mot måltakt (%)', 'IBC/h'];
     const rows = this.tableData.map(row => [
       row.period,
       row.cycles,
       row.avgCycleTime,
-      row.efficiency,
+      row.efficiency ?? '',
       row.ibcPerHour
     ]);
 
@@ -2979,7 +3004,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         'Period': row.period,
         'IBC OK': row.cycles,
         'Cykeltid (min)': row.avgCycleTime,
-        'Effektivitet (%)': row.efficiency,
+        'Effektivitet mot måltakt (%)': row.efficiency,
         'IBC/h': row.ibcPerHour
       }));
       const ws = XLSX.utils.json_to_sheet(data);
